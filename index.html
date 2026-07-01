@@ -354,6 +354,7 @@
   .planopt{display:flex;align-items:center;gap:11px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--card2);cursor:pointer;font-weight:700;font-size:14px;color:var(--tx)}
   .planopt .em{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:var(--primary-tint);flex:0 0 auto}
   .optbox{background:var(--load-tint);border:1px solid var(--load);color:var(--load-ink);font-size:12.5px;border-radius:11px;padding:10px 12px;margin:10px 0;line-height:1.5}
+  .zonatag{display:inline-block;font-size:11px;font-weight:800;color:var(--accent);letter-spacing:.3px;margin:0 0 10px}
   /* foco visible (accesibilidad) */
   button:focus-visible,a:focus-visible,input:focus-visible,.toggle:focus-visible,.rcard:focus-visible,.ex .top:focus-visible{outline:none;box-shadow:var(--sh-focus)}
   /* recolor de diagramas y anillo del timer: atributos inline -> tokens de tema */
@@ -441,6 +442,7 @@ const VID={
   pec_puerta:"DK1FtsnIAD0", flexor_cadera:"8kfH_OhZNAg", movilidad_cervical:"CdGR0c3UHb4",
   isometricos_cervicales:"Ik6U4kIMmsg", tmj_mandibula:"2DM5X2NjTb8", face_yoga:"vWIebuU1xFo"
 };
+const ZONA={gato_camello:"Zona media",chin_tuck:"Cuello",wall_angels:"Espalda alta",extension_toracica:"Zona media",open_book:"Zona media",reverse_fly:"Espalda alta",remo_inclinado:"Espalda media",glute_bridge:"Zona baja",bird_dog:"Zona baja",dead_bug:"Zona baja",elevador_escapula:"Cuello",trapecio_superior:"Cuello",pec_puerta:"Postura",flexor_cadera:"Zona baja",movilidad_cervical:"Cuello",isometricos_cervicales:"Cuello",tmj_mandibula:"Rostro",face_yoga:"Rostro"};
 const EX={
   gato_camello:{name:"Gato–camello",tag:"calent",type:"reps",sets:1,reps:10,rest:0,
     steps:["Ponte en cuatro apoyos: manos bajo los hombros, rodillas bajo las caderas.","Redondea la espalda hacia arriba (gato) metiendo el ombligo, mira al abdomen.","Invierte: hunde la espalda y sube la mirada (camello). Alterna lento con la respiración."]},
@@ -480,18 +482,18 @@ const EX={
     steps:["Sonríe con labios cerrados y sube las mejillas.","Coloca los dedos suave sobre las mejillas como resistencia.","Mantén 5 s y relaja. Movimientos suaves."]}
 };
 const ROUTINES={
-  postura_completa:{name:"Postura — Completa",group:"Postura",emoji:"🧍",cls:"p",desc:"13 ejercicios · ~15 min · incluye carga. Ideal 3–4×/semana.",
-    list:["gato_camello","chin_tuck","wall_angels","extension_toracica","open_book","reverse_fly","remo_inclinado","glute_bridge","bird_dog","dead_bug","elevador_escapula","pec_puerta","flexor_cadera"]},
-  postura_movilidad:{name:"Postura — Movilidad",group:"Postura",emoji:"🤸",cls:"p",desc:"11 ejercicios · ~12 min · solo peso corporal. Para hacer a diario.",
-    list:["gato_camello","chin_tuck","wall_angels","extension_toracica","open_book","glute_bridge","bird_dog","dead_bug","elevador_escapula","pec_puerta","flexor_cadera"]},
-  cuello_rostro:{name:"Cuello y rostro",group:"Cuello y rostro",emoji:"🧠",cls:"n",desc:"7 ejercicios · ~8 min · cuello, mandíbula y rostro.",
+  postura_completa:{name:"Postura — Completa",group:"Postura",emoji:"🧍",cls:"p",desc:"Espalda alta, media y baja + cuello · con carga · ideal 3–4×/sem.",
+    list:["gato_camello","wall_angels","reverse_fly","remo_inclinado","extension_toracica","open_book","glute_bridge","bird_dog","dead_bug","flexor_cadera","chin_tuck","movilidad_cervical","isometricos_cervicales","elevador_escapula","pec_puerta"]},
+  postura_movilidad:{name:"Postura — Movilidad",group:"Postura",emoji:"🤸",cls:"p",desc:"Movilidad diaria de espalda y cuello · solo peso corporal.",
+    list:["gato_camello","wall_angels","extension_toracica","open_book","glute_bridge","bird_dog","dead_bug","flexor_cadera","chin_tuck","movilidad_cervical","elevador_escapula","pec_puerta"]},
+  cuello_rostro:{name:"Cuello y rostro",group:"Cuello y rostro",emoji:"🧠",cls:"n",desc:"Fortalecimiento del cuello y estética facial.",
     list:["chin_tuck","movilidad_cervical","isometricos_cervicales","elevador_escapula","trapecio_superior","tmj_mandibula","face_yoga"]}
 };
 const GROUPS=[{title:"Postura",keys:["postura_completa","postura_movilidad"]},{title:"Cuello y rostro",keys:["cuello_rostro"]}];
 const TAG={calent:["Calentamiento","b-calent"],diario:["Diario","b-diario"],carga:["Carga 3–4×/sem","b-carga"],opcional:["Opcional","b-opcional"]};
 const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
-const VERSION="v7 · 2026-07-01";
+const VERSION="v8 · 2026-07-01";
 let curRoutine=null, steps=[], stepi=0, tId=null, actx=null, remTimers=[];
 const $=id=>document.getElementById(id);
 function show(v){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$(v).classList.add("active");
@@ -565,7 +567,7 @@ function openRoutine(k){curRoutine=k;const r=ROUTINES[k],chk=checksFor(k);
       <div class="top">
         <div class="exck" onclick="event.stopPropagation();toggleCheck('${id}',${i})" role="button" aria-label="Marcar hecho">${done?'✓':''}</div>
         <div class="diag" onclick="toggleEx(${i})">${DIAG[id]||""}</div>
-        <div style="flex:1;min-width:0" onclick="toggleEx(${i})"><div class="nm">${esc(e.name)}</div><div class="meta">${metaOf(e)}</div>
+        <div style="flex:1;min-width:0" onclick="toggleEx(${i})"><div class="nm">${esc(e.name)}</div><div class="meta">${metaOf(e)}${(typeof ZONA!=="undefined"&&ZONA[id])?' · '+ZONA[id]:''}</div>
           <div class="badges"><span class="badge ${tc}">${tl}</span></div></div>
         <div class="exstart" onclick="event.stopPropagation();startRoutine('${id}')" role="button" aria-label="Empezar por este ejercicio" title="Empezar aquí">▶</div>
       </div>
@@ -683,7 +685,7 @@ function frame(inner){const s=steps[stepi],prog=Math.round(stepi/steps.length*10
   return `<div class="gtop"><div class="icbtn" onclick="guidedBack()">‹</div>
     <div class="pbar"><i style="width:${prog}%"></i></div>
     <div class="gcount">${s.exI}/${s.exN}</div><div class="icbtn" onclick="guidedExit()">✕</div></div>
-    <div class="stage"><div class="setlab">${s.label}</div><div class="exname">${s.name}</div>
+    <div class="stage"><div class="setlab">${s.label}</div><div class="exname">${s.name}</div>${(typeof ZONA!=="undefined"&&ZONA[s.id])?'<div class="zonatag">'+ZONA[s.id]+'</div>':''}
     ${(typeof FRAMES!=="undefined"&&FRAMES[s.id])?`<div class="gframes">${framesStrip(s.id)}</div>`:`<div class="gdiag">${DIAG[s.id]||""}</div>`}
     ${s.caveat?'<div class="caveatbox">⚠️ Evidencia floja: los ejercicios faciales muestran, en el mejor caso, mejoras modestas tras meses. Hazlo sin grandes expectativas.</div>':''}
     ${s.tag==="opcional"?'<div class="optbox">🔁 Ejercicio opcional — si la máquina está ocupada, sáltalo o cámbialo por otro similar.</div>':''}
