@@ -442,7 +442,7 @@ const VID={
   pec_puerta:"DK1FtsnIAD0", flexor_cadera:"8kfH_OhZNAg", movilidad_cervical:"CdGR0c3UHb4",
   isometricos_cervicales:"Ik6U4kIMmsg", tmj_mandibula:"2DM5X2NjTb8", face_yoga:"vWIebuU1xFo"
 };
-const ZONA={gato_camello:"Zona media",chin_tuck:"Cuello",wall_angels:"Espalda alta",extension_toracica:"Zona media",open_book:"Zona media",reverse_fly:"Espalda alta",remo_inclinado:"Espalda media",glute_bridge:"Zona baja",bird_dog:"Zona baja",dead_bug:"Zona baja",elevador_escapula:"Cuello",trapecio_superior:"Cuello",pec_puerta:"Postura",flexor_cadera:"Zona baja",movilidad_cervical:"Cuello",isometricos_cervicales:"Cuello",tmj_mandibula:"Rostro",face_yoga:"Rostro"};
+const ZONA={gato_camello:"Zona media",chin_tuck:"Cuello · postura",wall_angels:"Espalda alta",extension_toracica:"Zona media",open_book:"Zona media",reverse_fly:"Espalda alta",remo_inclinado:"Espalda media",glute_bridge:"Zona baja",bird_dog:"Zona baja",dead_bug:"Zona baja",elevador_escapula:"Cuello · postura",trapecio_superior:"Cuello · postura",pec_puerta:"Postura",flexor_cadera:"Zona baja",movilidad_cervical:"Cuello · postura",isometricos_cervicales:"Cuello · fuerza",tmj_mandibula:"Rostro",face_yoga:"Rostro · estética"};
 const EX={
   gato_camello:{name:"Gato–camello",tag:"calent",type:"reps",sets:1,reps:10,rest:0,
     steps:["Ponte en cuatro apoyos: manos bajo los hombros, rodillas bajo las caderas.","Redondea la espalda hacia arriba (gato) metiendo el ombligo, mira al abdomen.","Invierte: hunde la espalda y sube la mirada (camello). Alterna lento con la respiración."]},
@@ -483,7 +483,7 @@ const EX={
 };
 const ROUTINES={
   postura_completa:{name:"Postura — Completa",group:"Postura",emoji:"🧍",cls:"p",desc:"Espalda alta, media y baja + cuello · con carga · ideal 3–4×/sem.",
-    list:["gato_camello","wall_angels","reverse_fly","remo_inclinado","extension_toracica","open_book","glute_bridge","bird_dog","dead_bug","flexor_cadera","chin_tuck","movilidad_cervical","isometricos_cervicales","elevador_escapula","pec_puerta"]},
+    list:["gato_camello","wall_angels","reverse_fly","remo_inclinado","extension_toracica","open_book","glute_bridge","bird_dog","dead_bug","flexor_cadera","chin_tuck","movilidad_cervical","elevador_escapula","pec_puerta"]},
   postura_movilidad:{name:"Postura — Movilidad",group:"Postura",emoji:"🤸",cls:"p",desc:"Movilidad diaria de espalda y cuello · solo peso corporal.",
     list:["gato_camello","wall_angels","extension_toracica","open_book","glute_bridge","bird_dog","dead_bug","flexor_cadera","chin_tuck","movilidad_cervical","elevador_escapula","pec_puerta"]},
   cuello_rostro:{name:"Cuello y rostro",group:"Cuello y rostro",emoji:"🧠",cls:"n",desc:"Fortalecimiento del cuello y estética facial.",
@@ -493,7 +493,7 @@ const GROUPS=[{title:"Postura",keys:["postura_completa","postura_movilidad"]},{t
 const TAG={calent:["Calentamiento","b-calent"],diario:["Diario","b-diario"],carga:["Carga 3–4×/sem","b-carga"],opcional:["Opcional","b-opcional"]};
 const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
-const VERSION="v8 · 2026-07-01";
+const VERSION="v9 · 2026-07-01";
 let curRoutine=null, steps=[], stepi=0, tId=null, actx=null, remTimers=[];
 const $=id=>document.getElementById(id);
 function show(v){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$(v).classList.add("active");
