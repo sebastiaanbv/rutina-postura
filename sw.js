@@ -1,4 +1,4 @@
-const CACHE = "rutina-postura-v1";
+const CACHE = "rutina-postura-v3";
 const ASSETS = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -11,9 +11,16 @@ self.addEventListener("activate", e => {
   );
 });
 self.addEventListener("fetch", e => {
-  const url = new URL(e.request.url);
-  // Solo el "shell" de la app se sirve desde caché; los videos de YouTube van a la red.
-  if (url.origin === location.origin) {
-    e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+  const req = e.request;
+  const url = new URL(req.url);
+  if (url.origin !== location.origin) return; // videos de YouTube -> red normal
+  // La app (index.html) va network-first: así las actualizaciones se ven al instante.
+  if (req.mode === "navigate" || url.pathname.endsWith("/") || url.pathname.endsWith("index.html")) {
+    e.respondWith(
+      fetch(req).then(r => { const cp = r.clone(); caches.open(CACHE).then(c => c.put(req, cp)); return r; })
+        .catch(() => caches.match(req).then(r => r || caches.match("index.html")))
+    );
+  } else {
+    e.respondWith(caches.match(req).then(r => r || fetch(req)));
   }
 });

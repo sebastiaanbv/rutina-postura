@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#05664a">
+<meta name="theme-color" content="#0b1220">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,431 +12,498 @@
 <title>Rutina de Postura</title>
 <style>
   :root{
-    --bg:#0e1620; --bg2:#0a1017; --card:#182430; --card2:#1f2e3c;
-    --tx:#e7eff6; --mut:#93a4b3; --line:#26333f;
-    --go:#34d399; --go2:#059669; --rest:#f59e0b; --accent:#38bdf8;
-    --blue:#3b82f6; --purple:#a78bfa; --gray:#64748b; --amber:#f59e0b;
+    --bg:#0b1220; --bg2:#0e1826; --card:#152130; --card2:#1c2c3e; --line:#26374a;
+    --tx:#eaf1f8; --mut:#93a7ba; --go:#34d399; --go2:#0e9f6e; --rest:#f59e0b;
+    --sky:#38bdf8; --blue:#60a5fa; --purple:#a78bfa; --amber:#f59e0b; --slate:#64748b;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--tx);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+  html,body{margin:0;padding:0;background:
+    radial-gradient(1200px 500px at 50% -10%, #14243a 0%, var(--bg) 60%) fixed;
+    color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
     -webkit-font-smoothing:antialiased}
-  body{max-width:560px;margin:0 auto;min-height:100vh;padding:0 0 env(safe-area-inset-bottom)}
-  .wrap{padding:16px 16px 40px}
-  .view{display:none} .view.active{display:block}
-  h1{font-size:22px;margin:0;font-weight:800;letter-spacing:-.3px}
-  .sub{color:var(--mut);font-size:13px;margin-top:2px}
+  body{max-width:600px;margin:0 auto;min-height:100vh}
+  .app{padding:0 0 96px}
+  .view{display:none;animation:fade .25s ease} .view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  h1{font-size:23px;margin:0;font-weight:800;letter-spacing:-.4px}
+  .mut{color:var(--mut)}
 
-  /* header / streak */
-  .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;
-    padding:16px 16px 6px}
-  .brand{display:flex;align-items:center;gap:10px}
-  .brand img{width:34px;height:34px;border-radius:9px}
-  .streak{background:linear-gradient(135deg,#0f2a20,#12352a);border:1px solid #1c4735;
-    border-radius:14px;padding:12px 14px;display:flex;gap:14px;align-items:center;margin:12px 16px 4px}
-  .streak .fire{font-size:26px}
-  .streak b{font-size:20px}
-  .streak .lab{color:var(--mut);font-size:12px}
-  .streak .best{margin-left:auto;text-align:right}
+  .head{padding:22px 18px 6px;display:flex;align-items:center;gap:12px}
+  .head img{width:38px;height:38px;border-radius:11px}
+  .head .sub{color:var(--mut);font-size:13px;margin-top:1px}
 
-  /* install / note */
-  .install{display:none;margin:10px 16px 0;background:#10233a;border:1px solid #1d3b5c;
-    border-radius:12px;padding:10px 12px;font-size:13px;align-items:center;gap:10px}
-  .install button{margin-left:auto}
+  .stats{display:flex;gap:10px;margin:14px 18px 6px}
+  .stat{flex:1;background:linear-gradient(150deg,#12261d,#132f24);border:1px solid #1e4a37;
+    border-radius:16px;padding:12px 14px}
+  .stat.b2{background:linear-gradient(150deg,#111f33,#122842);border-color:#1d3d63}
+  .stat.b3{background:linear-gradient(150deg,#1c1633,#241a44);border-color:#372a63}
+  .stat .v{font-size:24px;font-weight:800;line-height:1}
+  .stat .l{color:var(--mut);font-size:11px;margin-top:5px;font-weight:600}
 
-  /* tabs */
-  .tabs{display:flex;gap:8px;margin:16px 16px 8px}
-  .tab{flex:1;background:var(--card);border:1px solid var(--line);color:var(--mut);
-    border-radius:12px;padding:11px 6px;font-size:13px;font-weight:700;cursor:pointer;text-align:center;line-height:1.2}
-  .tab.on{background:var(--go2);border-color:var(--go);color:#eafff6}
-  .moddesc{color:var(--mut);font-size:13px;margin:2px 16px 12px;line-height:1.45}
+  .install{display:none;margin:12px 18px 0;background:#10233a;border:1px solid #1d3b5c;
+    border-radius:14px;padding:11px 14px;font-size:13px;align-items:center;gap:10px}
+  .install button{margin-left:auto;background:var(--sky);color:#04121d;border:none;
+    border-radius:9px;padding:8px 12px;font-weight:800;font-size:13px}
 
-  /* exercise list */
-  .list{list-style:none;margin:0 16px;padding:0;display:flex;flex-direction:column;gap:8px}
-  .item{background:var(--card);border:1px solid var(--line);border-radius:12px;
-    padding:12px;display:flex;gap:12px;align-items:center}
-  .item .n{width:24px;height:24px;border-radius:50%;background:var(--card2);color:var(--mut);
-    font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
-  .item .info{flex:1;min-width:0}
-  .item .nm{font-weight:700;font-size:15px}
-  .item .meta{color:var(--mut);font-size:12px;margin-top:2px}
+  .grouptitle{margin:22px 18px 8px;font-size:13px;font-weight:800;color:var(--mut);
+    text-transform:uppercase;letter-spacing:1px}
+  .rcard{margin:0 18px 10px;background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:16px;display:flex;gap:14px;align-items:center;cursor:pointer;transition:.15s}
+  .rcard:active{transform:scale(.99)}
+  .rcard .em{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;
+    justify-content:center;font-size:24px;flex:0 0 auto}
+  .rcard .em.p{background:linear-gradient(150deg,#123528,#0e9f6e33)}
+  .rcard .em.n{background:linear-gradient(150deg,#122842,#38bdf833)}
+  .rcard .t{flex:1;min-width:0}
+  .rcard .nm{font-weight:800;font-size:16px}
+  .rcard .ds{color:var(--mut);font-size:12.5px;margin-top:3px;line-height:1.4}
+  .rcard .go{color:var(--mut);font-size:22px}
+
+  /* routine detail */
+  .bar{display:flex;align-items:center;gap:12px;padding:18px 16px 8px}
+  .icbtn{width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--line);
+    color:var(--tx);font-size:19px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto}
+  .bar .ttl{font-size:19px;font-weight:800}
+  .exwrap{margin:6px 16px}
+  .ex{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:10px;overflow:hidden}
+  .ex .top{display:flex;gap:12px;align-items:center;padding:12px;cursor:pointer}
+  .diag{width:66px;height:52px;border-radius:11px;background:#0e1a28;border:1px solid var(--line);
+    flex:0 0 auto;display:flex;align-items:center;justify-content:center;padding:4px}
+  .diag svg{width:100%;height:100%}
+  .ex .nm{font-weight:700;font-size:15px;line-height:1.2}
+  .ex .meta{color:var(--mut);font-size:12px;margin-top:3px}
   .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-  .badge{font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;letter-spacing:.2px}
+  .badge{font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;letter-spacing:.2px}
   .b-diario{background:#122c4a;color:#7dbaf5} .b-carga{background:#241a44;color:#c3b3fb}
   .b-calent{background:#232c34;color:#9fb0bd} .b-opcional{background:#3a2a10;color:#f4c37a}
-  .play{flex:0 0 auto;width:40px;height:40px;border-radius:10px;background:var(--card2);
-    border:1px solid var(--line);color:var(--go);font-size:16px;display:flex;align-items:center;
-    justify-content:center;cursor:pointer}
+  .chev{color:var(--mut);font-size:16px;flex:0 0 auto;transition:.2s}
+  .ex.open .chev{transform:rotate(90deg)}
+  .ex .panel{display:none;padding:0 14px 14px}
+  .ex.open .panel{display:block}
+  .steps{list-style:none;margin:6px 0 0;padding:0;counter-reset:s}
+  .steps li{position:relative;padding:7px 0 7px 34px;color:#d3dfea;font-size:13.5px;line-height:1.5;border-top:1px solid #1b2836}
+  .steps li:before{counter-increment:s;content:counter(s);position:absolute;left:0;top:7px;width:22px;height:22px;
+    background:var(--go2);color:#03130c;border-radius:50%;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  .vbtn{display:inline-flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);
+    color:var(--tx);border-radius:10px;padding:9px 13px;font-size:13.5px;font-weight:700;cursor:pointer;margin-top:12px}
 
-  /* buttons */
-  .btn{display:block;width:calc(100% - 32px);margin:18px 16px 0;border:none;border-radius:14px;
-    padding:16px;font-size:16px;font-weight:800;cursor:pointer;color:#04120c;
-    background:linear-gradient(135deg,var(--go),var(--go2));box-shadow:0 6px 18px rgba(16,185,129,.25)}
+  .cta{position:sticky;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    background:linear-gradient(0deg,var(--bg) 60%,transparent)}
+  .btn{display:block;width:100%;border:none;border-radius:15px;padding:17px;font-size:16px;font-weight:800;
+    cursor:pointer;color:#03130c;background:linear-gradient(135deg,var(--go),var(--go2));
+    box-shadow:0 8px 22px rgba(16,185,129,.28)}
   .btn:active{transform:translateY(1px)}
-  .btn.ghost{background:var(--card);color:var(--tx);border:1px solid var(--line);box-shadow:none}
-
-  /* footer note */
-  .note{margin:22px 16px 0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .note summary{padding:12px 14px;cursor:pointer;font-size:13px;font-weight:700;color:var(--tx);list-style:none}
-  .note summary::-webkit-details-marker{display:none}
-  .note .body{padding:0 14px 14px;color:var(--mut);font-size:13px;line-height:1.55}
-  .note .body b{color:var(--tx)}
+  .btn.sec{background:var(--card);color:var(--tx);border:1px solid var(--line);box-shadow:none}
 
   /* guided */
-  #guided .gtop{display:flex;align-items:center;gap:12px;padding:14px 16px 6px}
-  .icbtn{width:38px;height:38px;border-radius:10px;background:var(--card);border:1px solid var(--line);
-    color:var(--tx);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto}
-  .pbar{flex:1;height:8px;background:var(--card);border-radius:20px;overflow:hidden}
-  .pbar > i{display:block;height:100%;background:linear-gradient(90deg,var(--go),var(--accent));width:0;transition:width .3s}
-  .gcount{color:var(--mut);font-size:12px;font-weight:700;flex:0 0 auto}
-  .stage{padding:8px 16px 24px}
-  .exname{font-size:24px;font-weight:800;letter-spacing:-.3px;margin:10px 0 4px;line-height:1.15}
-  .setlab{color:var(--go);font-weight:800;font-size:15px}
-  .cue{color:#c4d2de;font-size:15px;line-height:1.55;margin:14px 0 8px}
+  #guided{padding-bottom:20px}
+  .gtop{display:flex;align-items:center;gap:10px;padding:16px 16px 6px}
+  .pbar{flex:1;height:9px;background:var(--card);border-radius:20px;overflow:hidden}
+  .pbar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--go),var(--sky));transition:width .35s}
+  .gcount{color:var(--mut);font-size:12px;font-weight:800}
+  .stage{padding:6px 18px 26px}
+  .setlab{color:var(--go);font-weight:800;font-size:14px;margin-top:8px}
+  .exname{font-size:25px;font-weight:800;letter-spacing:-.4px;margin:4px 0 12px;line-height:1.12}
+  .gdiag{width:100%;height:172px;background:#0e1a28;border:1px solid var(--line);border-radius:16px;
+    display:flex;align-items:center;justify-content:center;padding:12px;margin-bottom:6px}
+  .gdiag svg{height:100%;width:auto;max-width:100%}
   .caveatbox{background:#3a2a10;border:1px solid #6b4c17;color:#f4c37a;font-size:12.5px;
-    border-radius:10px;padding:10px 12px;margin:8px 0;line-height:1.5}
-  .vidbtn{display:inline-flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);
-    color:var(--tx);border-radius:10px;padding:10px 14px;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px}
-  .videobox{margin:14px 0 4px;border-radius:12px;overflow:hidden;background:#000;display:none}
+    border-radius:11px;padding:10px 12px;margin:10px 0;line-height:1.5}
+  .videobox{margin:12px 0 2px;border-radius:14px;overflow:hidden;background:#000;display:none}
   .videobox.show{display:block}
-  .videobox .ratio{position:relative;width:100%;padding-top:56.25%}
-  .videobox iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-  .ytlink{display:inline-block;color:var(--accent);font-size:12.5px;margin:8px 2px 0;text-decoration:none}
-
-  .timer{font-size:64px;font-weight:800;text-align:center;margin:26px 0 6px;font-variant-numeric:tabular-nums}
-  .timer.rest{color:var(--rest)} .timer.go{color:var(--go)}
-  .phaselab{text-align:center;color:var(--mut);font-size:14px;font-weight:700;margin-bottom:8px}
-  .target{text-align:center;font-size:20px;font-weight:800;margin:24px 0 6px}
+  .ratio{position:relative;width:100%;padding-top:56.25%}
+  .ratio iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .ytlink{display:inline-block;color:var(--sky);font-size:12.5px;margin:8px 2px 0;text-decoration:none}
+  .glist{list-style:none;margin:14px 0 0;padding:0;counter-reset:s}
+  .glist li{position:relative;padding:8px 0 8px 34px;color:#d8e3ee;font-size:14.5px;line-height:1.5}
+  .glist li:before{counter-increment:s;content:counter(s);position:absolute;left:0;top:7px;width:23px;height:23px;
+    background:var(--go2);color:#03130c;border-radius:50%;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  .target{text-align:center;font-size:21px;font-weight:800;margin:18px 0 4px}
   .target small{display:block;color:var(--mut);font-size:13px;font-weight:600;margin-top:4px}
-  .gbtn{width:100%;border:none;border-radius:14px;padding:18px;font-size:17px;font-weight:800;cursor:pointer;margin-top:10px}
-  .gbtn.go{background:linear-gradient(135deg,var(--go),var(--go2));color:#04120c}
-  .gbtn.rest{background:linear-gradient(135deg,#f59e0b,#d97706);color:#2a1802}
-  .gbtn.sec{background:var(--card);color:var(--tx);border:1px solid var(--line)}
-  .ring{position:relative;width:210px;height:210px;margin:14px auto 0}
-  .ring svg{transform:rotate(-90deg)}
+  .ring{position:relative;width:200px;height:200px;margin:14px auto 0}
   .ring .val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-  .ring .val b{font-size:56px;font-weight:800;font-variant-numeric:tabular-nums}
-  .ring .val span{color:var(--mut);font-size:13px;font-weight:700;margin-top:2px}
+  .ring .val b{font-size:54px;font-weight:800;font-variant-numeric:tabular-nums}
+  .ring .val span{color:var(--mut);font-size:12px;font-weight:700;margin-top:2px}
+  .phaselab{text-align:center;color:var(--mut);font-size:14px;font-weight:800;margin-bottom:4px}
+  .timer{font-size:60px;font-weight:800;text-align:center;margin:22px 0 4px;font-variant-numeric:tabular-nums}
+  .timer.rest{color:var(--rest)}
+  .gbtn{width:100%;border:none;border-radius:15px;padding:17px;font-size:16px;font-weight:800;cursor:pointer;margin-top:10px}
+  .gbtn.go{background:linear-gradient(135deg,var(--go),var(--go2));color:#03130c}
+  .gbtn.rest{background:linear-gradient(135deg,#f59e0b,#d97706);color:#241400}
+  .gbtn.sec{background:var(--card);color:var(--tx);border:1px solid var(--line)}
+  .skip{display:block;width:100%;text-align:center;background:none;border:none;color:var(--mut);
+    font-size:13.5px;font-weight:700;margin-top:14px;cursor:pointer;padding:8px}
 
   /* completion */
-  .done{text-align:center;padding:40px 20px}
-  .done .em{font-size:60px}
-  .done h2{font-size:26px;margin:10px 0 6px}
-  .done p{color:var(--mut);font-size:15px;margin:4px 0}
-  .done .big{font-size:44px;font-weight:800;color:var(--go);margin:14px 0 2px}
+  .done{text-align:center;padding:46px 22px}
+  .done .em{font-size:64px}
+  .done h2{font-size:27px;margin:10px 0 4px}
+  .done .big{font-size:46px;font-weight:800;color:var(--go);margin:14px 0 0}
 
-  /* video overlay (home) */
-  #ov{position:fixed;inset:0;background:rgba(4,8,12,.88);display:none;z-index:50;
-    align-items:center;justify-content:center;padding:18px}
+  /* history + settings */
+  .sect{padding:6px 18px 20px}
+  .hitem{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;
+    margin-bottom:9px;display:flex;align-items:center;gap:12px}
+  .hitem .dot{width:38px;height:38px;border-radius:11px;background:linear-gradient(150deg,#123528,#0e9f6e33);
+    display:flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 auto}
+  .hitem .nm{font-weight:700;font-size:14px}
+  .hitem .dt{color:var(--mut);font-size:12px;margin-top:2px;text-transform:capitalize}
+  .empty{color:var(--mut);text-align:center;font-size:14px;padding:36px 10px;line-height:1.6}
+
+  .field{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+  .field .fl{font-weight:800;font-size:14px;margin-bottom:3px}
+  .field .fh{color:var(--mut);font-size:12.5px;line-height:1.5}
+  .switch{display:flex;align-items:center;gap:10px}
+  .toggle{width:48px;height:28px;border-radius:20px;background:#33465a;position:relative;cursor:pointer;flex:0 0 auto;transition:.2s}
+  .toggle.on{background:var(--go2)}
+  .toggle i{position:absolute;top:3px;left:3px;width:22px;height:22px;background:#fff;border-radius:50%;transition:.2s}
+  .toggle.on i{left:23px}
+  .timelist{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .timepill{background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:7px 12px;
+    font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .timepill span.x{color:var(--mut);cursor:pointer;font-weight:800}
+  .addrow{display:flex;gap:8px;margin-top:12px}
+  .addrow input{flex:1;background:#0e1a28;border:1px solid var(--line);color:var(--tx);border-radius:11px;
+    padding:11px;font-size:15px}
+  .addrow button{background:var(--sky);color:#04121d;border:none;border-radius:11px;padding:0 16px;font-weight:800;cursor:pointer}
+  .minibtn{background:var(--card2);border:1px solid var(--line);color:var(--tx);border-radius:10px;
+    padding:9px 12px;font-size:13px;font-weight:700;cursor:pointer;margin-top:10px}
+  .danger{color:#fca5a5;border-color:#7f1d1d;background:#2a1414}
+
+  /* bottom nav */
+  .nav{position:fixed;bottom:0;left:0;right:0;max-width:600px;margin:0 auto;
+    background:rgba(11,18,32,.92);backdrop-filter:blur(12px);border-top:1px solid var(--line);
+    display:flex;padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:30}
+  .nav.hide{display:none}
+  .nav a{flex:1;text-align:center;color:var(--mut);font-size:11px;font-weight:700;cursor:pointer;padding:4px}
+  .nav a .i{font-size:20px;display:block;margin-bottom:2px}
+  .nav a.on{color:var(--go)}
+
+  /* video overlay */
+  #ov{position:fixed;inset:0;background:rgba(4,8,12,.9);display:none;z-index:60;align-items:center;justify-content:center;padding:16px}
   #ov.show{display:flex}
-  .ovcard{background:var(--card);border:1px solid var(--line);border-radius:16px;width:100%;max-width:520px;overflow:hidden}
+  .ovcard{background:var(--card);border:1px solid var(--line);border-radius:16px;width:100%;max-width:540px;overflow:hidden}
   .ovhead{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
-  .ovhead .t{font-weight:700;font-size:14px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ovhead .t{font-weight:700;font-size:14px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ovhead .x{cursor:pointer;font-size:20px;color:var(--mut);width:30px;height:30px;display:flex;align-items:center;justify-content:center}
-  .ovbody .ratio{position:relative;width:100%;padding-top:56.25%;background:#000}
-  .ovbody iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
   .ovfoot{padding:10px 14px;font-size:12.5px;color:var(--mut)}
-  .ovfoot a{color:var(--accent)}
+  .ovfoot a{color:var(--sky)}
 </style>
 </head>
 <body>
+<div class="app">
 
-<!-- HOME -->
-<section id="home" class="view active">
-  <div class="topbar">
-    <div class="brand">
+  <!-- HOME -->
+  <section id="home" class="view active">
+    <div class="head">
       <img src="icon-192.png" alt="">
-      <div><h1>Rutina de Postura</h1><div class="sub">Espalda, cuello y hombros</div></div>
+      <div><h1>Rutina de Postura</h1><div class="sub">Elige una rutina y empieza</div></div>
     </div>
-  </div>
-
-  <div id="install" class="install">
-    <span>📲 Instala la app en tu pantalla de inicio</span>
-    <button class="play" style="width:auto;padding:8px 12px;color:var(--tx)" id="installBtn">Instalar</button>
-  </div>
-
-  <div class="streak">
-    <div class="fire">🔥</div>
-    <div><b id="stCount">0</b> <span class="lab">días seguidos</span></div>
-    <div class="best"><b id="stBest">0</b><div class="lab">mejor racha</div></div>
-  </div>
-
-  <div class="tabs" id="tabs"></div>
-  <div class="moddesc" id="moddesc"></div>
-  <ul class="list" id="exlist"></ul>
-  <button class="btn" id="startBtn">▶  Empezar rutina guiada</button>
-
-  <details class="note">
-    <summary>ℹ️ Cómo usarla y notas honestas</summary>
-    <div class="body">
-      <b>Cómo funciona el modo guiado:</b> en ejercicios de repeticiones haces la serie y tocas
-      «Serie completada» — el descanso arranca solo (ámbar) y suena un beep al terminar. En estiramientos
-      y mantenimientos tocas «Iniciar» y corre el temporizador (verde). Puedes retroceder con ‹.<br><br>
-      <b>«Completa» vs «Solo movilidad»:</b> la movilidad puede ser diaria; la fuerza (reverse fly y remo)
-      va 3–4×/semana porque necesita descanso y progresión de carga. Sube peso o reps cuando te quede fácil.<br><br>
-      <b>Lo que más pesa</b> no es la rutina: es <b>levantarte y cambiar de posición cada 30–45 min</b> de escritorio.<br><br>
-      <b>Sobre «postura perfecta»:</b> no hay una única postura correcta y su relación con el dolor es débil.
-      Estos ejercicios ayudan porque te dan fuerza/resistencia y movilidad, no porque te «alineen».<br><br>
-      <b>Cuello y rostro:</b> la parte de cuello y mandíbula tiene buena base; el <b>face yoga</b> tiene
-      evidencia floja (solo mejoras modestas tras meses de práctica casi diaria). Va incluido porque lo pediste.<br><br>
-      <b>Videos:</b> cada ejercicio embebe un video verificado de canales de fisioterapeutas/fitness. Si alguno
-      no carga, usa «Abrir en YouTube».
+    <div id="install" class="install"><span>📲 Instálala en tu pantalla de inicio</span><button id="installBtn">Instalar</button></div>
+    <div class="stats">
+      <div class="stat"><div class="v" id="stCount">0</div><div class="l">🔥 días seguidos</div></div>
+      <div class="stat b2"><div class="v" id="stBest">0</div><div class="l">🏆 mejor racha</div></div>
+      <div class="stat b3"><div class="v" id="stTotal">0</div><div class="l">✅ sesiones</div></div>
     </div>
-  </details>
-</section>
+    <div id="routines"></div>
+  </section>
 
-<!-- GUIDED -->
-<section id="guided" class="view"></section>
+  <!-- ROUTINE DETAIL -->
+  <section id="routine" class="view"></section>
 
-<!-- VIDEO OVERLAY -->
+  <!-- GUIDED -->
+  <section id="guided" class="view"></section>
+
+  <!-- HISTORY -->
+  <section id="history" class="view">
+    <div class="bar"><div class="ttl">Historial</div></div>
+    <div class="sect" id="histBody"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="settings" class="view">
+    <div class="bar"><div class="ttl">Ajustes</div></div>
+    <div class="sect" id="setBody"></div>
+  </section>
+</div>
+
+<nav class="nav" id="nav">
+  <a data-v="home" class="on"><span class="i">🏠</span>Inicio</a>
+  <a data-v="history"><span class="i">📅</span>Historial</a>
+  <a data-v="settings"><span class="i">⚙️</span>Ajustes</a>
+</nav>
+
 <div id="ov">
   <div class="ovcard">
     <div class="ovhead"><div class="t" id="ovTitle">Video</div><div class="x" id="ovClose">✕</div></div>
-    <div class="ovbody"><div class="ratio"><iframe id="ovFrame" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>
-    <div class="ovfoot">Si no carga aquí: <a id="ovYt" target="_blank" rel="noopener">Abrir en YouTube ↗</a></div>
+    <div class="ratio"><iframe id="ovFrame" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+    <div class="ovfoot">¿No carga? <a id="ovYt" target="_blank" rel="noopener">Abrir en YouTube ↗</a></div>
   </div>
 </div>
 
 <script>
-/* ---------- DATOS ---------- */
+const DIAG = {"gato_camello": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><line x1=\"88\" y1=\"98\" x2=\"74\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"156\" y1=\"98\" x2=\"170\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><path d=\"M88,98 Q122,66 156,98\" fill=\"none\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"64\" cy=\"112\" r=\"15\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"88\" y1=\"98\" x2=\"70\" y2=\"108\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><circle cx=\"58\" cy=\"110\" r=\"2.6\" fill=\"#0c1524\"/><line x1=\"122\" y1=\"52\" x2=\"122\" y2=\"36\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"122.0,36.0 127.7,45.4 116.3,45.4\" fill=\"#5fe39a\"/></svg>", "chin_tuck": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"96\" y1=\"150\" x2=\"168\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"132\" y1=\"150\" x2=\"132\" y2=\"98\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><circle cx=\"132\" cy=\"74\" r=\"26\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><path d=\"M156,68 L172,76 L156,84\" fill=\"none\" stroke=\"#cfeede\" stroke-width=\"5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"140\" cy=\"70\" r=\"2.6\" fill=\"#0c1524\"/><line x1=\"166\" y1=\"94\" x2=\"140\" y2=\"94\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"140.0,94.0 149.4,88.3 149.4,99.7\" fill=\"#5fe39a\"/></svg>", "elevador_escapula": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"120\" y1=\"150\" x2=\"120\" y2=\"88\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"96\" y1=\"150\" x2=\"148\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"6\" stroke-linecap=\"round\"/><circle cx=\"118\" cy=\"60\" r=\"20\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><circle cx=\"112\" cy=\"58\" r=\"2.6\" fill=\"#0c1524\"/><circle cx=\"126\" cy=\"58\" r=\"2.6\" fill=\"#0c1524\"/><path d=\"M150,96 Q152,42 116,48\" fill=\"none\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><line x1=\"112\" y1=\"40\" x2=\"98\" y2=\"58\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"98.0,58.0 99.3,47.1 108.3,54.0\" fill=\"#5fe39a\"/></svg>", "trapecio_superior": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"118\" y1=\"150\" x2=\"118\" y2=\"86\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"92\" y1=\"96\" x2=\"148\" y2=\"96\" stroke=\"#cfeede\" stroke-width=\"6\" stroke-linecap=\"round\"/><circle cx=\"112\" cy=\"60\" r=\"20\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><circle cx=\"106\" cy=\"58\" r=\"2.6\" fill=\"#0c1524\"/><circle cx=\"120\" cy=\"58\" r=\"2.6\" fill=\"#0c1524\"/><path d=\"M148,90 Q152,38 110,46\" fill=\"none\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><line x1=\"122\" y1=\"40\" x2=\"140\" y2=\"54\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"140.0,54.0 129.1,52.7 136.0,43.7\" fill=\"#5fe39a\"/></svg>", "wall_angels": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"40\" y1=\"18\" x2=\"40\" y2=\"152\" stroke=\"#46596f\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><circle cx=\"96\" cy=\"52\" r=\"17\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"96\" y1=\"72\" x2=\"96\" y2=\"138\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"74\" y1=\"86\" x2=\"118\" y2=\"86\" stroke=\"#cfeede\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"96\" y1=\"138\" x2=\"84\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"96\" y1=\"138\" x2=\"108\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"74\" y1=\"86\" x2=\"66\" y2=\"64\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"66\" y1=\"64\" x2=\"76\" y2=\"44\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"118\" y1=\"86\" x2=\"126\" y2=\"64\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"126\" y1=\"64\" x2=\"116\" y2=\"44\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"96\" x2=\"150\" y2=\"52\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"150.0,52.0 155.7,61.4 144.3,61.4\" fill=\"#5fe39a\"/></svg>", "extension_toracica": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><circle cx=\"120\" cy=\"132\" r=\"16\" fill=\"none\" stroke=\"#46596f\" stroke-width=\"6\"/><path d=\"M150,138 Q118,106 90,124\" fill=\"none\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"80\" cy=\"124\" r=\"13\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"104\" y1=\"120\" x2=\"82\" y2=\"140\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"138\" x2=\"176\" y2=\"112\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"176\" y1=\"112\" x2=\"182\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"120\" y1=\"96\" x2=\"120\" y2=\"80\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"120.0,80.0 125.7,89.4 114.3,89.4\" fill=\"#5fe39a\"/></svg>", "open_book": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"120\" x2=\"176\" y2=\"132\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"176\" y1=\"132\" x2=\"182\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"120\" x2=\"104\" y2=\"120\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><circle cx=\"90\" cy=\"120\" r=\"14\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"104\" y1=\"124\" x2=\"86\" y2=\"140\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"104\" y1=\"114\" x2=\"120\" y2=\"84\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"122\" y1=\"102\" x2=\"150\" y2=\"86\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"150.0,86.0 144.6,95.6 139.0,85.8\" fill=\"#5fe39a\"/></svg>", "reverse_fly": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><circle cx=\"120\" cy=\"50\" r=\"15\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><circle cx=\"114\" cy=\"48\" r=\"2.6\" fill=\"#0c1524\"/><circle cx=\"126\" cy=\"48\" r=\"2.6\" fill=\"#0c1524\"/><line x1=\"120\" y1=\"66\" x2=\"120\" y2=\"120\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"120\" y1=\"120\" x2=\"108\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"120\" y1=\"120\" x2=\"132\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"120\" y1=\"80\" x2=\"70\" y2=\"86\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"120\" y1=\"80\" x2=\"170\" y2=\"86\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><rect x=\"60\" y=\"80\" width=\"12\" height=\"10\" rx=\"3\" fill=\"#cfeede\"/><rect x=\"168\" y=\"80\" width=\"12\" height=\"10\" rx=\"3\" fill=\"#cfeede\"/><line x1=\"70\" y1=\"104\" x2=\"70\" y2=\"86\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"70.0,86.0 75.7,95.4 64.3,95.4\" fill=\"#5fe39a\"/><line x1=\"170\" y1=\"104\" x2=\"170\" y2=\"86\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"170.0,86.0 175.7,95.4 164.3,95.4\" fill=\"#5fe39a\"/></svg>", "remo_inclinado": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><circle cx=\"84\" cy=\"82\" r=\"13\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"150\" y1=\"104\" x2=\"98\" y2=\"86\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"104\" x2=\"150\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"150\" x2=\"168\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"98\" y1=\"92\" x2=\"104\" y2=\"120\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"104\" y1=\"120\" x2=\"126\" y2=\"106\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><rect x=\"120\" y=\"100\" width=\"12\" height=\"10\" rx=\"3\" fill=\"#cfeede\"/><line x1=\"112\" y1=\"120\" x2=\"120\" y2=\"98\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"120.0,98.0 122.1,108.8 111.4,104.9\" fill=\"#5fe39a\"/></svg>", "glute_bridge": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><circle cx=\"52\" cy=\"144\" r=\"13\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"66\" y1=\"146\" x2=\"140\" y2=\"112\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"140\" y1=\"112\" x2=\"176\" y2=\"120\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"176\" y1=\"120\" x2=\"180\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"140\" y1=\"96\" x2=\"140\" y2=\"80\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"140.0,80.0 145.7,89.4 134.3,89.4\" fill=\"#5fe39a\"/></svg>", "bird_dog": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><line x1=\"96\" y1=\"98\" x2=\"82\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"98\" x2=\"164\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"96\" y1=\"98\" x2=\"150\" y2=\"98\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><circle cx=\"80\" cy=\"98\" r=\"13\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"96\" y1=\"98\" x2=\"54\" y2=\"84\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"98\" x2=\"198\" y2=\"86\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"66\" y1=\"90\" x2=\"52\" y2=\"84\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"52.0,84.0 62.9,82.5 58.4,92.9\" fill=\"#5fe39a\"/><line x1=\"184\" y1=\"90\" x2=\"200\" y2=\"84\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"200.0,84.0 193.2,92.6 189.2,82.0\" fill=\"#5fe39a\"/></svg>", "dead_bug": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><circle cx=\"74\" cy=\"146\" r=\"13\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"88\" y1=\"146\" x2=\"140\" y2=\"146\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"96\" y1=\"146\" x2=\"96\" y2=\"102\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"96\" y1=\"146\" x2=\"72\" y2=\"124\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"140\" y1=\"146\" x2=\"150\" y2=\"108\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"108\" x2=\"176\" y2=\"110\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"140\" y1=\"146\" x2=\"176\" y2=\"140\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"96\" y1=\"96\" x2=\"96\" y2=\"110\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"96.0,110.0 90.3,100.6 101.7,100.6\" fill=\"#5fe39a\"/><line x1=\"150\" y1=\"102\" x2=\"150\" y2=\"116\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"150.0,116.0 144.3,106.6 155.7,106.6\" fill=\"#5fe39a\"/></svg>", "pec_puerta": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"72\" y1=\"22\" x2=\"72\" y2=\"150\" stroke=\"#46596f\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><circle cx=\"116\" cy=\"64\" r=\"15\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"116\" y1=\"84\" x2=\"116\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"116\" y1=\"92\" x2=\"84\" y2=\"84\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"84\" y1=\"84\" x2=\"74\" y2=\"54\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"138\" y1=\"98\" x2=\"152\" y2=\"120\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"152.0,120.0 142.2,115.1 151.7,109.0\" fill=\"#5fe39a\"/></svg>", "flexor_cadera": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><line x1=\"98\" y1=\"150\" x2=\"98\" y2=\"108\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"98\" y1=\"108\" x2=\"134\" y2=\"112\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"134\" y1=\"112\" x2=\"168\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"168\" y1=\"150\" x2=\"196\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"134\" y1=\"112\" x2=\"134\" y2=\"60\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><circle cx=\"134\" cy=\"45\" r=\"15\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><circle cx=\"140\" cy=\"43\" r=\"2.6\" fill=\"#0c1524\"/><line x1=\"126\" y1=\"124\" x2=\"158\" y2=\"124\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"158.0,124.0 148.6,129.7 148.6,118.3\" fill=\"#5fe39a\"/></svg>", "movilidad_cervical": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><circle cx=\"120\" cy=\"74\" r=\"28\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><circle cx=\"110\" cy=\"70\" r=\"2.6\" fill=\"#0c1524\"/><circle cx=\"130\" cy=\"70\" r=\"2.6\" fill=\"#0c1524\"/><path d=\"M116,80 L106,86 L116,90\" fill=\"none\" stroke=\"#cfeede\" stroke-width=\"5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><line x1=\"120\" y1=\"102\" x2=\"120\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"92\" y1=\"150\" x2=\"148\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"6\" stroke-linecap=\"round\"/><path d=\"M84,58 Q120,32 156,58\" fill=\"none\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><line x1=\"90\" y1=\"50\" x2=\"82\" y2=\"62\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"82.0,62.0 82.5,51.0 91.9,57.3\" fill=\"#5fe39a\"/><line x1=\"150\" y1=\"50\" x2=\"158\" y2=\"62\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"158.0,62.0 148.1,57.3 157.5,51.0\" fill=\"#5fe39a\"/></svg>", "isometricos_cervicales": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><circle cx=\"110\" cy=\"70\" r=\"26\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><circle cx=\"104\" cy=\"66\" r=\"2.6\" fill=\"#0c1524\"/><circle cx=\"118\" cy=\"66\" r=\"2.6\" fill=\"#0c1524\"/><line x1=\"116\" y1=\"96\" x2=\"116\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"90\" y1=\"150\" x2=\"146\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"6\" stroke-linecap=\"round\"/><rect x=\"150\" y=\"58\" width=\"10\" height=\"30\" rx=\"3\" fill=\"#cfeede\"/><line x1=\"148\" y1=\"74\" x2=\"130\" y2=\"74\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"130.0,74.0 139.4,68.3 139.4,79.7\" fill=\"#5fe39a\"/><line x1=\"96\" y1=\"60\" x2=\"82\" y2=\"60\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"82.0,60.0 91.4,54.3 91.4,65.7\" fill=\"#5fe39a\"/></svg>", "tmj_mandibula": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><circle cx=\"120\" cy=\"68\" r=\"30\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><circle cx=\"108\" cy=\"60\" r=\"2.6\" fill=\"#0c1524\"/><circle cx=\"132\" cy=\"60\" r=\"2.6\" fill=\"#0c1524\"/><ellipse cx=\"120\" cy=\"88\" rx=\"9\" ry=\"13\" fill=\"none\" stroke=\"#cfeede\" stroke-width=\"6\"/><line x1=\"120\" y1=\"106\" x2=\"120\" y2=\"126\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"120.0,126.0 114.3,116.6 125.7,116.6\" fill=\"#5fe39a\"/><line x1=\"142\" y1=\"90\" x2=\"154\" y2=\"90\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"154.0,90.0 144.6,95.7 144.6,84.3\" fill=\"#5fe39a\"/><line x1=\"98\" y1=\"90\" x2=\"86\" y2=\"90\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"86.0,90.0 95.4,84.3 95.4,95.7\" fill=\"#5fe39a\"/></svg>", "face_yoga": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><circle cx=\"120\" cy=\"70\" r=\"30\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><circle cx=\"108\" cy=\"62\" r=\"2.6\" fill=\"#0c1524\"/><circle cx=\"132\" cy=\"62\" r=\"2.6\" fill=\"#0c1524\"/><path d=\"M104,82 Q120,96 136,82\" fill=\"none\" stroke=\"#cfeede\" stroke-width=\"5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><line x1=\"96\" y1=\"92\" x2=\"96\" y2=\"74\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"96.0,74.0 101.7,83.4 90.3,83.4\" fill=\"#5fe39a\"/><line x1=\"144\" y1=\"92\" x2=\"144\" y2=\"74\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"144.0,74.0 149.7,83.4 138.3,83.4\" fill=\"#5fe39a\"/></svg>"};
 const VID={
-  gato_camello:"J99uL4J5khE", chin_tuck:"u8C5LgpK3r4", elevador_escapula:"37QGH0Frtx4",
-  trapecio_superior:"-r0eoFS7_5Q", wall_angels:"ywYi4rBhRBQ", extension_toracica:"1LKd8e9QJ0w",
-  open_book:"rDviWORCWEw", reverse_fly:"neyD-IBTc9Y", remo_inclinado:"ayBUERt_w6g",
-  glute_bridge:"I6vxggX_1KM", bird_dog:"ww-6lRXvI9Y", dead_bug:"o4GKiEoYClI",
-  pec_puerta:"M850sCj9LHQ", flexor_cadera:"-2vO8QfdLFg", movilidad_cervical:"_uWblWalXIE",
-  isometricos_cervicales:"tbNtU66KzmE", tmj_mandibula:"SbJZXG4fsd4", face_yoga:"X2lJ6LWfr30"
+  gato_camello:"MSBOBAIeLqI", chin_tuck:"3N_sJ0svXCw", elevador_escapula:"CYXjNf2whCw",
+  trapecio_superior:"jgywvs9ZHsE", wall_angels:"GWTEYEXsSo4", extension_toracica:"_KVE3qEytJ4",
+  open_book:"afnbgpW7Fx0", reverse_fly:"xvEkgGUrGPM", remo_inclinado:"vN8xskk-7G8",
+  glute_bridge:"R1OXPHRqehw", bird_dog:"JM9MLYqMLjs", dead_bug:"wCg6qs5L3-U",
+  pec_puerta:"DK1FtsnIAD0", flexor_cadera:"8kfH_OhZNAg", movilidad_cervical:"CdGR0c3UHb4",
+  isometricos_cervicales:"Ik6U4kIMmsg", tmj_mandibula:"2DM5X2NjTb8", face_yoga:"vWIebuU1xFo"
 };
 const EX={
   gato_camello:{name:"Gato–camello",tag:"calent",type:"reps",sets:1,reps:10,rest:0,
-    cue:"Alterna arquear y redondear la espalda, lento y al ritmo de la respiración. Es el calentamiento."},
-  chin_tuck:{name:"Retracción cervical (chin tuck)",tag:"diario",type:"reps",sets:2,reps:10,rest:30,
-    cue:"Barbilla hacia atrás (sale doble papada), no hacia abajo. Aguanta 3–5 s cada repetición."},
-  wall_angels:{name:"Wall angels (ángeles de pared)",tag:"diario",type:"reps",sets:2,reps:10,rest:40,
-    cue:"Espalda, cabeza y brazos pegados a la pared; sube y baja los brazos sin despegarlos. Si despegas la lumbar, reduce el rango."},
+    steps:["Ponte en cuatro apoyos: manos bajo los hombros, rodillas bajo las caderas.","Redondea la espalda hacia arriba (gato) metiendo el ombligo, mira al abdomen.","Invierte: hunde la espalda y sube la mirada (camello). Alterna lento con la respiración."]},
+  chin_tuck:{name:"Retracción cervical",tag:"diario",type:"reps",sets:2,reps:10,rest:30,
+    steps:["Mirada al frente, hombros relajados.","Lleva la barbilla hacia atrás (sale doble papada), sin bajar la cabeza.","Aguanta 3–5 s y suelta despacio. Repite."]},
+  wall_angels:{name:"Wall angels",tag:"diario",type:"reps",sets:2,reps:10,rest:40,
+    steps:["Espalda a la pared: cabeza, espalda alta y glúteos en contacto; pies algo adelante.","Pega brazos y dorso de las manos a la pared en forma de «W».","Sube a «Y» sin despegar y baja. Si despegas la lumbar, reduce el rango."]},
   extension_toracica:{name:"Extensión torácica en foam roller",tag:"diario",type:"reps",sets:2,reps:10,rest:40,
-    cue:"Foam roller cruzado bajo la espalda media, manos tras la cabeza; arquéate hacia atrás abriendo el pecho. El movimiento es en la media, no en la lumbar. (Sin foam: usa el respaldo de una silla.)"},
+    steps:["Foam roller cruzado bajo la espalda media, rodillas flexionadas.","Entrelaza las manos tras la cabeza para sostenerla.","Arquéate hacia atrás sobre el rodillo abriendo el pecho; vuelve. Mueve la zona media, no la lumbar."]},
   open_book:{name:"Open book (rotación torácica)",tag:"diario",type:"reps_side",sets:2,reps:8,rest:30,
-    cue:"De costado, rodillas dobladas; abre el brazo de arriba hacia atrás siguiéndolo con la mirada. Las rodillas quietas."},
+    steps:["De lado, caderas y rodillas a 90°, brazos juntos al frente.","Abre el brazo de arriba hacia el otro lado siguiéndolo con la mirada.","Lleva el omóplato al piso y regresa. Rodillas quietas."]},
   reverse_fly:{name:"Reverse fly con mancuernas",tag:"carga",type:"reps",sets:3,reps:12,rest:45,
-    cue:"Boca abajo (o de pie en bisagra de cadera), brazos en «T»; súbelos apretando los omóplatos. Empieza con poco peso: es un músculo pequeño."},
+    steps:["Bisagra de cadera ~45° con espalda plana (o boca abajo), mancuernas colgando.","Sube los brazos a los lados formando una «T», codos casi rectos.","Aprieta los omóplatos 1 s y baja lento. Poco peso."]},
   remo_inclinado:{name:"Remo inclinado con mancuernas",tag:"carga",type:"reps",sets:3,reps:10,rest:60,
-    cue:"Bisagra de cadera, espalda plana ~45°; jala ambas mancuernas hacia las caderas llevando los codos atrás. No rotes el torso para subir más peso."},
+    steps:["Bisagra de cadera, espalda plana ~45°, mancuernas bajo los hombros.","Jala ambas hacia las caderas llevando los codos atrás.","Aprieta los omóplatos y baja controlado. No rotes el torso."]},
   glute_bridge:{name:"Puente de glúteo",tag:"diario",type:"reps",sets:3,reps:12,rest:40,
-    cue:"Empuja con los talones y sube la cadera apretando los glúteos 2 s arriba. No arquees la lumbar. (Puedes cargar una mancuerna sobre la cadera.)"},
-  bird_dog:{name:"Bird dog (perro-pájaro)",tag:"diario",type:"reps_side",sets:3,reps:8,rest:30,
-    cue:"En cuatro apoyos, extiende brazo y pierna opuestos hasta alinearlos con el torso. La cadera no rota ni se cae — imagina equilibrar un vaso sobre tu espalda."},
-  dead_bug:{name:"Dead bug (bicho muerto)",tag:"diario",type:"reps",sets:2,reps:10,rest:30,
-    cue:"Boca arriba, brazos al techo y rodillas a 90°; baja brazo y pierna opuestos (alternando) sin tocar el piso. Lumbar pegada al suelo todo el rango."},
+    steps:["Boca arriba, rodillas flexionadas, pies plantados al ancho de cadera.","Empuja con los talones y sube la cadera hasta alinear rodilla-cadera-hombro.","Aprieta glúteos 2 s arriba y baja. No arquees la lumbar. (Puedes cargar una mancuerna.)"]},
+  bird_dog:{name:"Bird dog",tag:"diario",type:"reps_side",sets:3,reps:8,rest:30,
+    steps:["En cuatro apoyos, columna neutra y abdomen activo.","Extiende a la vez brazo y pierna opuestos hasta alinearlos con el torso.","Aguanta 1–2 s sin que la cadera rote; regresa y cambia de lado."]},
+  dead_bug:{name:"Dead bug",tag:"diario",type:"reps",sets:2,reps:10,rest:30,
+    steps:["Boca arriba, brazos al techo y rodillas a 90°.","Pega la lumbar al piso y baja brazo y pierna opuestos sin tocar el suelo.","Regresa y alterna. La lumbar nunca se despega."]},
   elevador_escapula:{name:"Estiramiento elevador de la escápula",tag:"diario",type:"hold_side",sets:2,holdSec:30,rest:0,
-    cue:"Gira la cabeza ~45° (mira hacia la axila) y baja la barbilla; guía suave con la mano del mismo lado."},
+    steps:["Baja el hombro del lado a estirar (sujeta la silla).","Gira la cabeza ~45° al lado contrario (mira a la axila) y baja la barbilla.","Con la otra mano guía suave hacia abajo. Mantén sin rebotes."]},
   trapecio_superior:{name:"Estiramiento del trapecio superior",tag:"diario",type:"hold_side",sets:2,holdSec:30,rest:0,
-    cue:"Inclina la oreja hacia el hombro; la mano guía suave. Mantén el hombro contrario relajado hacia abajo."},
+    steps:["Siéntate erguido; ancla una mano para bajar ese hombro.","Inclina la cabeza llevando la oreja al hombro contrario.","Con la mano libre guía suave sobre la cabeza. No gires el cuello."]},
   pec_puerta:{name:"Estiramiento de pectoral en la puerta",tag:"diario",type:"hold_side",sets:2,holdSec:30,rest:0,
-    cue:"Antebrazo apoyado en el marco de la puerta; rota el torso hacia el lado contrario hasta sentir el pecho. Cambia de brazo."},
+    steps:["Antebrazo en el marco de la puerta, codo a la altura del hombro.","Da un paso adelante y rota el torso al lado contrario.","Siente el pecho; mantén y cambia de brazo."]},
   flexor_cadera:{name:"Estiramiento del flexor de cadera",tag:"diario",type:"hold_side",sets:2,holdSec:30,rest:0,
-    cue:"Una rodilla en el piso; mete la pelvis (retroversión) y aprieta el glúteo de atrás; empuja la cadera al frente. No arquees la lumbar."},
+    steps:["Media rodilla al piso; la otra pierna al frente a 90°.","Mete la pelvis (retroversión) y aprieta el glúteo de atrás.","Empuja la cadera al frente. Mantén sin arquear la lumbar."]},
   movilidad_cervical:{name:"Movilidad cervical",tag:"diario",type:"reps",sets:1,reps:8,rest:0,
-    cue:"Movimientos lentos en todo el rango sin dolor: sí/no (flexión-extensión), rotaciones e inclinaciones. ~8 por dirección."},
+    steps:["Sentado erguido, hombros relajados.","Haz «sí» (flexo-extensión), luego «no» (rotaciones), luego oreja-hombro.","Rango cómodo sin dolor; ~8 por dirección."]},
   isometricos_cervicales:{name:"Isométricos cervicales",tag:"diario",type:"hold",sets:3,holdSec:8,rest:15,
-    cue:"Empuja la cabeza contra tu mano SIN que se mueva (frente, laterales y nuca). Fuerza suave-media, 6–8 s cada dirección."},
+    steps:["Palma en la frente: empuja la cabeza contra la mano sin que se mueva.","Repite con la mano en cada lado de la cabeza.","Termina con la mano en la nuca. Fuerza suave-media, respira."]},
   tmj_mandibula:{name:"Movilidad de mandíbula (TMJ)",tag:"diario",type:"reps",sets:1,reps:8,rest:0,
-    cue:"Lengua en el paladar, abre y cierra la boca controlado; luego lateralidades suaves. Sin forzar chasquidos."},
+    steps:["Punta de la lengua en el paladar, tras los dientes.","Abre y cierra la boca despacio manteniendo la lengua arriba.","Luego mueve la mandíbula suave a los lados. Sin forzar chasquidos."]},
   face_yoga:{name:"Face yoga (facial)",tag:"opcional",caveat:true,type:"reps",sets:1,reps:10,rest:0,
-    cue:"Ejercicio facial suave para mejillas y óvalo. Movimientos lentos y controlados."}
+    steps:["Sonríe con labios cerrados y sube las mejillas.","Coloca los dedos suave sobre las mejillas como resistencia.","Mantén 5 s y relaja. Movimientos suaves."]}
 };
-const MODULES={
-  completa:{name:"Completa",desc:"13 ejercicios · ~15 min · incluye carga (reverse fly y remo). Ideal 3–4 días/semana.",
+const ROUTINES={
+  postura_completa:{name:"Postura — Completa",group:"Postura",emoji:"🧍",cls:"p",desc:"13 ejercicios · ~15 min · incluye carga. Ideal 3–4×/semana.",
     list:["gato_camello","chin_tuck","wall_angels","extension_toracica","open_book","reverse_fly","remo_inclinado","glute_bridge","bird_dog","dead_bug","elevador_escapula","pec_puerta","flexor_cadera"]},
-  movilidad:{name:"Solo movilidad",desc:"11 ejercicios · ~12 min · solo peso corporal. Perfecta para hacer a diario.",
+  postura_movilidad:{name:"Postura — Movilidad",group:"Postura",emoji:"🤸",cls:"p",desc:"11 ejercicios · ~12 min · solo peso corporal. Para hacer a diario.",
     list:["gato_camello","chin_tuck","wall_angels","extension_toracica","open_book","glute_bridge","bird_dog","dead_bug","elevador_escapula","pec_puerta","flexor_cadera"]},
-  cuello:{name:"Cuello y rostro",desc:"7 ejercicios · ~8 min · cuello, mandíbula y rostro.",
+  cuello_rostro:{name:"Cuello y rostro",group:"Cuello y rostro",emoji:"🧠",cls:"n",desc:"7 ejercicios · ~8 min · cuello, mandíbula y rostro.",
     list:["chin_tuck","movilidad_cervical","isometricos_cervicales","elevador_escapula","trapecio_superior","tmj_mandibula","face_yoga"]}
 };
+const GROUPS=[{title:"Postura",keys:["postura_completa","postura_movilidad"]},{title:"Cuello y rostro",keys:["cuello_rostro"]}];
 const TAG={calent:["Calentamiento","b-calent"],diario:["Diario","b-diario"],carga:["Carga 3–4×/sem","b-carga"],opcional:["Opcional","b-opcional"]};
+const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
-/* ---------- ESTADO ---------- */
-let curMod="completa", steps=[], stepi=0, tId=null, actx=null, videoOn=false;
-
-/* ---------- UTIL ---------- */
+const VERSION="v3 · 2026-06-30";
+let curRoutine=null, steps=[], stepi=0, tId=null, actx=null, remTimers=[];
 const $=id=>document.getElementById(id);
-function show(id){document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));$(id).classList.add("active");window.scrollTo(0,0);}
-function embed(id){return "https://www.youtube-nocookie.com/embed/"+id+"?rel=0&modestbranding=1&playsinline=1";}
+function show(v){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$(v).classList.add("active");
+  const main=["home","history","settings"].includes(v);$("nav").classList.toggle("hide",!main);
+  document.querySelectorAll(".nav a").forEach(a=>a.classList.toggle("on",a.dataset.v===v));window.scrollTo(0,0);}
+function embed(id){return "https://www.youtube-nocookie.com/embed/"+id+"?rel=0&modestbranding=1&playsinline=1&start=0&end=15";}
 function watch(id){return "https://www.youtube.com/watch?v="+id;}
+function esc(s){return (s||"").replace(/</g,"&lt;");}
 
-function beep(){
-  try{
-    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
-    if(actx.state==="suspended")actx.resume();
-    const t=actx.currentTime;
-    [[880,t],[1175,t+.42]].forEach(([f,st])=>{
-      const o=actx.createOscillator(),g=actx.createGain();
-      o.connect(g);g.connect(actx.destination);o.type="sine";o.frequency.value=f;
-      g.gain.setValueAtTime(.0001,st);g.gain.exponentialRampToValueAtTime(.3,st+.02);
-      g.gain.exponentialRampToValueAtTime(.0001,st+.34);o.start(st);o.stop(st+.36);
-    });
-  }catch(e){}
-  try{if(navigator.vibrate)navigator.vibrate([120,60,120]);}catch(e){}
-}
-function primeAudio(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();}catch(e){}}
+/* audio + haptics */
+function beep(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();
+  const t=actx.currentTime;[[880,t],[1175,t+.42]].forEach(([f,st])=>{const o=actx.createOscillator(),g=actx.createGain();
+  o.connect(g);g.connect(actx.destination);o.type="sine";o.frequency.value=f;g.gain.setValueAtTime(.0001,st);
+  g.gain.exponentialRampToValueAtTime(.3,st+.02);g.gain.exponentialRampToValueAtTime(.0001,st+.34);o.start(st);o.stop(st+.36);});}catch(e){}
+  try{if(navigator.vibrate)navigator.vibrate([120,60,120]);}catch(e){}}
+function prime(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();}catch(e){}}
 function clearTimer(){if(tId){clearInterval(tId);tId=null;}}
 
-/* ---------- RACHA ---------- */
+/* storage */
+function jget(k,d){try{return JSON.parse(localStorage.getItem(k))??d;}catch(e){return d;}}
+function jset(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}
 function ds(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function today(){return ds(new Date());}
 function yesterday(){const d=new Date();d.setDate(d.getDate()-1);return ds(d);}
-function loadStreak(){try{return JSON.parse(localStorage.getItem("rp_streak"))||{count:0,best:0,last:null,total:0};}catch(e){return {count:0,best:0,last:null,total:0};}}
-function saveStreak(o){try{localStorage.setItem("rp_streak",JSON.stringify(o));}catch(e){}}
-function completeDay(){const s=loadStreak(),t=today();if(s.last!==t){s.count=(s.last===yesterday())?(s.count+1):1;s.last=t;s.total=(s.total||0)+1;}s.best=Math.max(s.best||0,s.count);saveStreak(s);return s;}
+function loadStreak(){return jget("rp_streak",{count:0,best:0,last:null,total:0});}
+function completeDay(){const s=loadStreak(),t=today();if(s.last!==t){s.count=(s.last===yesterday())?s.count+1:1;s.last=t;s.total=(s.total||0)+1;}s.best=Math.max(s.best||0,s.count);jset("rp_streak",s);return s;}
+function loadHist(){return jget("rp_history",[]);}
+function recordSession(key,name){const h=loadHist(),d=new Date();
+  h.unshift({key,name,iso:d.toISOString(),day:DAYS[d.getDay()],
+    date:String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear(),
+    time:String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")});
+  jset("rp_history",h.slice(0,200));}
 
 /* ---------- HOME ---------- */
 function renderHome(){
-  const s=loadStreak();$("stCount").textContent=s.count||0;$("stBest").textContent=s.best||0;
-  const tabs=$("tabs");tabs.innerHTML="";
-  Object.keys(MODULES).forEach(k=>{
-    const b=document.createElement("div");b.className="tab"+(k===curMod?" on":"");b.textContent=MODULES[k].name;
-    b.onclick=()=>{curMod=k;renderHome();};tabs.appendChild(b);
+  const s=loadStreak();$("stCount").textContent=s.count||0;$("stBest").textContent=s.best||0;$("stTotal").textContent=s.total||0;
+  let h="";
+  GROUPS.forEach(g=>{
+    h+=`<div class="grouptitle">${g.title}</div>`;
+    g.keys.forEach(k=>{const r=ROUTINES[k];
+      h+=`<div class="rcard" onclick="openRoutine('${k}')">
+        <div class="em ${r.cls}">${r.emoji}</div>
+        <div class="t"><div class="nm">${r.name}</div><div class="ds">${r.desc}</div></div>
+        <div class="go">›</div></div>`;});
   });
-  $("moddesc").textContent=MODULES[curMod].desc;
-  const ul=$("exlist");ul.innerHTML="";
-  MODULES[curMod].list.forEach((id,i)=>{
-    const e=EX[id],[tl,tc]=TAG[e.tag];
-    const meta=e.type==="hold"?`${e.sets} × ${e.holdSec}s`
-      :e.type==="hold_side"?`${e.sets} × ${e.holdSec}s / lado`
-      :e.type==="reps_side"?`${e.sets} × ${e.reps} / lado`
-      :`${e.sets} × ${e.reps}`;
-    const li=document.createElement("li");li.className="item";
-    li.innerHTML=`<div class="n">${i+1}</div>
-      <div class="info"><div class="nm">${e.name}</div><div class="meta">${meta}</div>
-      <div class="badges"><span class="badge ${tc}">${tl}</span></div></div>
-      <div class="play">▶</div>`;
-    li.querySelector(".play").onclick=()=>openVideo(id,e.name);
-    ul.appendChild(li);
-  });
+  $("routines").innerHTML=h;
+}
+
+/* ---------- ROUTINE DETAIL ---------- */
+function metaOf(e){return e.type==="hold"?`${e.sets} × ${e.holdSec}s`:e.type==="hold_side"?`${e.sets} × ${e.holdSec}s / lado`:
+  e.type==="reps_side"?`${e.sets} × ${e.reps} / lado`:`${e.sets} × ${e.reps}`;}
+function openRoutine(k){curRoutine=k;const r=ROUTINES[k];
+  let h=`<div class="bar"><div class="icbtn" onclick="show('home')">‹</div><div class="ttl">${r.name}</div></div>
+    <div class="mut" style="margin:0 18px 6px;font-size:13px">${r.desc}</div><div class="exwrap">`;
+  r.list.forEach((id,i)=>{const e=EX[id],[tl,tc]=TAG[e.tag];
+    h+=`<div class="ex" id="ex_${i}">
+      <div class="top" onclick="document.getElementById('ex_${i}').classList.toggle('open')">
+        <div class="diag">${DIAG[id]||""}</div>
+        <div style="flex:1;min-width:0"><div class="nm">${e.name}</div><div class="meta">${metaOf(e)}</div>
+          <div class="badges"><span class="badge ${tc}">${tl}</span></div></div>
+        <div class="chev">›</div>
+      </div>
+      <div class="panel">
+        <ul class="steps">${e.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ul>
+        <div class="vbtn" onclick="openVideo('${id}')">▶ Ver video</div>
+      </div></div>`;});
+  h+=`</div><div class="cta"><button class="btn" onclick="startRoutine()">▶  Empezar rutina guiada</button></div>`;
+  $("routine").innerHTML=h;show("routine");
 }
 
 /* ---------- VIDEO OVERLAY ---------- */
-function openVideo(id,name){
-  $("ovTitle").textContent=name;$("ovFrame").src=embed(VID[id]);
-  $("ovYt").href=watch(VID[id]);$("ov").classList.add("show");
-}
+function openVideo(id){$("ovTitle").textContent=EX[id].name;$("ovFrame").src=embed(VID[id]);$("ovYt").href=watch(VID[id]);$("ov").classList.add("show");}
 $("ovClose").onclick=()=>{$("ov").classList.remove("show");$("ovFrame").src="";};
 $("ov").onclick=e=>{if(e.target===$("ov")){$("ov").classList.remove("show");$("ovFrame").src="";}};
 
-/* ---------- CONSTRUIR PASOS ---------- */
-function buildSteps(mk){
-  const out=[],list=MODULES[mk].list,total=list.length;
-  list.forEach((id,idx)=>{
-    const e=EX[id],base={id,name:e.name,cue:e.cue,tag:e.tag,caveat:!!e.caveat,exI:idx+1,exN:total};
-    if(e.type==="reps"||e.type==="reps_side"){
-      for(let s=1;s<=e.sets;s++)out.push(Object.assign({},base,{kind:"count",reps:e.reps,perSide:e.type==="reps_side",
-        label:`Serie ${s} de ${e.sets}`+(e.type==="reps_side"?" · cada lado":""),restAfter:s<e.sets?e.rest:0}));
-    }else if(e.type==="hold"){
-      for(let s=1;s<=e.sets;s++)out.push(Object.assign({},base,{kind:"timer",seconds:e.holdSec,
-        label:`Mantén ${s} de ${e.sets}`,restAfter:s<e.sets?(e.rest||15):0}));
-    }else if(e.type==="hold_side"){
-      for(let s=1;s<=e.sets;s++){
-        out.push(Object.assign({},base,{kind:"timer",seconds:e.holdSec,label:`Serie ${s}/${e.sets} · Izquierdo`,restAfter:0}));
-        out.push(Object.assign({},base,{kind:"timer",seconds:e.holdSec,label:`Serie ${s}/${e.sets} · Derecho`,restAfter:s<e.sets?(e.rest||10):0}));
-      }
-    }
-  });
-  return out;
-}
+/* ---------- BUILD STEPS ---------- */
+function buildSteps(k){const out=[],list=ROUTINES[k].list,total=list.length;
+  list.forEach((id,idx)=>{const e=EX[id],base={id,name:e.name,steps:e.steps,tag:e.tag,caveat:!!e.caveat,exI:idx+1,exN:total};
+    if(e.type==="reps"||e.type==="reps_side"){for(let s=1;s<=e.sets;s++)out.push(Object.assign({},base,{kind:"count",reps:e.reps,perSide:e.type==="reps_side",
+      label:`Serie ${s} de ${e.sets}`+(e.type==="reps_side"?" · cada lado":""),restAfter:s<e.sets?e.rest:0,first:s===1}));}
+    else if(e.type==="hold"){for(let s=1;s<=e.sets;s++)out.push(Object.assign({},base,{kind:"timer",seconds:e.holdSec,
+      label:`Mantén ${s} de ${e.sets}`,restAfter:s<e.sets?(e.rest||15):0,first:s===1}));}
+    else if(e.type==="hold_side"){for(let s=1;s<=e.sets;s++){
+      out.push(Object.assign({},base,{kind:"timer",seconds:e.holdSec,label:`Serie ${s}/${e.sets} · Izquierdo`,restAfter:0,first:s===1}));
+      out.push(Object.assign({},base,{kind:"timer",seconds:e.holdSec,label:`Serie ${s}/${e.sets} · Derecho`,restAfter:s<e.sets?(e.rest||10):0,first:false}));}}
+  });return out;}
 
-/* ---------- MODO GUIADO ---------- */
-function startRoutine(){primeAudio();steps=buildSteps(curMod);stepi=0;show("guided");renderStep();}
+/* ---------- GUIDED ---------- */
+function startRoutine(){prime();steps=buildSteps(curRoutine);stepi=0;show("guided");renderStep();}
 function guidedExit(){clearTimer();show("home");renderHome();}
-function guidedBack(){clearTimer();if(stepi>0){stepi--;renderStep();}}
+function guidedBack(){clearTimer();if(stepi>0){stepi--;renderStep();}else{guidedExit();}}
+function guidedSkipExercise(){clearTimer();const cur=steps[stepi].id;let i=stepi;while(i<steps.length&&steps[i].id===cur)i++;
+  if(i>=steps.length)finish();else{stepi=i;renderStep();}}
 
-function stepFrame(inner){
-  const s=steps[stepi],prog=Math.round(stepi/steps.length*100);
-  return `<div class="gtop">
-      <div class="icbtn" onclick="guidedBack()">‹</div>
-      <div class="pbar"><i style="width:${prog}%"></i></div>
-      <div class="gcount">${s.exI}/${s.exN}</div>
-      <div class="icbtn" onclick="guidedExit()">✕</div>
-    </div>
-    <div class="stage">
-      <div class="setlab">${s.label}</div>
-      <div class="exname">${s.name}</div>
-      ${s.caveat?'<div class="caveatbox">⚠️ Evidencia floja: los ejercicios faciales muestran, en el mejor caso, mejoras modestas tras meses de práctica. Inclúyelo si quieres, sin grandes expectativas.</div>':''}
-      <div class="cue">${s.cue}</div>
-      <button class="vidbtn" onclick="toggleGuidedVideo()">▶ Ver video</button>
-      <div id="gvid" class="videobox"><div class="ratio"><iframe id="gvframe" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>
-      <div><a id="gyt" class="ytlink" target="_blank" rel="noopener" href="${watch(VID[s.id])}">Abrir en YouTube ↗</a></div>
-      ${inner}
-    </div>`;
-}
-function renderStep(){
-  clearTimer();videoOn=false;
-  const s=steps[stepi];
-  let inner;
-  if(s.kind==="count"){
-    inner=`<div class="target">Haz ${s.reps} repeticiones${s.perSide?' <small>por cada lado</small>':''}</div>
-      <button class="gbtn go" onclick="setDone()">Serie completada ✓</button>`;
-  }else{
-    inner=`<div class="ring" id="ring"><svg width="210" height="210" viewBox="0 0 210 210">
-        <circle cx="105" cy="105" r="95" stroke="#22303c" stroke-width="14" fill="none"/>
-        <circle id="ringArc" cx="105" cy="105" r="95" stroke="#34d399" stroke-width="14" fill="none"
-          stroke-linecap="round" stroke-dasharray="596.9" stroke-dashoffset="0"/>
-      </svg><div class="val"><b id="ringVal">${s.seconds}</b><span>segundos</span></div></div>
-      <button class="gbtn go" id="startTimerBtn" onclick="startTimer()">▶ Iniciar (${s.seconds}s)</button>`;
-  }
-  $("guided").innerHTML=stepFrame(inner);
-}
-function toggleGuidedVideo(){
-  const box=$("gvid");videoOn=!videoOn;
-  if(videoOn){$("gvframe").src=embed(VID[steps[stepi].id]);box.classList.add("show");}
-  else{$("gvframe").src="";box.classList.remove("show");}
-}
-function setDone(){afterAction();}
-function startTimer(){
-  const s=steps[stepi],C=596.9;let r=s.seconds;
-  const btn=$("startTimerBtn");if(btn)btn.style.display="none";
-  const arc=$("ringArc");
-  const upd=()=>{$("ringVal").textContent=r;if(arc)arc.style.strokeDashoffset=(C*(1-r/s.seconds)).toFixed(1);};
-  upd();
-  tId=setInterval(()=>{r--;if(r<=0){clearTimer();$("ringVal").textContent=0;if(arc)arc.style.strokeDashoffset=C;beep();afterAction();}else upd();},1000);
-}
-function afterAction(){
-  const s=steps[stepi];
-  if(s.restAfter>0)renderRest(s.restAfter);else advance();
-}
-function renderRest(sec){
-  clearTimer();let r=sec;
-  const inner=`<div class="phaselab">Descanso</div>
-    <div class="timer rest" id="restVal">${r}</div>
-    <button class="gbtn rest" onclick="skipRest()">Saltar descanso →</button>`;
-  $("guided").innerHTML=stepFrame(inner);
-  const upd=()=>{const el=$("restVal");if(el)el.textContent=r;};
-  tId=setInterval(()=>{r--;if(r<=0){clearTimer();beep();advance();}else upd();},1000);
-}
+function frame(inner){const s=steps[stepi],prog=Math.round(stepi/steps.length*100);
+  return `<div class="gtop"><div class="icbtn" onclick="guidedBack()">‹</div>
+    <div class="pbar"><i style="width:${prog}%"></i></div>
+    <div class="gcount">${s.exI}/${s.exN}</div><div class="icbtn" onclick="guidedExit()">✕</div></div>
+    <div class="stage"><div class="setlab">${s.label}</div><div class="exname">${s.name}</div>
+    <div class="gdiag">${DIAG[s.id]||""}</div>
+    ${s.caveat?'<div class="caveatbox">⚠️ Evidencia floja: los ejercicios faciales muestran, en el mejor caso, mejoras modestas tras meses. Hazlo sin grandes expectativas.</div>':''}
+    <ul class="glist">${s.steps.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>
+    <div class="vbtn" onclick="toggleGVid()">▶ Ver video</div>
+    <div id="gvid" class="videobox"><div class="ratio"><iframe id="gvframe" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>
+    <div><a class="ytlink" target="_blank" rel="noopener" href="${watch(VID[s.id])}">Abrir en YouTube ↗</a></div>
+    ${inner}
+    <button class="skip" onclick="guidedSkipExercise()">Saltar ejercicio ⏭</button></div>`;}
+
+function renderStep(){clearTimer();const s=steps[stepi];let inner;
+  if(s.kind==="count"){inner=`<div class="target">Haz ${s.reps} repeticiones${s.perSide?' <small>por cada lado</small>':''}</div>
+    <button class="gbtn go" onclick="afterAction()">Serie completada ✓</button>`;}
+  else{const C=(2*Math.PI*90).toFixed(1);
+    inner=`<div class="ring"><svg width="200" height="200" viewBox="0 0 200 200"><g transform="rotate(-90 100 100)">
+      <circle cx="100" cy="100" r="90" stroke="#22303c" stroke-width="13" fill="none"/>
+      <circle id="arc" cx="100" cy="100" r="90" stroke="#34d399" stroke-width="13" fill="none" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="0"/></g></svg>
+      <div class="val"><b id="tv">${s.seconds}</b><span>segundos</span></div></div>
+      <button class="gbtn go" id="startT" onclick="startTimer()">▶ Iniciar (${s.seconds}s)</button>`;}
+  $("guided").innerHTML=frame(inner);}
+
+let gVidOn=false;
+function toggleGVid(){gVidOn=!gVidOn;const b=$("gvid");if(gVidOn){$("gvframe").src=embed(VID[steps[stepi].id]);b.classList.add("show");}else{$("gvframe").src="";b.classList.remove("show");}}
+function startTimer(){const s=steps[stepi],C=2*Math.PI*90;let r=s.seconds;const btn=$("startT");if(btn)btn.style.display="none";
+  const arc=$("arc");const upd=()=>{$("tv").textContent=r;if(arc)arc.style.strokeDashoffset=(C*(1-r/s.seconds)).toFixed(1);};upd();
+  tId=setInterval(()=>{r--;if(r<=0){clearTimer();$("tv").textContent=0;if(arc)arc.style.strokeDashoffset=C;beep();afterAction();}else upd();},1000);}
+function afterAction(){const s=steps[stepi];if(s.restAfter>0)renderRest(s.restAfter);else advance();}
+function renderRest(sec){clearTimer();let r=sec;
+  $("guided").innerHTML=frame(`<div class="phaselab">Descanso</div><div class="timer rest" id="rv">${r}</div>
+    <button class="gbtn rest" onclick="skipRest()">Saltar descanso →</button>`);
+  tId=setInterval(()=>{r--;const el=$("rv");if(r<=0){clearTimer();beep();advance();}else if(el)el.textContent=r;},1000);}
 function skipRest(){clearTimer();advance();}
 function advance(){clearTimer();stepi++;if(stepi>=steps.length)finish();else renderStep();}
-function finish(){
-  clearTimer();const s=completeDay();
-  $("guided").innerHTML=`<div class="done">
-    <div class="em">🎉</div><h2>¡Rutina completada!</h2>
-    <p>${MODULES[curMod].name}</p>
-    <div class="big">🔥 ${s.count}</div><p>días seguidos · mejor: ${s.best}</p>
-    <p style="margin-top:18px;font-size:13px">Recuerda: levántate y cambia de posición cada 30–45 min. Eso pesa más que cualquier rutina.</p>
-    <button class="gbtn go" style="margin-top:24px" onclick="guidedExit()">Volver al inicio</button>
-  </div>`;
-  beep();
-}
+function finish(){clearTimer();const s=completeDay();recordSession(curRoutine,ROUTINES[curRoutine].name);
+  $("guided").innerHTML=`<div class="done"><div class="em">🎉</div><h2>¡Rutina completada!</h2>
+    <p class="mut">${ROUTINES[curRoutine].name}</p><div class="big">🔥 ${s.count}</div>
+    <p class="mut">días seguidos · mejor: ${s.best} · ${s.total} sesiones</p>
+    <p class="mut" style="margin-top:16px;font-size:13px">Recuerda: levántate y cambia de posición cada 30–45 min. Eso pesa más que la rutina.</p>
+    <button class="gbtn go" style="margin-top:22px" onclick="guidedExit()">Volver al inicio</button></div>`;beep();}
 
-/* ---------- PWA ---------- */
+/* ---------- HISTORY ---------- */
+function renderHistory(){const h=loadHist(),s=loadStreak();
+  let b=`<div class="stats" style="margin:0 0 14px"><div class="stat"><div class="v">${s.count||0}</div><div class="l">🔥 días seguidos</div></div>
+    <div class="stat b2"><div class="v">${s.best||0}</div><div class="l">🏆 mejor</div></div>
+    <div class="stat b3"><div class="v">${s.total||0}</div><div class="l">✅ sesiones</div></div></div>`;
+  if(!h.length)b+=`<div class="empty">Aún no has completado ninguna rutina.<br>Cuando termines una, aquí verás el día, la fecha y la hora.</div>`;
+  else b+=h.map(x=>`<div class="hitem"><div class="dot">${x.key==="cuello_rostro"?"🧠":"🧍"}</div>
+    <div style="flex:1"><div class="nm">${x.name}</div><div class="dt">${x.day} · ${x.date} · ${x.time}</div></div></div>`).join("");
+  $("histBody").innerHTML=b;}
+
+/* ---------- SETTINGS / REMINDERS ---------- */
+function loadRem(){return jget("rp_rem",{enabled:false,times:["07:00"]});}
+function renderSettings(){const r=loadRem();
+  const perm=(typeof Notification!=="undefined")?Notification.permission:"unsupported";
+  let b=`<div class="field"><div class="switch"><div><div class="fl">Recordatorios diarios</div>
+      <div class="fh">Notificación a las horas que elijas.</div></div>
+      <div class="toggle ${r.enabled?'on':''}" id="remTog" onclick="toggleRem()"><i></i></div></div>
+      <div class="timelist" id="timeList"></div>
+      <div class="addrow"><input type="time" id="newTime" value="19:00"><button onclick="addTime()">Añadir</button></div>
+      <button class="minibtn" onclick="testNotif()">🔔 Probar notificación</button>
+      <div class="fh" style="margin-top:10px">${perm==="denied"?'⚠️ Las notificaciones están bloqueadas en el navegador; actívalas en los ajustes del sitio.':'Funcionan de forma fiable con la app abierta o instalada. En segundo plano dependen del dispositivo — para algo 100% fiable, dime y te programo un recordatorio aparte.'}</div>
+    </div>
+    <div class="field"><div class="fl">Tus datos</div>
+      <div class="fh">La racha, el historial y los recordatorios se guardan en este dispositivo (localStorage) y siguen aunque cierres la app.</div>
+      <div class="fh" id="dataInfo" style="margin-top:8px"></div>
+      <button class="minibtn danger" onclick="wipe()">Borrar todos mis datos</button>
+    </div>
+    <div class="field"><div class="fl">Actualizar la app</div><div class="fh">Trae la última versión publicada en tu GitHub. Versión instalada: <b>${VERSION}</b></div><button class="minibtn" onclick="forceUpdate()">🔄 Buscar actualización</button></div>
+    <div class="field"><div class="fl">Sobre la app</div>
+      <div class="fh">No hay una única «postura perfecta»; estos ejercicios ayudan dándote fuerza y movilidad. Lo que más pesa: moverte cada 30–45 min.</div></div>`;
+  $("setBody").innerHTML=b;renderTimes();
+  const s=loadStreak(),h=loadHist();$("dataInfo").textContent=`Guardado: ${s.total||0} sesiones · ${h.length} en historial · racha ${s.count||0}.`;}
+function renderTimes(){const r=loadRem();$("timeList").innerHTML=r.times.length?r.times.map((t,i)=>
+  `<div class="timepill">${t} <span class="x" onclick="delTime(${i})">✕</span></div>`).join(""):'<div class="fh">Sin horas aún.</div>';}
+function addTime(){const v=$("newTime").value;if(!v)return;const r=loadRem();if(!r.times.includes(v)){r.times.push(v);r.times.sort();jset("rp_rem",r);renderTimes();scheduleRem();}}
+function delTime(i){const r=loadRem();r.times.splice(i,1);jset("rp_rem",r);renderTimes();scheduleRem();}
+function toggleRem(){const r=loadRem();
+  if(!r.enabled){if(typeof Notification==="undefined"){alert("Este navegador no soporta notificaciones.");return;}
+    Notification.requestPermission().then(p=>{r.enabled=(p==="granted");jset("rp_rem",r);$("remTog").classList.toggle("on",r.enabled);scheduleRem();
+      if(p!=="granted")alert("Debes permitir las notificaciones para activar los recordatorios.");});}
+  else{r.enabled=false;jset("rp_rem",r);$("remTog").classList.remove("on");scheduleRem();}}
+function testNotif(){if(typeof Notification==="undefined"){alert("Sin soporte de notificaciones.");return;}
+  Notification.requestPermission().then(p=>{if(p==="granted")showNotif("Recordatorio de prueba ✅","Así te avisaré para tu rutina.");else alert("Permite las notificaciones primero.");});}
+function showNotif(title,body){try{navigator.serviceWorker?.ready.then(reg=>reg.showNotification(title,{body,icon:"icon-192.png",badge:"icon-192.png"})).catch(()=>new Notification(title,{body,icon:"icon-192.png"}));}
+  catch(e){try{new Notification(title,{body});}catch(_){}}}
+function scheduleRem(){remTimers.forEach(t=>clearTimeout(t));remTimers=[];const r=loadRem();if(!r.enabled)return;
+  r.times.forEach(hm=>{const [h,m]=hm.split(":").map(Number);const now=new Date();const t=new Date();t.setHours(h,m,0,0);
+    if(t<=now)t.setDate(t.getDate()+1);const ms=t-now;
+    if(ms<24*3600*1000)remTimers.push(setTimeout(()=>{showNotif("Hora de tu rutina 🧍","Abre la app y mantén tu racha.");scheduleRem();},ms));
+    // best-effort background schedule
+    try{navigator.serviceWorker?.ready.then(reg=>{if("showTrigger" in Notification.prototype){reg.showNotification("Hora de tu rutina 🧍",
+      {body:"Abre la app y mantén tu racha.",icon:"icon-192.png",tag:"rp-"+hm,showTrigger:new TimestampTrigger(t.getTime())});}});}catch(e){}
+  });}
+function wipe(){if(confirm("¿Borrar racha, historial y recordatorios de este dispositivo?")){["rp_streak","rp_history","rp_rem"].forEach(k=>localStorage.removeItem(k));renderSettings();renderHome();}}
+
+async function forceUpdate(){var b=event&&event.target;if(b)b.textContent="Actualizando…";try{if("serviceWorker" in navigator){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.update().catch(()=>{})));}if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}}catch(e){}setTimeout(()=>location.reload(),300);}
+/* ---------- NAV / PWA ---------- */
+document.querySelectorAll(".nav a").forEach(a=>a.onclick=()=>{const v=a.dataset.v;show(v);if(v==="home")renderHome();if(v==="history")renderHistory();if(v==="settings")renderSettings();});
 let deferred=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;$("install").style.display="flex";});
 $("installBtn").onclick=async()=>{if(deferred){deferred.prompt();await deferred.userChoice;deferred=null;$("install").style.display="none";}};
-if("serviceWorker" in navigator && location.protocol.startsWith("http")){
-  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
-}
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
 
-/* ---------- INIT ---------- */
-$("startBtn").onclick=startRoutine;
-renderHome();
+renderHome();scheduleRem();
 </script>
 </body>
 </html>
