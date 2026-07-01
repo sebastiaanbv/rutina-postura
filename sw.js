@@ -1,4 +1,4 @@
-const CACHE = "rutina-postura-v4";
+const CACHE = "rutina-postura-v5";
 const ASSETS = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", e => {
