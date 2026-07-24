@@ -1,4 +1,4 @@
-const CACHE = "mi-rutina-v17";
+const CACHE = "mi-rutina-v18";
 const ASSETS = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", e => {
