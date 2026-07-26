@@ -141,6 +141,9 @@
     cursor:pointer;color:#03130c;background:linear-gradient(135deg,var(--go),var(--go2));
     box-shadow:0 8px 22px rgba(16,185,129,.28)}
   .btn:active{transform:translateY(1px)}
+  .btn[disabled]{opacity:.45;box-shadow:none;cursor:default}
+  .cta2{display:flex;flex-direction:column;gap:8px}
+  .ctanote{font-size:12px;font-weight:800;color:var(--primary);text-align:center;padding:0}
   .btn.sec{background:var(--card);color:var(--tx);border:1px solid var(--line);box-shadow:none}
 
   /* guided */
@@ -386,6 +389,19 @@
   #swapov{position:fixed;inset:0;background:rgba(4,8,12,.55);display:none;z-index:60;align-items:flex-end;justify-content:center}
   #swapov.show{display:flex}
   #swapov .ovcard{border-radius:18px 18px 0 0;max-width:600px;width:100%;max-height:80vh;overflow:auto}
+  /* hoja de resumen / finalizar */
+  #finov{position:fixed;inset:0;background:rgba(4,8,12,.55);display:none;z-index:65;align-items:flex-end;justify-content:center}
+  #finov.show{display:flex}
+  #finov .ovcard{border-radius:18px 18px 0 0;max-width:600px;width:100%;max-height:88vh;overflow:auto}
+  .finsum{display:flex;gap:8px;margin:0 0 12px}
+  .finsum .fs{flex:1;background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:9px 4px;text-align:center}
+  .finsum .fs b{display:block;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
+  .finsum .fs span{font-size:9.5px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+  .finlist{display:flex;flex-direction:column;gap:6px;margin:0 0 14px}
+  .setline.fin .n{width:auto;flex:1;color:var(--tx);font-weight:700}
+  .setline.fin .v{color:var(--mut);font-weight:700;font-size:12px;text-align:right}
+  .finempty{background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:16px 14px;text-align:center;font-size:13px;color:var(--mut);font-weight:600;margin:0 0 14px;line-height:1.5}
+  .finhint{font-size:11.5px;color:var(--mut);font-weight:600;text-align:center;margin-top:2px}
   /* foco visible (accesibilidad) */
   button:focus-visible,a:focus-visible,input:focus-visible,.toggle:focus-visible,.rcard:focus-visible,.ex .top:focus-visible{outline:none;box-shadow:var(--sh-focus)}
   /* recolor de diagramas y anillo del timer: atributos inline -> tokens de tema */
@@ -592,6 +608,13 @@
   </div>
 </div>
 
+<div id="finov">
+  <div class="ovcard">
+    <div class="ovhead"><div class="t" id="finTitle">Resumen de la sesión</div><div class="x" onclick="closeFinish()">✕</div></div>
+    <div id="finBody" class="planbody"></div>
+  </div>
+</div>
+
 <script>
 const DIAG = {"gato_camello": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><line x1=\"88\" y1=\"98\" x2=\"74\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"156\" y1=\"98\" x2=\"170\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><path d=\"M88,98 Q122,66 156,98\" fill=\"none\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"64\" cy=\"112\" r=\"15\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"88\" y1=\"98\" x2=\"70\" y2=\"108\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><circle cx=\"58\" cy=\"110\" r=\"2.6\" fill=\"#0c1524\"/><line x1=\"122\" y1=\"52\" x2=\"122\" y2=\"36\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"122.0,36.0 127.7,45.4 116.3,45.4\" fill=\"#5fe39a\"/></svg>", "chin_tuck": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"96\" y1=\"150\" x2=\"168\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"132\" y1=\"150\" x2=\"132\" y2=\"98\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><circle cx=\"132\" cy=\"74\" r=\"26\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><path d=\"M156,68 L172,76 L156,84\" fill=\"none\" stroke=\"#cfeede\" stroke-width=\"5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"140\" cy=\"70\" r=\"2.6\" fill=\"#0c1524\"/><line x1=\"166\" y1=\"94\" x2=\"140\" y2=\"94\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"140.0,94.0 149.4,88.3 149.4,99.7\" fill=\"#5fe39a\"/></svg>", "elevador_escapula": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"120\" y1=\"150\" x2=\"120\" y2=\"88\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"96\" y1=\"150\" x2=\"148\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"6\" stroke-linecap=\"round\"/><circle cx=\"118\" cy=\"60\" r=\"20\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><circle cx=\"112\" cy=\"58\" r=\"2.6\" fill=\"#0c1524\"/><circle cx=\"126\" cy=\"58\" r=\"2.6\" fill=\"#0c1524\"/><path d=\"M150,96 Q152,42 116,48\" fill=\"none\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><line x1=\"112\" y1=\"40\" x2=\"98\" y2=\"58\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"98.0,58.0 99.3,47.1 108.3,54.0\" fill=\"#5fe39a\"/></svg>", "trapecio_superior": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"118\" y1=\"150\" x2=\"118\" y2=\"86\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"92\" y1=\"96\" x2=\"148\" y2=\"96\" stroke=\"#cfeede\" stroke-width=\"6\" stroke-linecap=\"round\"/><circle cx=\"112\" cy=\"60\" r=\"20\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><circle cx=\"106\" cy=\"58\" r=\"2.6\" fill=\"#0c1524\"/><circle cx=\"120\" cy=\"58\" r=\"2.6\" fill=\"#0c1524\"/><path d=\"M148,90 Q152,38 110,46\" fill=\"none\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><line x1=\"122\" y1=\"40\" x2=\"140\" y2=\"54\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"140.0,54.0 129.1,52.7 136.0,43.7\" fill=\"#5fe39a\"/></svg>", "wall_angels": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"40\" y1=\"18\" x2=\"40\" y2=\"152\" stroke=\"#46596f\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><circle cx=\"96\" cy=\"52\" r=\"17\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"96\" y1=\"72\" x2=\"96\" y2=\"138\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"74\" y1=\"86\" x2=\"118\" y2=\"86\" stroke=\"#cfeede\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"96\" y1=\"138\" x2=\"84\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"96\" y1=\"138\" x2=\"108\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"74\" y1=\"86\" x2=\"66\" y2=\"64\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"66\" y1=\"64\" x2=\"76\" y2=\"44\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"118\" y1=\"86\" x2=\"126\" y2=\"64\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"126\" y1=\"64\" x2=\"116\" y2=\"44\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"96\" x2=\"150\" y2=\"52\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"150.0,52.0 155.7,61.4 144.3,61.4\" fill=\"#5fe39a\"/></svg>", "extension_toracica": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><circle cx=\"120\" cy=\"132\" r=\"16\" fill=\"none\" stroke=\"#46596f\" stroke-width=\"6\"/><path d=\"M150,138 Q118,106 90,124\" fill=\"none\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"80\" cy=\"124\" r=\"13\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"104\" y1=\"120\" x2=\"82\" y2=\"140\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"138\" x2=\"176\" y2=\"112\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"176\" y1=\"112\" x2=\"182\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"120\" y1=\"96\" x2=\"120\" y2=\"80\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"120.0,80.0 125.7,89.4 114.3,89.4\" fill=\"#5fe39a\"/></svg>", "open_book": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"120\" x2=\"176\" y2=\"132\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"176\" y1=\"132\" x2=\"182\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"120\" x2=\"104\" y2=\"120\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><circle cx=\"90\" cy=\"120\" r=\"14\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"104\" y1=\"124\" x2=\"86\" y2=\"140\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"104\" y1=\"114\" x2=\"120\" y2=\"84\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"122\" y1=\"102\" x2=\"150\" y2=\"86\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"150.0,86.0 144.6,95.6 139.0,85.8\" fill=\"#5fe39a\"/></svg>", "reverse_fly": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><circle cx=\"120\" cy=\"50\" r=\"15\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><circle cx=\"114\" cy=\"48\" r=\"2.6\" fill=\"#0c1524\"/><circle cx=\"126\" cy=\"48\" r=\"2.6\" fill=\"#0c1524\"/><line x1=\"120\" y1=\"66\" x2=\"120\" y2=\"120\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"120\" y1=\"120\" x2=\"108\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"120\" y1=\"120\" x2=\"132\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"120\" y1=\"80\" x2=\"70\" y2=\"86\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"120\" y1=\"80\" x2=\"170\" y2=\"86\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><rect x=\"60\" y=\"80\" width=\"12\" height=\"10\" rx=\"3\" fill=\"#cfeede\"/><rect x=\"168\" y=\"80\" width=\"12\" height=\"10\" rx=\"3\" fill=\"#cfeede\"/><line x1=\"70\" y1=\"104\" x2=\"70\" y2=\"86\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"70.0,86.0 75.7,95.4 64.3,95.4\" fill=\"#5fe39a\"/><line x1=\"170\" y1=\"104\" x2=\"170\" y2=\"86\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"170.0,86.0 175.7,95.4 164.3,95.4\" fill=\"#5fe39a\"/></svg>", "remo_inclinado": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><circle cx=\"84\" cy=\"82\" r=\"13\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"150\" y1=\"104\" x2=\"98\" y2=\"86\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"104\" x2=\"150\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"150\" x2=\"168\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"98\" y1=\"92\" x2=\"104\" y2=\"120\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"104\" y1=\"120\" x2=\"126\" y2=\"106\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><rect x=\"120\" y=\"100\" width=\"12\" height=\"10\" rx=\"3\" fill=\"#cfeede\"/><line x1=\"112\" y1=\"120\" x2=\"120\" y2=\"98\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"120.0,98.0 122.1,108.8 111.4,104.9\" fill=\"#5fe39a\"/></svg>", "glute_bridge": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><circle cx=\"52\" cy=\"144\" r=\"13\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"66\" y1=\"146\" x2=\"140\" y2=\"112\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"140\" y1=\"112\" x2=\"176\" y2=\"120\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"176\" y1=\"120\" x2=\"180\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"140\" y1=\"96\" x2=\"140\" y2=\"80\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"140.0,80.0 145.7,89.4 134.3,89.4\" fill=\"#5fe39a\"/></svg>", "bird_dog": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><line x1=\"96\" y1=\"98\" x2=\"82\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"98\" x2=\"164\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"96\" y1=\"98\" x2=\"150\" y2=\"98\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><circle cx=\"80\" cy=\"98\" r=\"13\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"96\" y1=\"98\" x2=\"54\" y2=\"84\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"98\" x2=\"198\" y2=\"86\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"66\" y1=\"90\" x2=\"52\" y2=\"84\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"52.0,84.0 62.9,82.5 58.4,92.9\" fill=\"#5fe39a\"/><line x1=\"184\" y1=\"90\" x2=\"200\" y2=\"84\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"200.0,84.0 193.2,92.6 189.2,82.0\" fill=\"#5fe39a\"/></svg>", "dead_bug": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><circle cx=\"74\" cy=\"146\" r=\"13\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"88\" y1=\"146\" x2=\"140\" y2=\"146\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"96\" y1=\"146\" x2=\"96\" y2=\"102\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"96\" y1=\"146\" x2=\"72\" y2=\"124\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"140\" y1=\"146\" x2=\"150\" y2=\"108\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"150\" y1=\"108\" x2=\"176\" y2=\"110\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"140\" y1=\"146\" x2=\"176\" y2=\"140\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"96\" y1=\"96\" x2=\"96\" y2=\"110\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"96.0,110.0 90.3,100.6 101.7,100.6\" fill=\"#5fe39a\"/><line x1=\"150\" y1=\"102\" x2=\"150\" y2=\"116\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"150.0,116.0 144.3,106.6 155.7,106.6\" fill=\"#5fe39a\"/></svg>", "pec_puerta": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"72\" y1=\"22\" x2=\"72\" y2=\"150\" stroke=\"#46596f\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><circle cx=\"116\" cy=\"64\" r=\"15\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><line x1=\"116\" y1=\"84\" x2=\"116\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"116\" y1=\"92\" x2=\"84\" y2=\"84\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"84\" y1=\"84\" x2=\"74\" y2=\"54\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"138\" y1=\"98\" x2=\"152\" y2=\"120\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"152.0,120.0 142.2,115.1 151.7,109.0\" fill=\"#5fe39a\"/></svg>", "flexor_cadera": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><line x1=\"12\" y1=\"150\" x2=\"228\" y2=\"150\" stroke=\"#3a5069\" stroke-width=\"4\" stroke-linecap=\"round\"/><line x1=\"98\" y1=\"150\" x2=\"98\" y2=\"108\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"98\" y1=\"108\" x2=\"134\" y2=\"112\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"134\" y1=\"112\" x2=\"168\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"168\" y1=\"150\" x2=\"196\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"134\" y1=\"112\" x2=\"134\" y2=\"60\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><circle cx=\"134\" cy=\"45\" r=\"15\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><circle cx=\"140\" cy=\"43\" r=\"2.6\" fill=\"#0c1524\"/><line x1=\"126\" y1=\"124\" x2=\"158\" y2=\"124\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"158.0,124.0 148.6,129.7 148.6,118.3\" fill=\"#5fe39a\"/></svg>", "movilidad_cervical": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><circle cx=\"120\" cy=\"74\" r=\"28\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><circle cx=\"110\" cy=\"70\" r=\"2.6\" fill=\"#0c1524\"/><circle cx=\"130\" cy=\"70\" r=\"2.6\" fill=\"#0c1524\"/><path d=\"M116,80 L106,86 L116,90\" fill=\"none\" stroke=\"#cfeede\" stroke-width=\"5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><line x1=\"120\" y1=\"102\" x2=\"120\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"92\" y1=\"150\" x2=\"148\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"6\" stroke-linecap=\"round\"/><path d=\"M84,58 Q120,32 156,58\" fill=\"none\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><line x1=\"90\" y1=\"50\" x2=\"82\" y2=\"62\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"82.0,62.0 82.5,51.0 91.9,57.3\" fill=\"#5fe39a\"/><line x1=\"150\" y1=\"50\" x2=\"158\" y2=\"62\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"158.0,62.0 148.1,57.3 157.5,51.0\" fill=\"#5fe39a\"/></svg>", "isometricos_cervicales": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><circle cx=\"110\" cy=\"70\" r=\"26\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><circle cx=\"104\" cy=\"66\" r=\"2.6\" fill=\"#0c1524\"/><circle cx=\"118\" cy=\"66\" r=\"2.6\" fill=\"#0c1524\"/><line x1=\"116\" y1=\"96\" x2=\"116\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"8\" stroke-linecap=\"round\"/><line x1=\"90\" y1=\"150\" x2=\"146\" y2=\"150\" stroke=\"#cfeede\" stroke-width=\"6\" stroke-linecap=\"round\"/><rect x=\"150\" y=\"58\" width=\"10\" height=\"30\" rx=\"3\" fill=\"#cfeede\"/><line x1=\"148\" y1=\"74\" x2=\"130\" y2=\"74\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"130.0,74.0 139.4,68.3 139.4,79.7\" fill=\"#5fe39a\"/><line x1=\"96\" y1=\"60\" x2=\"82\" y2=\"60\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"82.0,60.0 91.4,54.3 91.4,65.7\" fill=\"#5fe39a\"/></svg>", "tmj_mandibula": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><circle cx=\"120\" cy=\"68\" r=\"30\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><circle cx=\"108\" cy=\"60\" r=\"2.6\" fill=\"#0c1524\"/><circle cx=\"132\" cy=\"60\" r=\"2.6\" fill=\"#0c1524\"/><ellipse cx=\"120\" cy=\"88\" rx=\"9\" ry=\"13\" fill=\"none\" stroke=\"#cfeede\" stroke-width=\"6\"/><line x1=\"120\" y1=\"106\" x2=\"120\" y2=\"126\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"120.0,126.0 114.3,116.6 125.7,116.6\" fill=\"#5fe39a\"/><line x1=\"142\" y1=\"90\" x2=\"154\" y2=\"90\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"154.0,90.0 144.6,95.7 144.6,84.3\" fill=\"#5fe39a\"/><line x1=\"98\" y1=\"90\" x2=\"86\" y2=\"90\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"86.0,90.0 95.4,84.3 95.4,95.7\" fill=\"#5fe39a\"/></svg>", "face_yoga": "<svg viewBox=\"0 0 240 160\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\"><circle cx=\"120\" cy=\"70\" r=\"30\" fill=\"#cfeede\" stroke=\"none\" stroke-width=\"0\"/><circle cx=\"108\" cy=\"62\" r=\"2.6\" fill=\"#0c1524\"/><circle cx=\"132\" cy=\"62\" r=\"2.6\" fill=\"#0c1524\"/><path d=\"M104,82 Q120,96 136,82\" fill=\"none\" stroke=\"#cfeede\" stroke-width=\"5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><line x1=\"96\" y1=\"92\" x2=\"96\" y2=\"74\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"96.0,74.0 101.7,83.4 90.3,83.4\" fill=\"#5fe39a\"/><line x1=\"144\" y1=\"92\" x2=\"144\" y2=\"74\" stroke=\"#5fe39a\" stroke-width=\"5\" stroke-linecap=\"round\"/><polygon points=\"144.0,74.0 149.7,83.4 138.3,83.4\" fill=\"#5fe39a\"/></svg>"};
 const FRAMES={};
@@ -692,11 +715,12 @@ function yesterday(){const d=new Date();d.setDate(d.getDate()-1);return ds(d);}
 function loadStreak(){return jget("rp_streak",{count:0,best:0,last:null,total:0});}
 function completeDay(){const s=loadStreak(),t=today();if(s.last!==t){s.count=(s.last===yesterday())?s.count+1:1;s.last=t;s.total=(s.total||0)+1;}s.best=Math.max(s.best||0,s.count);jset("rp_streak",s);return s;}
 function loadHist(){return jget("rp_history",[]);}
-function recordSession(key,name){const h=loadHist(),d=new Date();
-  h.unshift({key,name,iso:d.toISOString(),day:DAYS[d.getDay()],
+function recordSession(key,name,sum,when){const h=loadHist(),d=when?new Date(when):new Date();
+  const e={key,name,iso:d.toISOString(),day:DAYS[d.getDay()],
     date:String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear(),
-    time:String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")});
-  jset("rp_history",h.slice(0,200));}
+    time:String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
+  if(sum){e.sets=sum.sets;e.vol=sum.vol;e.exDone=sum.exDone;e.exTotal=sum.exTotal;e.dur=sum.dur;e.ids=sum.ids;}
+  h.unshift(e);jset("rp_history",h.slice(0,200));return e;}
 
 /* ---------- HOME ---------- */
 function renderHome(){
@@ -775,19 +799,37 @@ function openRoutine(k,noPush){curRoutine=k;if(!noPush)pushHist({v:"routine",k:k
     h+=card(id,origin,false,isW);});
   if(extras.length){h+=`<div class="blockt">➕ Opcionales · si tienes tiempo</div>`;
     extras.forEach(id=>{h+=card(id,null,true);});}
-  h+=`</div><div class="cta"><button class="btn" onclick="startRoutine()">▶  Empezar ${esc(r.name)}</button></div>`;
+  h+=`</div>`+routineCTA(k);
   $("routine").innerHTML=h;show("routine");
 }
+/* barra inferior de la rutina: empezar/continuar + finalizar (siempre visibles) */
+function routineCTA(k){const r=ROUTINES[k];if(!r)return "";
+  const st=sessStats(k),live=st.exDone>0;
+  const hoy=(histIndex()[today()]||[]).filter(x=>x.key===k),ult=hoy.length?hoy[0]:null;
+  let note="";
+  if(ult){note=`<div class="ctanote">✓ Registrada hoy${ult.time?" a las "+ult.time:""}`
+    +(ult.sets?" · "+ult.sets+" "+plural(ult.sets,"serie","series"):"")+`</div>`;}
+  const prim=live?`▶  Continuar · ${Math.min(st.exDone+1,st.exTotal)} de ${st.exTotal}`
+                 :`▶  Empezar ${esc(r.name)}`;
+  return `<div class="cta cta2" id="routCta">${note}
+    <button class="btn" onclick="startRoutine()">${prim}</button>
+    <button class="btn sec" onclick="openFinish()">🏁 Finalizar rutina</button></div>`;}
+function updateRoutineCTA(){const el=$("routCta");if(el)el.outerHTML=routineCTA(curRoutine);}
+
 /* checklist diaria + figuras multi-paso + empezar en cualquier ejercicio */
 function loadChecks(){return jget("rp_checks",{});}
-function checksFor(rk){const d=loadChecks()[today()]||{};return d[rk]||{};}
+function checksOn(t,rk){const d=loadChecks()[t]||{};return d[rk]||{};}
+function checksFor(rk){return checksOn(today(),rk);}
 function isChecked(rk,id){return !!checksFor(rk)[id];}
 function markCheck(rk,id,val){const all=loadChecks(),t=today();all[t]=all[t]||{};all[t][rk]=all[t][rk]||{};
   if(val===false)delete all[t][rk][id];else all[t][rk][id]=true;jset("rp_checks",all);
   if(curRoutine===rk)updateRoutineProgress();}
 function toggleEx(i){const el=$("ex_"+i);if(el)el.classList.toggle("open");}
-function toggleCheck(id,i){const cur=isChecked(curRoutine,id);markCheck(curRoutine,id,!cur);
-  const el=$("ex_"+i);if(el){el.classList.toggle("checked",!cur);const ck=el.querySelector(".exck");if(ck)ck.textContent=!cur?"✓":"";}}
+function toggleCheck(id,i){const cur=isChecked(curRoutine,id);
+  if(!cur)startSess(curRoutine,"check");
+  markCheck(curRoutine,id,!cur);
+  const el=$("ex_"+i);if(el){el.classList.toggle("checked",!cur);const ck=el.querySelector(".exck");if(ck)ck.textContent=!cur?"✓":"";}
+  updateRoutineCTA();}
 function routineProgressText(k){const l=effList(k),c=checksFor(k);let n=0;l.forEach(id=>{if(c[id])n++;});return `${n} de ${l.length} hechos hoy`;}
 function updateRoutineProgress(){const el=$("routProg");if(el)el.textContent=routineProgressText(curRoutine);}
 function shortName(id){var e=EX[id];if(!e)return id;var n=e.name.replace(/\s*\(.*?\)\s*/g,"").trim();
@@ -807,17 +849,99 @@ function framesStrip(id){const f=(typeof FRAMES!=="undefined")?FRAMES[id]:null;i
 
 /* ===== GIMNASIO: registro de peso, planificador semanal, progreso ===== */
 let sessionLog={}, curW=null, curReps=null, restR=0, planDay=0;
+
+/* ==== [S1] SESION PERSISTIDA =================================================
+   rp_session = {v,key,date,startedAt,lastAt,stepi,src,log:{exId:[{w,reps,t}]}}
+   Su ausencia significa "sin sesion activa": los datos antiguos migran solos.
+   rp_logged  = {fecha:{rutina:{exId:1}}} ejercicios ya volcados a rp_logs hoy,
+   para que cerrar dos veces el mismo dia no duplique los marcados con visto. */
+let sessCommitted=0, sessionLogKey=null;
+/* sessionLog vive en memoria; sessionLogKey dice de que rutina es, para que
+   cambiar de rutina no arrastre series de la anterior */
+function useSessionLog(k){if(sessionLogKey!==k){sessionLog={};sessionLogKey=k;}return sessionLog;}
+function loadSess(){try{const s=jget("rp_session",null);
+  if(!s||typeof s!=="object"||s.v!==1||!s.key||!ROUTINES[s.key]||!s.date)return null;
+  if(!s.log||typeof s.log!=="object")s.log={};
+  return s;}catch(e){return null;}}
+function saveSess(s){if(!s)return null;s.lastAt=Date.now();jset("rp_session",s);return s;}
+function clearSess(){try{localStorage.removeItem("rp_session");}catch(e){}}
+function sessActive(k){const s=loadSess();return !!(s&&s.key===k&&s.date===today());}
+function startSess(key,src){let s=loadSess();
+  if(s&&s.key===key&&s.date===today())return s;
+  if(s){try{if(sessStats(s.key,s.date).exDone)finishSession(s.key,"auto");}catch(e){}clearSess();}
+  s={v:1,key:key,date:today(),startedAt:Date.now(),lastAt:Date.now(),stepi:0,src:src||"check",log:{}};
+  jset("rp_session",s);return s;}
+function touchSess(st){if(!curRoutine||!ROUTINES[curRoutine])return null;
+  let s=loadSess();
+  if(!s||s.key!==curRoutine||s.date!==today())s=startSess(curRoutine,st==null?"check":"guided");
+  if(!s)return null;
+  if(sessionLogKey===curRoutine)s.log=sessionLog;
+  if(st!=null)s.stepi=st;return saveSess(s);}
+/* vista combinada memoria + disco: la memoria manda en el ejercicio que toca */
+function sessLog(k){const s=loadSess(),out={};
+  const base=(s&&s.key===k)?(s.log||{}):{};
+  Object.keys(base).forEach(id=>{if(base[id]&&base[id].length)out[id]=base[id];});
+  if(sessionLogKey===k)Object.keys(sessionLog).forEach(id=>{if(sessionLog[id]&&sessionLog[id].length)out[id]=sessionLog[id];});
+  return out;}
+function loadLogged(){return jget("rp_logged",{});}
+function loggedOn(t,k){const d=loadLogged()[t]||{};return d[k]||{};}
+function markLogged(t,k,ids){const all=loadLogged();all[t]=all[t]||{};all[t][k]=all[t][k]||{};
+  ids.forEach(id=>{all[t][k][id]=1;});
+  const keep={};Object.keys(all).sort().slice(-14).forEach(d=>{keep[d]=all[d];});
+  jset("rp_logged",keep);}
+/* resumen de lo que hay SIN registrar todavia */
+function sessStats(k,date){const t=date||today(),s=loadSess();
+  const log=sessLog(k),ck=checksOn(t,k),done=loggedOn(t,k),list=effList(k);
+  let sets=0,vol=0;const ids={};
+  Object.keys(log).forEach(id=>{const a=log[id]||[];if(a.length){ids[id]=1;sets+=a.length;
+    a.forEach(x=>{vol+=(x.w||0)*(x.reps||0);});}});
+  list.forEach(id=>{if(ck[id]&&!done[id])ids[id]=1;});
+  const st=(s&&s.key===k)?s.startedAt:0;
+  return {sets:sets,vol:Math.round(vol),exDone:Object.keys(ids).length,exTotal:list.length,
+    dur:durSince(st),ids:Object.keys(ids),startedAt:st};}
+/* unico punto de escritura de una sesion terminada */
+function finishSession(k,from){
+  if(!k||!ROUTINES[k])return null;
+  const s=loadSess(),mine=(s&&s.key===k)?s:null,startedAt=mine?mine.startedAt:0;
+  if(sessCommitted&&startedAt&&sessCommitted===startedAt)return null;
+  const dOver=(mine&&mine.date&&mine.date!==today())?mine.date:null;
+  const st=sessStats(k,dOver||today());
+  if(!st.exDone)return null;
+  clearTimer();
+  const sum=persistSession(k,dOver,startedAt);
+  const streak=dOver?loadStreak():completeDay();
+  recordSession(k,ROUTINES[k].name,sum,startedAt||null);
+  sessCommitted=startedAt||Date.now();
+  clearSess();
+  return {streak:streak,summary:sum,rescued:!!dOver};}
+/* ==== fin [S1] ============================================================ */
 const DOW=["L","M","X","J","V","S","D"], DOWLONG=["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 function todayDow(){return (new Date().getDay()+6)%7;}
 function loadLogs(){return jget("rp_logs",{});}
 function lastLog(exId){const a=loadLogs()[exId];return (a&&a.length)?a[a.length-1]:null;}
-function persistSession(){const logs=loadLogs(),t=today();let ch=false;
-  Object.keys(sessionLog).forEach(id=>{const st=sessionLog[id];if(st&&st.length){logs[id]=logs[id]||[];logs[id].push({date:t,sets:st});if(logs[id].length>150)logs[id]=logs[id].slice(-150);ch=true;}});
-  if(ch)jset("rp_logs",logs);sessionLog={};}
+function persistSession(k,dateOverride,startedAt){
+  const logs=loadLogs(),t=dateOverride||today(),merged=sessLog(k),list=effList(k);
+  const ck=checksOn(t,k),done=loggedOn(t,k),stamp=startedAt||Date.now();
+  let sets=0,vol=0;const ids={},push=(id,rec)=>{logs[id]=logs[id]||[];logs[id].push(rec);
+    if(logs[id].length>150)logs[id]=logs[id].slice(-150);};
+  Object.keys(merged).forEach(id=>{const st=merged[id];if(st&&st.length){
+    push(id,{date:t,sets:st,k:k,t:stamp});
+    sets+=st.length;st.forEach(x=>{vol+=(x.w||0)*(x.reps||0);});ids[id]=1;}});
+  /* los ejercicios hechos solo con visto tambien cuentan: sin esto la curva de
+     evolucion nunca tendria datos para quien entrena marcando la lista */
+  list.forEach(id=>{if(ck[id]&&!ids[id]&&!done[id]){push(id,{date:t,sets:[],k:k,t:stamp,checked:true});ids[id]=1;}});
+  const all=Object.keys(ids);
+  if(all.length){jset("rp_logs",logs);markLogged(t,k,all);}
+  if(sessionLogKey===k){sessionLog={};sessionLogKey=null;}
+  return {sets:sets,vol:Math.round(vol),exDone:all.length,exTotal:list.length,
+    dur:dateOverride?0:durSince(startedAt),ids:all};}
+/* una sesion de mas de 4 h es una que se quedó abierta: mejor no dar duracion */
+function durSince(t){if(!t)return 0;const m=Math.round((Date.now()-t)/60000);return (m>0&&m<=240)?m:0;}
 function fmtW(w){return (Math.round(w*10)%10===0)?String(Math.round(w)):Number(w).toFixed(1);}
+function plural(n,sing,pl){return (Math.abs(n)===1)?sing:pl;}
 function adjW(d){const s=steps[stepi];curW=Math.max(0,Math.round((curW+d)*10)/10);const el=$("lw");if(el)el.innerHTML=fmtW(curW)+' <small>'+(s.unit||'kg')+'</small>';}
 function adjR(d){curReps=Math.max(1,curReps+d);const el=$("lr");if(el)el.textContent=curReps;}
-function logSet(){const s=steps[stepi];(sessionLog[s.id]=sessionLog[s.id]||[]).push({w:(s.load===true?curW:0),reps:curReps});afterAction();}
+function logSet(){const s=steps[stepi];useSessionLog(curRoutine);(sessionLog[s.id]=sessionLog[s.id]||[]).push({w:(s.load===true?curW:0),reps:curReps,t:Date.now()});touchSess(stepi);afterAction();}
 function adjRest(d){restR=Math.max(0,restR+d);const el=$("rv");if(el)el.textContent=restR;}
 function editNum(which){const isW=which==="w",el=$(isW?"lw":"lr");if(!el)return;
   const val=isW?curW:curReps;
@@ -887,7 +1011,7 @@ function renderProgress(){const logs=loadLogs(),ids=Object.keys(logs).filter(id=
   $("progBody").innerHTML=b;}
 
 /* ===== copia de seguridad (exportar / importar) ===== */
-function exportData(){try{const keys=["rp_streak","rp_history","rp_rem","rp_theme","rp_checks","rp_logs","rp_plan","rp_bw","rp_swaps","rp_extras"];
+function exportData(){try{const keys=["rp_streak","rp_history","rp_rem","rp_theme","rp_checks","rp_logs","rp_plan","rp_bw","rp_swaps","rp_extras","rp_session","rp_logged","rp_prefs"];
   const data={_app:"rutina-postura",_v:VERSION,_date:new Date().toISOString(),store:{}};
   keys.forEach(k=>{const v=localStorage.getItem(k);if(v!=null)data.store[k]=v;});
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
@@ -902,6 +1026,50 @@ function importData(input){const f=input&&input.files&&input.files[0];if(!f)retu
     alert("Datos importados correctamente. La app se recargará.");location.reload();
   }catch(e){alert("Ese archivo no es una copia válida.");input.value="";}};
   r.readAsText(f);}
+
+/* ---------- HOJA DE RESUMEN / FINALIZAR ---------- */
+let finRescue=null;
+function openFinish(rescueKey){finRescue=rescueKey||null;
+  if(finRescue)curRoutine=finRescue;
+  pushHist({ov:"fin"});renderFinish();$("finov").classList.add("show");}
+function closeFinish(){history.back();}
+function renderFinish(){const k=curRoutine,r=ROUTINES[k];if(!r)return;
+  const s=loadSess(),fecha=(finRescue&&s)?s.date:today();
+  const st=sessStats(k,fecha),log=sessLog(k),ck=checksOn(fecha,k),done=loggedOn(fecha,k);
+  $("finTitle").textContent=finRescue?"Entrenamiento sin cerrar":"Resumen de la sesión";
+  let h=`<div class="mut" style="font-size:13px;margin:0 0 10px">${(r.emoji||"")} ${esc(r.name)}`
+    +(finRescue?` · del ${fecha.split("-").reverse().join("/")}`:(st.dur?` · ${st.dur} min`:""))+`</div>`;
+  if(!st.exDone){
+    h+=`<div class="finempty">Todavía no has registrado nada en esta rutina.<br>Marca un ejercicio con ✓ o registra una serie.</div>
+      <button class="btn sec" onclick="closeFinish()">Volver</button>`;
+    $("finBody").innerHTML=h;return;}
+  h+=`<div class="finsum">
+    <div class="fs"><b>${st.exDone}<span style="font-size:12px;color:var(--mut)">/${st.exTotal}</span></b><span>ejercicios</span></div>
+    <div class="fs"><b>${st.sets}</b><span>${plural(st.sets,"serie","series")}</span></div>
+    <div class="fs"><b>${st.vol>0?fmtW(st.vol):"—"}</b><span>${st.vol>0?"kg movidos":"sin carga"}</span></div></div>`;
+  let rows="";
+  effList(k).forEach(id=>{const a=log[id]||[],e=EX[id];if(!e)return;
+    const marcado=ck[id]&&!done[id];
+    if(!a.length&&!marcado)return;
+    const v=a.length?a.map(x=>((x.w||0)>0?fmtW(x.w)+"×":"")+x.reps).join("  ·  "):"✓ hecho";
+    rows+=`<div class="setline fin"><span class="n">${esc(shortName(id))}</span><span class="v">${v}</span></div>`;});
+  if(rows)h+=`<div class="finlist">${rows}</div>`;
+  h+=`<button class="btn" onclick="confirmFinish()">🏁 Finalizar y guardar</button>
+    <button class="btn sec" onclick="closeFinish()">${finRescue?"Ahora no":"Seguir entrenando"}</button>
+    <button class="gbtn fin" onclick="discardSession()">Descartar sin guardar</button>`;
+  $("finBody").innerHTML=h;}
+function confirmFinish(){const k=curRoutine,res=finishSession(k,"sheet");finRescue=null;
+  $("finov").classList.remove("show");history.back();
+  if(res){renderHome();if($("routine").classList.contains("active"))openRoutine(k,true);}}
+function discardSession(){if(!confirm("Se borrará lo registrado en esta sesión sin guardarlo. ¿Seguro?"))return;
+  const k=curRoutine;sessionLog={};sessionLogKey=null;clearSess();
+  const all=loadChecks(),s=loadSess();const t=(finRescue&&s)?s.date:today();
+  if(all[t]&&all[t][k]){delete all[t][k];jset("rp_checks",all);}
+  finRescue=null;$("finov").classList.remove("show");history.back();
+  if($("routine").classList.contains("active"))openRoutine(k,true);}
+function resumeSessionCheck(){try{const s=loadSess();if(!s||s.date===today())return;
+  if(!sessStats(s.key,s.date).exDone){clearSess();return;}
+  openFinish(s.key);}catch(e){}}
 
 /* ---------- VIDEO OVERLAY ---------- */
 function openVideo(id){pushHist({ov:"video"});$("ovTitle").textContent=EX[id].name;$("ovFrame").src=embed(VID[id]);$("ovYt").href=watch(VID[id]);$("ov").classList.add("show");}
@@ -921,14 +1089,16 @@ function buildSteps(k){const out=[],list=effList(k),total=list.length;
   });return out;}
 
 /* ---------- GUIDED ---------- */
-function startRoutine(from){prime();pushHist({v:"guided",k:curRoutine});sessionLog={};curW=null;curReps=null;steps=buildSteps(curRoutine);stepi=0;
-  if(from){const i=steps.findIndex(s=>s.id===from);if(i>=0)stepi=i;}
+function startRoutine(from){prime();pushHist({v:"guided",k:curRoutine});
+  const s=startSess(curRoutine,"guided");
+  sessionLog=(s&&s.log)?s.log:{};sessionLogKey=curRoutine;
+  curW=null;curReps=null;steps=buildSteps(curRoutine);stepi=0;
+  if(from){const i=steps.findIndex(x=>x.id===from);if(i>=0)stepi=i;}
+  else if(s&&s.stepi>0&&s.stepi<steps.length)stepi=s.stepi;
   show("guided");renderStep();}
-function sessionHasProgress(){if(stepi>0)return true;for(var k in sessionLog){if(sessionLog[k]&&sessionLog[k].length)return true;}return false;}
-function finishEarly(){clearTimer();if(confirm("¿Finalizar y registrar este entrenamiento?"))finish();}
-function guidedExit(){clearTimer();
-  if(sessionHasProgress()&&confirm("¿Registrar este entrenamiento antes de salir?\n\nAceptar = finalizar y guardar · Cancelar = salir sin registrar")){finish();return;}
-  persistSession();history.back();}
+/* salir ya no destruye nada: la sesion vive en localStorage y se cierra
+   desde el boton "Finalizar rutina" de la pantalla de la rutina */
+function guidedExit(){clearTimer();touchSess(stepi);history.back();}
 function guidedBack(){clearTimer();if(stepi>0){stepi--;renderStep();}else{guidedExit();}}
 function guidedSkipExercise(){clearTimer();const cur=steps[stepi].id;let i=stepi;while(i<steps.length&&steps[i].id===cur)i++;
   if(i>=steps.length)finish();else{stepi=i;renderStep();}}
@@ -936,7 +1106,7 @@ function guidedSkipExercise(){clearTimer();const cur=steps[stepi].id;let i=stepi
 function frame(inner){const s=steps[stepi],prog=Math.round(stepi/steps.length*100);
   return `<div class="gtop"><div class="icbtn" onclick="guidedBack()">‹</div>
     <div class="pbar"><i style="width:${prog}%"></i></div>
-    <div class="gcount">${s.exI}/${s.exN}</div><div class="icbtn fin" onclick="finishEarly()" role="button" aria-label="Finalizar entrenamiento" title="Finalizar entrenamiento">🏁</div><div class="icbtn" onclick="guidedExit()" role="button" aria-label="Salir">✕</div></div>
+    <div class="gcount">${s.exI}/${s.exN}</div><div class="icbtn" onclick="guidedExit()" role="button" aria-label="Salir" title="Salir (se guarda solo)">✕</div></div>
     <div class="stage"><div class="setlab">${s.label}</div><div class="exname">${s.name}</div>${(typeof ZONA!=="undefined"&&ZONA[s.id])?'<div class="zonatag">'+ZONA[s.id]+'</div>':''}
     ${(typeof FRAMES!=="undefined"&&FRAMES[s.id])?`<div class="gframes">${framesStrip(s.id)}</div>`:`<div class="gdiag">${DIAG[s.id]||""}</div>`}
     ${s.caveat?'<div class="caveatbox">⚠️ Evidencia floja: los ejercicios faciales muestran, en el mejor caso, mejoras modestas tras meses. Hazlo sin grandes expectativas.</div>':''}
@@ -997,13 +1167,17 @@ function renderRest(sec){clearTimer();restR=sec;
 function skipRest(){clearTimer();advance();}
 function advance(){clearTimer();const prev=steps[stepi];stepi++;
   if(prev&&(stepi>=steps.length||steps[stepi].id!==prev.id))markCheck(curRoutine,prev.id,true);
+  touchSess(Math.min(stepi,steps.length-1));
   if(stepi>=steps.length)finish();else renderStep();}
-function finish(){clearTimer();persistSession();const s=completeDay();recordSession(curRoutine,ROUTINES[curRoutine].name);
+function finish(){clearTimer();const res=finishSession(curRoutine,"guided");
+  const s=(res&&res.streak)||loadStreak(),sum=res&&res.summary;
   $("guided").innerHTML=`<div class="done"><div class="em">🎉</div><h2>¡Rutina completada!</h2>
-    <p class="mut">${ROUTINES[curRoutine].name}</p><div class="big">🔥 ${s.count}</div>
-    <p class="mut">días seguidos · mejor: ${s.best} · ${s.total} sesiones</p>
+    <p class="mut">${esc(ROUTINES[curRoutine].name)}${sum&&sum.dur?" · "+sum.dur+" min":""}</p><div class="big">🔥 ${s.count}</div>
+    <p class="mut">${plural(s.count,"día seguido","días seguidos")} · mejor: ${s.best} · ${s.total} ${plural(s.total,"sesión","sesiones")}</p>
+    ${sum?`<p class="mut" style="margin-top:10px;font-size:13px">${sum.exDone} de ${sum.exTotal} ejercicios · ${sum.sets} ${plural(sum.sets,"serie","series")}${sum.vol>0?" · "+fmtW(sum.vol)+" kg movidos":""}</p>`:""}
     <p class="mut" style="margin-top:16px;font-size:13px">El progreso está en la constancia. ¡Bien hecho!</p>
-    <button class="gbtn go" style="margin-top:22px" onclick="guidedExit()">Volver al inicio</button></div>`;beep();}
+    <button class="gbtn go" style="margin-top:22px" onclick="exitToHome()">Volver al inicio</button></div>`;beep();}
+function exitToHome(){sessionLog={};sessionLogKey=null;stepi=0;history.back();}
 
 /* ---------- HISTORY ---------- */
 /* tarjeta Hoy */
@@ -1123,9 +1297,17 @@ async function forceUpdate(){var b=event&&event.target;if(b)b.textContent="Actua
 function pushHist(st){try{history.pushState(st,"");}catch(e){}}
 function renderState(s){clearTimer();s=s||{v:"home"};
   if(s.v==="routine"&&s.k&&ROUTINES[s.k]){openRoutine(s.k,true);}
+  else if(s.v==="guided"&&s.k&&ROUTINES[s.k]){resumeGuided(s.k);}
   else{var v=s.v||"home";show(v);if(v==="home")renderHome();if(v==="history")renderHistory();if(v==="progress")renderProgress();if(v==="settings")renderSettings();}}
+/* volver al guiado sin perder la sesion (recarga o avance del historial) */
+function resumeGuided(k){curRoutine=k;const sess=loadSess();
+  sessionLog=(sess&&sess.key===k&&sess.log)?sess.log:{};sessionLogKey=k;
+  steps=buildSteps(k);if(!steps.length){openRoutine(k,true);return;}
+  stepi=(sess&&sess.stepi>0&&sess.stepi<steps.length)?sess.stepi:0;
+  curW=null;curReps=null;show("guided");renderStep();}
 window.addEventListener("popstate",function(e){
   if($("ov")&&$("ov").classList.contains("show")){$("ov").classList.remove("show");$("ovFrame").src="";return;}
+  var fv=$("finov");if(fv&&fv.classList.contains("show")){fv.classList.remove("show");finRescue=null;return;}
   var pv=$("planov");if(pv&&pv.classList.contains("show")){pv.classList.remove("show");return;}
   var sv=$("swapov");if(sv&&sv.classList.contains("show")){sv.classList.remove("show");return;}
   renderState(e.state);});
@@ -1348,9 +1530,11 @@ function renderProgress(){
 applyTheme(loadTheme());renderHome();
 (function(){var st=history.state;
   if(st&&st.v==="routine"&&st.k&&ROUTINES[st.k]){openRoutine(st.k,true);}
+  else if(st&&st.v==="guided"&&st.k&&ROUTINES[st.k]){resumeGuided(st.k);}
   else if(st&&(st.v==="history"||st.v==="progress"||st.v==="settings")){show(st.v);if(st.v==="history")renderHistory();if(st.v==="progress")renderProgress();if(st.v==="settings")renderSettings();}
   else{try{history.replaceState({v:"home"},"");}catch(e){}}
 })();
+resumeSessionCheck();
 scheduleRem();
 </script>
 </body>
