@@ -710,10 +710,11 @@ const GROUPS=[{title:"Postura",keys:["postura_completa","postura_movilidad"]},{t
 const TAG={calent:["Calentamiento","b-calent"],diario:["Diario","b-diario"],carga:["Carga 3–4×/sem","b-carga"],opcional:["Opcional","b-opcional"]};
 const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
-const VERSION="v20 · 2026-07-26";
+const VERSION="v21 · 2026-07-26";
 let curRoutine=null, steps=[], stepi=0, tId=null, actx=null, remTimers=[];
 const $=id=>document.getElementById(id);
 function show(v){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$(v).classList.add("active");
+  if(v==="guided")requestWake();else{releaseWake();clearRestNotif();}
   document.querySelectorAll(".nav .tab").forEach(t=>{const on=t.dataset.v===v;if(on)t.setAttribute("aria-current","page");else t.removeAttribute("aria-current");});
   const main=["home","history","progress","settings"].includes(v);$("nav").classList.toggle("hide",!main);
   document.querySelectorAll(".nav .tab").forEach(a=>a.classList.toggle("on",a.dataset.v===v));window.scrollTo(0,0);}
@@ -737,7 +738,10 @@ let tickFn=null,tEnds=0,restEnds=0;
 function clearTimer(){if(tId){clearInterval(tId);tId=null;}tickFn=null;}
 /* al volver del segundo plano el navegador frena los intervalos: se recalcula
    contra el reloj en vez de ir restando de uno en uno */
-document.addEventListener("visibilitychange",function(){if(!document.hidden&&tickFn)tickFn();});
+document.addEventListener("visibilitychange",function(){
+  if(document.hidden)return;
+  if(tickFn)tickFn();
+  if(inGuided())requestWake();});
 
 /* theme */
 function loadTheme(){return jget("rp_theme","auto");}
@@ -1114,7 +1118,8 @@ function adjW(d){const s=steps[stepi];curW=Math.max(0,Math.round((curW+d)*10)/10
 function adjR(d){curReps=Math.max(1,curReps+d);const el=$("lr");if(el)el.textContent=curReps;}
 function logSet(){const s=steps[stepi];useSessionLog(curRoutine);(sessionLog[s.id]=sessionLog[s.id]||[]).push({w:(s.load===true?curW:0),reps:curReps,t:Date.now()});touchSess(stepi);afterAction();}
 function adjRest(d){restEnds+=d*1000;restR=Math.max(0,Math.ceil((restEnds-Date.now())/1000));
-  const el=$("rv");if(el)el.textContent=restR;}
+  const el=$("rv");if(el)el.textContent=restR;
+  clearRestNotif();if(restR>0)scheduleRestNotif(restR*1000);}
 function editNum(which){const isW=which==="w",el=$(isW?"lw":"lr");if(!el)return;
   const val=isW?curW:curReps;
   el.outerHTML=`<input id="numin" class="numin" type="number" inputmode="decimal" step="${isW?"0.5":"1"}" min="0" value="${val}">`;
@@ -1266,7 +1271,7 @@ function startRoutine(from){prime();pushHist({v:"guided",k:curRoutine});
   show("guided");renderStep();}
 /* salir ya no destruye nada: la sesion vive en localStorage y se cierra
    desde el boton "Finalizar rutina" de la pantalla de la rutina */
-function guidedExit(){clearTimer();touchSess(stepi);history.back();}
+function guidedExit(){clearTimer();clearRestNotif();releaseWake();touchSess(stepi);history.back();}
 function guidedBack(){clearTimer();if(stepi>0){stepi--;renderStep();}else{guidedExit();}}
 function guidedSkipExercise(){clearTimer();const cur=steps[stepi].id;let i=stepi;while(i<steps.length&&steps[i].id===cur)i++;
   if(i>=steps.length)finish();else{stepi=i;renderStep();}}
@@ -1325,6 +1330,34 @@ function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){cu
       <button class="gbtn go" id="startT" onclick="startTimer()">▶ Iniciar (${s.seconds}s)</button>`;}
   $("guided").innerHTML=frame(inner);}
 
+/* ==== [S4] PANTALLA DESPIERTA Y AVISO DE DESCANSO =========================
+   Entrenando, el movil se bloquea entre series: el pitido no suena y el
+   contador no se ve. Se resuelve por dos vias, ninguna imprescindible:
+   mantener la pantalla despierta mientras dura el guiado, y avisar con una
+   notificacion cuando el descanso termina con la app en segundo plano. */
+let wakeLock=null;
+function keepAwakeOn(){return prefGet("keepAwake",true)!==false;}
+function restNotifyOn(){return prefGet("restNotify",false)===true;}
+function requestWake(){if(!keepAwakeOn()||wakeLock||document.hidden)return;
+  try{if(navigator.wakeLock&&navigator.wakeLock.request)
+    navigator.wakeLock.request("screen").then(l=>{wakeLock=l;
+      l.addEventListener("release",()=>{wakeLock=null;});}).catch(()=>{wakeLock=null;});}catch(e){wakeLock=null;}}
+function releaseWake(){try{if(wakeLock){wakeLock.release();wakeLock=null;}}catch(e){wakeLock=null;}}
+function inGuided(){const g=$("guided");return !!(g&&g.classList.contains("active"));}
+/* si el navegador soporta disparadores, la notificacion se programa y llega
+   aunque la pagina se haya congelado; si no, se lanza al terminar la cuenta */
+function scheduleRestNotif(ms){if(!restNotifyOn())return;
+  try{navigator.serviceWorker&&navigator.serviceWorker.ready.then(reg=>{
+    if(typeof Notification!=="undefined"&&"showTrigger" in Notification.prototype&&typeof TimestampTrigger!=="undefined"){
+      reg.showNotification("Descanso terminado \U0001F4AA",{body:"Vuelve a la serie.",icon:"icon-192.png",
+        badge:"icon-192.png",tag:"rp-rest",showTrigger:new TimestampTrigger(Date.now()+ms)});}}).catch(()=>{});}catch(e){}}
+function clearRestNotif(){try{navigator.serviceWorker&&navigator.serviceWorker.ready.then(reg=>
+    reg.getNotifications({tag:"rp-rest",includeTriggered:true}).then(ns=>ns.forEach(n=>n.close())).catch(()=>{})).catch(()=>{});}catch(e){}}
+function restDone(){clearRestNotif();
+  if(document.hidden&&restNotifyOn()&&typeof Notification!=="undefined"&&Notification.permission==="granted")
+    showNotif("Descanso terminado \U0001F4AA","Vuelve a la serie.",{tag:"rp-rest",renotify:true,vibrate:[220,90,220]});}
+/* ==== fin [S4] ============================================================ */
+
 let gVidOn=false;
 function toggleGVid(){gVidOn=!gVidOn;const b=$("gvid");if(gVidOn){$("gvframe").src=embed(VID[steps[stepi].id]);b.classList.add("show");}else{$("gvframe").src="";b.classList.remove("show");}}
 function startTimer(){const s=steps[stepi],C=2*Math.PI*90,btn=$("startT");if(btn)btn.style.display="none";
@@ -1336,13 +1369,14 @@ function startTimer(){const s=steps[stepi],C=2*Math.PI*90,btn=$("startT");if(btn
   upd();if(tId)return;tickFn=upd;tId=setInterval(upd,250);}
 function afterAction(){const s=steps[stepi];if(s.restAfter>0)renderRest(s.restAfter);else advance();}
 function renderRest(sec){clearTimer();restR=sec;restEnds=Date.now()+sec*1000;
+  clearRestNotif();scheduleRestNotif(sec*1000);
   $("guided").innerHTML=frame(`<div class="phaselab">Descanso</div><div class="timer rest" id="rv" aria-live="polite">${restR}</div>
     <div class="restadj"><button class="gbtn sec" onclick="adjRest(-30)">−30 s</button><button class="gbtn sec" onclick="adjRest(30)">+30 s</button></div>
     <button class="gbtn rest" onclick="skipRest()">Saltar descanso →</button>`);
   const upd=()=>{restR=Math.max(0,Math.ceil((restEnds-Date.now())/1000));const el=$("rv");if(el)el.textContent=restR;
-    if(restR<=0){clearTimer();beep();advance();}};
+    if(restR<=0){clearTimer();beep();restDone();advance();}};
   tickFn=upd;tId=setInterval(upd,250);}
-function skipRest(){clearTimer();advance();}
+function skipRest(){clearTimer();clearRestNotif();advance();}
 function advance(){clearTimer();const prev=steps[stepi];stepi++;
   if(prev&&(stepi>=steps.length||steps[stepi].id!==prev.id))markCheck(curRoutine,prev.id,true);
   touchSess(Math.min(stepi,steps.length-1));
@@ -1450,6 +1484,15 @@ function toggleDay(i){const el=$("dd_"+i);if(el)el.classList.toggle("open");}
 
 /* ---------- SETTINGS / REMINDERS ---------- */
 function loadRem(){return jget("rp_rem",{enabled:false,times:["07:00"]});}
+function toggleKeepAwake(){const v=!keepAwakeOn();prefSet("keepAwake",v);
+  const t=$("wakeTog");if(t)t.classList.toggle("on",v);
+  if(v){if(inGuided())requestWake();}else releaseWake();}
+function toggleRestNotify(){const v=!restNotifyOn();
+  if(!v){prefSet("restNotify",false);const t=$("restTog");if(t)t.classList.remove("on");return;}
+  if(typeof Notification==="undefined"){alert("Este navegador no soporta notificaciones.");return;}
+  Notification.requestPermission().then(p=>{const ok=(p==="granted");prefSet("restNotify",ok);
+    const t=$("restTog");if(t)t.classList.toggle("on",ok);
+    if(!ok)alert("Permite las notificaciones para que pueda avisarte.");});}
 function renderSettings(){const r=loadRem();
   const perm=(typeof Notification!=="undefined")?Notification.permission:"unsupported";
   let b=`<div class="field"><div class="switch">
@@ -1459,6 +1502,12 @@ function renderSettings(){const r=loadRem();
         <button data-th="dark" onclick="setTheme('dark')" title="Oscuro" aria-label="Tema oscuro"><svg viewBox="0 0 24 24"><path d="M17.5 15.5A6.5 6.5 0 0 1 9 6.9a6.8 6.8 0 1 0 8.5 8.6Z"/></svg></button>
         <button data-th="auto" onclick="setTheme('auto')" title="Automático" aria-label="Tema automático">Auto</button>
       </div></div></div>
+    <div class="field"><div class="switch"><div><div class="fl">Pantalla encendida al entrenar</div>
+      <div class="fh">Mientras dure el modo guiado, el móvil no se bloquea. Se suelta al salir.</div></div>
+      <div class="toggle ${keepAwakeOn()?'on':''}" id="wakeTog" onclick="toggleKeepAwake()" role="button" tabindex="0" aria-label="Mantener la pantalla encendida"><i></i></div></div></div>
+    <div class="field"><div class="switch"><div><div class="fl">Avisar al terminar el descanso</div>
+      <div class="fh">Notificación con vibración si tienes la app en segundo plano.</div></div>
+      <div class="toggle ${restNotifyOn()?'on':''}" id="restTog" onclick="toggleRestNotify()" role="button" tabindex="0" aria-label="Avisar al terminar el descanso"><i></i></div></div></div>
     <div class="field"><div class="switch"><div><div class="fl">Recordatorios diarios</div>
       <div class="fh">Notificación a las horas que elijas.</div></div>
       <div class="toggle ${r.enabled?'on':''}" id="remTog" onclick="toggleRem()"><i></i></div></div>
@@ -1494,8 +1543,9 @@ function toggleRem(){const r=loadRem();
   else{r.enabled=false;jset("rp_rem",r);$("remTog").classList.remove("on");scheduleRem();}}
 function testNotif(){if(typeof Notification==="undefined"){alert("Sin soporte de notificaciones.");return;}
   Notification.requestPermission().then(p=>{if(p==="granted")showNotif("Recordatorio de prueba ✅","Así te avisaré para tu rutina.");else alert("Permite las notificaciones primero.");});}
-function showNotif(title,body){try{navigator.serviceWorker?.ready.then(reg=>reg.showNotification(title,{body,icon:"icon-192.png",badge:"icon-192.png"})).catch(()=>new Notification(title,{body,icon:"icon-192.png"}));}
-  catch(e){try{new Notification(title,{body});}catch(_){}}}
+function showNotif(title,body,opts){const o=Object.assign({body:body,icon:"icon-192.png",badge:"icon-192.png"},opts||{});
+  try{navigator.serviceWorker?.ready.then(reg=>reg.showNotification(title,o)).catch(()=>new Notification(title,o));}
+  catch(e){try{new Notification(title,o);}catch(_){}}}
 function scheduleRem(){remTimers.forEach(t=>clearTimeout(t));remTimers=[];const r=loadRem();if(!r.enabled)return;
   r.times.forEach(hm=>{const [h,m]=hm.split(":").map(Number);const now=new Date();const t=new Date();t.setHours(h,m,0,0);
     if(t<=now)t.setDate(t.getDate()+1);const ms=t-now;
