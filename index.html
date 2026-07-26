@@ -69,8 +69,8 @@
     radial-gradient(1200px 500px at 50% -10%, #14243a 0%, var(--bg) 60%) fixed;
     color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
     -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;text-size-adjust:100%}
-  body{max-width:600px;margin:0 auto;min-height:100vh;overflow-x:hidden}
-  .app{padding:0 0 96px}
+  body{max-width:600px;margin:0 auto;min-height:100vh;min-height:100dvh;overflow-x:hidden}
+  .app{padding:0 0 calc(92px + env(safe-area-inset-bottom))}
   .view{display:none;animation:fade .25s ease} .view.active{display:block}
   @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   h1{font-size:23px;margin:0;font-weight:800;letter-spacing:-.4px}
@@ -226,9 +226,9 @@
     background:rgba(11,18,32,.92);backdrop-filter:blur(12px);border-top:1px solid var(--line);
     display:flex;padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:30}
   .nav.hide{display:none}
-  .nav a{flex:1;text-align:center;color:var(--mut);font-size:11px;font-weight:700;cursor:pointer;padding:4px}
-  .nav a .i{font-size:20px;display:block;margin-bottom:2px}
-  .nav a.on{color:var(--go)}
+  .nav .tab{flex:1;text-align:center;color:var(--mut);font-size:11px;font-weight:700;cursor:pointer;padding:4px;background:none;border:none;font-family:inherit}
+  .nav .tab .i{font-size:20px;display:block;margin-bottom:2px}
+  .nav .tab.on{color:var(--go)}
 
   /* video overlay */
   #ov{position:fixed;inset:0;background:rgba(4,8,12,.9);display:none;z-index:60;align-items:center;justify-content:center;padding:16px}
@@ -236,7 +236,7 @@
   .ovcard{background:var(--card);border:1px solid var(--line);border-radius:16px;width:100%;max-width:540px;overflow:hidden}
   .ovhead{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
   .ovhead .t{font-weight:700;font-size:14px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .ovhead .x{cursor:pointer;font-size:20px;color:var(--mut);width:30px;height:30px;display:flex;align-items:center;justify-content:center}
+  .ovhead .x{cursor:pointer;font-size:20px;color:var(--mut);width:40px;height:40px;display:flex;align-items:center;justify-content:center}
   .ovfoot{padding:10px 14px;font-size:12.5px;color:var(--mut)}
   .ovfoot a{color:var(--sky)}
 
@@ -275,9 +275,9 @@
   .addrow button{background:var(--primary);color:var(--on-primary)}
   .minibtn.danger,.danger{color:var(--danger);border-color:var(--danger);background:var(--danger-tint)}
   .nav{background:var(--nav-bg)}
-  .nav a.on{color:var(--primary)}
+  .nav .tab.on{color:var(--primary)}
   .icbtn{color:var(--tx2)}
-  .nav a .i svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;display:block;margin:0 auto 2px}
+  .nav .tab .i svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;display:block;margin:0 auto 2px}
   /* control de tema compacto (fila de ajustes) */
   .themeseg{display:inline-flex;flex:0 0 auto;margin-left:auto;background:var(--sunk);border:1px solid var(--line);border-radius:var(--r-pill);padding:3px;gap:2px}
   .themeseg button{border:none;background:transparent;color:var(--mut);border-radius:var(--r-pill);padding:6px 11px;font-size:12px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:5px;min-height:34px}
@@ -316,7 +316,7 @@
   .exck{width:26px;height:26px;border-radius:50%;border:2px solid var(--line2);background:transparent;color:var(--on-primary);font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;cursor:pointer}
   .ex.checked .exck{background:var(--primary);border-color:var(--primary)}
   .ex.checked .nm{color:var(--mut);text-decoration:line-through}
-  .exstart{width:36px;height:36px;border-radius:10px;background:var(--primary-tint);color:var(--primary);font-size:13px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;cursor:pointer}
+  .exstart{width:42px;height:42px;border-radius:10px;background:var(--primary-tint);color:var(--primary);font-size:13px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;cursor:pointer}
   /* figuras multi-paso (paso 1/2/3) */
   .frames{display:flex;gap:8px;margin:4px 0 10px}
   .frame{flex:1;min-width:0;background:var(--diagram-bg);border:1px solid var(--line);border-radius:12px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:5px}
@@ -343,7 +343,7 @@
   .stepper .row{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
   .stepper .row b{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
   .stepper .row b small{font-size:12px;font-weight:700;color:var(--mut)}
-  .sq{width:38px;height:38px;border-radius:10px;background:var(--sunk);border:1px solid var(--line);color:var(--primary);font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .sq{width:42px;height:42px;border-radius:10px;background:var(--sunk);border:1px solid var(--line);color:var(--primary);font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer}
   .last{margin:11px 0 4px;background:var(--load-tint);border:1px solid var(--load);border-radius:11px;padding:9px 12px;font-size:12px;color:var(--load-ink);font-weight:600}
   .sets{margin:11px 0 0;display:flex;flex-direction:column;gap:6px}
   .setline{display:flex;align-items:center;gap:9px;font-size:12.5px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 11px}
@@ -385,7 +385,7 @@
   .delta.down{background:var(--rest-tint);color:var(--rest)}
   .blockt{margin:16px 4px 8px;font-size:11.5px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.8px}
   .chip{font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;background:var(--sunk);color:var(--tx2);border:1px solid var(--line);cursor:pointer}
-  .exadd{width:36px;height:36px;border-radius:10px;background:var(--sunk);color:var(--mut);font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;cursor:pointer;border:1px solid var(--line)}
+  .exadd{width:42px;height:42px;border-radius:10px;background:var(--sunk);color:var(--mut);font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;cursor:pointer;border:1px solid var(--line)}
   .exadd.on{background:var(--primary-tint);color:var(--primary);border-color:var(--primary)}
   .ex.off{opacity:.62}
   .optsub{font-size:11px;color:var(--mut);font-weight:600;margin-top:2px}
@@ -399,6 +399,9 @@
   .exprog .ct{font-size:12.5px;font-weight:800}
   .exprog .cs{font-size:11.5px;color:var(--mut);font-weight:600;margin:2px 0 6px}
   .mchips{display:flex;flex-wrap:wrap;gap:5px;margin:2px 0 8px}
+  /* area de toque comoda sin agrandar el control */
+  .exck,.chip,.mchip,.setline .del,.calnav{position:relative}
+  .exck:after,.chip:after,.mchip:after,.setline .del:after,.calnav:after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);min-width:44px;min-height:44px;width:100%;height:100%}
   .mchip{font-size:10.5px;font-weight:800;padding:5px 10px;border-radius:999px;background:var(--sunk);color:var(--mut);border:1px solid var(--line);cursor:pointer}
   .mchip.on{background:var(--primary-tint);color:var(--primary);border-color:var(--primary)}
   .exempty{font-size:12px;color:var(--mut);font-weight:600;line-height:1.5}
@@ -421,6 +424,7 @@
   #finov{position:fixed;inset:0;background:rgba(4,8,12,.55);display:none;z-index:65;align-items:flex-end;justify-content:center}
   #finov.show{display:flex}
   #finov .ovcard{border-radius:18px 18px 0 0;max-width:600px;width:100%;max-height:88vh;overflow:auto}
+  #finov .planbody,#planov .planbody,#swapov .planbody{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
   .finsum{display:flex;gap:8px;margin:0 0 12px}
   .finsum .fs{flex:1;background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:9px 4px;text-align:center}
   .finsum .fs b{display:block;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
@@ -431,7 +435,7 @@
   .finempty{background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:16px 14px;text-align:center;font-size:13px;color:var(--mut);font-weight:600;margin:0 0 14px;line-height:1.5}
   .finhint{font-size:11.5px;color:var(--mut);font-weight:600;text-align:center;margin-top:2px}
   /* foco visible (accesibilidad) */
-  button:focus-visible,a:focus-visible,input:focus-visible,.toggle:focus-visible,.rcard:focus-visible,.ex .top:focus-visible{outline:none;box-shadow:var(--sh-focus)}
+  button:focus-visible,a:focus-visible,input:focus-visible,[tabindex]:focus-visible,.toggle:focus-visible,.rcard:focus-visible,.ex .top:focus-visible{outline:none;box-shadow:var(--sh-focus);border-radius:10px}
   /* recolor de diagramas y anillo del timer: atributos inline -> tokens de tema */
   [stroke="#cfeede"]{stroke:var(--diagram-ink)} [fill="#cfeede"]{fill:var(--diagram-ink)}
   [stroke="#5fe39a"]{stroke:var(--diagram-hi)} [fill="#5fe39a"]{fill:var(--diagram-hi)}
@@ -451,10 +455,10 @@
 
   body{letter-spacing:-.01em}
   h1{font-size:27px;letter-spacing:-.7px;font-weight:800}
-  .head{padding:20px 18px 2px;gap:13px}
+  .head{padding:calc(20px + env(safe-area-inset-top)) 18px 2px;gap:13px}
   .head img{width:42px;height:42px;border-radius:13px}
   .head .sub{font-size:12.5px;margin-top:2px}
-  .bar{padding:18px 16px 6px}
+  .bar{padding:calc(18px + env(safe-area-inset-top)) 16px 6px}
   .bar .ttl{font-size:22px;letter-spacing:-.6px}
 
   /* superficies: sin borde en claro, sombra suave */
@@ -500,7 +504,7 @@
   .ex .meta{font-size:12px;margin-top:3px}
   .badge{font-size:10.5px;padding:3px 10px}
   .exck{width:28px;height:28px}
-  .exstart,.exadd{width:38px;height:38px;border-radius:12px}
+  .exstart,.exadd{width:42px;height:42px;border-radius:12px}
 
   /* botones */
   .btn{height:56px;padding:0;border-radius:16px;font-size:16.5px}
@@ -510,8 +514,8 @@
   /* guiado */
   .exname{font-size:27px;letter-spacing:-.8px;margin:4px 0 12px}
   .setlab{font-size:12.5px;letter-spacing:.2px}
-  .gtop{padding:14px 16px 6px;gap:10px}
-  .icbtn{width:40px;height:40px;border-radius:13px}
+  .gtop{padding:calc(14px + env(safe-area-inset-top)) 16px 6px;gap:10px}
+  .icbtn{width:44px;height:44px;border-radius:13px}
   .pbar{height:9px}
   .stepper{border-radius:16px;padding:12px 10px}
   .stepper .row b{font-size:28px;letter-spacing:-1px}
@@ -519,9 +523,9 @@
 
   /* nav con pastilla activa */
   .nav{padding:7px 6px calc(7px + env(safe-area-inset-bottom))}
-  .nav a{font-size:10.5px;padding:6px 2px;border-radius:14px;margin:0 3px;transition:background .15s}
-  .nav a.on{background:var(--primary-tint)}
-  .nav a .i svg{width:23px;height:23px}
+  .nav .tab{font-size:10.5px;padding:6px 2px;border-radius:14px;margin:0 3px;transition:background .15s}
+  .nav .tab.on{background:var(--primary-tint)}
+  .nav .tab .i svg{width:23px;height:23px}
 
   /* calendario y listas */
   .cal{border-radius:18px;padding:14px 12px 16px}
@@ -608,10 +612,10 @@
 </div>
 
 <nav class="nav" id="nav">
-  <a data-v="home" class="on"><span class="i"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg></span>Inicio</a>
-  <a data-v="history"><span class="i"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></span>Calendario</a>
-  <a data-v="progress"><span class="i"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 16l3-4 3 2 4-6"/></svg></span>Progreso</a>
-  <a data-v="settings"><span class="i"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></span>Ajustes</a>
+  <button type="button" class="tab on" data-v="home" aria-current="page"><span class="i"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg></span>Inicio</button>
+  <button type="button" class="tab" data-v="history"><span class="i"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></span>Calendario</button>
+  <button type="button" class="tab" data-v="progress"><span class="i"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 16l3-4 3 2 4-6"/></svg></span>Progreso</button>
+  <button type="button" class="tab" data-v="settings"><span class="i"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></span>Ajustes</button>
 </nav>
 
 <div id="ov">
@@ -709,11 +713,17 @@ const VERSION="v19 · 2026-07-02";
 let curRoutine=null, steps=[], stepi=0, tId=null, actx=null, remTimers=[];
 const $=id=>document.getElementById(id);
 function show(v){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$(v).classList.add("active");
+  document.querySelectorAll(".nav .tab").forEach(t=>{const on=t.dataset.v===v;if(on)t.setAttribute("aria-current","page");else t.removeAttribute("aria-current");});
   const main=["home","history","progress","settings"].includes(v);$("nav").classList.toggle("hide",!main);
-  document.querySelectorAll(".nav a").forEach(a=>a.classList.toggle("on",a.dataset.v===v));window.scrollTo(0,0);}
+  document.querySelectorAll(".nav .tab").forEach(a=>a.classList.toggle("on",a.dataset.v===v));window.scrollTo(0,0);}
 function embed(id){return "https://www.youtube-nocookie.com/embed/"+id+"?rel=0&modestbranding=1&playsinline=1";}
 function watch(id){return "https://www.youtube.com/watch?v="+id;}
-function esc(s){return (s||"").replace(/</g,"&lt;");}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
+/* Enter y Espacio activan cualquier control marcado como boton o casilla */
+document.addEventListener("keydown",function(e){
+  if(e.key!=="Enter"&&e.key!==" ")return;
+  const t=e.target;if(!t||!t.matches)return;
+  if(t.matches('[role="button"][tabindex],[role="checkbox"][tabindex]')){e.preventDefault();t.click();}});
 
 /* audio + haptics */
 function beep(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();
@@ -722,7 +732,11 @@ function beep(){try{actx=actx||new (window.AudioContext||window.webkitAudioConte
   g.gain.exponentialRampToValueAtTime(.3,st+.02);g.gain.exponentialRampToValueAtTime(.0001,st+.34);o.start(st);o.stop(st+.36);});}catch(e){}
   try{if(navigator.vibrate)navigator.vibrate([120,60,120]);}catch(e){}}
 function prime(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();}catch(e){}}
-function clearTimer(){if(tId){clearInterval(tId);tId=null;}}
+let tickFn=null,tEnds=0,restEnds=0;
+function clearTimer(){if(tId){clearInterval(tId);tId=null;}tickFn=null;}
+/* al volver del segundo plano el navegador frena los intervalos: se recalcula
+   contra el reloj en vez de ir restando de uno en uno */
+document.addEventListener("visibilitychange",function(){if(!document.hidden&&tickFn)tickFn();});
 
 /* theme */
 function loadTheme(){return jget("rp_theme","auto");}
@@ -795,9 +809,9 @@ function openRoutine(k,noPush){curRoutine=k;if(!noPush)pushHist({v:"routine",k:k
   qState={};const LOGS=loadLogs();
   if(sessActive(k)){const sv=loadSess();sessionLog=(sv&&sv.log)||{};sessionLogKey=k;}
   const swaps=r.swaps||{},extras=r.extras||[],on=extrasOn(k);
-  let h=`<div class="bar"><div class="icbtn" onclick="history.back()" role="button" aria-label="Volver">‹</div><div class="ttl">${esc(r.name)}</div></div>
+  let h=`<div class="bar"><div class="icbtn" onclick="history.back()" role="button" tabindex="0" aria-label="Volver">‹</div><div class="ttl">${esc(r.name)}</div></div>
     <div class="mut" style="margin:0 18px 4px;font-size:13px">${r.desc} · ~${estMinutes(k)} min</div>
-    <div id="routProg" class="routprog">${routineProgressText(k)}</div>
+    <div id="routProg" class="routprog" aria-live="polite">${routineProgressText(k)}</div>
     <div class="mut" style="margin:0 18px 8px;font-size:11.5px;line-height:1.4">Toca ▶ para empezar por ese ejercicio, o marca ✓ los que ya hiciste.</div>
     <div class="exwrap">`;
   let i=0,shownWarm=false,shownMain=false;
@@ -807,12 +821,12 @@ function openRoutine(k,noPush){curRoutine=k;if(!noPush)pushHist({v:"routine",k:k
     const added=isExtra&&on.indexOf(id)>=0;
     return `<div class="ex ${done?'checked':''} ${isExtra&&!added?'off':''}" id="ex_${n}">
       <div class="top">
-        <div class="exck" onclick="event.stopPropagation();toggleCheck('${id}',${n})" role="button" aria-label="Marcar hecho">${done?'✓':''}</div>
+        <div class="exck" onclick="event.stopPropagation();toggleCheck('${id}',${n})" role="checkbox" tabindex="0" aria-checked="${done?'true':'false'}" aria-label="Marcar como hecho">${done?'✓':''}</div>
         <div class="diag" onclick="toggleEx(${n})">${DIAG[id]||""}</div>
         <div style="flex:1;min-width:0" onclick="toggleEx(${n})"><div class="nm">${esc(e.name)}</div><div class="meta">${metaOf(e)}${(typeof ZONA!=="undefined"&&ZONA[id])?' · '+ZONA[id]:''}</div>
           <div class="badges"><span class="badge ${tg[1]}">${tg[0]}</span>${isExtra?'<span class="badge b-opcional">Opcional · extra</span>':''}${(alts&&alts.length)?`<span class="chip" onclick="event.stopPropagation();openSwap('${k}','${origin}')">🔁 ${swapped?('Cambiado · original: '+shortName(origin)):(alts.length===1?('Cambiar por '+shortName(alts[0])):('Cambiar ('+alts.length+' opciones)'))}</span>`:''}</div></div>
-        ${isExtra?`<div class="exadd ${added?'on':''}" onclick="event.stopPropagation();toggleExtra('${k}','${id}')" role="button" aria-label="Añadir a la rutina">${added?'✓':'＋'}</div>`
-                 :`<div class="exstart" onclick="event.stopPropagation();startRoutine('${id}')" role="button" aria-label="Empezar por este ejercicio" title="Empezar aquí">▶</div>`}
+        ${isExtra?`<div class="exadd ${added?'on':''}" onclick="event.stopPropagation();toggleExtra('${k}','${id}')" role="button" tabindex="0" aria-label="Añadir a la rutina">${added?'✓':'＋'}</div>`
+                 :`<div class="exstart" onclick="event.stopPropagation();startRoutine('${id}')" role="button" tabindex="0" aria-label="Empezar por este ejercicio" title="Empezar aquí">▶</div>`}
       </div>
       <div class="panel">
         ${framesStrip(id)}
@@ -855,13 +869,19 @@ function isChecked(rk,id){return !!checksFor(rk)[id];}
 function markCheck(rk,id,val){const all=loadChecks(),t=today();all[t]=all[t]||{};all[t][rk]=all[t][rk]||{};
   if(val===false)delete all[t][rk][id];else all[t][rk][id]=true;jset("rp_checks",all);
   if(curRoutine===rk)updateRoutineProgress();}
-function toggleEx(i){const el=$("ex_"+i);if(el)el.classList.toggle("open");}
+function toggleEx(i){const el=$("ex_"+i);if(!el)return;
+  const abrir=!el.classList.contains("open");
+  document.querySelectorAll("#routine .ex.open").forEach(x=>{if(x!==el)x.classList.remove("open");});
+  el.classList.toggle("open",abrir);
+  if(abrir)setTimeout(()=>{const r=el.getBoundingClientRect();if(r.top<0||r.top>window.innerHeight*0.5)el.scrollIntoView({block:"start",behavior:"smooth"});},60);}
 function toggleCheck(id,i){const cur=isChecked(curRoutine,id);
   if(!cur)startSess(curRoutine,"check");
   markCheck(curRoutine,id,!cur);
-  const el=$("ex_"+i);if(el){el.classList.toggle("checked",!cur);const ck=el.querySelector(".exck");if(ck)ck.textContent=!cur?"✓":"";}
+  const el=$("ex_"+i);if(el){el.classList.toggle("checked",!cur);const ck=el.querySelector(".exck");
+    if(ck){ck.textContent=!cur?"✓":"";ck.setAttribute("aria-checked",!cur?"true":"false");}}
   updateRoutineCTA();}
-function routineProgressText(k){const l=effList(k),c=checksFor(k);let n=0;l.forEach(id=>{if(c[id])n++;});return `${n} de ${l.length} hechos hoy`;}
+function routineProgressText(k){const l=effList(k),c=checksFor(k);let n=0;l.forEach(id=>{if(c[id])n++;});
+  return `${n} de ${l.length} ${plural(n,"hecho","hechos")} hoy`;}
 function updateRoutineProgress(){const el=$("routProg");if(el)el.textContent=routineProgressText(curRoutine);}
 function shortName(id){var e=EX[id];if(!e)return id;var n=e.name.replace(/\s*\(.*?\)\s*/g,"").trim();
   return n.length>22?n.slice(0,21)+"…":n;}
@@ -895,7 +915,7 @@ function exChart(id,LOGS){const e=EX[id]||{},all=(((LOGS||loadLogs())[id])||[]);
   const best=Math.max.apply(null,vals),last=vals[vals.length-1],first=vals[0];
   const delta=Math.round((last-first)*10)/10;
   const bs=bestSet(recs[recs.length-1].sets);
-  const chips=loaded?`<div class="mchips">`+METRICS.map(m=>`<span class="mchip ${m.k===metric?"on":""}" onclick="setMetric('${id}','${m.k}')" role="button">${m.n}</span>`).join("")+`</div>`:"";
+  const chips=loaded?`<div class="mchips">`+METRICS.map(m=>`<span class="mchip ${m.k===metric?"on":""}" onclick="setMetric('${id}','${m.k}')" role="button" tabindex="0">${m.n}</span>`).join("")+`</div>`:"";
   return `<div class="exprog" id="exprog_${id}">${head}${(vals.length>1&&delta!==0)?`<span class="delta ${delta>0?"up":"down"}">${delta>0?"↑ +":"↓ "}${fmtW(Math.abs(delta))}</span>`:""}</div>
     <div class="cs">Récord ${fmtW(best)} ${s.unit}${(bs&&loaded)?" · última "+fmtW(bs.w||0)+" "+(e.unit||"kg")+" × "+bs.reps:""} · ${recs.length} ${plural(recs.length,"sesión","sesiones")}</div>
     ${chips}
@@ -1040,7 +1060,7 @@ function todaySets(k,id){const out=[],t=today(),logs=loadLogs()[id]||[];
 function quickBox(k,id,n){const e=EX[id]||{};
   if(e.load!==true&&e.load!==false)return "";
   const q=qGet(id),loaded=e.load===true,u=e.unit||"kg",hechas=todaySets(k,id),tgt=e.sets||0;
-  const lines=hechas.map((s,i)=>`<div class="setline"><span class="n">Serie ${i+1}</span><span class="v">${loaded?fmtW(s.w)+" "+u+" × "+s.reps:s.reps+" reps"}</span><span class="del" onclick="delSet('${id}','${s.src}',${s.ri},${s.si},${n})" role="button" aria-label="Borrar serie">✕</span></div>`).join("");
+  const lines=hechas.map((s,i)=>`<div class="setline"><span class="n">Serie ${i+1}</span><span class="v">${loaded?fmtW(s.w)+" "+u+" × "+s.reps:s.reps+" reps"}</span><span class="del" onclick="delSet('${id}','${s.src}',${s.ri},${s.si},${n})" role="button" tabindex="0" aria-label="Borrar serie">✕</span></div>`).join("");
   const inc=incFor(id);
   const wstep=loaded?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="qAdj('${id}','w',-${inc})" aria-label="Bajar peso">−</button><b id="qw_${id}" onclick="qEditNum('${id}','w')" title="Toca para escribir el peso exacto">${fmtW(q.w)} <small>${u}</small></b><button class="sq" onclick="qAdj('${id}','w',${inc})" aria-label="Subir peso">+</button></div></div>`:"";
   return `<div class="qbox" id="q_${id}">
@@ -1092,7 +1112,8 @@ function plural(n,sing,pl){return (Math.abs(n)===1)?sing:pl;}
 function adjW(d){const s=steps[stepi];curW=Math.max(0,Math.round((curW+d)*10)/10);const el=$("lw");if(el)el.innerHTML=fmtW(curW)+' <small>'+(s.unit||'kg')+'</small>';}
 function adjR(d){curReps=Math.max(1,curReps+d);const el=$("lr");if(el)el.textContent=curReps;}
 function logSet(){const s=steps[stepi];useSessionLog(curRoutine);(sessionLog[s.id]=sessionLog[s.id]||[]).push({w:(s.load===true?curW:0),reps:curReps,t:Date.now()});touchSess(stepi);afterAction();}
-function adjRest(d){restR=Math.max(0,restR+d);const el=$("rv");if(el)el.textContent=restR;}
+function adjRest(d){restEnds+=d*1000;restR=Math.max(0,Math.ceil((restEnds-Date.now())/1000));
+  const el=$("rv");if(el)el.textContent=restR;}
 function editNum(which){const isW=which==="w",el=$(isW?"lw":"lr");if(!el)return;
   const val=isW?curW:curReps;
   el.outerHTML=`<input id="numin" class="numin" type="number" inputmode="decimal" step="${isW?"0.5":"1"}" min="0" value="${val}">`;
@@ -1109,7 +1130,7 @@ function loadPlan(){return jget("rp_plan",[null,null,null,null,null,null,null]);
 function planShort(v){if(v==="rest")return "Descanso";if(v&&ROUTINES[v]){let n=ROUTINES[v].name;if(n.indexOf("—")>=0)n=n.split("—")[1].trim();return n.replace(/^Tren\s+/i,"");}return "+";}
 function renderWeek(){const p=loadPlan();let h=`<div class="wkhead"><div class="t">Tu semana</div></div><div class="week">`;
   for(let d=0;d<7;d++){const v=p[d],cls=["day"];if(d===todayDow())cls.push("on");if(v==="rest")cls.push("rest");else if(v&&ROUTINES[v])cls.push("d-"+routColor(v));
-    h+=`<div class="${cls.join(' ')}" onclick="openPlan(${d})" role="button" aria-label="Editar ${DOWLONG[d]}"><div class="d">${DOW[d]}</div><div class="tag">${esc(planShort(v))}</div></div>`;}
+    h+=`<div class="${cls.join(' ')}" onclick="openPlan(${d})" role="button" tabindex="0" aria-label="Editar ${DOWLONG[d]}"><div class="d">${DOW[d]}</div><div class="tag">${esc(planShort(v))}</div></div>`;}
   h+=`</div>`;const el=$("weekCard");if(el)el.innerHTML=h;}
 function openPlan(d){pushHist({ov:"plan"});planDay=d;$("planTitle").textContent=DOWLONG[d].charAt(0).toUpperCase()+DOWLONG[d].slice(1);
   let h=`<div class="planopt" onclick="setPlan('rest')"><div class="em">😴</div>Descanso</div>`;
@@ -1274,7 +1295,7 @@ function guidedSkipExercise(){clearTimer();const cur=steps[stepi].id;let i=stepi
 function frame(inner){const s=steps[stepi],prog=Math.round(stepi/steps.length*100);
   return `<div class="gtop"><div class="icbtn" onclick="guidedBack()">‹</div>
     <div class="pbar"><i style="width:${prog}%"></i></div>
-    <div class="gcount">${s.exI}/${s.exN}</div><div class="icbtn" onclick="guidedExit()" role="button" aria-label="Salir" title="Salir (se guarda solo)">✕</div></div>
+    <div class="gcount">${s.exI}/${s.exN}</div><div class="icbtn" onclick="guidedExit()" role="button" tabindex="0" aria-label="Salir" title="Salir (se guarda solo)">✕</div></div>
     <div class="stage"><div class="setlab">${s.label}</div><div class="exname">${s.name}</div>${(typeof ZONA!=="undefined"&&ZONA[s.id])?'<div class="zonatag">'+ZONA[s.id]+'</div>':''}
     ${(typeof FRAMES!=="undefined"&&FRAMES[s.id])?`<div class="gframes">${framesStrip(s.id)}</div>`:`<div class="gdiag">${DIAG[s.id]||""}</div>`}
     ${s.caveat?'<div class="caveatbox">⚠️ Evidencia floja: los ejercicios faciales muestran, en el mejor caso, mejoras modestas tras meses. Hazlo sin grandes expectativas.</div>':''}
@@ -1291,7 +1312,7 @@ function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){cu
     if(s.load===false){const ll=lastLog(s.id),ds=sessionLog[s.id]||[],sg=suggestLoad(s.id);
       if(curReps==null)curReps=sg.reps;
       const lastTxt=ll?('La última vez: '+ll.sets.map(x=>x.reps+' reps').join(', ')):'Primera vez — registra tus repeticiones';
-      const setsTxt=ds.map((x,i)=>`<div class="setline"><span class="n">Serie ${i+1}</span><span class="v">${x.reps} reps</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" aria-label="Borrar serie">✕</span></div>`).join("");
+      const setsTxt=ds.map((x,i)=>`<div class="setline"><span class="n">Serie ${i+1}</span><span class="v">${x.reps} reps</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">✕</span></div>`).join("");
       inner=`<div class="logrow"><div class="stepper" style="max-width:220px;margin:0 auto"><div class="lab">Repeticiones</div>
         <div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div></div>
       <div class="last tap" onclick="toggleGChart('${s.id}')">${lastTxt}${spark(s.id)}</div>
@@ -1304,7 +1325,7 @@ function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){cu
       if(curW==null)curW=sg.w;
       if(curReps==null)curReps=sg.reps;
       const lastTxt=ll?('La última vez: '+ll.sets.map(x=>fmtW(x.w)+'×'+x.reps).join(', ')):'Primera vez — registra tu peso';
-      const setsTxt=ds.map((x,i)=>`<div class="setline"><span class="n">Serie ${i+1}</span><span class="v">${fmtW(x.w)} ${s.unit} × ${x.reps}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" aria-label="Borrar serie">✕</span></div>`).join("");
+      const setsTxt=ds.map((x,i)=>`<div class="setline"><span class="n">Serie ${i+1}</span><span class="v">${fmtW(x.w)} ${s.unit} × ${x.reps}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">✕</span></div>`).join("");
       inner=`<div class="logrow">
         <div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-2.5)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" title="Toca para escribir el peso exacto">${fmtW(curW)} <small>${s.unit}</small></b><button class="sq" onclick="adjW(2.5)" aria-label="Subir peso">+</button></div></div>
         <div class="stepper"><div class="lab">Reps</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>
@@ -1327,15 +1348,21 @@ function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){cu
 
 let gVidOn=false;
 function toggleGVid(){gVidOn=!gVidOn;const b=$("gvid");if(gVidOn){$("gvframe").src=embed(VID[steps[stepi].id]);b.classList.add("show");}else{$("gvframe").src="";b.classList.remove("show");}}
-function startTimer(){const s=steps[stepi],C=2*Math.PI*90;let r=s.seconds;const btn=$("startT");if(btn)btn.style.display="none";
-  const arc=$("arc");const upd=()=>{$("tv").textContent=r;if(arc)arc.style.strokeDashoffset=(C*(1-r/s.seconds)).toFixed(1);};upd();
-  tId=setInterval(()=>{r--;if(r<=0){clearTimer();$("tv").textContent=0;if(arc)arc.style.strokeDashoffset=C;beep();afterAction();}else upd();},1000);}
+function startTimer(){const s=steps[stepi],C=2*Math.PI*90,btn=$("startT");if(btn)btn.style.display="none";
+  tEnds=Date.now()+s.seconds*1000;const arc=$("arc");
+  const upd=()=>{const r=Math.max(0,Math.ceil((tEnds-Date.now())/1000)),tv=$("tv");
+    if(tv)tv.textContent=r;
+    if(arc)arc.style.strokeDashoffset=(C*(1-r/s.seconds)).toFixed(1);
+    if(r<=0){clearTimer();if(arc)arc.style.strokeDashoffset=C;beep();afterAction();}};
+  upd();if(tId)return;tickFn=upd;tId=setInterval(upd,250);}
 function afterAction(){const s=steps[stepi];if(s.restAfter>0)renderRest(s.restAfter);else advance();}
-function renderRest(sec){clearTimer();restR=sec;
-  $("guided").innerHTML=frame(`<div class="phaselab">Descanso</div><div class="timer rest" id="rv">${restR}</div>
+function renderRest(sec){clearTimer();restR=sec;restEnds=Date.now()+sec*1000;
+  $("guided").innerHTML=frame(`<div class="phaselab">Descanso</div><div class="timer rest" id="rv" aria-live="polite">${restR}</div>
     <div class="restadj"><button class="gbtn sec" onclick="adjRest(-30)">−30 s</button><button class="gbtn sec" onclick="adjRest(30)">+30 s</button></div>
     <button class="gbtn rest" onclick="skipRest()">Saltar descanso →</button>`);
-  tId=setInterval(()=>{restR--;const el=$("rv");if(restR<=0){clearTimer();beep();advance();}else if(el)el.textContent=restR;},1000);}
+  const upd=()=>{restR=Math.max(0,Math.ceil((restEnds-Date.now())/1000));const el=$("rv");if(el)el.textContent=restR;
+    if(restR<=0){clearTimer();beep();advance();}};
+  tickFn=upd;tId=setInterval(upd,250);}
 function skipRest(){clearTimer();advance();}
 function advance(){clearTimer();const prev=steps[stepi];stepi++;
   if(prev&&(stepi>=steps.length||steps[stepi].id!==prev.id))markCheck(curRoutine,prev.id,true);
@@ -1385,9 +1412,9 @@ function renderHistory(){const s=loadStreak(),idx=histIndex(),now=new Date();
     <div class="stat"><div class="v">${s.count||0}</div><div class="l">🔥 días seguidos</div></div>
     <div class="stat b2"><div class="v">${s.best||0}</div><div class="l">🏆 mejor</div></div>
     <div class="stat b3"><div class="v">${s.total||0}</div><div class="l">✅ sesiones</div></div></div>`;
-  b+=`<div class="cal"><div class="calhead"><div class="calnav" onclick="calShift(-1)" role="button" aria-label="Mes anterior">‹</div>
+  b+=`<div class="cal"><div class="calhead"><div class="calnav" onclick="calShift(-1)" role="button" tabindex="0" aria-label="Mes anterior">‹</div>
     <div class="m">${MONTHS[calM]} ${calY}</div>
-    <div class="calnav" onclick="calShift(1)" role="button" aria-label="Mes siguiente">›</div></div><div class="calgrid">`;
+    <div class="calnav" onclick="calShift(1)" role="button" tabindex="0" aria-label="Mes siguiente">›</div></div><div class="calgrid">`;
   ["L","M","X","J","V","S","D"].forEach(w=>b+=`<div class="wd">${w}</div>`);
   const first=new Date(calY,calM,1),lead=(first.getDay()+6)%7,dim=new Date(calY,calM+1,0).getDate();
   for(let i=0;i<lead;i++)b+=`<div class="calcell empty"></div>`;
@@ -1402,7 +1429,7 @@ function renderHistory(){const s=loadStreak(),idx=histIndex(),now=new Date();
   b+=`<div class="grouptitle" style="margin:2px 2px 8px">${p[2]}/${p[1]}/${p[0]}</div>`;
   if(!sel.length)b+=`<div class="empty" style="padding:16px 10px">Sin actividad este día.<br>Completa una rutina y quedará registrada aquí.</div>`;
   else b+=sel.map((x,i)=>{const rows=dayRows(calSel,x.key,x.iso?Date.parse(x.iso):0),tot=dayTotals(x,rows);
-    return `<div class="hitem" onclick="toggleDay(${i})" role="button" aria-label="Ver detalle">
+    return `<div class="hitem" onclick="toggleDay(${i})" role="button" tabindex="0" aria-label="Ver detalle">
       <div class="dot">${emojiFor(x.key)}</div>
       <div style="flex:1"><div class="nm">${esc(x.name)}</div><div class="dt">${x.day||""} · ${x.time||""}</div>
       ${tot?`<div class="dt2">${tot}</div>`:""}</div>
@@ -1464,7 +1491,7 @@ function renderSettings(){const r=loadRem();
       <div class="fh" id="dataInfo" style="margin-top:8px"></div>
       <button class="minibtn danger" onclick="wipe()">Borrar todos mis datos</button>
     </div>
-    <div class="field"><div class="fl">Actualizar la app</div><div class="fh">Trae la última versión publicada en tu GitHub. Versión instalada: <b>${VERSION}</b></div><button class="minibtn" onclick="forceUpdate()">🔄 Buscar actualización</button></div>
+    <div class="field"><div class="fl">Actualizar la app</div><div class="fh">Trae la última versión publicada en tu GitHub. Versión instalada: <b>${VERSION}</b></div><button class="minibtn" onclick="forceUpdate(this)">🔄 Buscar actualización</button></div>
     <div class="field"><div class="fl">Sobre la app</div>
       <div class="fh">Entrenamiento personal: postura y cuello en casa, y gimnasio para ganar masa. Tu progreso se guarda en el dispositivo — usa la copia de seguridad para no perderlo.</div></div>`;
   $("setBody").innerHTML=b;renderTimes();markThemeSeg();
@@ -1490,9 +1517,16 @@ function scheduleRem(){remTimers.forEach(t=>clearTimeout(t));remTimers=[];const 
     try{navigator.serviceWorker?.ready.then(reg=>{if("showTrigger" in Notification.prototype){reg.showNotification("Hora de tu rutina 🧍",
       {body:"Abre la app y mantén tu racha.",icon:"icon-192.png",tag:"rp-"+hm,showTrigger:new TimestampTrigger(t.getTime())});}});}catch(e){}
   });}
-function wipe(){if(confirm("¿Borrar racha, historial y recordatorios de este dispositivo?")){["rp_streak","rp_history","rp_rem"].forEach(k=>localStorage.removeItem(k));renderSettings();renderHome();}}
+/* el boton dice "todos mis datos", asi que borra TODO: antes dejaba pesos,
+   vistos, plan y peso corporal intactos */
+function wipe(){
+  if(!confirm("Esto borra TODO de este dispositivo: racha, historial, pesos registrados, vistos, plan semanal, peso corporal y recordatorios.\n\n¿Seguro? Exporta antes tu copia de seguridad si no quieres perderlo."))return;
+  if(!confirm("Última confirmación: no hay vuelta atrás."))return;
+  Object.keys(localStorage).filter(k=>k.indexOf("rp_")===0).forEach(k=>localStorage.removeItem(k));
+  sessionLog={};sessionLogKey=null;qState={};calSel=null;
+  renderSettings();renderHome();alert("Listo, este dispositivo quedó en blanco.");}
 
-async function forceUpdate(){var b=event&&event.target;if(b)b.textContent="Actualizando…";try{if("serviceWorker" in navigator){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.update().catch(()=>{})));}if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}}catch(e){}setTimeout(()=>location.reload(),300);}
+async function forceUpdate(b){if(b&&b.textContent!=null)b.textContent="Actualizando…";try{if("serviceWorker" in navigator){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.update().catch(()=>{})));}if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}}catch(e){}setTimeout(()=>location.reload(),300);}
 /* ---------- NAV / PWA ---------- */
 /* ===== boton atras del dispositivo: navegar dentro de la app ===== */
 function pushHist(st){try{history.pushState(st,"");}catch(e){}}
@@ -1517,7 +1551,7 @@ function estMinutes(key){var r=ROUTINES[key];if(!r)return 0;var sec=0;
     if(e.type==="hold"||e.type==="hold_side"){work=(e.holdSec||30)*side;}else{work=(e.reps||10)*3.5*side;}
     sec+=sets*work+(sets>1?(sets-1)*(e.rest||30):0)+15;});
   return Math.max(1,Math.round(sec/60));}
-document.querySelectorAll(".nav a").forEach(a=>a.onclick=()=>{const v=a.dataset.v;if(!$(v).classList.contains("active"))pushHist({v:v});show(v);if(v==="home")renderHome();if(v==="history")renderHistory();if(v==="progress")renderProgress();if(v==="settings")renderSettings();});
+document.querySelectorAll(".nav .tab").forEach(a=>a.onclick=()=>{const v=a.dataset.v;if(!$(v).classList.contains("active"))pushHist({v:v});show(v);if(v==="home")renderHome();if(v==="history")renderHistory();if(v==="progress")renderProgress();if(v==="settings")renderSettings();});
 let deferred=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;$("install").style.display="flex";});
 $("installBtn").onclick=async()=>{if(deferred){deferred.prompt();await deferred.userChoice;deferred=null;$("install").style.display="none";}};
