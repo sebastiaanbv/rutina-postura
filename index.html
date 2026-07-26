@@ -361,6 +361,12 @@
     color:var(--on-primary);background:linear-gradient(135deg,var(--go),var(--go2));cursor:pointer}
   .qadd:active{transform:translateY(1px)}
   .setline .del{margin-left:auto;color:var(--mut);font-size:14px;font-weight:800;cursor:pointer;padding:2px 4px;line-height:1}
+  .setline .v{cursor:pointer}
+  .setin{width:58px;font-size:13px;font-weight:800;text-align:center;border:2px solid var(--primary);border-radius:8px;
+    background:var(--card);color:var(--tx);padding:4px 2px;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+  .setin::-webkit-outer-spin-button,.setin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .setok{border:none;background:var(--primary);color:var(--on-primary);font-weight:800;font-size:12px;
+    border-radius:8px;padding:5px 9px;margin-left:6px;cursor:pointer}
   .setline .ck~.del{margin-left:8px}
   .rcard .em.g{background:var(--load-tint);color:var(--load-ink)}
   /* progreso */
@@ -710,7 +716,7 @@ const GROUPS=[{title:"Postura",keys:["postura_completa","postura_movilidad"]},{t
 const TAG={calent:["Calentamiento","b-calent"],diario:["Diario","b-diario"],carga:["Carga 3–4×/sem","b-carga"],opcional:["Opcional","b-opcional"]};
 const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
-const VERSION="v21 · 2026-07-26";
+const VERSION="v22 · 2026-07-26";
 let curRoutine=null, steps=[], stepi=0, tId=null, actx=null, remTimers=[];
 const $=id=>document.getElementById(id);
 function show(v){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$(v).classList.add("active");
@@ -1065,7 +1071,7 @@ function todaySets(k,id){const out=[],t=today(),logs=loadLogs()[id]||[];
 function quickBox(k,id,n){const e=EX[id]||{};
   if(e.load!==true&&e.load!==false)return "";
   const q=qGet(id),loaded=e.load===true,u=e.unit||"kg",hechas=todaySets(k,id),tgt=e.sets||0;
-  const lines=hechas.map((s,i)=>`<div class="setline"><span class="n">Serie ${i+1}</span><span class="v">${loaded?fmtW(s.w)+" "+u+" × "+s.reps:s.reps+" reps"}</span><span class="del" onclick="delSet('${id}','${s.src}',${s.ri},${s.si},${n})" role="button" tabindex="0" aria-label="Borrar serie">✕</span></div>`).join("");
+  const lines=hechas.map((s,i)=>`<div class="setline" id="sl_${id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${id}','${s.src}',${s.ri},${s.si},${n},${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${loaded?fmtW(s.w)+" "+u+" × "+s.reps:s.reps+" reps"}</span><span class="del" onclick="delSet('${id}','${s.src}',${s.ri},${s.si},${n})" role="button" tabindex="0" aria-label="Borrar serie">✕</span></div>`).join("");
   const inc=incFor(id);
   const wstep=loaded?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="qAdj('${id}','w',-${inc})" aria-label="Bajar peso">−</button><b id="qw_${id}" onclick="qEditNum('${id}','w')" title="Toca para escribir el peso exacto">${fmtW(q.w)} <small>${u}</small></b><button class="sq" onclick="qAdj('${id}','w',${inc})" aria-label="Subir peso">+</button></div></div>`:"";
   return `<div class="qbox" id="q_${id}">
@@ -1085,6 +1091,30 @@ function quickLog(id,n){const e=EX[id]||{},q=qGet(id);
   qRefresh(id,n);updateRoutineProgress();updateRoutineCTA();}
 function qRefresh(id,n){const b=$("q_"+id);if(b)b.outerHTML=quickBox(curRoutine,id,n);
   const c=$("exprog_"+id);if(c)c.outerHTML=exChart(id);}
+/* tocar el valor de una serie la deja editable en el sitio */
+function setValue(id,src,ri,si){let s=null;
+  if(src==="s")s=(sessLog(curRoutine)[id]||[])[si];
+  else{const rec=(loadLogs()[id]||[])[ri];s=(rec&&rec.sets)?rec.sets[si]:null;}
+  return s?{w:s.w||0,reps:s.reps||0}:{w:0,reps:0};}
+function editSet(id,src,ri,si,n,idx){const line=$("sl_"+id+"_"+idx);if(!line||line.dataset.editing)return;
+  const v=line.querySelector(".v");if(!v)return;
+  line.dataset.editing="1";
+  const e=EX[id]||{},loaded=e.load===true,cur=setValue(id,src,ri,si);
+  v.innerHTML=(loaded?`<input class="setin" id="se_w" type="number" inputmode="decimal" step="0.5" min="0" value="${fmtW(cur.w)}"> × `:"")
+    +`<input class="setin" id="se_r" type="number" inputmode="numeric" step="1" min="1" value="${cur.reps}">`
+    +`<button class="setok" onclick="event.stopPropagation();saveSet('${id}','${src}',${ri},${si},${n})">✓</button>`;
+  const f=$(loaded?"se_w":"se_r");if(f){f.focus();try{f.select();}catch(x){}
+    f.addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();saveSet(id,src,ri,si,n);}});}}
+function saveSet(id,src,ri,si,n){
+  const w=parseFloat(($("se_w")||{}).value),r=parseInt(($("se_r")||{}).value,10);
+  const nw=isNaN(w)?null:Math.max(0,Math.round(w*10)/10),nr=isNaN(r)?null:Math.max(1,r);
+  if(src==="s"){useSessionLog(curRoutine);const a=sessionLog[id];
+    if(a&&a[si]){if(nw!=null)a[si].w=nw;if(nr!=null)a[si].reps=nr;}touchSess();}
+  else logsWrite(logs=>{const rec=(logs[id]||[])[ri];
+    if(rec&&rec.sets&&rec.sets[si]){if(nw!=null)rec.sets[si].w=nw;if(nr!=null)rec.sets[si].reps=nr;}});
+  delete qState[id];
+  if(n<0){renderStep();return;}
+  qRefresh(id,n);updateRoutineCTA();}
 function delSet(id,src,ri,si,n){
   if(src==="s"){useSessionLog(curRoutine);const a=sessionLog[id];
     if(a){a.splice(si,1);if(!a.length)delete sessionLog[id];}touchSess();}
@@ -1296,7 +1326,7 @@ function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){cu
     if(s.load===false){const ll=lastLog(s.id),ds=sessionLog[s.id]||[],sg=suggestLoad(s.id);
       if(curReps==null)curReps=sg.reps;
       const lastTxt=ll?('La última vez: '+ll.sets.map(x=>x.reps+' reps').join(', ')):'Primera vez — registra tus repeticiones';
-      const setsTxt=ds.map((x,i)=>`<div class="setline"><span class="n">Serie ${i+1}</span><span class="v">${x.reps} reps</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">✕</span></div>`).join("");
+      const setsTxt=ds.map((x,i)=>`<div class="setline" id="sl_${s.id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${x.reps} reps</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">✕</span></div>`).join("");
       inner=`<div class="logrow"><div class="stepper" style="max-width:220px;margin:0 auto"><div class="lab">Repeticiones</div>
         <div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div></div>
       <div class="last tap" onclick="toggleGChart('${s.id}')">${lastTxt}${spark(s.id)}</div>
@@ -1309,7 +1339,7 @@ function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){cu
       if(curW==null)curW=sg.w;
       if(curReps==null)curReps=sg.reps;
       const lastTxt=ll?('La última vez: '+ll.sets.map(x=>fmtW(x.w)+'×'+x.reps).join(', ')):'Primera vez — registra tu peso';
-      const setsTxt=ds.map((x,i)=>`<div class="setline"><span class="n">Serie ${i+1}</span><span class="v">${fmtW(x.w)} ${s.unit} × ${x.reps}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">✕</span></div>`).join("");
+      const setsTxt=ds.map((x,i)=>`<div class="setline" id="sl_${s.id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${fmtW(x.w)} ${s.unit} × ${x.reps}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">✕</span></div>`).join("");
       inner=`<div class="logrow">
         <div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-2.5)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" title="Toca para escribir el peso exacto">${fmtW(curW)} <small>${s.unit}</small></b><button class="sq" onclick="adjW(2.5)" aria-label="Subir peso">+</button></div></div>
         <div class="stepper"><div class="lab">Reps</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>
@@ -1349,13 +1379,13 @@ function inGuided(){const g=$("guided");return !!(g&&g.classList.contains("activ
 function scheduleRestNotif(ms){if(!restNotifyOn())return;
   try{navigator.serviceWorker&&navigator.serviceWorker.ready.then(reg=>{
     if(typeof Notification!=="undefined"&&"showTrigger" in Notification.prototype&&typeof TimestampTrigger!=="undefined"){
-      reg.showNotification("Descanso terminado \U0001F4AA",{body:"Vuelve a la serie.",icon:"icon-192.png",
+      reg.showNotification("Descanso terminado 💪",{body:"Vuelve a la serie.",icon:"icon-192.png",
         badge:"icon-192.png",tag:"rp-rest",showTrigger:new TimestampTrigger(Date.now()+ms)});}}).catch(()=>{});}catch(e){}}
 function clearRestNotif(){try{navigator.serviceWorker&&navigator.serviceWorker.ready.then(reg=>
     reg.getNotifications({tag:"rp-rest",includeTriggered:true}).then(ns=>ns.forEach(n=>n.close())).catch(()=>{})).catch(()=>{});}catch(e){}}
 function restDone(){clearRestNotif();
   if(document.hidden&&restNotifyOn()&&typeof Notification!=="undefined"&&Notification.permission==="granted")
-    showNotif("Descanso terminado \U0001F4AA","Vuelve a la serie.",{tag:"rp-rest",renotify:true,vibrate:[220,90,220]});}
+    showNotif("Descanso terminado 💪","Vuelve a la serie.",{tag:"rp-rest",renotify:true,vibrate:[220,90,220]});}
 /* ==== fin [S4] ============================================================ */
 
 let gVidOn=false;
