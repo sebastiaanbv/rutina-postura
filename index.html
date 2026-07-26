@@ -398,6 +398,21 @@
   .exprog{background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:11px 12px 6px;margin:2px 0 10px}
   .exprog .ct{font-size:12.5px;font-weight:800}
   .exprog .cs{font-size:11.5px;color:var(--mut);font-weight:600;margin:2px 0 6px}
+  .mchips{display:flex;flex-wrap:wrap;gap:5px;margin:2px 0 8px}
+  .mchip{font-size:10.5px;font-weight:800;padding:5px 10px;border-radius:999px;background:var(--sunk);color:var(--mut);border:1px solid var(--line);cursor:pointer}
+  .mchip.on{background:var(--primary-tint);color:var(--primary);border-color:var(--primary)}
+  .exempty{font-size:12px;color:var(--mut);font-weight:600;line-height:1.5}
+  .spk{display:inline-block;vertical-align:middle;margin-left:8px}
+  .gchart{margin:9px 0 0;display:none}
+  .gchart.show{display:block}
+  .last.tap{cursor:pointer}
+  .hitem .dt2{font-size:11px;color:var(--mut);font-weight:700;margin-top:3px}
+  .daydet{display:none;margin:0 0 10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px 12px 8px}
+  .daydet.open{display:block}
+  .ddrow{display:flex;gap:10px;font-size:12.5px;padding:8px 0;border-top:1px solid var(--line)}
+  .ddrow:first-child{border-top:none}
+  .ddrow .dn{flex:1;font-weight:700;min-width:0}
+  .ddrow .dv{color:var(--mut);font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
   .planopt.sel{border-color:var(--primary);background:var(--primary-tint)}
   #swapov{position:fixed;inset:0;background:rgba(4,8,12,.55);display:none;z-index:60;align-items:flex-end;justify-content:center}
   #swapov.show{display:flex}
@@ -777,7 +792,7 @@ function pickSwap(k,origin,id){setSwap(k,origin,id===origin?null:id);history.bac
 function closeSwap(){history.back();}
 
 function openRoutine(k,noPush){curRoutine=k;if(!noPush)pushHist({v:"routine",k:k});const r=ROUTINES[k],chk=checksFor(k);
-  qState={};
+  qState={};const LOGS=loadLogs();
   if(sessActive(k)){const sv=loadSess();sessionLog=(sv&&sv.log)||{};sessionLogKey=k;}
   const swaps=r.swaps||{},extras=r.extras||[],on=extrasOn(k);
   let h=`<div class="bar"><div class="icbtn" onclick="history.back()" role="button" aria-label="Volver">‹</div><div class="ttl">${esc(r.name)}</div></div>
@@ -804,7 +819,7 @@ function openRoutine(k,noPush){curRoutine=k;if(!noPush)pushHist({v:"routine",k:k
         <ul class="steps">${e.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ul>
         ${(e.coach)?`<div class="coachtip">💡 ${esc(e.coach)}</div>`:''}
         ${quickBox(k,id,n)}
-        ${exChart(id)}
+        ${exChart(id,LOGS)}
         <div class="vbtn" onclick="openVideo('${id}')">▶ Ver video</div>
       </div></div>`;};
   const warm=r.warm||[];
@@ -850,16 +865,57 @@ function routineProgressText(k){const l=effList(k),c=checksFor(k);let n=0;l.forE
 function updateRoutineProgress(){const el=$("routProg");if(el)el.textContent=routineProgressText(curRoutine);}
 function shortName(id){var e=EX[id];if(!e)return id;var n=e.name.replace(/\s*\(.*?\)\s*/g,"").trim();
   return n.length>22?n.slice(0,21)+"…":n;}
-function exChart(id){const recs=(loadLogs()[id]||[]);if(!recs.length)return "";
-  const loaded=recs.some(r=>(r.sets||[]).some(x=>(x.w||0)>0));
-  const series=recs.map(r=>{if(loaded){const b=bestSet(r.sets);return b?b.w:0;}
-    let m=0;(r.sets||[]).forEach(x=>{if((x.reps||0)>m)m=x.reps;});return m;});
-  const unit=loaded?((EX[id]&&EX[id].unit)||"kg"):"reps";
-  const best=Math.max.apply(null,series),last=series[series.length-1],first=series[0],delta=Math.round((last-first)*10)/10;
+/* ==== [S3] CURVA DE EVOLUCION POR EJERCICIO =============================== */
+const METRICS=[{k:"w",n:"Peso máx"},{k:"e1rm",n:"Fuerza est."},{k:"vol",n:"Volumen"},{k:"reps",n:"Reps"}];
+function loadPrefs(){return jget("rp_prefs",{});}
+function prefGet(k,d){const p=loadPrefs();return (p&&p[k]!=null)?p[k]:d;}
+function prefSet(k,v){const p=loadPrefs();p[k]=v;jset("rp_prefs",p);}
+function exSeries(id,metric,LOGS){const e=EX[id]||{},u=e.unit||"kg";
+  const recs=(((LOGS||loadLogs())[id])||[]).filter(r=>r.sets&&r.sets.length);
+  let unit=u;const out=[];
+  recs.forEach(r=>{let v=0;
+    if(metric==="vol"){r.sets.forEach(s=>{v+=(s.w||0)*(s.reps||0);});unit="kg";}
+    else if(metric==="e1rm"){r.sets.forEach(s=>{if((s.w||0)>0&&(s.reps||0)<=12){const x=e1rm(s.w,s.reps);if(x>v)v=x;}});v=Math.round(v*10)/10;unit=u;}
+    else if(metric==="reps"){r.sets.forEach(s=>{if((s.reps||0)>v)v=s.reps;});unit="reps";}
+    else{const b=bestSet(r.sets);v=b?(b.w||0):0;unit=u;}
+    out.push({date:r.date,v:v});});
+  return {data:out,unit:unit};}
+function exMetric(id,LOGS){const recs=(((LOGS||loadLogs())[id])||[]).filter(r=>r.sets&&r.sets.length);
+  const loaded=recs.some(r=>r.sets.some(x=>(x.w||0)>0));
+  return loaded?prefGet("chartMetric","w"):"reps";}
+function exChart(id,LOGS){const e=EX[id]||{},all=(((LOGS||loadLogs())[id])||[]);
+  const recs=all.filter(r=>r.sets&&r.sets.length);
+  const head=`<div class="cthead"><div class="ct">Tu progreso</div>`;
+  if(!recs.length){
+    const hechas=all.length;
+    return `<div class="exprog" id="exprog_${id}">${head}</div>
+      <div class="exempty">${hechas?("Lo has hecho "+hechas+" "+plural(hechas,"vez","veces")+" sin anotar series. "):""}Registra tus series y aquí verás cómo evolucionas.</div></div>`;}
+  const loaded=recs.some(r=>r.sets.some(x=>(x.w||0)>0)),metric=exMetric(id,LOGS);
+  const s=exSeries(id,metric,LOGS),vals=s.data.map(d=>d.v);
+  const best=Math.max.apply(null,vals),last=vals[vals.length-1],first=vals[0];
+  const delta=Math.round((last-first)*10)/10;
   const bs=bestSet(recs[recs.length-1].sets);
-  return `<div class="exprog"><div class="cthead"><div class="ct">Tu progreso</div>${(series.length>1&&delta!==0)?`<span class="delta ${delta>0?"up":"down"}">${delta>0?"↑ +":"↓ "}${fmtW(Math.abs(delta))}</span>`:""}</div>
-    <div class="cs">Récord ${fmtW(best)} ${unit}${(bs&&loaded)?" · última "+fmtW(bs.w)+" "+unit+" × "+bs.reps:""} · ${recs.length} ${recs.length===1?"sesión":"sesiones"}</div>
-    ${series.length>1?chart(series,unit):'<div class="cs">Registra otra sesión para ver la curva.</div>'}</div>`;}
+  const chips=loaded?`<div class="mchips">`+METRICS.map(m=>`<span class="mchip ${m.k===metric?"on":""}" onclick="setMetric('${id}','${m.k}')" role="button">${m.n}</span>`).join("")+`</div>`:"";
+  return `<div class="exprog" id="exprog_${id}">${head}${(vals.length>1&&delta!==0)?`<span class="delta ${delta>0?"up":"down"}">${delta>0?"↑ +":"↓ "}${fmtW(Math.abs(delta))}</span>`:""}</div>
+    <div class="cs">Récord ${fmtW(best)} ${s.unit}${(bs&&loaded)?" · última "+fmtW(bs.w||0)+" "+(e.unit||"kg")+" × "+bs.reps:""} · ${recs.length} ${plural(recs.length,"sesión","sesiones")}</div>
+    ${chips}
+    ${vals.length>1?chart(s.data,s.unit):'<div class="exempty">Registra otra sesión y aparecerá la curva.</div>'}</div>`;}
+function setMetric(id,m){prefSet("chartMetric",m);
+  document.querySelectorAll(".exprog").forEach(el=>{const k=el.id.replace("exprog_","");
+    if(k&&EX[k])el.outerHTML=exChart(k);});
+  const g=$("gchart");if(g&&g.classList.contains("show"))g.innerHTML=exChart(id,null);}
+/* mini curva para el flujo guiado */
+function spark(id){const m=exMetric(id),s=exSeries(id,m),v=s.data.slice(-8).map(d=>d.v);
+  if(v.length<2)return "";
+  const w=64,h=18,min=Math.min.apply(null,v),max=Math.max.apply(null,v),rng=(max-min)||1;
+  const px=v.map((x,i)=>[2+(w-4)*i/(v.length-1),2+(h-4)*(1-(x-min)/rng)]);
+  const pts=px.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
+  const l=px[px.length-1];
+  return `<svg class="spk" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="var(--primary)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${l[0].toFixed(1)}" cy="${l[1].toFixed(1)}" r="2.2" fill="var(--primary)"/></svg>`;}
+function toggleGChart(id){const g=$("gchart");if(!g)return;
+  if(g.classList.contains("show")){g.classList.remove("show");g.innerHTML="";}
+  else{g.innerHTML=exChart(id,null);g.classList.add("show");}}
+/* ==== fin [S3] ============================================================ */
 function framesStrip(id){const f=(typeof FRAMES!=="undefined")?FRAMES[id]:null;if(!f||!f.frames||f.frames.length<2)return "";
   return `<div class="frames">`+f.frames.map((sv,i)=>`<div class="frame"><div class="fnum">${i+1}</div><div class="fdiag">${sv}</div><div class="fcap">${esc((f.captions&&f.captions[i])||"")}</div></div>`).join("")+`</div>`;}
 
@@ -1063,20 +1119,38 @@ function openPlan(d){pushHist({ov:"plan"});planDay=d;$("planTitle").textContent=
 function closePlan(){history.back();}
 function setPlan(v){const p=loadPlan();p[planDay]=v;jset("rp_plan",p);closePlan();renderWeek();renderTodayCard(loadStreak());}
 function bestSet(sets){let b=null;(sets||[]).forEach(x=>{if(!b||x.w>b.w)b=x;});return b;}
-function chart(vals,unit){const w=300,h=104,padL=6,padR=6,padT=14,padB=16;
-  if(!vals.length)return "";
+/* acepta [numero,...] (espaciado uniforme, como antes) o [{date,v},...],
+   que reparte los puntos por fecha real: un parón de tres semanas se ve */
+function dmLabel(d){const p=String(d).split("-");return p.length>2?(+p[2])+"/"+(+p[1]):String(d);}
+function chart(data,unit,opt){opt=opt||{};
+  if(!data||!data.length)return "";
+  const dated=(typeof data[0]==="object"&&data[0]!==null);
+  const vals=dated?data.map(d=>+d.v||0):data.map(v=>+v||0);
+  const n=vals.length,w=300,h=opt.h||(dated?118:104),padL=6,padR=6,padT=14,padB=dated?26:16;
   const min=Math.min.apply(null,vals),max=Math.max.apply(null,vals),rng=(max-min)||1;
-  const X=i=>padL+(w-padL-padR)*(vals.length===1?0.5:i/(vals.length-1));
+  let ts=null,span=0;
+  if(dated){ts=data.map(d=>{const p=String(d.date).split("-");return new Date(+p[0],(+p[1]||1)-1,+p[2]||1).getTime();});
+    span=ts[n-1]-ts[0];}
+  const iw=w-padL-padR;
+  const X=i=>{if(n===1)return padL+iw*0.5;
+    if(dated&&span>0)return padL+iw*(ts[i]-ts[0])/span;
+    return padL+iw*i/(n-1);};
   const Y=v=>padT+(h-padT-padB)*(1-(v-min)/rng);
   const pts=vals.map((v,i)=>X(i).toFixed(1)+","+Y(v).toFixed(1));
-  const area=`M${X(0).toFixed(1)},${(h-padB).toFixed(1)} L`+pts.join(" L")+` L${X(vals.length-1).toFixed(1)},${(h-padB).toFixed(1)} Z`;
-  const dots=vals.map((v,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="${i===vals.length-1?4:2.6}" fill="var(--primary)"/>`).join("");
-  const grid=[0,.5,1].map(t=>`<line x1="${padL}" y1="${(padT+(h-padT-padB)*t).toFixed(1)}" x2="${w-padR}" y2="${(padT+(h-padT-padB)*t).toFixed(1)}" stroke="var(--line)" stroke-width="1"/>`).join("");
-  const lab=(v,y,anch)=>`<text x="${w-padR}" y="${y}" text-anchor="end" font-size="10" font-weight="700" fill="var(--mut)">${fmtW(v)} ${unit}</text>`;
-  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}">${grid}
-    <path d="${area}" fill="var(--primary-tint)" stroke="none"/>
-    <polyline points="${pts.join(" ")}" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${dots}
-    ${lab(max,padT-4)}${lab(min,h-padB+11)}</svg>`;}
+  const grid=[0,.5,1].map(t=>{const y=(padT+(h-padT-padB)*t).toFixed(1);
+    return `<line x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}" stroke="var(--line)" stroke-width="1"/>`;}).join("");
+  const area=(n>1)?`<path d="M${X(0).toFixed(1)},${(h-padB).toFixed(1)} L${pts.join(" L")} L${X(n-1).toFixed(1)},${(h-padB).toFixed(1)} Z" fill="var(--primary-tint)" stroke="none"/>`:"";
+  const line=(n>1)?`<polyline points="${pts.join(" ")}" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`:"";
+  const base=(opt.baseline!==false&&n>1&&max!==min)?`<line x1="${padL}" y1="${Y(vals[0]).toFixed(1)}" x2="${w-padR}" y2="${Y(vals[0]).toFixed(1)}" stroke="var(--line2)" stroke-width="1" stroke-dasharray="3 4"/>`:"";
+  const iMax=vals.indexOf(max);
+  const dots=vals.map((v,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="${i===n-1?4:2.6}" fill="var(--primary)"/>`).join("");
+  const rec=(n>1&&max>min)?`<circle cx="${X(iMax).toFixed(1)}" cy="${Y(max).toFixed(1)}" r="6" fill="none" stroke="var(--primary)" stroke-width="1.5" opacity=".5"/>`:"";
+  const lab=(v,y)=>`<text x="${w-padR}" y="${y}" text-anchor="end" font-size="10" font-weight="700" fill="var(--mut)">${fmtW(v)} ${unit}</text>`;
+  let dl="";
+  if(dated&&n>1)dl=`<text x="${padL}" y="${h-5}" font-size="9.5" font-weight="700" fill="var(--mut)">${dmLabel(data[0].date)}</text>`
+    +`<text x="${w-padR}" y="${h-5}" text-anchor="end" font-size="9.5" font-weight="700" fill="var(--mut)">${dmLabel(data[n-1].date)}</text>`;
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img" aria-label="Curva de evolución">${grid}${area}${base}${line}${rec}${dots}
+    ${lab(max,padT-4)}${lab(min,h-padB+11)}${dl}</svg>`;}
 function volumeByDate(){const logs=loadLogs(),m={};
   Object.keys(logs).forEach(id=>logs[id].forEach(r=>{let v=0;(r.sets||[]).forEach(x=>{v+=(x.w||0)*(x.reps||0);});if(v>0)m[r.date]=(m[r.date]||0)+v;}));
   return Object.keys(m).sort().map(d=>({date:d,v:m[d]}));}
@@ -1220,7 +1294,8 @@ function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){cu
       const setsTxt=ds.map((x,i)=>`<div class="setline"><span class="n">Serie ${i+1}</span><span class="v">${x.reps} reps</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" aria-label="Borrar serie">✕</span></div>`).join("");
       inner=`<div class="logrow"><div class="stepper" style="max-width:220px;margin:0 auto"><div class="lab">Repeticiones</div>
         <div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div></div>
-      <div class="last">${lastTxt}</div>
+      <div class="last tap" onclick="toggleGChart('${s.id}')">${lastTxt}${spark(s.id)}</div>
+      <div id="gchart" class="gchart"></div>
       ${sg.why?`<div class="qwhy">💡 ${esc(sg.why)}</div>`:''}
       ${setsTxt?`<div class="sets">${setsTxt}</div>`:''}
       <button class="gbtn go" onclick="logSet()">Registrar serie ✓</button>`;
@@ -1234,7 +1309,8 @@ function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){cu
         <div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-2.5)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" title="Toca para escribir el peso exacto">${fmtW(curW)} <small>${s.unit}</small></b><button class="sq" onclick="adjW(2.5)" aria-label="Subir peso">+</button></div></div>
         <div class="stepper"><div class="lab">Reps</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>
       </div>
-      <div class="last">${lastTxt}</div>
+      <div class="last tap" onclick="toggleGChart('${s.id}')">${lastTxt}${spark(s.id)}</div>
+      <div id="gchart" class="gchart"></div>
       ${sg.why?`<div class="qwhy">💡 ${esc(sg.why)}</div>`:''}
       ${setsTxt?`<div class="sets">${setsTxt}</div>`:''}
       <button class="gbtn go" onclick="logSet()">Registrar serie ✓</button>`;
@@ -1270,7 +1346,7 @@ function finish(){clearTimer();const res=finishSession(curRoutine,"guided");
   $("guided").innerHTML=`<div class="done"><div class="em">🎉</div><h2>¡Rutina completada!</h2>
     <p class="mut">${esc(ROUTINES[curRoutine].name)}${sum&&sum.dur?" · "+sum.dur+" min":""}</p><div class="big">🔥 ${s.count}</div>
     <p class="mut">${plural(s.count,"día seguido","días seguidos")} · mejor: ${s.best} · ${s.total} ${plural(s.total,"sesión","sesiones")}</p>
-    ${sum?`<p class="mut" style="margin-top:10px;font-size:13px">${sum.exDone} de ${sum.exTotal} ejercicios · ${sum.sets} ${plural(sum.sets,"serie","series")}${sum.vol>0?" · "+fmtW(sum.vol)+" kg movidos":""}</p>`:""}
+    ${sum?`<p class="mut" style="margin-top:10px;font-size:13px">${sum.exDone} de ${sum.exTotal} ${plural(sum.exTotal,"ejercicio","ejercicios")} · ${sum.sets} ${plural(sum.sets,"serie","series")}${sum.vol>0?" · "+fmtW(sum.vol)+" kg movidos":""}</p>`:""}
     <p class="mut" style="margin-top:16px;font-size:13px">El progreso está en la constancia. ¡Bien hecho!</p>
     <button class="gbtn go" style="margin-top:22px" onclick="exitToHome()">Volver al inicio</button></div>`;beep();}
 function exitToHome(){sessionLog={};sessionLogKey=null;stepi=0;history.back();}
@@ -1325,9 +1401,38 @@ function renderHistory(){const s=loadStreak(),idx=histIndex(),now=new Date();
   const sel=idx[calSel]||[],p=calSel.split("-");
   b+=`<div class="grouptitle" style="margin:2px 2px 8px">${p[2]}/${p[1]}/${p[0]}</div>`;
   if(!sel.length)b+=`<div class="empty" style="padding:16px 10px">Sin actividad este día.<br>Completa una rutina y quedará registrada aquí.</div>`;
-  else b+=sel.map(x=>`<div class="hitem"><div class="dot">${emojiFor(x.key)}</div>
-    <div style="flex:1"><div class="nm">${esc(x.name)}</div><div class="dt">${x.day||""} · ${x.time||""}</div></div></div>`).join("");
+  else b+=sel.map((x,i)=>{const rows=dayRows(calSel,x.key,x.iso?Date.parse(x.iso):0),tot=dayTotals(x,rows);
+    return `<div class="hitem" onclick="toggleDay(${i})" role="button" aria-label="Ver detalle">
+      <div class="dot">${emojiFor(x.key)}</div>
+      <div style="flex:1"><div class="nm">${esc(x.name)}</div><div class="dt">${x.day||""} · ${x.time||""}</div>
+      ${tot?`<div class="dt2">${tot}</div>`:""}</div>
+      <div class="go">${rows.length?"›":""}</div></div>
+      <div class="daydet" id="dd_${i}">${rows.length?rows.map(r=>`<div class="ddrow"><span class="dn">${esc(shortName(r.id))}</span><span class="dv">${r.txt}</span></div>`).join(""):`<div class="ddrow"><span class="dn">Sin series anotadas ese día.</span></div>`}</div>`;}).join("");
   $("histBody").innerHTML=b;}
+/* que se hizo un dia concreto: se cruza rp_logs por fecha y rutina, y si la
+   sesion trae marca de tiempo se filtra por ella para no mezclar dos sesiones
+   de la misma rutina el mismo dia */
+function dayRows(dateKey,routineKey,stamp){const logs=loadLogs(),order=effList(routineKey);
+  const pick=(useStamp)=>{const out=[];
+    Object.keys(logs).forEach(id=>{(logs[id]||[]).forEach(r=>{
+      if(r.date!==dateKey)return;
+      if(useStamp){if(r.t!==stamp)return;}
+      else{if(r.k){if(r.k!==routineKey)return;}else if(order.indexOf(id)<0)return;}
+      const sets=r.sets||[];
+      out.push({id:id,sets:sets,pos:order.indexOf(id),
+        txt:sets.length?sets.map(s=>((s.w||0)>0?fmtW(s.w)+"×":"")+s.reps).join("  ·  "):"✓ hecho"});});});
+    return out;};
+  let rows=stamp?pick(true):[];
+  if(!rows.length)rows=pick(false);
+  rows.sort((a,b)=>(a.pos<0?99:a.pos)-(b.pos<0?99:b.pos));
+  return rows;}
+function dayTotals(x,rows){if(x.sets!=null){const ne=x.exDone||rows.length;
+    return `${ne} ${plural(ne,"ejercicio","ejercicios")} · ${x.sets} ${plural(x.sets,"serie","series")}`
+      +((x.vol>0)?" · "+fmtW(x.vol)+" kg":"")+((x.dur>0)?" · "+x.dur+" min":"");}
+  if(!rows.length)return "";
+  let ns=0,vol=0;rows.forEach(r=>{ns+=r.sets.length;r.sets.forEach(s=>{vol+=(s.w||0)*(s.reps||0);});});
+  return `${rows.length} ${plural(rows.length,"ejercicio","ejercicios")}`+(ns?` · ${ns} ${plural(ns,"serie","series")}`:"")+((vol>0)?" · "+fmtW(Math.round(vol))+" kg":"");}
+function toggleDay(i){const el=$("dd_"+i);if(el)el.classList.toggle("open");}
 
 /* ---------- SETTINGS / REMINDERS ---------- */
 function loadRem(){return jget("rp_rem",{enabled:false,times:["07:00"]});}
