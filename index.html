@@ -349,6 +349,19 @@
   .setline{display:flex;align-items:center;gap:9px;font-size:12.5px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 11px}
   .setline .n{color:var(--mut);font-weight:800;width:52px} .setline .v{font-weight:700} .setline .ck{margin-left:auto;color:var(--primary);font-weight:800}
   .restadj{display:flex;gap:8px;margin-top:8px}
+  /* registro rapido desde la lista de la rutina */
+  .qbox{margin:12px 0 2px;background:var(--sunk);border:1px solid var(--line);border-radius:13px;padding:10px}
+  .qhead{display:flex;align-items:center;gap:8px;font-size:10.5px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px}
+  .qhead .qc{margin-left:auto;text-transform:none;letter-spacing:0;font-size:11.5px;color:var(--primary);font-weight:800}
+  .qbox .stepper{padding:8px}
+  .qbox .stepper .row b{font-size:22px}
+  .qbox .sets{margin-top:10px}
+  .qwhy{font-size:11.5px;color:var(--load-ink);background:var(--load-tint);border:1px solid var(--load);border-radius:9px;padding:7px 10px;margin-top:8px;font-weight:600;line-height:1.4}
+  .qadd{width:100%;margin-top:9px;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:800;
+    color:var(--on-primary);background:linear-gradient(135deg,var(--go),var(--go2));cursor:pointer}
+  .qadd:active{transform:translateY(1px)}
+  .setline .del{margin-left:auto;color:var(--mut);font-size:14px;font-weight:800;cursor:pointer;padding:2px 4px;line-height:1}
+  .setline .ck~.del{margin-left:8px}
   .rcard .em.g{background:var(--load-tint);color:var(--load-ink)}
   /* progreso */
   .chartcard{margin:0 16px 10px;background:var(--card);border:1px solid var(--line);box-shadow:var(--sh-card);border-radius:15px;padding:13px 12px 8px}
@@ -764,6 +777,8 @@ function pickSwap(k,origin,id){setSwap(k,origin,id===origin?null:id);history.bac
 function closeSwap(){history.back();}
 
 function openRoutine(k,noPush){curRoutine=k;if(!noPush)pushHist({v:"routine",k:k});const r=ROUTINES[k],chk=checksFor(k);
+  qState={};
+  if(sessActive(k)){const sv=loadSess();sessionLog=(sv&&sv.log)||{};sessionLogKey=k;}
   const swaps=r.swaps||{},extras=r.extras||[],on=extrasOn(k);
   let h=`<div class="bar"><div class="icbtn" onclick="history.back()" role="button" aria-label="Volver">‹</div><div class="ttl">${esc(r.name)}</div></div>
     <div class="mut" style="margin:0 18px 4px;font-size:13px">${r.desc} · ~${estMinutes(k)} min</div>
@@ -788,6 +803,7 @@ function openRoutine(k,noPush){curRoutine=k;if(!noPush)pushHist({v:"routine",k:k
         ${framesStrip(id)}
         <ul class="steps">${e.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ul>
         ${(e.coach)?`<div class="coachtip">💡 ${esc(e.coach)}</div>`:''}
+        ${quickBox(k,id,n)}
         ${exChart(id)}
         <div class="vbtn" onclick="openVideo('${id}')">▶ Ver video</div>
       </div></div>`;};
@@ -918,7 +934,85 @@ function finishSession(k,from){
 const DOW=["L","M","X","J","V","S","D"], DOWLONG=["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
 function todayDow(){return (new Date().getDay()+6)%7;}
 function loadLogs(){return jget("rp_logs",{});}
-function lastLog(exId){const a=loadLogs()[exId];return (a&&a.length)?a[a.length-1]:null;}
+function logsWrite(fn){const logs=loadLogs();fn(logs);jset("rp_logs",logs);return logs;}
+/* ultima sesion CON series: los registros de solo visto no traen pesos */
+function lastLog(exId){const a=loadLogs()[exId];if(!a)return null;
+  for(let i=a.length-1;i>=0;i--){const r=a[i];if(r&&r.sets&&r.sets.length)return r;}return null;}
+
+/* ==== [S2] REGISTRO RAPIDO + PESO SUGERIDO ================================ */
+let qState={};
+function incFor(id){return 2.5;}
+/* salto de progresion proporcional al peso: subir 2,5 kg en un ejercicio de
+   10 kg es un 25% mas, demasiado para una sola semana */
+function progStep(w){return w<10?1:(w<20?2:2.5);}
+/* que peso y cuantas reps proponer: nunca la serie mas cansada de la vez
+   pasada, sino la primera, y si completaste todo el objetivo, un poco mas */
+function suggestLoad(id){const e=EX[id]||{},tgt=e.reps||10,loaded=e.load===true,u=e.unit||"kg";
+  const ds=sessLog(curRoutine)[id]||[];
+  if(ds.length){const l=ds[ds.length-1];return {w:l.w,reps:l.reps,why:""};}
+  const ll=lastLog(id);
+  if(!ll)return {w:loaded?10:0,reps:tgt,why:"Objetivo del programa: "+tgt+" repeticiones"};
+  const first=ll.sets[0],sets=e.sets||ll.sets.length;
+  const todas=ll.sets.length>=sets&&ll.sets.every(x=>(x.reps||0)>=tgt);
+  if(loaded&&todas){const w=Math.round((first.w+progStep(first.w))*10)/10;
+    return {w:w,reps:tgt,why:"Completaste las "+sets+" series: toca subir a "+fmtW(w)+" "+u};}
+  if(loaded)return {w:first.w,reps:first.reps,why:"Mismo peso que la vez pasada · apunta a "+tgt+" reps"};
+  const r=(first.reps>=tgt)?first.reps+1:tgt;
+  return {w:0,reps:r,why:(first.reps>=tgt)?("La vez pasada llegaste a "+first.reps+": prueba con "+r):("Apunta a "+tgt+" repeticiones")};}
+function qGet(id){if(!qState[id])qState[id]=suggestLoad(id);return qState[id];}
+function qAdj(id,which,d){const q=qGet(id),e=EX[id]||{};
+  if(which==="w"){q.w=Math.max(0,Math.round((q.w+d)*10)/10);const el=$("qw_"+id);
+    if(el)el.innerHTML=fmtW(q.w)+' <small>'+(e.unit||'kg')+'</small>';}
+  else{q.reps=Math.max(1,q.reps+d);const el=$("qr_"+id);if(el)el.textContent=q.reps;}}
+function qEditNum(id,which){const isW=which==="w",el=$((isW?"qw_":"qr_")+id);if(!el)return;
+  const q=qGet(id),e=EX[id]||{};
+  el.outerHTML=`<input id="qin" class="numin" type="number" inputmode="decimal" step="${isW?"0.5":"1"}" min="0" value="${isW?q.w:q.reps}">`;
+  const i=$("qin");if(!i)return;i.focus();try{i.select();}catch(x){}
+  let done=false;
+  const commit=()=>{if(done)return;done=true;const v=parseFloat(i.value);
+    if(!isNaN(v)&&v>=0){if(isW)q.w=Math.round(v*10)/10;else q.reps=Math.max(1,Math.round(v));}
+    i.outerHTML=isW?`<b id="qw_${id}" onclick="qEditNum('${id}','w')" title="Toca para escribir el peso exacto">${fmtW(q.w)} <small>${e.unit||'kg'}</small></b>`
+                   :`<b id="qr_${id}" onclick="qEditNum('${id}','r')" title="Toca para escribir las repeticiones">${q.reps}</b>`;};
+  i.addEventListener("blur",commit);
+  i.addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();commit();}});}
+/* series de hoy = las de la sesion en curso + las ya registradas hoy */
+function todaySets(k,id){const out=[],t=today(),logs=loadLogs()[id]||[];
+  logs.forEach((r,ri)=>{if(r.date===t&&(!r.k||r.k===k)&&r.sets&&r.sets.length)
+    r.sets.forEach((s,si)=>out.push({w:s.w||0,reps:s.reps||0,src:"l",ri:ri,si:si}));});
+  (sessLog(k)[id]||[]).forEach((s,si)=>out.push({w:s.w||0,reps:s.reps||0,src:"s",ri:-1,si:si}));
+  return out;}
+function quickBox(k,id,n){const e=EX[id]||{};
+  if(e.load!==true&&e.load!==false)return "";
+  const q=qGet(id),loaded=e.load===true,u=e.unit||"kg",hechas=todaySets(k,id),tgt=e.sets||0;
+  const lines=hechas.map((s,i)=>`<div class="setline"><span class="n">Serie ${i+1}</span><span class="v">${loaded?fmtW(s.w)+" "+u+" × "+s.reps:s.reps+" reps"}</span><span class="del" onclick="delSet('${id}','${s.src}',${s.ri},${s.si},${n})" role="button" aria-label="Borrar serie">✕</span></div>`).join("");
+  const inc=incFor(id);
+  const wstep=loaded?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="qAdj('${id}','w',-${inc})" aria-label="Bajar peso">−</button><b id="qw_${id}" onclick="qEditNum('${id}','w')" title="Toca para escribir el peso exacto">${fmtW(q.w)} <small>${u}</small></b><button class="sq" onclick="qAdj('${id}','w',${inc})" aria-label="Subir peso">+</button></div></div>`:"";
+  return `<div class="qbox" id="q_${id}">
+    <div class="qhead">Registrar serie${tgt?`<span class="qc">${hechas.length} de ${tgt} hoy</span>`:""}</div>
+    <div class="logrow">${wstep}<div class="stepper"><div class="lab">Reps</div><div class="row"><button class="sq" onclick="qAdj('${id}','r',-1)" aria-label="Menos repeticiones">−</button><b id="qr_${id}" onclick="qEditNum('${id}','r')" title="Toca para escribir las repeticiones">${q.reps}</b><button class="sq" onclick="qAdj('${id}','r',1)" aria-label="Más repeticiones">+</button></div></div></div>
+    ${q.why?`<div class="qwhy">💡 ${esc(q.why)}</div>`:""}
+    <button class="qadd" onclick="quickLog('${id}',${n})">Registrar serie ✓</button>
+    ${lines?`<div class="sets">${lines}</div>`:""}</div>`;}
+function quickLog(id,n){const e=EX[id]||{},q=qGet(id);
+  useSessionLog(curRoutine);
+  (sessionLog[id]=sessionLog[id]||[]).push({w:(e.load===true?q.w:0),reps:q.reps,t:Date.now()});
+  touchSess();delete qState[id];
+  const tgt=e.sets||0,hechas=todaySets(curRoutine,id).length;
+  if(tgt&&hechas>=tgt&&!isChecked(curRoutine,id)){markCheck(curRoutine,id,true);
+    const el=$("ex_"+n);if(el){el.classList.add("checked");const ck=el.querySelector(".exck");if(ck)ck.textContent="✓";}}
+  try{if(navigator.vibrate)navigator.vibrate(18);}catch(x){}
+  qRefresh(id,n);updateRoutineProgress();updateRoutineCTA();}
+function qRefresh(id,n){const b=$("q_"+id);if(b)b.outerHTML=quickBox(curRoutine,id,n);
+  const c=$("exprog_"+id);if(c)c.outerHTML=exChart(id);}
+function delSet(id,src,ri,si,n){
+  if(src==="s"){useSessionLog(curRoutine);const a=sessionLog[id];
+    if(a){a.splice(si,1);if(!a.length)delete sessionLog[id];}touchSess();}
+  else{logsWrite(logs=>{const r=(logs[id]||[])[ri];if(!r||!r.sets)return;
+    r.sets.splice(si,1);if(!r.sets.length&&!r.checked)logs[id].splice(ri,1);});}
+  delete qState[id];
+  if(n<0){renderStep();return;}
+  qRefresh(id,n);updateRoutineCTA();}
+/* ==== fin [S2] ============================================================ */
 function persistSession(k,dateOverride,startedAt){
   const logs=loadLogs(),t=dateOverride||today(),merged=sessLog(k),list=effList(k);
   const ck=checksOn(t,k),done=loggedOn(t,k),stamp=startedAt||Date.now();
@@ -1120,26 +1214,28 @@ function frame(inner){const s=steps[stepi],prog=Math.round(stepi/steps.length*10
 
 function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){curW=null;curReps=null;}
   if(s.kind==="count"){
-    if(s.load===false){const ll=lastLog(s.id),ds=sessionLog[s.id]||[];
-      if(curReps==null)curReps=ds.length?ds[ds.length-1].reps:(ll&&ll.sets.length?ll.sets[ll.sets.length-1].reps:s.reps);
+    if(s.load===false){const ll=lastLog(s.id),ds=sessionLog[s.id]||[],sg=suggestLoad(s.id);
+      if(curReps==null)curReps=sg.reps;
       const lastTxt=ll?('La última vez: '+ll.sets.map(x=>x.reps+' reps').join(', ')):'Primera vez — registra tus repeticiones';
-      const setsTxt=ds.map((x,i)=>`<div class="setline"><span class="n">Serie ${i+1}</span><span class="v">${x.reps} reps</span><span class="ck">✓</span></div>`).join("");
+      const setsTxt=ds.map((x,i)=>`<div class="setline"><span class="n">Serie ${i+1}</span><span class="v">${x.reps} reps</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" aria-label="Borrar serie">✕</span></div>`).join("");
       inner=`<div class="logrow"><div class="stepper" style="max-width:220px;margin:0 auto"><div class="lab">Repeticiones</div>
         <div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div></div>
       <div class="last">${lastTxt}</div>
+      ${sg.why?`<div class="qwhy">💡 ${esc(sg.why)}</div>`:''}
       ${setsTxt?`<div class="sets">${setsTxt}</div>`:''}
       <button class="gbtn go" onclick="logSet()">Registrar serie ✓</button>`;
     }
-    else if(s.load===true){const ll=lastLog(s.id),ds=sessionLog[s.id]||[];
-      if(curW==null)curW=ds.length?ds[ds.length-1].w:(ll&&ll.sets.length?ll.sets[ll.sets.length-1].w:10);
-      if(curReps==null)curReps=ds.length?ds[ds.length-1].reps:(ll&&ll.sets.length?ll.sets[ll.sets.length-1].reps:s.reps);
+    else if(s.load===true){const ll=lastLog(s.id),ds=sessionLog[s.id]||[],sg=suggestLoad(s.id);
+      if(curW==null)curW=sg.w;
+      if(curReps==null)curReps=sg.reps;
       const lastTxt=ll?('La última vez: '+ll.sets.map(x=>fmtW(x.w)+'×'+x.reps).join(', ')):'Primera vez — registra tu peso';
-      const setsTxt=ds.map((x,i)=>`<div class="setline"><span class="n">Serie ${i+1}</span><span class="v">${fmtW(x.w)} ${s.unit} × ${x.reps}</span><span class="ck">✓</span></div>`).join("");
+      const setsTxt=ds.map((x,i)=>`<div class="setline"><span class="n">Serie ${i+1}</span><span class="v">${fmtW(x.w)} ${s.unit} × ${x.reps}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" aria-label="Borrar serie">✕</span></div>`).join("");
       inner=`<div class="logrow">
         <div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-2.5)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" title="Toca para escribir el peso exacto">${fmtW(curW)} <small>${s.unit}</small></b><button class="sq" onclick="adjW(2.5)" aria-label="Subir peso">+</button></div></div>
         <div class="stepper"><div class="lab">Reps</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>
       </div>
       <div class="last">${lastTxt}</div>
+      ${sg.why?`<div class="qwhy">💡 ${esc(sg.why)}</div>`:''}
       ${setsTxt?`<div class="sets">${setsTxt}</div>`:''}
       <button class="gbtn go" onclick="logSet()">Registrar serie ✓</button>`;
     }else{inner=`<div class="target">Haz ${s.reps} repeticiones${s.perSide?' <small>por cada lado</small>':''}</div>
