@@ -1362,6 +1362,14 @@ function exitToHome(){sessionLog={};sessionLogKey=null;stepi=0;history.back();}
 function suggestion(){return ROUTINES["postura_movilidad"]?"postura_movilidad":GROUPS[0].keys[0];}
 function renderTodayCard(s){const idx=histIndex(),done=idx[today()]||[],p=loadPlan(),pv=p[todayDow()];
   let sk=(pv&&pv!=="rest"&&ROUTINES[pv])?pv:suggestion(),sug=ROUTINES[sk],tc;
+  /* una sesion a medias manda sobre todo lo demas: si no, queda invisible */
+  const sv=loadSess();
+  if(sv&&sv.date===today()&&ROUTINES[sv.key]){const st=sessStats(sv.key);
+    if(st.exDone){const el0=$("todayCard");
+      if(el0)el0.innerHTML=`<div class="today"><div class="kick">En curso</div><div class="tt">${esc(ROUTINES[sv.key].name)}</div>
+        <div class="mt">${st.exDone} de ${st.exTotal} ejercicios sin cerrar${st.sets?" \u00b7 "+st.sets+" "+plural(st.sets,"serie","series"):""}</div>
+        <button class="today-go" onclick="openRoutine('${sv.key}')">\u25b6  Continuar</button></div>`;
+      return;}}
   if(pv==="rest"&&!done.length){tc=`<div class="today"><div class="kick">Hoy</div><div class="tt">Día de descanso 😴</div>
     <div class="mt">Hoy toca recuperar. Si quieres, haz algo suave.</div>
     <button class="today-go sec" onclick="openRoutine('${suggestion()}')">Entrenar igual</button></div>`;}
