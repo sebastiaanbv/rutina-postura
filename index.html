@@ -813,20 +813,18 @@ function openSwap(k,origin){pushHist({ov:"swap"});const alts=[origin].concat(((R
 function pickSwap(k,origin,id){setSwap(k,origin,id===origin?null:id);history.back();setTimeout(()=>openRoutine(k,true),0);}
 function closeSwap(){history.back();}
 
-function openRoutine(k,noPush){curRoutine=k;if(!noPush)pushHist({v:"routine",k:k});const r=ROUTINES[k],chk=checksFor(k);
-  qState={};const LOGS=loadLogs();
-  if(sessActive(k)){const sv=loadSess();sessionLog=(sv&&sv.log)||{};sessionLogKey=k;}
-  const swaps=r.swaps||{},extras=r.extras||[],on=extrasOn(k);
-  let h=`<div class="bar"><div class="icbtn" onclick="history.back()" role="button" tabindex="0" aria-label="Volver">‹</div><div class="ttl">${esc(r.name)}</div></div>
+/* La pantalla de rutina se arma en tres piezas para poder rehacer cada una
+   por separado: cabecera, lista de ejercicios y barra de accion. */
+function routineHead(k,r){
+  return `<div class="bar"><div class="icbtn" onclick="history.back()" role="button" tabindex="0" aria-label="Volver">‹</div><div class="ttl">${esc(r.name)}</div></div>
     <div class="subttl">${r.desc} · ~${estMinutes(k)} min</div>
     <div id="routProg" class="routprog" aria-live="polite">${routineProgressText(k)}</div>
     <div class="hint">Toca ▶ para empezar por ese ejercicio, o marca ✓ los que ya hiciste.</div>
-    <div class="exwrap">`;
-  let i=0,shownWarm=false,shownMain=false;
-  const card=(id,origin,isExtra,isWarm)=>{const e=EX[id];if(!e)return "";
-    const tg=isWarm?["Calentamiento","b-calent"]:(TAG[e.tag]||["Ejercicio","b-calent"]),done=!!chk[id],n=i++;
-    const alts=origin?(swaps[origin]||[]):null,swapped=origin&&swapOf(k,origin);
-    const added=isExtra&&on.indexOf(id)>=0;
+    <div class="exwrap">`;}
+function routineExCard(k,ctx,id,origin,isExtra,isWarm){const e=EX[id];if(!e)return "";
+    const tg=isWarm?["Calentamiento","b-calent"]:(TAG[e.tag]||["Ejercicio","b-calent"]),done=!!ctx.chk[id],n=ctx.i++;
+    const alts=origin?(ctx.swaps[origin]||[]):null,swapped=origin&&swapOf(k,origin);
+    const added=isExtra&&ctx.on.indexOf(id)>=0;
     return `<div class="ex ${done?'checked':''} ${isExtra&&!added?'off':''}" id="ex_${n}">
       <div class="top">
         <div class="exck" onclick="event.stopPropagation();toggleCheck('${id}',${n})" role="checkbox" tabindex="0" aria-checked="${done?'true':'false'}" aria-label="Marcar como hecho">${done?'✓':''}</div>
@@ -841,19 +839,26 @@ function openRoutine(k,noPush){curRoutine=k;if(!noPush)pushHist({v:"routine",k:k
         <ul class="steps">${e.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ul>
         ${(e.coach)?`<div class="coachtip">💡 ${esc(e.coach)}</div>`:''}
         ${quickBox(k,id,n)}
-        ${exChart(id,LOGS)}
+        ${exChart(id,ctx.LOGS)}
         <div class="vbtn" onclick="openVideo('${id}')">▶ Ver video</div>
-      </div></div>`;};
+      </div></div>`;}
+function routineList(k,r,ctx){let h="",shownWarm=false,shownMain=false;
   const warm=r.warm||[];
   r.list.forEach(origin=>{const id=swapOf(k,origin)||origin,e=EX[id];if(!e)return;
     const isW=warm.indexOf(origin)>=0||e.tag==="calent";
     if(isW&&!shownWarm){h+=`<div class="blockt">🔥 Calentamiento</div>`;shownWarm=true;}
     if(!isW&&!shownMain&&shownWarm){h+=`<div class="blockt">💪 Entrenamiento</div>`;shownMain=true;}
-    h+=card(id,origin,false,isW);});
-  if(extras.length){h+=`<div class="blockt">➕ Opcionales · si tienes tiempo</div>`;
-    extras.forEach(id=>{h+=card(id,null,true);});}
-  h+=`</div>`+routineCTA(k);
-  $("routine").innerHTML=h;show("routine");
+    h+=routineExCard(k,ctx,id,origin,false,isW);});
+  if(ctx.extras.length){h+=`<div class="blockt">➕ Opcionales · si tienes tiempo</div>`;
+    ctx.extras.forEach(id=>{h+=routineExCard(k,ctx,id,null,true);});}
+  return h;}
+function openRoutine(k,noPush){curRoutine=k;if(!noPush)pushHist({v:"routine",k:k});
+  const r=ROUTINES[k];
+  qState={};
+  if(sessActive(k)){const sv=loadSess();sessionLog=(sv&&sv.log)||{};sessionLogKey=k;}
+  const ctx={chk:checksFor(k),swaps:r.swaps||{},extras:r.extras||[],on:extrasOn(k),LOGS:loadLogs(),i:0};
+  $("routine").innerHTML=routineHead(k,r)+routineList(k,r,ctx)+`</div>`+routineCTA(k);
+  show("routine");
 }
 /* barra inferior de la rutina: empezar/continuar + finalizar (siempre visibles) */
 function routineCTA(k){const r=ROUTINES[k];if(!r)return "";
@@ -1303,7 +1308,8 @@ function guidedBack(){clearTimer();if(stepi>0){stepi--;renderStep();}else{guided
 function guidedSkipExercise(){clearTimer();const cur=steps[stepi].id;let i=stepi;while(i<steps.length&&steps[i].id===cur)i++;
   if(i>=steps.length)finish();else{stepi=i;renderStep();}}
 
-function frame(inner){const s=steps[stepi],prog=Math.round(stepi/steps.length*100);
+function frame(inner,opt){opt=opt||{};const s=steps[stepi],prog=Math.round(stepi/steps.length*100);
+  /* opt.info=false servira para que el descanso no herede la ficha del ejercicio */
   return `<div class="gtop"><div class="icbtn" onclick="guidedBack()">‹</div>
     <div class="pbar"><i style="width:${prog}%"></i></div>
     <div class="gcount">${s.exI}/${s.exN}</div><div class="icbtn" onclick="guidedExit()" role="button" tabindex="0" aria-label="Salir" title="Salir (se guarda solo)">✕</div></div>
@@ -1320,27 +1326,19 @@ function frame(inner){const s=steps[stepi],prog=Math.round(stepi/steps.length*10
 
 function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){curW=null;curReps=null;}
   if(s.kind==="count"){
-    if(s.load===false){const ll=lastLog(s.id),ds=sessionLog[s.id]||[],sg=suggestLoad(s.id);
+    if(s.load===true||s.load===false){
+      /* una sola rama para con carga y sin carga: antes eran dos casi
+         identicas y cada arreglo habia que hacerlo dos veces */
+      const cargado=(s.load===true),ll=lastLog(s.id),ds=sessionLog[s.id]||[],sg=suggestLoad(s.id);
+      if(cargado&&curW==null)curW=sg.w;
       if(curReps==null)curReps=sg.reps;
-      const lastTxt=ll?('La última vez: '+ll.sets.map(x=>x.reps+' reps').join(', ')):'Primera vez — registra tus repeticiones';
-      const setsTxt=ds.map((x,i)=>`<div class="setline" id="sl_${s.id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${x.reps} reps</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">✕</span></div>`).join("");
-      inner=`<div class="logrow"><div class="stepper" style="max-width:220px;margin:0 auto"><div class="lab">Repeticiones</div>
-        <div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div></div>
-      <div class="last tap" onclick="toggleGChart('${s.id}')">${lastTxt}${spark(s.id)}</div>
-      <div id="gchart" class="gchart"></div>
-      ${sg.why?`<div class="qwhy">💡 ${esc(sg.why)}</div>`:''}
-      ${setsTxt?`<div class="sets">${setsTxt}</div>`:''}
-      <button class="gbtn go" onclick="logSet()">Registrar serie ✓</button>`;
-    }
-    else if(s.load===true){const ll=lastLog(s.id),ds=sessionLog[s.id]||[],sg=suggestLoad(s.id);
-      if(curW==null)curW=sg.w;
-      if(curReps==null)curReps=sg.reps;
-      const lastTxt=ll?('La última vez: '+ll.sets.map(x=>fmtW(x.w)+'×'+x.reps).join(', ')):'Primera vez — registra tu peso';
-      const setsTxt=ds.map((x,i)=>`<div class="setline" id="sl_${s.id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${fmtW(x.w)} ${s.unit} × ${x.reps}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">✕</span></div>`).join("");
-      inner=`<div class="logrow">
-        <div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-2.5)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" title="Toca para escribir el peso exacto">${fmtW(curW)} <small>${s.unit}</small></b><button class="sq" onclick="adjW(2.5)" aria-label="Subir peso">+</button></div></div>
-        <div class="stepper"><div class="lab">Reps</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>
-      </div>
+      const valor=x=>cargado?(fmtW(x.w)+' '+s.unit+' × '+x.reps):(x.reps+' reps');
+      const lastTxt=ll?('La última vez: '+ll.sets.map(x=>cargado?(fmtW(x.w)+'×'+x.reps):(x.reps+' reps')).join(', '))
+                     :(cargado?'Primera vez — registra tu peso':'Primera vez — registra tus repeticiones');
+      const setsTxt=ds.map((x,i)=>`<div class="setline" id="sl_${s.id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${valor(x)}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">✕</span></div>`).join("");
+      const pesoStep=cargado?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-2.5)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" title="Toca para escribir el peso exacto">${fmtW(curW)} <small>${s.unit}</small></b><button class="sq" onclick="adjW(2.5)" aria-label="Subir peso">+</button></div></div>`:'';
+      const repsStep=`<div class="stepper"${cargado?'':' style="max-width:220px;margin:0 auto"'}><div class="lab">${cargado?'Reps':'Repeticiones'}</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>`;
+      inner=`<div class="logrow">${pesoStep}${repsStep}</div>
       <div class="last tap" onclick="toggleGChart('${s.id}')">${lastTxt}${spark(s.id)}</div>
       <div id="gchart" class="gchart"></div>
       ${sg.why?`<div class="qwhy">💡 ${esc(sg.why)}</div>`:''}
