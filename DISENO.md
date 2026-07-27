@@ -2,7 +2,7 @@
 
 Este documento es la fuente de verdad del diseño de la app. Sirve para dos cosas: decidir sin discutir cada vez, y que cualquier pantalla nueva salga pareciéndose a las que ya existen.
 
-Todo lo que dice está implementado o marcado explícitamente como pendiente. No es una lista de deseos.
+Todo lo que dice está implementado. Lo que falta va al final, separado y con su motivo.
 
 ---
 
@@ -144,7 +144,7 @@ Regla: **toda animación es CSS**, nunca un contador por `setInterval`. Así una
 | Anillo de avance | 450 ms |
 | Barra de progreso | 350 ms |
 
-`prefers-reduced-motion` está respetado y **debe ampliarse a `animation-duration`** antes de añadir la primera animación de celebración; hoy solo neutraliza transiciones.
+`prefers-reduced-motion` neutraliza transiciones **y** animaciones. Sin lo segundo, las celebraciones se colarían aunque el teléfono pida menos movimiento.
 
 Nada dura más de medio segundo. Una celebración que se disfruta la primera vez estorba la trigésima.
 
@@ -164,17 +164,19 @@ Estados de la fila: pendiente · **siguiente** (filo verde y su botón de empeza
 
 Abajo, barra fija con dos acciones: continuar y finalizar.
 
-### Modo guiado — *pendiente*
-Hoy los controles de peso y reps quedan **debajo** de la figura, los pasos y el vídeo: hay que desplazar para registrar una serie con la mancuerna en la mano. Debe invertirse: serie y controles arriba, la ficha de cómo se hace en un desplegable debajo, cerrado por defecto cuando ya has hecho el ejercicio tres veces o más. El descanso debe dejar de heredar la ficha del ejercicio.
+### Modo guiado
+Manda **la serie**: pastilla con "Serie 2 de 4", nombre del ejercicio, y los controles de peso y reps inmediatamente debajo. La ficha de cómo se hace —figura, avisos, pasos y vídeo— va **después**, plegada, y viene cerrada si ya has hecho ese ejercicio tres veces o más.
+
+El descanso es pantalla propia: contador, ±30 s y saltar. No hereda la ficha del ejercicio.
 
 ### Calendario
-Cada sesión con icono y color de familia. El detalle del día se despliega dentro de la sesión — *pendiente: hoy queda como bloque hermano y se separa visualmente al abrirse*.
+Resumen del mes arriba, calendario, y las sesiones del día seleccionado con icono y color de familia. El detalle se despliega **dentro** de la tarjeta de su sesión.
 
 ### Progreso
-Un dato hero (índice de fuerza) y siete bloques con el mismo ritmo. *Pendiente: los récords deberían subir justo después del hero, porque son la recompensa, y bajar el peso corporal, que es entrada de datos.*
+Un dato hero (índice de fuerza) y seis bloques con el mismo ritmo. Los récords van justo detrás del hero, porque son la recompensa, y en ámbar.
 
-### Ajustes — *pendiente*
-Siete bloques planos del mismo peso. Deben agruparse en cuatro secciones: durante el entreno · recordatorios · apariencia · datos.
+### Ajustes
+Cuatro secciones con título: apariencia · durante el entreno · recordatorios · datos.
 
 ---
 
@@ -186,7 +188,7 @@ Siete bloques planos del mismo peso. Deben agruparse en cuatro secciones: durant
 | Siguiente | Filo verde en la fila + botón de empezar en verde sólido |
 | Hecho | Círculo relleno verde con visto blanco; la fila encoge |
 | Sesión en curso | Manda en la tarjeta de hoy; el CTA de la rutina dice "Continuar" |
-| Récord | *Pendiente: pastilla ámbar donde ocurre* |
+| Récord | Aviso flotante en ámbar al conseguirlo, y listado en la pantalla de fin |
 | Vacío | Explica qué hacer para llenarlo, nunca "sin datos" a secas |
 
 ---
@@ -213,20 +215,25 @@ Siete bloques planos del mismo peso. Deben agruparse en cuatro secciones: durant
 
 ---
 
-## 12. Qué falta
+## 12. Momentos
 
-Por orden de impacto:
+Lo que se celebra, y cuánto dura. Nada pasa de medio segundo.
 
-1. **Modo guiado** — subir la acción por encima de la ficha; ficha en desplegable; descanso limpio. Es donde más se nota el diseño porque es donde más tiempo pasas mirando la pantalla.
-2. **Momentos de celebración** — serie registrada, ejercicio completado, récord personal. Requiere ampliar la regla de `prefers-reduced-motion` primero.
-3. **Pantalla de fin de rutina** — hoy es un emoji grande y tres líneas. Debe ser el resumen de lo que hiciste, con los récords conseguidos.
-4. **Récord personal visible donde ocurre** — la lógica ya existe (`prFeed`), pero solo se ve en la pestaña de progreso.
-5. **Calendario y Ajustes** — agrupación y orden.
-6. **Aplanar la cola de parches de ejercicios y rutinas** — deuda estructural, no visual: cambia el contenido de los entrenamientos y necesita revisión aparte.
+| Cuándo | Qué se ve |
+|---|---|
+| Registras una serie | La línea entra con un gesto de 240 ms y avanza el contador |
+| Completas un ejercicio | El visto rebota, la fila destella medio segundo, encoge, y el anillo avanza |
+| Bates un récord | Aviso flotante en ámbar con el ejercicio y la marca |
+| Terminas la rutina | Ilustración que se dibuja sola, tres cifras, los récords conseguidos y la racha |
 
----
+Un récord es una serie que **ninguna anterior domina en peso y repeticiones a la vez**. Es la misma regla del panel de progreso, así que las dos cuentan lo mismo.
 
-## 13. Fuera de alcance
+## 13. Qué falta
+
+- **Aplanar la cola de parches de ejercicios y rutinas.** Deuda estructural, no visual: hay dieciséis mutaciones en tiempo de ejecución sobre `EX` y `ROUTINES`, así que no existe una fuente única de verdad para saber cuántas series tiene un ejercicio. Cambia el contenido de los entrenamientos, por eso necesita su propia sesión con revisión.
+- **RPE y notas por serie.** Convertiría el registro en algo que se puede releer.
+
+## 14. Fuera de alcance
 
 - Redibujar las 61 figuras de los ejercicios. Se usan más pequeñas y atenuadas en las listas, completas dentro del ejercicio y en el guiado.
 - Tipografía incrustada: en Android no hay redondeada de sistema y una fuente web cuesta 40-100 KB, parpadeo en cada arranque y gestión sin conexión. El carácter lo ponen el color, la forma y el peso.
