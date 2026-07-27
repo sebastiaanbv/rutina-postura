@@ -38,6 +38,9 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     --primary-ink:#0a7458; --hero-accent:#4fd8a5;
     --accent:#3f76e0; --accent-tint:#e9effc; --accent-ink:#1f4fa8;
     --rest:#c9781f; --rest-tint:#fbefdd; --rest-ink:#8a5312;
+    /* ambar de energia: racha, record y "toca subir peso". Nunca es accion
+       primaria; si aparece en mas sitios deja de significar algo. */
+    --energy:#e07b1a; --energy-ink:#8a4b06; --energy-tint:#fdf0e0; --energy-hero:#ffb454;
     --load:#6d5bc9; --load2:#5a49b0; --load-tint:#ece9fb; --load-ink:#3a2f6b;
     --danger:#c4443f; --danger-tint:#fbe9e8; --danger-ink:#a3322e;
     /* --- figuras y anillos (los SVG traen estos hex y se recolorean abajo) --- */
@@ -47,7 +50,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     --hero:#14241f; --hero-tx:#ffffff; --hero-mut:#a7c5b9;
 
     /* --- tipografía: 8 pasos, ni uno más --- */
-    --t-mega:50px; --t-xl:26px; --t-title:22px; --t-lg:20px; --t-md:16px;
+    --t-mega:50px; --t-display:30px; --t-xl:26px; --t-title:22px; --t-lg:20px; --t-md:16px;
     --t-lead:15px; --t-base:14px; --t-sm:12.5px; --t-xs:11px; --t-2xs:10px;
     /* --- pesos: el texto normal deja de ir en negrita --- */
     --w-body:400; --w-med:600; --w-semi:700; --w-bold:800;
@@ -69,6 +72,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     --primary-ink:#34d399; --hero-accent:#4fd8a5;
     --accent:#38bdf8; --accent-tint:#0e2436; --accent-ink:#7dbaf5;
     --rest:#f59e0b; --rest-tint:#3a2a10; --rest-ink:#f5b544;
+    --energy:#fbbf24; --energy-ink:#fbbf24; --energy-tint:#3a2a10; --energy-hero:#fcd34d;
     --load:#a78bfa; --load2:#8b6df0; --load-tint:#241a44; --load-ink:#c3b3fb;
     --danger:#fca5a5; --danger-tint:#2a1414; --danger-ink:#fca5a5;
     --diagram-ink:#cfeede; --diagram-line:#3a5069; --diagram-hi:#5fe39a; --diagram-eye:#0c1524;
@@ -92,7 +96,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   @media (prefers-reduced-motion:reduce){
     .view{animation:none} *{transition-duration:.01ms !important}}
-  h1{font-size:var(--t-xl);margin:0;font-weight:var(--w-bold);letter-spacing:-.7px}
+  h1{font-size:26px;margin:0;font-weight:var(--w-bold);letter-spacing:-.8px}
   .mut{color:var(--mut)}
   /* cifras siempre con ancho fijo: no bailan al contar */
   .stat .v,.timer,#tv,.ring .val b,.gcount,.done .big,.target,.heroP .hbig,
@@ -201,6 +205,63 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .numin::-webkit-outer-spin-button,.numin::-webkit-inner-spin-button,
   .setin::-webkit-outer-spin-button,.setin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 
+  /* ==================== bloques rehechos en v24 ====================
+     Antes cada rutina, cada ejercicio y cada estadistica era una tarjeta
+     suelta con la misma sombra: doce seguidas y ninguna destacaba. Ahora
+     hay una superficie por BLOQUE y filas separadas por linea fina. */
+
+  /* racha: una linea en vez de tres tarjetones */
+  .streak{display:flex;align-items:center;gap:9px;margin:var(--s3) var(--gut) 0;
+    padding:13px 15px;background:var(--card);border-radius:var(--r-md);box-shadow:var(--sh-card)}
+  .streak .fl{color:var(--energy);display:flex;align-items:center}
+  .streak .n{font-size:var(--t-title);font-weight:var(--w-bold);line-height:1;letter-spacing:-.5px;
+    font-variant-numeric:tabular-nums}
+  .streak .lb{font-size:var(--t-sm);color:var(--mut);font-weight:var(--w-med)}
+  .streak .rt{margin-left:auto;font-size:var(--t-xs);color:var(--mut);font-weight:var(--w-med);text-align:right;line-height:1.35}
+  .streak .rt b{color:var(--tx2);font-weight:var(--w-bold);font-variant-numeric:tabular-nums}
+
+  /* la semana pasa de siete tarjetas a un riel */
+  .week{display:flex;margin:var(--s3) var(--gut) 0;background:var(--card);
+    border-radius:var(--r-md);box-shadow:var(--sh-card);overflow:hidden;padding:0;gap:0}
+  .week .day{flex:1;min-width:0;border-radius:0;box-shadow:none;background:none;border:none;
+    border-left:1px solid var(--line);padding:10px 2px 9px}
+  .week .day:first-child{border-left:none}
+  .week .day.on{background:var(--primary-tint)}
+  .week .day.on .d{color:var(--primary-ink)}
+
+  /* rutinas: una tarjeta por familia, no una por rutina */
+  .rlist{margin:0 var(--gut) var(--s4);background:var(--card);border-radius:var(--r-lg);
+    box-shadow:var(--sh-card);overflow:hidden}
+  .rlist .rcard{margin:0;border-radius:0;box-shadow:none;background:none;
+    border-top:1px solid var(--line);padding:13px 14px}
+  .rlist .rcard:first-child{border-top:none}
+  :root[data-theme="dark"] .rlist .rcard{border:none;border-top:1px solid var(--line)}
+  :root[data-theme="dark"] .rlist .rcard:first-child{border-top:none}
+
+  /* anillo de avance de la rutina */
+  .rring{width:46px;height:46px;position:relative;flex:0 0 auto}
+  .rring svg{transform:rotate(-90deg);display:block}
+  .rring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:var(--t-xs);font-weight:var(--w-bold);font-variant-numeric:tabular-nums;color:var(--tx2)}
+
+  /* ejercicios: una superficie por bloque y filas dentro */
+  .exgroup{margin:0 0 var(--s3);background:var(--card);border-radius:var(--r-lg);
+    box-shadow:var(--sh-card);overflow:hidden}
+  :root[data-theme="dark"] .exgroup{border:1px solid var(--line)}
+  .exgroup .blockt{margin:0;padding:10px 14px;background:var(--sunk);
+    border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px}
+  .exgroup .ex{margin:0;border-radius:0;box-shadow:none;background:none;border:none;
+    overflow:visible;border-top:1px solid var(--line)}
+  .exgroup .ex:first-of-type{border-top:none}
+  :root[data-theme="dark"] .exgroup .ex{border:none;border-top:1px solid var(--line)}
+  /* solo destaca uno: el siguiente que toca */
+  .exgroup .ex.next{background:var(--card2);box-shadow:inset 3px 0 0 var(--primary)}
+  .exgroup .ex.next .exstart{background:var(--primary);color:var(--on-primary)}
+  /* lo hecho encoge: la pantalla se acorta segun avanzas */
+  .ex.checked .meta,.ex.checked .badges{display:none}
+  .ex.checked .diag{opacity:.4}
+  .ex .top{padding:11px 13px}
+
   /* ============================ iconos ============================
      Un solo trazo para toda la app: rejilla 24, grosor 2, remates
      redondos y currentColor, igual que los iconos que ya traia la barra
@@ -245,8 +306,8 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .today{margin:var(--s4) var(--gut) var(--s1);background:var(--hero);border:none;
     border-radius:var(--r-xl);padding:18px;box-shadow:var(--sh-card)}
   .today .kick{color:var(--hero-accent)}
-  .today .tt{color:var(--hero-tx);font-size:var(--t-title);font-weight:var(--w-bold);
-    letter-spacing:-.6px;line-height:1.15;margin-top:var(--s2)}
+  .today .tt{color:var(--hero-tx);font-size:var(--t-display);font-weight:var(--w-bold);
+    letter-spacing:-1px;line-height:1.08;margin-top:6px}
   .today .mt{color:var(--hero-mut);font-size:var(--t-sm);margin-top:5px;line-height:1.4}
   .today .alt{color:var(--hero-mut);margin-top:11px}
 
@@ -278,12 +339,14 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .rcard .t{flex:1;min-width:0}
   .rcard .nm{font-weight:var(--w-semi);font-size:var(--t-lead);letter-spacing:-.2px}
   .rcard .ds{color:var(--mut);font-size:var(--t-sm);margin-top:3px;line-height:1.35}
-  .rcard .go{color:var(--mut);font-size:var(--t-lg)}
+  .rcard .go{color:var(--line2);font-size:var(--t-lg);display:flex;align-items:center}
+  .rcard .rt{font-size:var(--t-sm);color:var(--mut);font-weight:var(--w-semi);
+    font-variant-numeric:tabular-nums;flex:0 0 auto;margin-right:2px}
 
   /* ====================== DETALLE DE RUTINA ====================== */
   .bar{display:flex;align-items:center;gap:var(--s3);
     padding:calc(18px + env(safe-area-inset-top)) var(--gut) 6px}
-  .bar .ttl{font-size:var(--t-title);font-weight:var(--w-bold);letter-spacing:-.6px}
+  .bar .ttl{font-size:var(--t-display);font-weight:var(--w-bold);letter-spacing:-1px;flex:1;min-width:0;line-height:1.1}
   .routprog{margin:0 var(--gut) 6px;font-size:var(--t-sm);font-weight:var(--w-bold);color:var(--primary-ink)}
   .exwrap{margin:6px var(--gut)}
   .ex{margin-bottom:var(--s2);overflow:hidden;border-radius:var(--r-lg)}
@@ -291,7 +354,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .ex .nm{font-weight:var(--w-semi);font-size:var(--t-lead);line-height:1.2;letter-spacing:-.2px}
   .ex .meta{color:var(--mut);font-size:var(--t-sm);margin-top:3px}
   .badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
-  .diag{width:58px;height:58px;border-radius:14px;background:var(--diagram-bg);
+  .diag{width:46px;height:46px;border-radius:12px;background:var(--diagram-bg);
     flex:0 0 auto;display:flex;align-items:center;justify-content:center;padding:5px}
   .diag svg{width:100%;height:100%}
   .exck{width:28px;height:28px;border-radius:50%;border:2px solid var(--line2);background:transparent;
@@ -602,12 +665,12 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     </div>
     <div id="install" class="install"><span><svg class="ic sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM11 17.5h2"/></svg> Instálala en tu pantalla de inicio</span><button id="installBtn">Instalar</button></div>
     <div id="todayCard"></div>
-    <div id="weekCard"></div>
-    <div class="stats">
-      <div class="stat"><div class="v" id="stCount">0</div><div class="l"><svg class="ic xs" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c.7 2.8 3.7 3.9 3.7 7.6a3.7 3.7 0 1 1-7.4 0c0-1.8.9-2.9 1.9-3.7.2 1.9 1 2.1 1.8 1.9 0-2.8-.9-3.7 0-5.8z"/></svg> días seguidos</div></div>
-      <div class="stat b2"><div class="v" id="stBest">0</div><div class="l"><svg class="ic xs" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 5.5H5V7a3 3 0 0 0 3 3M16 5.5h3V7a3 3 0 0 1-3 3M12 13v4M9 20h6"/></svg> mejor racha</div></div>
-      <div class="stat b3"><div class="v" id="stTotal">0</div><div class="l"><svg class="ic xs" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.5 2.5 4.5-5"/></svg> sesiones</div></div>
+    <div class="streak">
+      <span class="fl"><svg class="ic sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c.7 2.8 3.7 3.9 3.7 7.6a3.7 3.7 0 1 1-7.4 0c0-1.8.9-2.9 1.9-3.7.2 1.9 1 2.1 1.8 1.9 0-2.8-.9-3.7 0-5.8z"/></svg></span>
+      <span class="n" id="stCount">0</span><span class="lb" id="stCountL">días seguidos</span>
+      <span class="rt">mejor <b id="stBest">0</b><br><b id="stTotal">0</b> sesiones</span>
     </div>
+    <div id="weekCard"></div>
     <div id="routines"></div>
   </section>
 
@@ -734,7 +797,7 @@ const GROUPS=[{title:"Postura",keys:["postura_completa","postura_movilidad"]},{t
 const TAG={calent:["Calentamiento","b-calent"],diario:["Diario","b-diario"],carga:["Carga 3–4×/sem","b-carga"],opcional:["Opcional","b-opcional"]};
 const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
-const VERSION="v24 f1 · iconos";
+const VERSION="v24 f2 · inicio y rutina";
 /* ==== [S5] ICONOS =========================================================
    Solo el interior del <svg>; ic() lo envuelve. Rejilla 24x24, sin relleno
    salvo los marcados .solid. */
@@ -840,16 +903,18 @@ function recordSession(key,name,sum,when){const h=loadHist(),d=when?new Date(whe
 /* ---------- HOME ---------- */
 function renderHome(){
   const s=loadStreak();$("stCount").textContent=s.count||0;$("stBest").textContent=s.best||0;$("stTotal").textContent=s.total||0;
+  $("stCountL").textContent=plural(s.count||0,"día seguido","días seguidos");
   renderTodayCard(s);renderWeek();
   let h="";
   GROUPS.forEach(g=>{
-    h+=`<div class="grouptitle">${g.title}</div>`;
+    h+=`<div class="grouptitle">${g.title}</div><div class="rlist">`;
     g.keys.forEach(k=>{const r=ROUTINES[k];
       h+=`<div class="rcard" onclick="openRoutine('${k}')">
         <div class="em ${r.cls}">${ic(routIcon(k),"lg")}</div>
-        <div class="t"><div class="nm">${r.name}</div><div class="ds">${r.desc} · ~${estMinutes(k)} min</div></div>
+        <div class="t"><div class="nm">${r.name}</div><div class="ds">${esc(r.desc)}</div></div>
+        <div class="rt">${estMinutes(k)}′</div>
         <div class="go">${ic("right","sm")}</div></div>`;});
-  });
+    h+=`</div>`;});
   $("routines").innerHTML=h;
 }
 
@@ -880,17 +945,20 @@ function closeSwap(){history.back();}
 
 /* La pantalla de rutina se arma en tres piezas para poder rehacer cada una
    por separado: cabecera, lista de ejercicios y barra de accion. */
+/* anillo de avance: el mismo motivo geometrico del temporizador */
+function ringSVG(pct,size,w){const r=(size-(w||4)-2)/2,C=2*Math.PI*r,off=C*(1-Math.max(0,Math.min(1,pct)));
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size/2}" cy="${size/2}" r="${r.toFixed(1)}" fill="none" stroke="var(--line)" stroke-width="${w||4}"/><circle cx="${size/2}" cy="${size/2}" r="${r.toFixed(1)}" fill="none" stroke="var(--primary)" stroke-width="${w||4}" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" style="transition:stroke-dashoffset .45s ease"/></svg>`;}
+function routineProgressHTML(k){const l=effList(k),c=checksFor(k);let n=0;l.forEach(id=>{if(c[id])n++;});
+  return ringSVG(l.length?n/l.length:0,46)+`<b>${n}/${l.length}</b>`;}
 function routineHead(k,r){
-  return `<div class="bar"><div class="icbtn" onclick="history.back()" role="button" tabindex="0" aria-label="Volver">${ic("left")}</div><div class="ttl">${esc(r.name)}</div></div>
-    <div class="subttl">${r.desc} · ~${estMinutes(k)} min</div>
-    <div id="routProg" class="routprog" aria-live="polite">${routineProgressText(k)}</div>
-    <div class="hint">Toca ${ic("play","xs solid")} para empezar por ese ejercicio, o marca ${ic("check","xs")} los que ya hiciste.</div>
+  return `<div class="bar"><div class="icbtn" onclick="history.back()" role="button" tabindex="0" aria-label="Volver">${ic("left")}</div><div class="ttl">${esc(r.name)}</div><div id="routProg" class="rring" aria-live="polite" aria-label="Avance de la rutina">${routineProgressHTML(k)}</div></div>
+    <div class="subttl">${esc(r.desc)} · ~${estMinutes(k)} min</div>
     <div class="exwrap">`;}
 function routineExCard(k,ctx,id,origin,isExtra,isWarm){const e=EX[id];if(!e)return "";
     const tg=isWarm?["Calentamiento","b-calent"]:(TAG[e.tag]||["Ejercicio","b-calent"]),done=!!ctx.chk[id],n=ctx.i++;
     const alts=origin?(ctx.swaps[origin]||[]):null,swapped=origin&&swapOf(k,origin);
     const added=isExtra&&ctx.on.indexOf(id)>=0;
-    return `<div class="ex ${done?'checked':''} ${isExtra&&!added?'off':''}" id="ex_${n}">
+    return `<div class="ex ${done?'checked':''} ${(id===ctx.next)?'next':''} ${isExtra&&!added?'off':''}" id="ex_${n}" data-ex="${id}">
       <div class="top">
         <div class="exck" onclick="event.stopPropagation();toggleCheck('${id}',${n})" role="checkbox" tabindex="0" aria-checked="${done?'true':'false'}" aria-label="Marcar como hecho">${ic("check")}</div>
         <div class="diag" onclick="toggleEx(${n})">${DIAG[id]||""}</div>
@@ -907,16 +975,18 @@ function routineExCard(k,ctx,id,origin,isExtra,isWarm){const e=EX[id];if(!e)retu
         ${exChart(id,ctx.LOGS)}
         <div class="vbtn" onclick="openVideo('${id}')">${ic("play","sm solid")} Ver video</div>
       </div></div>`;}
-function routineList(k,r,ctx){let h="",shownWarm=false,shownMain=false;
-  const warm=r.warm||[];
+function routineList(k,r,ctx){const warm=r.warm||[],cal=[],ent=[];
   r.list.forEach(origin=>{const id=swapOf(k,origin)||origin,e=EX[id];if(!e)return;
-    const isW=warm.indexOf(origin)>=0||e.tag==="calent";
-    if(isW&&!shownWarm){h+=`<div class="blockt">${ic("flame","xs")} Calentamiento</div>`;shownWarm=true;}
-    if(!isW&&!shownMain&&shownWarm){h+=`<div class="blockt">${ic("dumbbell","xs")} Entrenamiento</div>`;shownMain=true;}
-    h+=routineExCard(k,ctx,id,origin,false,isW);});
-  if(ctx.extras.length){h+=`<div class="blockt">${ic("plus","xs")} Opcionales · si tienes tiempo</div>`;
-    ctx.extras.forEach(id=>{h+=routineExCard(k,ctx,id,null,true);});}
-  return h;}
+    ((warm.indexOf(origin)>=0||e.tag==="calent")?cal:ent).push({id:id,origin:origin});});
+  /* el siguiente sin hacer es el unico que destaca en toda la pantalla */
+  const pend=cal.concat(ent).filter(x=>!ctx.chk[x.id])[0];
+  ctx.next=pend?pend.id:null;
+  const bloque=(titulo,icono,arr,isW,isExtra)=>arr.length?
+    `<div class="exgroup"><div class="blockt">${ic(icono,"xs")} ${titulo}</div>`
+    +arr.map(x=>routineExCard(k,ctx,x.id,x.origin,!!isExtra,!!isW)).join("")+`</div>`:"";
+  return bloque("Calentamiento","flame",cal,true)
+    +bloque(cal.length?"Entrenamiento":"Ejercicios","dumbbell",ent)
+    +bloque("Opcionales · si tienes tiempo","plus",ctx.extras.map(id=>({id:id,origin:null})),false,true);}
 function openRoutine(k,noPush){curRoutine=k;if(!noPush)pushHist({v:"routine",k:k});
   const r=ROUTINES[k];
   qState={};
@@ -957,10 +1027,17 @@ function toggleCheck(id,i){const cur=isChecked(curRoutine,id);
   markCheck(curRoutine,id,!cur);
   const el=$("ex_"+i);if(el){el.classList.toggle("checked",!cur);const ck=el.querySelector(".exck");
     if(ck)ck.setAttribute("aria-checked",!cur?"true":"false");}
-  updateRoutineCTA();}
+  updateNextEx();updateRoutineCTA();}
 function routineProgressText(k){const l=effList(k),c=checksFor(k);let n=0;l.forEach(id=>{if(c[id])n++;});
   return `${n} de ${l.length} ${plural(n,"hecho","hechos")} hoy`;}
-function updateRoutineProgress(){const el=$("routProg");if(el)el.textContent=routineProgressText(curRoutine);}
+function updateRoutineProgress(){const el=$("routProg");if(el)el.innerHTML=routineProgressHTML(curRoutine);}
+/* el resalte del siguiente ejercicio se recalcula sobre el orden que se ve,
+   no sobre el orden de los datos: los bloques reordenan la lista */
+function updateNextEx(){if(!curRoutine)return;const c=checksFor(curRoutine);
+  const filas=[...document.querySelectorAll("#routine .exgroup .ex:not(.off)")];
+  filas.forEach(e=>e.classList.remove("next"));
+  const nx=filas.filter(e=>!c[e.dataset.ex])[0];
+  if(nx)nx.classList.add("next");}
 function shortName(id){var e=EX[id];if(!e)return id;var n=e.name.replace(/\s*\(.*?\)\s*/g,"").trim();
   return n.length>22?n.slice(0,21)+"…":n;}
 /* ==== [S3] CURVA DE EVOLUCION POR EJERCICIO =============================== */
@@ -1154,7 +1231,8 @@ function quickLog(id,n){const e=EX[id]||{},q=qGet(id);
   const tgt=e.sets||0,hechas=todaySets(curRoutine,id).length;
   if(tgt&&hechas>=tgt&&!isChecked(curRoutine,id)){markCheck(curRoutine,id,true);
     const el=$("ex_"+n);if(el){el.classList.add("checked");const ck=el.querySelector(".exck");
-      if(ck)ck.setAttribute("aria-checked","true");}}
+      if(ck)ck.setAttribute("aria-checked","true");}
+    updateNextEx();}
   try{if(navigator.vibrate)navigator.vibrate(18);}catch(x){}
   qRefresh(id,n);updateRoutineProgress();updateRoutineCTA();}
 function qRefresh(id,n){const b=$("q_"+id);if(b)b.outerHTML=quickBox(curRoutine,id,n);
@@ -1499,7 +1577,7 @@ function renderTodayCard(s){const idx=histIndex(),done=idx[today()]||[],p=loadPl
     <div class="mt">Hoy toca recuperar. Si quieres, haz algo suave.</div>
     <button class="today-go sec" onclick="openRoutine('${suggestion()}')">Entrenar igual</button></div>`;}
   else if(done.length){tc=`<div class="today"><div class="kick">Hoy</div><div class="tt">${ic("checkc","sm")} ¡Listo por hoy!</div>
-    <div class="mt">Completaste ${esc(done[done.length-1].name)} · ${ic("flame","xs")} ${s.count||0} días seguidos</div>
+    <div class="mt">Completaste ${esc(done[done.length-1].name)} · ${ic("flame","xs")} ${s.count||0} ${plural(s.count||0,"día seguido","días seguidos")}</div>
     <button class="today-go sec" onclick="openRoutine('${sk}')">Hacer otra rutina</button></div>`;}
   else{tc=`<div class="today"><div class="kick">Hoy</div><div class="tt">${esc(sug.name)}</div>
     <div class="mt">${esc(sug.desc)}</div>
