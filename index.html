@@ -848,14 +848,18 @@ face_yoga:"Rostro · estética", flexor_cadera:"Zona baja", gato_camello:"Zona m
 glute_bridge:"Zona baja", isometricos_cervicales:"Cuello · fuerza", mandibula_platisma:"Rostro · estética",
 mewing_lengua:"Rostro · postura", movilidad_cervical:"Cuello · postura", open_book:"Zona media",
 pec_puerta:"Postura", remo_inclinado:"Espalda media", reverse_fly:"Espalda alta",
-tmj_mandibula:"Rostro", trapecio_superior:"Cuello · postura", wall_angels:"Espalda alta"
+tmj_mandibula:"Rostro", trapecio_superior:"Cuello · postura", wall_angels:"Espalda alta",
+caminadora:"General", pec_deck_inverso:"Hombro posterior", circulos_brazos:"Hombro",
+flexiones_inclinadas:"Pecho", gato_camello_pie:"Zona media", apertura_toracica_rack:"Espalda alta",
+vuelos_posteriores_ligeros:"Hombro posterior", sentadilla_aire:"Cuádriceps", balanceo_pierna_frontal:"Cadera",
+balanceo_pierna_lateral:"Cadera", bisagra_cadera_pie:"Zona baja", elevacion_talones_pie:"Gemelo"
 };
 const EX={
 abductores_maquina:{name:"Abductores en máquina",tag:"carga",type:"reps",sets:3,reps:15,rest:45,load:true,unit:"kg",coach:"Torso algo al frente para sentir más el glúteo medio.",
   steps:["Siéntate con la espalda recta y posiciona las almohadillas externas contra los muslos con las piernas juntas.","Abre las piernas empujando hacia los lados contra las almohadillas con control total.","Cierra las piernas lentamente volviendo a la posición inicial, mantén la tensión todo el movimiento."]},
 aductores_maquina:{name:"Aductores en máquina",tag:"carga",type:"reps",sets:3,reps:15,rest:45,load:true,unit:"kg",coach:"Cierra con control y abre despacio hasta sentir el estiramiento.",
   steps:["Siéntate en la máquina y posiciona las almohadillas internas en el exterior de los muslos con las piernas abiertas.","Presiona las almohadillas juntas usando los músculos internos del muslo, mantén 1 segundo en la contracción máxima.","Abre lentamente las piernas para regresar al inicio, manteniendo tensión constante."]},
-aperturas_db:{name:"Aperturas con mancuernas",tag:"carga",type:"reps",sets:4,reps:12,rest:75,load:true,unit:"kg",coach:"Aislamiento de pecho. Carga ligera, estiramiento controlado, tension constante para estres metabolico.",
+aperturas_db:{name:"Aperturas con mancuernas",tag:"carga",type:"reps",sets:4,reps:12,rest:90,load:true,unit:"kg",coach:"Aislamiento de pecho. Carga ligera, estiramiento controlado, tension constante para estres metabolico.",
   steps:["Acuéstate en el banco con brazos extendidos arriba del pecho","Baja los mancuernas en un arco amplio manteniendo los brazos semiflexionados","Siente el estiramiento en el pecho y regresa al punto de inicio"]},
 bird_dog:{name:"Bird dog",tag:"diario",type:"reps_side",sets:2,reps:8,rest:25,
   steps:["En cuatro apoyos, columna neutra y abdomen activo.","Extiende a la vez brazo y pierna opuestos hasta alinearlos con el torso.","Aguanta 1–2 s sin que la cadera rote; regresa y cambia de lado."]},
@@ -891,9 +895,9 @@ elevaciones_laterales:{name:"Elevaciones laterales",tag:"carga",type:"reps",sets
   steps:["De pie, brazos a los lados con mancuernas, codos ligeramente flexionados.","Sube los brazos lateralmente hasta la altura de los hombros formando una «T».","Baja controlado. Evita usar momentum; movimiento limpio y controlado."]},
 elevador_escapula:{name:"Estiramiento elevador de la escápula",tag:"diario",type:"hold_side",sets:1,reps:30,holdSec:30,rest:0,
   steps:["Baja el hombro del lado a estirar (sujeta la silla).","Gira la cabeza ~45° al lado contrario (mira a la axila) y baja la barbilla.","Con la otra mano guía suave hacia abajo. Mantén sin rebotes."]},
-encogimientos_db:{name:"Encogimientos de hombros con mancuernas",tag:"diario",type:"reps",sets:3,reps:12,rest:30,load:true,unit:"kg",coach:"Las mancuernas más pesadas que tengas. Es el ejercicio que más cambia la silueta hombro-cuello. Sube peso cuando llegues a 15 reps limpias.",
+encogimientos_db:{name:"Encogimientos de hombros con mancuernas",tag:"diario",type:"reps",sets:3,reps:12,rest:60,load:true,unit:"kg",coach:"Las mancuernas más pesadas que tengas. Es el ejercicio que más cambia la silueta hombro-cuello. Sube peso cuando llegues a 15 reps limpias.",
   steps:["De pie, una mancuerna pesada en cada mano a los costados, brazos rectos y barbilla metida.","Sube los hombros recto hacia las orejas lo más alto que puedas, sin rotarlos ni tirar del cuello.","Aprieta arriba 2 s y baja en 3 s hasta el estiramiento completo del trapecio."]},
-extension_cuadriceps:{name:"Extensión de cuádriceps",tag:"carga",type:"reps",sets:3,reps:12,rest:75,load:true,unit:"kg",coach:"Pausa 1 s arriba; la última serie al fallo técnico.",
+extension_cuadriceps:{name:"Extensión de cuádriceps",tag:"carga",type:"reps",sets:3,reps:12,rest:90,load:true,unit:"kg",coach:"Pausa 1 s arriba; la última serie al fallo técnico.",
   steps:["Siéntate con la espalda contra el respaldo y los muslos apoyados","Levanta la plataforma extendiendo las rodillas de forma controlada","Baja la plataforma hasta la posición inicial sin bloquear los muslos"]},
 extension_toracica:{name:"Extensión torácica sobre bloque",tag:"diario",type:"reps",sets:2,reps:10,rest:20,coach:"Calentamiento: abre la espalda alta sin forzar la lumbar.",
   steps:["Coloca un bloque de yoga (o una toalla enrollada) cruzado bajo la espalda media, rodillas flexionadas.","Entrelaza las manos tras la cabeza para sostenerla.","Arquéate hacia atrás sobre el bloque abriendo el pecho; vuelve. Mueve la zona media, no la lumbar."]},
@@ -915,13 +919,13 @@ gato_camello:{name:"Gato–camello",tag:"calent",type:"reps",sets:1,reps:10,rest
   steps:["Ponte en cuatro apoyos: manos bajo los hombros, rodillas bajo las caderas.","Redondea la espalda hacia arriba (gato) metiendo el ombligo, mira al abdomen.","Invierte: hunde la espalda y sube la mirada (camello). Alterna lento con la respiración."]},
 glute_bridge:{name:"Puente de glúteo",tag:"diario",type:"reps",sets:2,reps:12,rest:20,coach:"Calentamiento: aprieta el glúteo 2 s arriba antes de cargar.",
   steps:["Boca arriba, rodillas flexionadas, pies plantados al ancho de cadera.","Empuja con los talones y sube la cadera hasta alinear rodilla-cadera-hombro.","Aprieta glúteos 2 s arriba y baja. No arquees la lumbar. (Puedes cargar una mancuerna.)"]},
-hack_squat:{name:"Sentadilla en máquina inclinada (hack squat)",tag:"carga",type:"reps",sets:4,reps:8,rest:150,load:true,unit:"kg",coach:"Tu sentadilla principal: baja controlado pasando la paralela y empuja con todo el pie.",
+hack_squat:{name:"Sentadilla en máquina inclinada (hack squat)",tag:"carga",type:"reps",sets:4,reps:8,rest:180,load:true,unit:"kg",coach:"Tu sentadilla principal: baja controlado pasando la paralela y empuja con todo el pie.",
   steps:["Apoya espalda y hombros en la máquina, pies al ancho de hombros en el centro de la plataforma.","Baja controlado en 2-3 segundos hasta pasar la paralela, con las rodillas siguiendo la punta del pie.","Empuja con todo el pie hasta arriba sin bloquear las rodillas ni despegar la cadera del respaldo."]},
 hip_thrust_db:{name:"Hip thrust con mancuerna",tag:"carga",type:"reps",sets:4,reps:10,rest:120,load:true,unit:"kg",coach:"Alternativa: espalda alta en el banco, barbilla al pecho y aprieta el glúteo 1 s arriba.",
   steps:["Apoya la espalda alta en el banco","Coloca la mancuerna sobre la cadera y sujétala","Empuja la cadera arriba apretando los glúteos"]},
 isometricos_cervicales:{name:"Isométricos cervicales",tag:"diario",type:"hold",sets:3,reps:8,holdSec:8,rest:15,
   steps:["Palma en la frente: empuja la cabeza contra la mano sin que se mueva.","Repite con la mano en cada lado de la cabeza.","Termina con la mano en la nuca. Fuerza suave-media, respira."]},
-jalon_pecho:{name:"Jalón al pecho",tag:"carga",type:"reps",sets:4,reps:10,rest:150,load:true,unit:"kg",coach:"Primer pesado: baja los omóplatos y lleva la barra al pecho alto, subida controlada.",
+jalon_pecho:{name:"Jalón al pecho",tag:"carga",type:"reps",sets:4,reps:10,rest:120,load:true,unit:"kg",coach:"Primer pesado: baja los omóplatos y lleva la barra al pecho alto, subida controlada.",
   steps:["Siéntate con la espalda recta en la máquina, agarra la barra con los brazos extendidos.","Jala la barra hacia tu pecho, contrayendo los músculos de la espalda.","Controla el descenso y regresa a la posición inicial sin bloquear los codos."]},
 mandibula_platisma:{name:"Tensión de platisma y mandíbula",tag:"diario",type:"reps",sets:2,reps:8,rest:15,load:false,unit:"kg",coach:"8 contracciones de 5–8 s. Cierra la rutina. Efecto estético modesto (ver notas).",
   steps:["Sentado erguido, mirada al frente, hombros bajos y relajados.","Baja las comisuras de los labios enseñando los dientes de abajo hasta marcar los cordones del cuello (platisma).","Sostén la tensión 5–8 s y relaja del todo. No subas los hombros ni eches la cabeza hacia atrás."]},
@@ -933,15 +937,15 @@ movilidad_cervical:{name:"Movilidad cervical",tag:"diario",type:"reps",sets:1,re
   steps:["Sentado erguido, hombros relajados.","Haz «sí» (flexo-extensión), luego «no» (rotaciones), luego oreja-hombro.","Rango cómodo sin dolor; ~8 por dirección."]},
 open_book:{name:"Open book (rotación torácica)",tag:"diario",type:"reps_side",sets:1,reps:8,rest:30,
   steps:["De lado, caderas y rodillas a 90°, brazos juntos al frente.","Abre el brazo de arriba hacia el otro lado siguiéndolo con la mirada.","Lleva el omóplato al piso y regresa. Rodillas quietas."]},
-pec_deck:{name:"Contractora de pecho (pec deck / mariposa)",tag:"carga",type:"reps",sets:3,reps:12,rest:75,load:true,unit:"kg",coach:"Aprieta 1 s al juntar y abre lento; no lleves los codos más atrás del hombro.",
+pec_deck:{name:"Contractora de pecho (pec deck / mariposa)",tag:"carga",type:"reps",sets:3,reps:12,rest:90,load:true,unit:"kg",coach:"Aprieta 1 s al juntar y abre lento; no lleves los codos más atrás del hombro.",
   steps:["Ajusta el asiento para que las manijas queden a la altura del pecho y apoya bien la espalda en el respaldo.","Junta los brazos al frente con los codos ligeramente flexionados y aprieta el pecho 1 segundo.","Abre lento hasta sentir el estiramiento, sin llevar los codos más atrás de la línea de los hombros."]},
 pec_puerta:{name:"Estiramiento de pectoral en la puerta",tag:"diario",type:"hold_side",sets:2,holdSec:30,rest:0,
   steps:["Antebrazo en el marco de la puerta, codo a la altura del hombro.","Da un paso adelante y rota el torso al lado contrario.","Siente el pecho; mantén y cambia de brazo."]},
 peso_muerto_rumano_db:{name:"Peso muerto rumano",tag:"carga",type:"reps",sets:3,reps:12,rest:90,load:true,unit:"kg",coach:"Cadera atrás, espalda recta, baja hasta sentir el isquio. No busques el suelo.",
   steps:["Sujeta las mancuernas frente a los muslos","Lleva la cadera atrás con la espalda recta","Sube apretando los glúteos sin arquear la espalda"]},
-prensa_inclinada:{name:"Prensa inclinada",tag:"carga",type:"reps",sets:3,reps:11,rest:120,load:true,unit:"kg",coach:"Rango completo sin despegar la lumbar; no bloquees la rodilla arriba.",
+prensa_inclinada:{name:"Prensa inclinada",tag:"carga",type:"reps",sets:3,reps:11,rest:150,load:true,unit:"kg",coach:"Rango completo sin despegar la lumbar; no bloquees la rodilla arriba.",
   steps:["Ajusta el asiento y apoya la espalda contra el respaldo","Baja las plataformas flexionando rodillas hasta formar ángulo de 90 grados","Empuja hacia arriba extendiendo piernas sin bloquear las rodillas"]},
-press_banca_db:{name:"Press de pecho con mancuernas",tag:"carga",type:"reps",sets:4,reps:8,rest:150,load:true,unit:"kg",coach:"Lo más pesado del día: baja en 2-3 s y deja 1-2 repeticiones en reserva.",
+press_banca_db:{name:"Press de pecho con mancuernas",tag:"carga",type:"reps",sets:4,reps:8,rest:120,load:true,unit:"kg",coach:"Lo más pesado del día: baja en 2-3 s y deja 1-2 repeticiones en reserva.",
   steps:["Acuéstate en el banco con los pies firmes en el piso","Baja los mancuernas controladamente hasta tocar el pecho","Empuja explosivamente hacia arriba hasta extender los brazos"]},
 press_hombro_db:{name:"Press de hombro con mancuernas",tag:"carga",type:"reps",sets:3,reps:10,rest:120,load:true,unit:"kg",coach:"Sentado con respaldo, sin arquear la lumbar al empujar.",
   steps:["De pie o sentado, mancuernas a la altura de los hombros con codos a 90°.","Presiona hacia arriba extendiendo los brazos, codos ligeramente flexionados al final.","Baja controlado a la altura de los hombros. Mantén el core activo sin arquear la lumbar."]},
@@ -955,7 +959,7 @@ remo_maquina:{name:"Remo sentado en máquina",tag:"carga",type:"reps",sets:4,rep
   steps:["Siéntate con la espalda apoyada en el respaldo, pecho contra el pad.","Hala las asas hacia ti, llevando los codos atrás de tu torso.","Mantén la contracción, luego extiende lentamente sin bloquear los brazos."]},
 remo_polea:{name:"Remo en polea baja",tag:"opcional",type:"reps",sets:4,reps:10,rest:120,load:true,unit:"kg",coach:"Torso firme, no tires con la lumbar ni te eches atrás.",
   steps:["Siéntate en el piso con las piernas extendidas, agarra el asa con brazos rectos.","Jala el asa hacia tu pecho, llevando los codos lo más atrás posible.","Controla la extensión y regresa al punto de partida manteniendo la tensión."]},
-reverse_fly:{name:"Reverse fly con mancuernas",tag:"carga",type:"reps",sets:2,reps:12,rest:30,coach:"Deltoides posterior: hombros más redondos y menos caídos hacia delante. Peso ligero, 1 s de apriete escapular.",
+reverse_fly:{name:"Reverse fly con mancuernas",tag:"carga",type:"reps",sets:2,reps:12,rest:75,coach:"Deltoides posterior: hombros más redondos y menos caídos hacia delante. Peso ligero, 1 s de apriete escapular.",
   steps:["Bisagra de cadera ~45° con espalda plana (o boca abajo), mancuernas colgando.","Sube los brazos a los lados formando una «T», codos casi rectos.","Aprieta los omóplatos 1 s y baja lento. Poco peso."]},
 rotacion_externa_db:{name:"Rotación externa de hombro con mancuerna",tag:"carga",type:"reps_side",sets:2,reps:12,rest:30,load:true,unit:"kg",coach:"Calentamiento: peso mínimo, codo pegado al costado. Solo activar el hombro.",
   steps:["De pie, codo pegado al costado y flexionado a 90° con una mancuerna muy ligera.","Gira el antebrazo hacia afuera sin separar el codo del cuerpo.","Vuelve lento al centro; es activación del manguito rotador, no busques peso."]},
@@ -963,7 +967,7 @@ sentadilla_bulgara:{name:"Sentadilla búlgara",tag:"opcional",type:"reps_side",s
   steps:["Coloca el pie trasero sobre un banco o paso detrás de ti; el delantero a distancia de brazo.","Baja flexionando la rodilla delantera hasta que el muslo esté paralelo al suelo.","Empuja con el talón delantero y sube; completa todas las reps antes de cambiar de pierna."]},
 sentadilla_goblet:{name:"Sentadilla goblet",tag:"carga",type:"reps",sets:2,reps:10,rest:45,load:true,unit:"kg",coach:"Calentamiento con peso ligero, solo para entrar en rango antes de la hack.",
   steps:["Sujeta la mancuerna vertical contra el pecho","Baja la cadera manteniendo el pecho erguido","Empuja con los talones para volver arriba"]},
-sentadilla_smith:{name:"Sentadilla en barra guiada (Smith)",tag:"carga",type:"reps",sets:4,reps:8,rest:150,load:true,unit:"kg",coach:"Alternativa guiada: pies un paso adelante, baja a la paralela con el pecho alto.",
+sentadilla_smith:{name:"Sentadilla en barra guiada (Smith)",tag:"carga",type:"reps",sets:4,reps:8,rest:180,load:true,unit:"kg",coach:"Alternativa guiada: pies un paso adelante, baja a la paralela con el pecho alto.",
   steps:["Coloca la barra guiada sobre los trapecios y adelanta los pies un paso respecto a la cadera.","Baja controlado hasta que el muslo quede paralelo al suelo, con el pecho alto y el abdomen firme.","Empuja con el medio del pie para subir, sin bloquear del todo las rodillas."]},
 tmj_mandibula:{name:"Movilidad de mandíbula (TMJ)",tag:"diario",type:"reps",sets:1,reps:8,rest:0,
   steps:["Punta de la lengua en el paladar, tras los dientes.","Abre y cierra la boca despacio manteniendo la lengua arriba.","Luego mueve la mandíbula suave a los lados. Sin forzar chasquidos."]},
@@ -972,26 +976,50 @@ trapecio_superior:{name:"Estiramiento del trapecio superior",tag:"diario",type:"
 wall_angels:{name:"Wall angels",tag:"diario",type:"reps",sets:2,reps:10,rest:30,coach:"Calentamiento: espalda y brazos pegados a la pared, sube y baja sin despegar.",
   steps:["Espalda a la pared: cabeza, espalda alta y glúteos en contacto; pies algo adelante.","Pega brazos y dorso de las manos a la pared en forma de «W».","Sube a «Y» sin despegar y baja. Si despegas la lumbar, reduce el rango."]},
 zancadas_db:{name:"Zancadas con mancuernas",tag:"carga",type:"reps_side",sets:3,reps:10,rest:90,load:true,unit:"kg",coach:"Extra: 10 por pierna, paso largo y bajada controlada.",
-  steps:["Da un paso largo al frente","Baja hasta que la rodilla trasera casi toque","Empuja con el talón delantero para volver"]}
+  steps:["Da un paso largo al frente","Baja hasta que la rodilla trasera casi toque","Empuja con el talón delantero para volver"]},
+apertura_toracica_rack:{name:"Apertura torácica en rack",tag:"calent",type:"reps",sets:1,reps:8,rest:15,coach:"Aguanta unos cinco segundos en cada repetición.",
+  steps:["Manos en la barra del rack, a la altura de la cadera.","Camina atrás hasta estirar los brazos por completo.","Hunde el pecho hacia el suelo sin arquear la lumbar."]},
+balanceo_pierna_frontal:{name:"Balanceo de pierna al frente",tag:"calent",type:"reps_side",sets:1,reps:12,rest:10,coach:"Sustituye al estiramiento de psoas del suelo, y de pie.",
+  steps:["Sujétate del rack con una mano, apoyo en una pierna.","Balancea la otra pierna adelante y atrás, relajada.","Aumenta el rango poco a poco; el tronco quieto."]},
+balanceo_pierna_lateral:{name:"Balanceo de pierna lateral",tag:"calent",type:"reps_side",sets:1,reps:12,rest:10,coach:"Abre la cadera en el plano que la sentadilla va a usar.",
+  steps:["Sujétate del rack de frente, peso sobre una pierna.","Cruza la otra pierna por delante y ábrela al lado.","Cadera mirando al frente; no gires el tronco."]},
+bisagra_cadera_pie:{name:"Bisagra de cadera de pie",tag:"calent",type:"reps",sets:1,reps:12,rest:15,coach:"Sustituye al puente de glúteo del suelo. Sin peso.",
+  steps:["De pie, pies al ancho de cadera, rodillas blandas.","Lleva la cadera atrás bajando el pecho, espalda recta.","Aprieta los glúteos para volver a la vertical."]},
+caminadora:{name:"Caminadora",tag:"calent",type:"cardio",sets:1,holdSec:480,rest:0,coach:"Ritmo facil: debes poder hablar sin cortar frases. Nunca 15 min fuerte antes de pesas.",
+  steps:["Ocho minutos a ritmo cómodo, sin inclinación fuerte.","Debes poder mantener una conversación completa.","Sube la temperatura; no busques sudar ni cansarte."]},
+circulos_brazos:{name:"Círculos de brazos",tag:"calent",type:"reps",sets:1,reps:15,rest:15,coach:"Quince hacia delante y quince hacia atrás, sin prisa.",
+  steps:["De pie, brazos extendidos en cruz, palmas abajo.","Haz círculos pequeños que van creciendo hasta amplios.","Mantén los hombros lejos de las orejas."]},
+elevacion_talones_pie:{name:"Elevación de talones de pie",tag:"calent",type:"reps",sets:1,reps:15,rest:10,coach:"Despierta el gemelo y el tobillo antes de cargar.",
+  steps:["De pie, apoyo ligero en el rack para el equilibrio.","Sube lo más alto posible sobre las puntas.","Baja lento hasta sentir el estiramiento del gemelo."]},
+flexiones_inclinadas:{name:"Flexiones inclinadas en barra",tag:"calent",type:"reps",sets:1,reps:12,rest:20,load:false,unit:"kg",coach:"Cuanto más alta la barra, más fácil. No busques fallar.",
+  steps:["Manos en la barra a la altura de la cadera.","Cuerpo recto, baja el pecho hasta rozar la barra.","Codos a cuarenta y cinco grados; empuja alejando la barra."]},
+gato_camello_pie:{name:"Gato–camello de pie",tag:"calent",type:"reps",sets:1,reps:10,rest:15,coach:"Sustituye al gato–camello del suelo: mismo movimiento, sin colchoneta.",
+  steps:["De pie, rodillas semiflexionadas, manos en los muslos.","Redondea la espalda y lleva el mentón al pecho.","Invierte: saca el pecho y arquea suave la espalda."]},
+pec_deck_inverso:{name:"Pec deck inverso",tag:"carga",type:"reps",sets:3,reps:15,rest:75,load:true,unit:"kg",coach:"También lo llaman pájaros en máquina o contractora inversa. Deltoides posterior, no dorsal.",
+  steps:["Pecho contra la almohadilla, brazos casi extendidos.","Abre hacia atrás en línea con los hombros.","Regresa lento; no encojas el trapecio ni golpees las placas."]},
+sentadilla_aire:{name:"Sentadilla al aire",tag:"calent",type:"reps",sets:1,reps:15,rest:15,load:false,unit:"kg",coach:"Sin peso. Busca rango, no cansancio.",
+  steps:["Pies al ancho de hombros, puntas algo hacia afuera.","Baja lento hasta que los muslos pasen la paralela.","Rodillas siguen la línea de los pies, talones clavados."]},
+vuelos_posteriores_ligeros:{name:"Vuelos posteriores ligeros",tag:"calent",type:"reps",sets:1,reps:15,rest:15,load:true,unit:"kg",coach:"Peso mínimo: esto despierta el hombro, no lo entrena.",
+  steps:["De pie, bisagra de cadera suave, espalda plana.","Sube los brazos a los lados hasta la altura del hombro.","Baja controlado; no encojas los hombros."]}
 };
 const ROUTINES={
 cuello_rostro:{name:"Cuello y rostro",group:"Cuello y rostro",cls:"n",desc:"Fuerza de cuello y estética facial",
   list:["movilidad_cervical", "cuello_flexion_supina", "cuello_extension_manual", "cuello_lateral_manual", "encogimientos_db", "reverse_fly", "mewing_lengua", "mandibula_platisma"]},
 gym_empuje:{name:"Empuje",group:"Gimnasio",cls:"g",desc:"Pecho, hombro y tríceps",
-  list:["wall_angels", "rotacion_externa_db", "flexiones", "press_banca_db", "fondos_paralelas", "press_hombro_db", "pec_deck", "elevaciones_laterales", "extension_triceps_polea", "extension_triceps_db"],
-  warm:["wall_angels", "rotacion_externa_db", "flexiones"],
-  swaps:{"extension_triceps_polea": ["fondos_banco"], "fondos_paralelas": ["fondos_banco"], "pec_deck": ["cruce_poleas"], "press_banca_db": ["flexiones"]},
+  list:["caminadora", "circulos_brazos", "wall_angels", "rotacion_externa_db", "flexiones_inclinadas", "press_banca_db", "fondos_paralelas", "press_hombro_db", "pec_deck", "elevaciones_laterales", "extension_triceps_polea", "extension_triceps_db"],
+  warm:["caminadora", "circulos_brazos", "wall_angels", "rotacion_externa_db", "flexiones_inclinadas"],
+  swaps:{"press_banca_db": ["flexiones"], "pec_deck": ["aperturas_db"], "fondos_paralelas": ["fondos_banco"], "extension_triceps_polea": ["extension_triceps_db"]},
   extras:["reverse_fly", "cruce_poleas"]},
 gym_pierna:{name:"Pierna",group:"Gimnasio",cls:"g",desc:"Pierna completa",
-  list:["glute_bridge", "flexor_cadera", "sentadilla_goblet", "hack_squat", "prensa_inclinada", "maquina_gluteo", "curl_femoral", "extension_cuadriceps", "aductores_maquina", "abductores_maquina", "elevacion_pantorrilla"],
-  warm:["glute_bridge", "flexor_cadera", "sentadilla_goblet"],
-  swaps:{"curl_femoral": ["peso_muerto_rumano_db"], "hack_squat": ["sentadilla_smith"], "maquina_gluteo": ["hip_thrust_db"], "prensa_inclinada": ["sentadilla_smith"]},
-  extras:["sentadilla_bulgara", "zancadas_db"]},
+  list:["caminadora", "sentadilla_aire", "balanceo_pierna_frontal", "balanceo_pierna_lateral", "bisagra_cadera_pie", "elevacion_talones_pie", "hack_squat", "prensa_inclinada", "peso_muerto_rumano_db", "curl_femoral", "extension_cuadriceps", "maquina_gluteo", "elevacion_pantorrilla"],
+  warm:["caminadora", "sentadilla_aire", "balanceo_pierna_frontal", "balanceo_pierna_lateral", "bisagra_cadera_pie", "elevacion_talones_pie"],
+  swaps:{"hack_squat": ["sentadilla_smith"], "maquina_gluteo": ["hip_thrust_db"], "peso_muerto_rumano_db": ["zancadas_db"]},
+  extras:["sentadilla_bulgara", "aductores_maquina", "abductores_maquina"]},
 gym_tiron:{name:"Tirón",group:"Gimnasio",cls:"g",desc:"Espalda y bíceps",
-  list:["gato_camello", "extension_toracica", "colgado_escapular", "jalon_pecho", "remo_maquina", "remo_db", "reverse_fly", "curl_barra", "curl_martillo_cruzado", "curl_predicador"],
-  warm:["gato_camello", "extension_toracica", "colgado_escapular"],
-  swaps:{"curl_barra": ["curl_biceps_db"], "curl_predicador": ["curl_concentrado"], "remo_db": ["remo_invertido"], "remo_maquina": ["remo_polea"]},
-  extras:["peso_muerto_rumano_db", "curl_concentrado"]},
+  list:["caminadora", "gato_camello_pie", "apertura_toracica_rack", "colgado_escapular", "vuelos_posteriores_ligeros", "jalon_pecho", "remo_maquina", "remo_db", "pec_deck_inverso", "encogimientos_db", "curl_barra", "curl_martillo_cruzado"],
+  warm:["caminadora", "gato_camello_pie", "apertura_toracica_rack", "colgado_escapular", "vuelos_posteriores_ligeros"],
+  swaps:{"remo_maquina": ["remo_polea"], "remo_db": ["remo_invertido"], "curl_barra": ["curl_biceps_db"], "pec_deck_inverso": ["reverse_fly"]},
+  extras:["peso_muerto_rumano_db", "curl_concentrado", "curl_predicador"]},
 postura_completa:{name:"Postura — Completa",group:"Postura",cls:"p",desc:"Toda la espalda + cuello (fuerza) y rostro · con mancuernas",
   list:["gato_camello", "wall_angels", "extension_toracica", "open_book", "remo_inclinado", "reverse_fly", "glute_bridge", "bird_dog", "dead_bug", "chin_tuck", "isometricos_cervicales", "tmj_mandibula", "face_yoga"]},
 postura_movilidad:{name:"Postura — Movilidad",group:"Postura",cls:"p",desc:"Movilidad de espalda y cuello para postura · peso corporal",
@@ -1142,7 +1170,8 @@ function renderHome(){
 }
 
 /* ---------- ROUTINE DETAIL ---------- */
-function metaOf(e){return e.type==="hold"?`${e.sets} × ${e.holdSec}s`:e.type==="hold_side"?`${e.sets} × ${e.holdSec}s / lado`:
+function metaOf(e){return e.type==="cardio"?`${Math.round(e.holdSec/60)} min`:
+  e.type==="hold"?`${e.sets} × ${e.holdSec}s`:e.type==="hold_side"?`${e.sets} × ${e.holdSec}s / lado`:
   e.type==="reps_side"?`${e.sets} × ${e.reps} / lado`:`${e.sets} × ${e.reps}`;}
 /* ---- opcionales: sustitutos (swap) y extras ---- */
 function loadSwaps(){return jget("rp_swaps",{});}
@@ -1196,7 +1225,7 @@ function routineExCard(k,ctx,id,origin,isExtra,isWarm){const e=EX[id];if(!e)retu
         ${(e.coach)?`<div class="coachtip">${ic("bulb","sm")} ${esc(e.coach)}</div>`:''}
         ${quickBox(k,id,n)}
         ${exChart(id,ctx.LOGS)}
-        <div class="vbtn" onclick="openVideo('${id}')">${ic("play","sm solid")} Ver video</div>
+        ${VID[id]?`<div class="vbtn" onclick="openVideo('${id}')">${ic("play","sm solid")} Ver video</div>`:''}
       </div></div>`;}
 function routineList(k,r,ctx){const warm=r.warm||[],cal=[],ent=[];
   r.list.forEach(origin=>{const id=swapOf(k,origin)||origin,e=EX[id];if(!e)return;
@@ -1669,6 +1698,10 @@ function buildSteps(k){const out=[],list=effList(k),total=list.length;
     else if(e.type==="hold_side"){for(let s=1;s<=e.sets;s++){
       out.push(Object.assign({},base,{kind:"timer",seconds:e.holdSec,label:`Serie ${s}/${e.sets} · Izquierdo`,restAfter:0,first:s===1}));
       out.push(Object.assign({},base,{kind:"timer",seconds:e.holdSec,label:`Serie ${s}/${e.sets} · Derecho`,restAfter:s<e.sets?(e.rest||10):0,first:false}));}}
+    /* cardio: un solo paso cronometrado y sin descanso detras. Es la caminadora,
+       que sube la temperatura pero no ensaya ningun patron de movimiento. */
+    else if(e.type==="cardio"){out.push(Object.assign({},base,{kind:"timer",seconds:e.holdSec,
+      label:"Calentamiento general",restAfter:0,first:true}));}
   });return out;}
 
 /* ---------- GUIDED ---------- */
@@ -1744,8 +1777,8 @@ function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){cu
     inner=`<div class="ring"><svg width="200" height="200" viewBox="0 0 200 200"><g transform="rotate(-90 100 100)">
       <circle cx="100" cy="100" r="90" stroke="#22303c" stroke-width="13" fill="none"/>
       <circle id="arc" cx="100" cy="100" r="90" stroke="#34d399" stroke-width="13" fill="none" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="0"/></g></svg>
-      <div class="val"><b id="tv">${s.seconds}</b><span>segundos</span></div></div>
-      <button class="gbtn go" id="startT" onclick="startTimer()">${ic("play","sm solid")} Iniciar (${s.seconds}s)</button>`;}
+      <div class="val"><b id="tv">${fmtDur(s.seconds)}</b><span>${s.seconds>=120?"minutos":"segundos"}</span></div></div>
+      <button class="gbtn go" id="startT" onclick="startTimer()">${ic("play","sm solid")} Iniciar (${s.seconds>=120?Math.round(s.seconds/60)+" min":s.seconds+"s"})</button>`;}
   $("guided").innerHTML=frame(inner);}
 
 /* ==== [S4] PANTALLA DESPIERTA Y AVISO DE DESCANSO =========================
@@ -1778,10 +1811,15 @@ function restDone(){clearRestNotif();
 
 let gVidOn=false;
 function toggleGVid(){gVidOn=!gVidOn;const b=$("gvid");if(gVidOn){$("gvframe").src=embed(VID[steps[stepi].id]);b.classList.add("show");}else{$("gvframe").src="";b.classList.remove("show");}}
+/* Un sosten de 30 s se lee mejor en segundos; ocho minutos de caminadora, en
+   mm:ss. El segundo argumento es la duracion total, para que el formato no
+   cambie a mitad de cuenta cuando baja de 120. */
+function fmtDur(sec,total){return (total!=null?total:sec)>=120
+  ? Math.floor(sec/60)+":"+String(sec%60).padStart(2,"0") : String(sec);}
 function startTimer(){const s=steps[stepi],C=2*Math.PI*90,btn=$("startT");if(btn)btn.style.display="none";
   tEnds=Date.now()+s.seconds*1000;const arc=$("arc");
   const upd=()=>{const r=Math.max(0,Math.ceil((tEnds-Date.now())/1000)),tv=$("tv");
-    if(tv)tv.textContent=r;
+    if(tv)tv.textContent=fmtDur(r,s.seconds);
     if(arc)arc.style.strokeDashoffset=(C*(1-r/s.seconds)).toFixed(1);
     if(r<=0){clearTimer();if(arc)arc.style.strokeDashoffset=C;beep();afterAction();}};
   upd();if(tId)return;tickFn=upd;tId=setInterval(upd,250);}
@@ -2023,7 +2061,9 @@ window.addEventListener("popstate",function(e){
   var sv=$("swapov");if(sv&&sv.classList.contains("show")){sv.classList.remove("show");return;}
   renderState(e.state);});
 function estMinutes(key){var r=ROUTINES[key];if(!r)return 0;var sec=0;
-  effList(key).forEach(function(id){var e=EX[id];if(!e)return;var sets=e.sets||1,side=(e.type==="reps_side"||e.type==="hold_side")?2:1,work;
+  effList(key).forEach(function(id){var e=EX[id];if(!e)return;
+    if(e.type==="cardio"){sec+=(e.holdSec||0)+10;return;}
+    var sets=e.sets||1,side=(e.type==="reps_side"||e.type==="hold_side")?2:1,work;
     if(e.type==="hold"||e.type==="hold_side"){work=(e.holdSec||30)*side;}else{work=(e.reps||10)*3.5*side;}
     sec+=sets*work+(sets>1?(sets-1)*(e.rest||30):0)+15;});
   return Math.max(1,Math.round(sec/60));}
@@ -2036,23 +2076,48 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){window.
 /* las figuras viven en figuras.js; si no cargara, la app sigue funcionando */
 Object.assign(FRAMES,(window.FIG&&FIG.FRAMES)||{});
 Object.assign(DIAG,(window.FIG&&FIG.DIAG)||{});
+/* Los ejercicios nuevos de v25 no tienen figura propia todavia. Donde existe
+   un movimiento equivalente ya dibujado, se reutiliza su figura; el resto se
+   queda sin dibujo y los pasos de texto hacen el trabajo. Dibujarlas es una
+   tarea aparte: son 125 fotogramas sobre la misma rejilla y no se improvisan. */
+const FIGALIAS={gato_camello_pie:"gato_camello", flexiones_inclinadas:"flexiones",
+  sentadilla_aire:"sentadilla_goblet", elevacion_talones_pie:"elevacion_pantorrilla",
+  vuelos_posteriores_ligeros:"reverse_fly", bisagra_cadera_pie:"peso_muerto_rumano_db",
+  pec_deck_inverso:"reverse_fly"};
+Object.keys(FIGALIAS).forEach(function(id){var src=FIGALIAS[id];
+  if(!DIAG[id]&&DIAG[src])DIAG[id]=DIAG[src];
+  if(!FRAMES[id]&&FRAMES[src])FRAMES[id]=FRAMES[src];});
 /* ================= Dashboard de progreso (v19) ================= */
 const GYMKEYS=["gym_empuje","gym_tiron","gym_pierna"];
-const MUSC={press_banca_db:{pecho:1,triceps:.5,hombro:.5},fondos_paralelas:{pecho:1,triceps:1},pec_deck:{pecho:1},
- cruce_poleas:{pecho:1},flexiones:{pecho:1,triceps:.5,hombro:.5},fondos_banco:{triceps:1,pecho:.5},
- press_hombro_db:{hombro:1,triceps:.5},elevaciones_laterales:{hombro:1},reverse_fly:{hombro:.5,espalda:.5},
- rotacion_externa_db:{hombro:.5},extension_triceps_polea:{triceps:1},extension_triceps_db:{triceps:1},
- jalon_pecho:{espalda:1,biceps:.5},remo_maquina:{espalda:1,biceps:.5},remo_db:{espalda:1,biceps:.5},
- remo_polea:{espalda:1,biceps:.5},remo_invertido:{espalda:1,biceps:.5},colgado_escapular:{espalda:.5},
+/* Conteo fraccional: 1 para el motor principal, 0,5 para los sinergistas.
+   El deltoides va separado en sus tres cabezas porque tienen necesidades muy
+   distintas: el frontal se lleva mucho volumen indirecto de todos los press,
+   mientras el lateral y el posterior solo reciben lo que se les da directo.
+   Un objetivo agregado de "hombro" escondia justo eso. */
+const MUSC={press_banca_db:{pecho:1,triceps:.5,delt_anterior:.5},fondos_paralelas:{pecho:1,triceps:1,delt_anterior:.5},
+ pec_deck:{pecho:1},cruce_poleas:{pecho:1},aperturas_db:{pecho:1},
+ flexiones:{pecho:1,triceps:.5,delt_anterior:.5},fondos_banco:{triceps:1,pecho:.5},
+ press_hombro_db:{delt_anterior:1,delt_lateral:.5,triceps:.5},elevaciones_laterales:{delt_lateral:1},
+ reverse_fly:{delt_posterior:1,espalda:.5},pec_deck_inverso:{delt_posterior:1,espalda:.5},
+ extension_triceps_polea:{triceps:1},extension_triceps_db:{triceps:1},
+ jalon_pecho:{espalda:1,biceps:.5},remo_maquina:{espalda:1,biceps:.5,delt_posterior:.5},
+ remo_db:{espalda:1,biceps:.5,delt_posterior:.5},remo_polea:{espalda:1,biceps:.5,delt_posterior:.5},
+ remo_invertido:{espalda:1,biceps:.5,delt_posterior:.5},remo_inclinado:{espalda:1,biceps:.5,delt_posterior:.5},
  curl_barra:{biceps:1},curl_martillo_cruzado:{biceps:1},curl_predicador:{biceps:1},curl_biceps_db:{biceps:1},
  curl_concentrado:{biceps:1},prensa_inclinada:{cuadriceps:1,gluteo:.5},hack_squat:{cuadriceps:1,gluteo:.5},
  sentadilla_smith:{cuadriceps:1,gluteo:.5},sentadilla_goblet:{cuadriceps:1,gluteo:.5},sentadilla_bulgara:{cuadriceps:1,gluteo:.5},
  zancadas_db:{cuadriceps:1,gluteo:.5},extension_cuadriceps:{cuadriceps:1},curl_femoral:{isquios:1},
  peso_muerto_rumano_db:{isquios:1,gluteo:.5},maquina_gluteo:{gluteo:1,isquios:.5},hip_thrust_db:{gluteo:1,isquios:.5},
  abductores_maquina:{gluteo:.5},aductores_maquina:{aductores:1},elevacion_pantorrilla:{gemelo:1},encogimientos_db:{trapecio_cuello:1}};
-const MUSCNAME={pecho:"Pecho",espalda:"Espalda",hombro:"Hombro",triceps:"Tríceps",biceps:"Bíceps",cuadriceps:"Cuádriceps",
+const MUSCNAME={pecho:"Pecho",espalda:"Espalda",delt_lateral:"Hombro lateral",delt_posterior:"Hombro posterior",
+ delt_anterior:"Hombro frontal",triceps:"Tríceps",biceps:"Bíceps",cuadriceps:"Cuádriceps",
  isquios:"Isquios",gluteo:"Glúteo",gemelo:"Gemelo",aductores:"Aductores",trapecio_cuello:"Trapecio/cuello"};
-const MUSCGOAL={pecho:10,espalda:10,cuadriceps:10,hombro:8,biceps:8,triceps:8,gluteo:8,isquios:8,gemelo:6,aductores:6,trapecio_cuello:6};
+/* Series directas por semana. Los 10 de antes eran el minimo efectivo, no el
+   optimo: la banda con respaldo esta en 12-20 (Baz-Valle 2022). El frontal se
+   deja en 4 a proposito: los press ya le dan de sobra, y si la barra se pasa
+   del objetivo eso es exactamente lo que hay que ver. */
+const MUSCGOAL={pecho:14,espalda:16,cuadriceps:14,delt_lateral:12,delt_posterior:10,
+ delt_anterior:4,biceps:12,triceps:12,gluteo:10,isquios:10,gemelo:10,aductores:6,trapecio_cuello:8};
 
 function dOffset(n){const d=new Date();d.setDate(d.getDate()-n);return ds(d);}
 function warmIds(){const s={};GYMKEYS.forEach(k=>{((ROUTINES[k]||{}).warm||[]).forEach(id=>s[id]=1);});return s;}
