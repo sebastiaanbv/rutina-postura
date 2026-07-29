@@ -220,6 +220,15 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .streak .n{font-size:var(--t-title);font-weight:var(--w-bold);line-height:1;letter-spacing:-.5px;
     font-variant-numeric:tabular-nums}
   .streak .lb{font-size:var(--t-sm);color:var(--mut);font-weight:var(--w-med)}
+  .streak .wkring{display:inline-flex;vertical-align:-8px;margin-right:5px}
+  .streak .rt b{color:var(--tx);font-variant-numeric:tabular-nums}
+  /* barra de sobrecarga: la franja marca lo esperable, no el 100% */
+  .ovbar{position:relative;height:8px;border-radius:var(--r-pill);background:var(--sunk);
+    margin-top:9px;overflow:hidden}
+  .ovbar i{display:block;height:100%;border-radius:var(--r-pill);background:var(--primary);
+    transition:width .35s ease}
+  .ovbar u{position:absolute;top:0;height:100%;border-left:1px dashed var(--line2);
+    border-right:1px dashed var(--line2);text-decoration:none}
   .streak .rt{margin-left:auto;font-size:var(--t-xs);color:var(--mut);font-weight:var(--w-med);text-align:right;line-height:1.35}
   .streak .rt b{color:var(--tx2);font-weight:var(--w-bold);font-variant-numeric:tabular-nums}
 
@@ -745,8 +754,8 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     <div id="todayCard"></div>
     <div class="streak">
       <span class="fl"><svg class="ic sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c.7 2.8 3.7 3.9 3.7 7.6a3.7 3.7 0 1 1-7.4 0c0-1.8.9-2.9 1.9-3.7.2 1.9 1 2.1 1.8 1.9 0-2.8-.9-3.7 0-5.8z"/></svg></span>
-      <span class="n" id="stCount">0</span><span class="lb" id="stCountL">días seguidos</span>
-      <span class="rt">mejor <b id="stBest">0</b><br><b id="stTotal">0</b> sesiones</span>
+      <span class="n" id="stCount">0</span><span class="lb" id="stCountL">semanas cumplidas</span>
+      <span class="rt" id="stWeek"></span>
     </div>
     <div id="weekCard"></div>
     <div id="routines"></div>
@@ -1097,10 +1106,20 @@ function isPR(id,w,reps){w=w||0;reps=reps||0;if(!reps)return false;
   const rev=st=>{(st||[]).forEach(x=>{if((x.w||0)>=w&&(x.reps||0)>=reps)dom=true;});};
   recs.forEach(r=>rev(r.sets));rev(ses);
   return !dom;}
+/* Tres niveles, porque celebrar todo igual devalua la senal: un logro trivial
+   no construye nada. El de rango es el fuerte, porque es el que dispara la
+   subida de carga de la sesion siguiente. */
+function prLevel(id,w,reps){const rng=repRange(id),recs=loadLogs()[id]||[];
+  let mejorE1=0;recs.forEach(r=>{mejorE1=Math.max(mejorE1,bestE1(id,r));});
+  const e1=(reps>=rng[0])?e1rm(w||0,reps):0;
+  if(e1>0&&e1>mejorE1*1.005)return 2;                    /* nuevo maximo de e1RM */
+  return 1;}                                             /* mejor para esas reps */
 function markPR(id,w,reps){const sv=loadSess();if(!sv)return;
-  sv.pr=sv.pr||[];sv.pr.push({id:id,w:w,reps:reps});saveSess(sv);
-  const e=EX[id]||{},u=e.unit||"kg";
-  toast(ic("trophy","sm")+" R\u00e9cord en "+esc(shortName(id))+": <b>"+((w>0)?fmtW(w)+" "+u+" \u00d7 "+reps:reps+" reps")+"</b>");}
+  const lvl=prLevel(id,w,reps);
+  sv.pr=sv.pr||[];sv.pr.push({id:id,w:w,reps:reps,lvl:lvl});saveSess(sv);
+  const e=EX[id]||{},u=e.unit||"kg",marca=(w>0)?fmtW(w)+" "+u+" \u00d7 "+reps:reps+" reps";
+  /* nivel 1 no lanza aviso flotante: se ve en la propia serie y ya */
+  if(lvl>=2)toast(ic("trophy","sm")+" R\u00e9cord en "+esc(shortName(id))+": <b>"+marca+"</b>");}
 /* ==== fin [S5] ============================================================ */
 let curRoutine=null, steps=[], stepi=0, tId=null, actx=null, remTimers=[];
 const $=id=>document.getElementById(id);
@@ -1155,6 +1174,43 @@ function today(){return ds(new Date());}
 function yesterday(){const d=new Date();d.setDate(d.getDate()-1);return ds(d);}
 function loadStreak(){return jget("rp_streak",{count:0,best:0,last:null,total:0});}
 function completeDay(){const s=loadStreak(),t=today();if(s.last!==t){s.count=(s.last===yesterday())?s.count+1:1;s.last=t;s.total=(s.total||0)+1;}s.best=Math.max(s.best||0,s.count);jset("rp_streak",s);return s;}
+
+/* ==== [S6] SEMANA CUMPLIDA ================================================
+   La racha diaria se rompia si no entrenabas un dia, aunque fuera dia de
+   descanso planificado. Con un split de 3 dias eso castiga exactamente lo que
+   el programa pide. Ninguna de las cuatro apps de fuerza de referencia usa
+   racha diaria, y por este motivo.
+   Se cuenta por semanas cerradas: la semana en curso nunca resta, solo se
+   muestra como progreso. El historico de la racha diaria no se borra. */
+/* ojo: mas abajo ya existe un weekStart(off) que devuelve una cadena y toma un
+   desplazamiento de semanas. Estas se llaman distinto para no pisarlo. */
+function wkMonday(d){const x=new Date(d);x.setHours(0,0,0,0);
+  x.setDate(x.getDate()-((x.getDay()+6)%7));return x;}
+function wkKey(d){return ds(wkMonday(d));}
+function gymSessionsByWeek(){const m={};
+  loadHist().forEach(r=>{if(GYMKEYS.indexOf(r.key)<0)return;
+    /* cuenta como sesion si se registro la mayoria del trabajo, no por abrirla */
+    if(r.exTotal&&r.exDone/r.exTotal<0.6)return;
+    const k=wkKey(new Date(r.iso));m[k]=(m[k]||0)+1;});
+  return m;}
+function weekGoal(){const p=loadPlan();
+  const n=p.filter(v=>v&&GYMKEYS.indexOf(v)>=0).length;
+  return n||3;}
+function weekStats(){const m=gymSessionsByWeek(),goal=weekGoal(),hoy=new Date();
+  const actual=wkKey(hoy),hechas=m[actual]||0;
+  let racha=0,cur=wkMonday(hoy);
+  for(;;){cur.setDate(cur.getDate()-7);const k=ds(cur);
+    if((m[k]||0)>=goal)racha++;else break;
+    if(racha>200)break;}
+  let mejor=racha;const keys=Object.keys(m).sort();
+  if(keys.length){let run=0,prev=null;
+    keys.forEach(k=>{if(m[k]<goal){run=0;prev=k;return;}
+      const d=new Date(k+"T00:00:00");
+      if(prev){const pd=new Date(prev+"T00:00:00");
+        run=((d-pd)/86400000===7&&m[prev]>=goal)?run+1:1;}else run=1;
+      prev=k;mejor=Math.max(mejor,run);});}
+  return {goal:goal,hechas:hechas,racha:racha,mejor:mejor,
+    semanaOK:hechas>=goal,total:Object.keys(m).length};}
 function loadHist(){return jget("rp_history",[]);}
 function recordSession(key,name,sum,when){const h=loadHist(),d=when?new Date(when):new Date();
   const e={key,name,iso:d.toISOString(),day:DAYS[d.getDay()],
@@ -1166,8 +1222,13 @@ function recordSession(key,name,sum,when){const h=loadHist(),d=when?new Date(whe
 
 /* ---------- HOME ---------- */
 function renderHome(){
-  const s=loadStreak();$("stCount").textContent=s.count||0;$("stBest").textContent=s.best||0;$("stTotal").textContent=s.total||0;
-  $("stCountL").textContent=plural(s.count||0,"día seguido","días seguidos");
+  const s=loadStreak(),w=weekStats();
+  $("stCount").textContent=w.racha;
+  $("stCountL").textContent=plural(w.racha,"semana cumplida","semanas cumplidas");
+  /* el anillo de la semana en curso: el gradiente de meta tira mas cuanto mas
+     cerca esta el objetivo, y la semana viva nunca resta */
+  $("stWeek").innerHTML=`<span class="wkring">${ringSVG(w.goal?w.hechas/w.goal:0,26,3.5)}</span>`
+    +`<b>${w.hechas} de ${w.goal}</b> esta semana`;
   renderTodayCard(s);renderWeek();
   let h="";
   GROUPS.forEach(g=>{
@@ -1521,10 +1582,14 @@ function incFor(id){return 2.5;}
 function progStep(w){return w<10?1:(w<20?2:2.5);}
 /* que peso y cuantas reps proponer: nunca la serie mas cansada de la vez
    pasada, sino la primera, y si completaste todo el objetivo, un poco mas */
-function suggestLoad(id,k){const e=EX[id]||{},d=dose(k!=null?k:curRoutine,id),
+function suggestLoad(id,k){const e=EX[id]||{},kk=k!=null?k:curRoutine,d=dose(kk,id),
   tgt=d.reps||10,loaded=e.load===true,u=e.unit||"kg";
   const ds=sessLog(curRoutine)[id]||[];
   if(ds.length){const l=ds[ds.length-1];return {w:l.w,reps:l.reps,why:""};}
+  /* la progresion doble manda cuando hay historial: dice el objetivo de hoy,
+     no solo repite lo de la vez pasada */
+  const t=todayTarget(kk,id);
+  if(t&&!t.nuevo)return {w:loaded?t.w:0,reps:t.reps,why:t.why,target:t};
   const ll=lastLog(id);
   if(!ll)return {w:loaded?10:0,reps:tgt,why:"Objetivo del programa: "+tgt+" repeticiones"};
   const first=ll.sets[0],sets=d.sets||ll.sets.length;
@@ -2223,6 +2288,65 @@ function histRows(){return loadHist().map(x=>{let d=null;
 function e1rm(w,r){return w*(1+r/30);}
 function median(a){if(!a.length)return 0;const s=a.slice().sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;}
 
+/* ==== [S7] PROGRESION, SOBRECARGA Y ESTANCAMIENTO ========================= */
+/* Rango de repeticiones por tipo de ejercicio. La progresion doble sube reps
+   dentro del rango y, cuando lo llenas entero, sube la carga y vuelve al
+   minimo. Progresar por reps da la misma hipertrofia que por carga
+   (Plotkin 2022), asi que el guardarrail de abajo no cuesta resultados. */
+function repRange(id){const e=EX[id]||{},r=e.reps||10;
+  if(r<=8)return [6,10];
+  if(r<=12)return [8,12];
+  return [12,20];}
+/* Tope del 10% sobre el peso de trabajo, que es el limite alto del rango que
+   maneja la NSCA (2,5-10%). Un 5% seria mas conservador pero bloquearia casi
+   todo: el escalon minimo real de una mancuerna es 2,5 kg, que sobre 47,5 kg
+   ya es un 5,3%. Por encima del tope no se sube carga, se estira el rango de
+   repeticiones, que da la misma hipertrofia (Plotkin 2022). */
+function loadStep(w){const s=w<10?1:(w<20?2:2.5);
+  return (w>0&&s/w>0.10)?0:s;}
+/* Objetivo de hoy: una meta de proceso resoluble hoy, no un resultado lejano. */
+function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)return null;
+  const rng=repRange(id),d=dose(k,id),ll=lastLog(id);
+  if(!ll||!ll.sets.length)return {w:e.load===true?0:0,reps:rng[0],why:"Primera vez: busca "+rng[0]+" repeticiones limpias",nuevo:true};
+  const trabajo=ll.sets,tope=trabajo.every(x=>(x.reps||0)>=rng[1]),
+        completo=trabajo.length>=(d.sets||trabajo.length),first=trabajo[0];
+  if(e.load===true&&tope&&completo){const inc=loadStep(first.w||0);
+    if(inc>0){const w=Math.round((first.w+inc)*10)/10;
+      return {w:w,reps:rng[0],subeCarga:true,
+        why:"Llenaste el rango entero: sube a "+fmtW(w)+" kg y vuelve a "+rng[0]};}
+    return {w:first.w,reps:rng[1]+2,extiende:true,
+      why:"El salto de peso seria mas del 5%: estira el rango a "+(rng[1]+2)+" reps"};}
+  const objetivo=Math.min(rng[1],Math.max(rng[0],(first.reps||rng[0])+1));
+  return {w:first.w||0,reps:objetivo,
+    why:"La vez pasada "+(first.reps||0)+": hoy "+objetivo+" con el mismo peso"};}
+/* Mejor serie de una sesion, en e1RM. Guardarrail: si las reps caen por debajo
+   del minimo del rango no cuenta como progreso, aunque el e1RM salga mayor.
+   Sin eso, la mecanica premiaria subir peso a costa del rango. */
+function bestE1(id,rec){const rng=repRange(id);let b=0;
+  (rec.sets||[]).forEach(s=>{if((s.reps||0)<rng[0])return;
+    b=Math.max(b,e1rm(s.w||0,s.reps||0));});return b;}
+function overloadIndex(days){const logs=loadLogs(),warm=warmIds(),from=dOffset(days||7);
+  let prog=0,tot=0;const detalle=[];
+  Object.keys(logs).forEach(id=>{if(warm[id])return;
+    const recs=logs[id].filter(r=>r.sets&&r.sets.length);
+    if(recs.length<2)return;
+    const ult=recs[recs.length-1];if(ult.date<from)return;
+    const hoy=bestE1(id,ult),antes=bestE1(id,recs[recs.length-2]);
+    if(!hoy&&!antes)return;
+    tot++;const ok=hoy>antes*1.005;if(ok)prog++;
+    detalle.push({id:id,ok:ok,hoy:hoy,antes:antes});});
+  return {prog:prog,total:tot,pct:tot?Math.round(prog/tot*100):0,detalle:detalle};}
+/* Estancado: 3 sesiones sin superar el mejor e1RM de las ultimas 8 semanas. */
+function stalled(){const logs=loadLogs(),warm=warmIds(),from=dOffset(56),out=[];
+  Object.keys(logs).forEach(id=>{if(warm[id])return;
+    const recs=logs[id].filter(r=>r.sets&&r.sets.length&&r.date>=from);
+    if(recs.length<4)return;
+    const vals=recs.map(r=>bestE1(id,r)),mejor=Math.max.apply(null,vals);
+    const ult3=vals.slice(-3);
+    if(ult3.length===3&&ult3.every(v=>v<mejor*1.005)&&vals.indexOf(mejor)<vals.length-3)
+      out.push({id:id,name:(EX[id]||{}).name||id,sesiones:recs.length});});
+  return out;}
+
 /* --- indice de fuerza (e1RM normalizado, base 100) --- */
 function strengthIdx(cut){const logs=loadLogs(),warm=warmIds(),vals=[];
   Object.keys(logs).forEach(id=>{const e=EX[id];if(!e||e.load!==true||warm[id])return;
@@ -2322,6 +2446,35 @@ function renderProgress(){
   }else{
     b+='<div class="hkick">Índice de fuerza</div><div class="hbig">—</div><div class="hsub">Necesitas al menos 3 sesiones registradas de un mismo ejercicio con peso.</div>';}
   b+='</div>';
+
+  /* 1b · indice de sobrecarga: la metrica que mide si de verdad estas
+     progresando, no si hiciste mucho volumen. La banda objetivo va en 40-60%
+     y no en 100% a proposito: progresar en todo cada semana no pasa, y poner
+     la expectativa ahi solo produce sensacion de fracaso. */
+  const ov=overloadIndex(9);
+  b+='<div class="grouptitle">'+ic("up","xs")+' Sobrecarga de la semana</div>';
+  if(ov.total<2){b+='<div class="empty" style="padding:18px 12px">Con dos sesiones del mismo ejercicio ya te digo en cuáles estás subiendo.</div>';}
+  else{b+='<div class="chartcard">';
+    b+='<div class="cthead"><div class="ct">Progresaste en '+ov.prog+' de '+ov.total+'</div>'
+      +'<span class="delta '+(ov.pct>=40?'up':'down')+'">'+ov.pct+'%</span></div>';
+    b+='<div class="ovbar"><i style="width:'+Math.min(100,ov.pct)+'%"></i>'
+      +'<u style="left:40%;width:20%"></u></div>';
+    b+='<div class="cs" style="margin-top:7px">'+(ov.pct>=40&&ov.pct<=70
+      ?'Ritmo normal. La franja marcada es lo esperable en un intermedio.'
+      :(ov.pct>70?'Semana muy buena. No esperes que se repita cada semana.'
+                 :'Por debajo de lo esperable. Mira el radar de abajo antes de forzar.'))+'</div>';
+    b+='</div>';}
+
+  /* 1c · radar de estancamiento, con tres salidas y sin empujar a ninguna */
+  const st=stalled();
+  if(st.length){
+    b+='<div class="grouptitle">'+ic("alert","xs")+' Estancado</div><div class="chartcard">';
+    b+='<div class="cs" style="margin:0 0 8px">Tres sesiones sin superar tu mejor marca de las últimas ocho semanas. Elige tú:</div>';
+    st.slice(0,4).forEach(x=>{b+='<div class="prrow"><span class="prn">'+esc(x.name)+'</span>'
+      +'<span class="prd">'+x.sesiones+' sesiones</span></div>';});
+    b+='<div class="callout" style="margin-top:8px">Subir el descanso a 180 s · añadir una serie unas semanas · '
+      +'bajar el peso un 10% y reconstruir · o cambiar al ejercicio alterno desde su ficha.</div>';
+    b+='</div>';}
 
   /* 4 · records */
   const prs=prFeed(30);
