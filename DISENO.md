@@ -40,12 +40,34 @@ Con un solo tono siempre falla uno de los dos lados. El verde de marca sobre bla
 
 | Rol | Relleno | Texto | Tinte | Significado |
 |---|---|---|---|---|
-| Primario | `--primary` #0c8163 | `--primary-ink` #0a7458 | `--primary-tint` | Acción, hecho, progreso |
-| Energía | `--energy` #e07b1a | `--energy-ink` #8a4b06 | `--energy-tint` | Racha, récord, subir peso |
-| Información | `--accent` #3f76e0 | `--accent-ink` #1f4fa8 | `--accent-tint` | Consejos, cuello |
-| Descanso | `--rest` #c9781f | `--rest-ink` #8a5312 | `--rest-tint` | Temporizador, avisos |
+| Primario | `--primary` #2563eb | `--primary-ink` #1e40af | `--primary-tint` | Acción, hecho, progreso, información |
+| Energía | `--energy` #e07b1a | `--energy-ink` #8a4b06 | `--energy-tint` | Racha, récord, subir peso, descanso |
 | Carga | `--load` #6d5bc9 | `--load-ink` #3a2f6b | `--load-tint` | Gimnasio, peso |
 | Destructivo | `--danger` #c4443f | `--danger-ink` #a3322e | `--danger-tint` | Borrar |
+
+**Cuatro familias, no seis.** En v25 se fusionaron dos pares que estaban declarados
+por separado pero no se distinguían. `--rest` y `--energy` eran el mismo naranja: 1,13:1
+de diferencia en claro y 1,29:1 en oscuro, así que ni «descanso» ni «logro» se podían
+aprender como código. Y el azul de «información» hacía el mismo papel que el primario en
+otro tono; ahora es la misma familia con los dos roles que la regla de arriba ya define
+—relleno para botones, tinte+tinta para notas—. Los tokens `--accent*` y `--rest*` siguen
+existiendo como alias para no tocar cincuenta consumidores, pero apuntan a su familia.
+
+### Dos casos que la regla de los dos tonos no cubría
+
+`--x` relleno y `--x-ink` texto no bastan siempre, y v25 añadió el tercer caso de cada uno:
+
+- **`--energy-strong` / `--energy-on`.** Un relleno cálido **no puede llevar texto blanco**:
+  el naranja daba 3,4:1 y el ámbar del tema oscuro 2,2:1, y ese es el botón de saltar
+  descanso, que sale en cada descanso de cada serie. El relleno usa el tono oscuro de la
+  familia y el texto sale del token, que en claro es blanco y en oscuro es tinta.
+- **`--ctl-line`.** El borde de un control es la **única** señal de que ahí hay algo pulsable
+  —el círculo hueco del ejercicio pendiente— y necesita 3:1, no el 1,5:1 que daba `--line2`.
+  Va aparte porque un separador no necesita ese contraste y engrosarlo ensuciaría la lista.
+
+Y `--hairline`, el filo de 1 px de las tarjetas: en claro el fondo contra la tarjeta solo da
+1,13:1 y en exterior con sol la sombra se lava, así que el filo es lo que de verdad sostiene
+la estructura de bloques.
 
 ### Superficies
 
@@ -230,11 +252,48 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
 
 ## 13. Qué falta
 
-- **Aplanar la cola de parches de ejercicios y rutinas.** Deuda estructural, no visual: hay dieciséis mutaciones en tiempo de ejecución sobre `EX` y `ROUTINES`, así que no existe una fuente única de verdad para saber cuántas series tiene un ejercicio. Cambia el contenido de los entrenamientos, por eso necesita su propia sesión con revisión.
 - **RPE y notas por serie.** Convertiría el registro en algo que se puede releer.
+- **Tipografía incrustada.** El motivo ya no es estético: `--w-bold` es 800 y buena parte de
+  los Roboto instalados en Android no tienen ese peso, así que el navegador lo aproxima a 700
+  y la pareja 700/800 que sostiene toda la jerarquía de §3 puede desaparecer en ese teléfono.
+  Los dos argumentos que lo dejaban fuera ya no se sostienen: el peso es irrelevante en una app
+  que descarga 325 KB de `figuras.js`, y el modo sin conexión está resuelto porque el service
+  worker precachea en install. Queda pendiente por falta del archivo, no de criterio.
+  **Trampa al implementarlo:** `caches.addAll` es atómico, así que el `.woff2` tiene que ir en
+  un `cache.add()` aparte con `catch`. Si entra en `ASSETS` y su descarga falla, el service
+  worker no se instala y la app pierde el offline por completo.
+- **Superseries antagonistas.** Es la palanca con respaldo para recortar el tiempo de sesión
+  sin tocar descansos: los tres días quedaron en 68-74 min. Necesita un flag de «par» entre dos
+  ejercicios que alterne series y cuente el descanso solo al cerrar el par.
+- **Las figuras de los ejercicios nuevos.** Once movimientos de calentamiento de pie y el pec
+  deck inverso no tienen figura propia. Donde hay un movimiento equivalente ya dibujado se
+  reutiliza su figura vía `FIGALIAS`; cinco se quedan sin dibujo y los pasos de texto hacen el
+  trabajo. Dibujarlas no se improvisa: son fotogramas sobre la misma rejilla, con el suelo
+  siempre a la misma altura, y si se hacen con otro criterio quedarán once buenas y sesenta y
+  una de otra app.
+
+### Cerrado en v25
+
+- ~~Aplanar la cola de parches.~~ Los dieciséis `Object.assign` e IIFE del final del archivo
+  desaparecieron: `VID`, `ZONA`, `EX`, `ROUTINES` y `GROUPS` se declaran una sola vez. Se hizo
+  generando los literales desde el estado resuelto capturado ejecutando la app, no fusionando
+  parches a mano, y se verificó con un diff vacío del JSON canónico más una segunda pasada sobre
+  el comportamiento derivado: minutos estimados, número de pasos del guiado con sus descansos y
+  la cadena de meta de las seis rutinas.
+- ~~No se sabía cuántas series tiene un ejercicio.~~ Hay un accesor `dose(k,id)` con tres capas
+  —programa, bloque secundario y ajuste del usuario— y los seis lectores pasan por él.
 
 ## 14. Fuera de alcance
 
-- Redibujar las 61 figuras de los ejercicios. Se usan más pequeñas y atenuadas en las listas, completas dentro del ejercicio y en el guiado.
-- Tipografía incrustada: en Android no hay redondeada de sistema y una fuente web cuesta 40-100 KB, parpadeo en cada arranque y gestión sin conexión. El carácter lo ponen el color, la forma y el peso.
-- Que el color primario cambie según la rutina abierta: obligaría a re-verificar el contraste de todos los componentes en tres variantes por dos temas, y el azulejo de familia ya consigue la misma lectura.
+- **Redibujar las 61 figuras.** Sigue fuera, pero por menos motivo que antes: en v25 se
+  descubrió que 65 ejercicios ya traían **dos fotogramas dibujados**, las dos posiciones del
+  movimiento sobre la misma rejilla, y que se pintaban uno al lado del otro y quietos. Apilarlos
+  y fundirlos hace que la figura ejecute el ejercicio sin dibujar nada. Solo se anima el
+  ejercicio que toca, y hay un override para `prefers-reduced-motion` porque la regla global
+  habría congelado el fundido a media opacidad con los dos fotogramas encima.
+- **Que el color primario cambie según la rutina abierta:** obligaría a re-verificar el contraste
+  de todos los componentes en tres variantes por dos temas, y el azulejo de familia ya consigue
+  la misma lectura.
+- **Mecánicas de gamificación competitivas:** tablas de clasificación, comparación con otros,
+  puntos canjeables e insignias por presentarse. Para un usuario único no tienen sentido, y los
+  leaderboards son el elemento más asociado a efectos motivacionales negativos.
