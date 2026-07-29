@@ -126,8 +126,12 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     .view{animation:none}
     /* sin animation-duration, las celebraciones se colarian igual */
     *{transition-duration:.01ms !important;animation-duration:.01ms !important;
-      animation-iteration-count:1 !important}}
-  h1{font-size:26px;margin:0;font-weight:var(--w-bold);letter-spacing:-.8px}
+      animation-iteration-count:1 !important}
+    /* la regla de arriba congelaria el fundido de la figura a media opacidad,
+       con los dos fotogramas encima. Aqui se fija en el primero. */
+    .anim .fa{animation:none !important;opacity:1}
+    .anim .fb{animation:none !important;opacity:0}}
+  h1{font-size:var(--t-xl);margin:0;font-weight:var(--w-bold);letter-spacing:-.8px}
   .mut{color:var(--mut)}
   /* cifras siempre con ancho fijo: no bailan al contar */
   .stat .v,.timer,#tv,.ring .val b,.gcount,.done .big,.target,.heroP .hbig,
@@ -397,7 +401,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     border-radius:var(--r-xl);padding:18px;box-shadow:var(--sh-card)}
   .today .kick{color:var(--hero-accent)}
   .today .tt{color:var(--hero-tx);font-size:var(--t-display);font-weight:var(--w-bold);
-    letter-spacing:-1px;line-height:1.08;margin-top:6px}
+    letter-spacing:-1px;line-height:1.08;margin-top:6px;text-wrap:balance}
   .today .mt{color:var(--hero-mut);font-size:var(--t-sm);margin-top:5px;line-height:1.4}
   .today .alt{color:var(--hero-mut);margin-top:11px}
 
@@ -441,7 +445,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   /* ====================== DETALLE DE RUTINA ====================== */
   .bar{display:flex;align-items:center;gap:var(--s3);
     padding:calc(18px + env(safe-area-inset-top)) var(--gut) 6px}
-  .bar .ttl{font-size:var(--t-display);font-weight:var(--w-bold);letter-spacing:-1px;flex:1;min-width:0;line-height:1.1}
+  .bar .ttl{font-size:var(--t-display);font-weight:var(--w-bold);letter-spacing:-1px;flex:1;min-width:0;line-height:1.1;text-wrap:balance}
   .routprog{margin:0 var(--gut) 6px;font-size:var(--t-sm);font-weight:var(--w-bold);color:var(--primary-ink)}
   .exwrap{margin:6px var(--gut)}
   .ex{margin-bottom:var(--s2);overflow:hidden;border-radius:var(--r-lg)}
@@ -449,9 +453,18 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .ex .nm{font-weight:var(--w-semi);font-size:var(--t-lead);line-height:1.2;letter-spacing:-.2px}
   .ex .meta{color:var(--mut);font-size:var(--t-sm);margin-top:3px}
   .badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+  /* la miniatura de 46 px era ilegible por aritmetica: el SVG mide ~255
+     unidades y entra en 36 px utiles, o sea a escala 0,14, con la cabeza a
+     4 px y el ojo por debajo de un pixel. Se paga ese ancho en catorce filas
+     para mostrar algo que nadie puede descifrar. Ahora solo la fila
+     "siguiente" -- la unica que debe destacar -- la lleva grande y animada. */
   .diag{width:46px;height:46px;border-radius:12px;background:var(--diagram-bg);
     flex:0 0 auto;display:flex;align-items:center;justify-content:center;padding:5px}
   .diag svg{width:100%;height:100%}
+  .diag.big{width:76px;height:76px;border-radius:var(--r-sm);padding:6px}
+  .diaginner{position:relative;width:100%;height:100%}
+  .diaginner i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  .diaginner i svg{width:100%;height:100%}
   /* el circulo hueco es la UNICA senal de que ahi hay un control, asi que su
      borde necesita 3:1. Con --line2 daba 1,5:1; --ctl-line existe para esto. */
   .exck{width:28px;height:28px;border-radius:50%;border:2px solid var(--ctl-line);background:transparent;
@@ -547,11 +560,35 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     transform:rotate(45deg) translate(-2px,-2px);transition:transform .2s}
   .exinfo[open]>summary:after{transform:rotate(-135deg) translate(-2px,-2px)}
   .exinfo-b{padding-bottom:var(--s2)}
-  .exname{font-size:var(--t-xl);font-weight:var(--w-bold);letter-spacing:-.9px;
-    margin:10px 0 var(--s4);line-height:1.1}
+  .exname{font-size:var(--t-title);font-weight:var(--w-bold);letter-spacing:-.9px;
+    margin:10px 0 var(--s4);line-height:1.1;text-wrap:balance}
   .gdiag{width:100%;height:172px;background:var(--diagram-bg);border-radius:var(--r-md);
     display:flex;align-items:center;justify-content:center;padding:12px;margin-bottom:6px}
   .gdiag svg{height:100%;width:auto;max-width:100%}
+  /* la figura ejecuta el ejercicio: los dos fotogramas apilados y fundidos,
+     con meseta en cada extremo para que se lea la postura y no sea un parpadeo */
+  .anim{position:relative}
+  .anim i{position:absolute;inset:12px;display:flex;align-items:center;justify-content:center}
+  .anim i svg{height:100%;width:auto;max-width:100%}
+  /* --- micro-interaccion (v25) --- */
+  /* el boton se convierte en visto antes de que entre el descanso */
+  .gbtn.go.done{background:var(--primary2);transform:scale(.985)}
+  /* el descanso: pantalla propia, con el mismo anillo que el sosten */
+  .stage.isrest{padding-top:var(--s5)}
+  .ring.rest #rarc{transition:stroke-dashoffset .25s linear}
+  .ring.rest .val b{font-size:var(--t-mega);letter-spacing:-2px;color:var(--energy-ink)}
+  .ring.rest.last .val b{color:var(--energy-strong)}
+  .ring.rest.last svg{animation:pulso 1s ease-in-out infinite}
+  @keyframes pulso{0%,100%{opacity:1}50%{opacity:.72}}
+  .nextup{text-align:center;font-size:var(--t-sm);font-weight:var(--w-semi);
+    color:var(--mut);margin:var(--s3) 0 var(--s1)}
+  /* cada paso del guiado entra con un gesto corto en vez de aparecer de golpe */
+  .stage{animation:stageIn .18s ease-out}
+  @keyframes stageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .anim .fa{animation:figA 2.6s ease-in-out infinite}
+  .anim .fb{animation:figB 2.6s ease-in-out infinite}
+  @keyframes figA{0%,38%{opacity:1}50%,88%{opacity:0}100%{opacity:1}}
+  @keyframes figB{0%,38%{opacity:0}50%,88%{opacity:1}100%{opacity:0}}
   .videobox{margin:var(--s3) 0 2px;border-radius:var(--r-md);overflow:hidden;background:#000;display:none}
   .videobox.show{display:block}
   .ratio{position:relative;width:100%;padding-top:56.25%}
@@ -1361,7 +1398,8 @@ function routineExCard(k,ctx,id,origin,isExtra,isWarm){const e=EX[id];if(!e)retu
     return `<div class="ex ${done?'checked':''} ${(id===ctx.next)?'next':''} ${isExtra&&!added?'off':''}" id="ex_${n}" data-ex="${id}">
       <div class="top">
         <div class="exck" onclick="event.stopPropagation();toggleCheck('${id}',${n})" role="checkbox" tabindex="0" aria-checked="${done?'true':'false'}" aria-label="Marcar como hecho">${ic("check")}</div>
-        <div class="diag" onclick="toggleEx(${n})">${DIAG[id]||""}</div>
+        <div class="diag${(id===ctx.next)?' big':''}" onclick="toggleEx(${n})">${
+          (id===ctx.next)?framesLoop(id,'diaginner'):(DIAG[id]||"")}</div>
         <div style="flex:1;min-width:0" onclick="toggleEx(${n})"><div class="nm">${esc(e.name)}</div><div class="meta">${metaOf(e,ctx.d=dose(k,id))}${ctx.d.custom?' <span class="chip tiny">ajustado</span>':''}${(typeof ZONA!=="undefined"&&ZONA[id])?' · '+ZONA[id]:''}</div>
           <div class="badges"><span class="badge ${tg[1]}">${tg[0]}</span>${isExtra?'<span class="badge b-opcional">Opcional · extra</span>':''}${(alts&&alts.length)?`<span class="chip" onclick="event.stopPropagation();openSwap('${k}','${origin}')">${ic("swap","xs")} ${swapped?('Cambiado · original: '+shortName(origin)):(alts.length===1?('Cambiar por '+shortName(alts[0])):('Cambiar ('+alts.length+' opciones)'))}</span>`:''}</div></div>
         ${isExtra?`<div class="exadd ${added?'on':''}" onclick="event.stopPropagation();toggleExtra('${k}','${id}')" role="button" tabindex="0" aria-label="Añadir a la rutina">${added?ic("check"):ic("plus")}</div>`
@@ -1538,6 +1576,15 @@ function toggleGChart(id){const g=$("gchart");if(!g)return;
 /* ==== fin [S3] ============================================================ */
 function framesStrip(id){const f=(typeof FRAMES!=="undefined")?FRAMES[id]:null;if(!f||!f.frames||f.frames.length<2)return "";
   return `<div class="frames">`+f.frames.map((sv,i)=>`<div class="frame"><div class="fnum">${i+1}</div><div class="fdiag">${sv}</div><div class="fcap">${esc((f.captions&&f.captions[i])||"")}</div></div>`).join("")+`</div>`;}
+/* Los fotogramas ya estaban dibujados: 58 de los 61 ejercicios traen
+   exactamente dos, que son las dos posiciones del movimiento sobre la misma
+   rejilla. Se pintaban uno al lado del otro y quietos. Apilandolos y
+   fundiendolos, el dibujo ejecuta el ejercicio, y no hay que dibujar nada.
+   Solo se anima el ejercicio que toca, nunca los 61 a la vez. */
+function framesLoop(id,cls){const f=(typeof FRAMES!=="undefined")?FRAMES[id]:null;
+  if(!f||!f.frames||f.frames.length<2)return `<div class="${cls||'gdiag'}">${DIAG[id]||""}</div>`;
+  const a=f.frames[0],b=f.frames[f.frames.length-1];
+  return `<div class="${cls||'gdiag'} anim"><i class="fa">${a}</i><i class="fb">${b}</i></div>`;}
 
 /* ===== GIMNASIO: registro de peso, planificador semanal, progreso ===== */
 let sessionLog={}, curW=null, curReps=null, restR=0, planDay=0;
@@ -1752,7 +1799,15 @@ function logSet(){const s=steps[stepi];useSessionLog(curRoutine);
   touchSess(stepi);
   try{if(navigator.vibrate)navigator.vibrate(18);}catch(x){}
   if(pr)markPR(s.id,w,curReps);
-  afterAction();}
+  /* Son veinte o treinta pulsaciones por sesion y hasta ahora la unica senal de
+     que habia pasado algo era una vibracion de 18 ms, que con el movil apoyado
+     en el banco no se nota. El boton se convierte en visto y solo entonces
+     entra el descanso: 300 ms de confirmacion antes de cambiar de pantalla. */
+  const b=document.querySelector("#guided .gbtn.go");
+  if(b&&!matchMedia("(prefers-reduced-motion:reduce)").matches){
+    b.classList.add("done");b.innerHTML=ic("check","sm")+" Serie registrada";
+    setTimeout(afterAction,300);
+  }else afterAction();}
 function adjRest(d){restEnds+=d*1000;restR=Math.max(0,Math.ceil((restEnds-Date.now())/1000));
   const el=$("rv");if(el)el.textContent=restR;
   clearRestNotif();if(restR>0)scheduleRestNotif(restR*1000);}
@@ -1931,7 +1986,8 @@ function fichaEjercicio(s){
   return `<details class="exinfo"${abierta?" open":""} ontoggle="gInfoOpen=this.open">
     <summary>${ic("bulb","sm")} Cómo se hace</summary>
     <div class="exinfo-b">
-    ${(typeof FRAMES!=="undefined"&&FRAMES[s.id])?`<div class="gframes">${framesStrip(s.id)}</div>`:`<div class="gdiag">${DIAG[s.id]||""}</div>`}
+    ${framesLoop(s.id)}
+    ${(typeof FRAMES!=="undefined"&&FRAMES[s.id])?`<div class="gframes">${framesStrip(s.id)}</div>`:``}
     ${caveat}${opt}
     <ul class="glist">${s.steps.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>
     <div class="vbtn" onclick="toggleGVid()">${ic("play","sm solid")} Ver video</div>
@@ -1943,7 +1999,7 @@ function frame(inner,opt){opt=opt||{};const s=steps[stepi],prog=Math.round(stepi
   return `<div class="gtop"><div class="icbtn" onclick="guidedBack()">${ic("left")}</div>
     <div class="pbar"><i style="width:${prog}%"></i></div>
     <div class="gcount">${s.exI}/${s.exN}</div><div class="icbtn" onclick="guidedExit()" role="button" tabindex="0" aria-label="Salir" title="Salir (se guarda solo)">${ic("close")}</div></div>
-    <div class="stage"><div class="setlab">${s.label}</div><div class="exname">${s.name}</div>${(conFicha&&typeof ZONA!=="undefined"&&ZONA[s.id])?'<div class="zonatag">'+ZONA[s.id]+'</div>':''}
+    <div class="stage${opt.rest?" isrest":""}">${opt.rest?"":`<div class="setlab">${s.label}</div><div class="exname">${s.name}</div>`}${(conFicha&&typeof ZONA!=="undefined"&&ZONA[s.id])?'<div class="zonatag">'+ZONA[s.id]+'</div>':''}
     ${inner}
     ${conFicha?fichaEjercicio(s):""}
     ${conFicha?`<button class="skip" onclick="guidedSkipExercise()">Saltar ejercicio ${ic("skip","xs")}</button>`:""}</div>`;}
@@ -2022,12 +2078,33 @@ function startTimer(){const s=steps[stepi],C=2*Math.PI*90,btn=$("startT");if(btn
     if(r<=0){clearTimer();if(arc)arc.style.strokeDashoffset=C;beep();afterAction();}};
   upd();if(tId)return;tickFn=upd;tId=setInterval(upd,250);}
 function afterAction(){const s=steps[stepi];if(s.restAfter>0)renderRest(s.restAfter);else advance();}
+/* El descanso es la pantalla que mas segundos acumula en una sesion y era la
+   unica sin el anillo, que DISENO.md declara el motivo geometrico de la app.
+   Y como reutilizaba frame(), mostraba el nombre del paso que acababas de
+   terminar, no el que viene: saber que toca es lo que te deja ir preparando la
+   maquina o el disco mientras esperas. */
+function nextStepLabel(){const n=steps[stepi+1];if(!n)return "Ultima serie";
+  const mismo=n.id===steps[stepi].id;
+  return (mismo?"Sigue: ":"Después: ")+n.label.replace(" · cada lado","")+
+    (mismo?"":" · "+n.name);}
 function renderRest(sec){clearTimer();restR=sec;restEnds=Date.now()+sec*1000;
   clearRestNotif();scheduleRestNotif(sec*1000);
-  $("guided").innerHTML=frame(`<div class="phaselab">Descanso</div><div class="timer rest" id="rv" aria-live="polite">${restR}</div>
+  const C=(2*Math.PI*90).toFixed(1);
+  $("guided").innerHTML=frame(`<div class="phaselab">Descanso</div>
+    <div class="ring rest"><svg width="200" height="200" viewBox="0 0 200 200"><g transform="rotate(-90 100 100)">
+      <circle cx="100" cy="100" r="90" stroke="var(--ring-track)" stroke-width="13" fill="none"/>
+      <circle id="rarc" cx="100" cy="100" r="90" stroke="var(--energy-strong)" stroke-width="13" fill="none" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="0"/></g></svg>
+      <div class="val"><b id="rv" aria-live="polite">${fmtDur(restR,sec)}</b><span>${sec>=120?"minutos":"segundos"}</span></div></div>
+    <div class="nextup">${esc(nextStepLabel())}</div>
     <div class="restadj"><button class="gbtn sec" onclick="adjRest(-30)">−30 s</button><button class="gbtn sec" onclick="adjRest(30)">+30 s</button></div>
-    <button class="gbtn rest" onclick="skipRest()">Saltar descanso ${ic("next","sm")}</button>`,{info:false});
-  const upd=()=>{restR=Math.max(0,Math.ceil((restEnds-Date.now())/1000));const el=$("rv");if(el)el.textContent=restR;
+    <button class="gbtn rest" onclick="skipRest()">Saltar descanso ${ic("next","sm")}</button>`,{info:false,rest:true});
+  const arc=$("rarc"),CC=2*Math.PI*90;
+  const upd=()=>{restR=Math.max(0,Math.ceil((restEnds-Date.now())/1000));const el=$("rv");
+    if(el)el.textContent=fmtDur(restR,sec);
+    /* se vacia, no se llena: lo que queda es lo que importa */
+    if(arc)arc.style.strokeDashoffset=(CC*(1-restR/Math.max(1,sec))).toFixed(1);
+    const rg=document.querySelector(".ring.rest");
+    if(rg)rg.classList.toggle("last",restR<=5&&restR>0);
     if(restR<=0){clearTimer();beep();restDone();advance();}};
   tickFn=upd;tId=setInterval(upd,250);}
 function skipRest(){clearTimer();clearRestNotif();advance();}
