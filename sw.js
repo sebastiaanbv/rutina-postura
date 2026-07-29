@@ -1,5 +1,7 @@
-const CACHE = "mi-rutina-v24f3";
-const ASSETS = ["./", "index.html", "figuras.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
+const CACHE = "mi-rutina-v25";
+const ASSETS = ["./", "index.html", "figuras.js", "manifest.webmanifest", "icon-192-v25.png", "icon-512-v25.png",
+  "icon-maskable-512-v25.png", "icon-mono-512-v25.png",
+  "apple-touch-icon-v25.png", "favicon.ico"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -15,7 +17,10 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // videos de YouTube -> red normal
   // La app (index.html) va network-first: así las actualizaciones se ven al instante.
-  if (req.mode === "navigate" || url.pathname.endsWith("/") || url.pathname.endsWith("index.html")) {
+  /* el manifest tambien va por red primero: es donde vive el set de iconos,
+     y con cache-first un cambio ahi tardaria en verse o no se veria */
+  if (req.mode === "navigate" || url.pathname.endsWith("/") ||
+      url.pathname.endsWith("index.html") || url.pathname.endsWith(".webmanifest")) {
     e.respondWith(
       fetch(req).then(r => { const cp = r.clone(); caches.open(CACHE).then(c => c.put(req, cp)); return r; })
         .catch(() => caches.match(req).then(r => r || caches.match("index.html")))

@@ -3,17 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6f5">
+<meta name="theme-color" id="tc" content="#eef1f5">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon-v25.png">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" type="image/png" href="icon-192-v25.png" sizes="192x192">
 <title>Mi Rutina</title>
 <script>/* resuelve el tema antes de pintar: asi el CSS solo necesita UN bloque oscuro */
 try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   var _d=(_t==="dark")||(_t!=="light"&&matchMedia("(prefers-color-scheme:dark)").matches);
-  document.documentElement.setAttribute("data-theme",_d?"dark":"light");}catch(e){}</script>
+  document.documentElement.setAttribute("data-theme",_d?"dark":"light");
+  /* la barra de estado tambien se resuelve aqui: antes nacia clara y el JS la
+     corregia despues, asi que en oscuro habia un destello blanco al arrancar */
+  var _m=document.getElementById("tc")||document.querySelector('meta[name="theme-color"]');
+  if(_m)_m.setAttribute("content",_d?"#0a1020":"#eef1f5");}catch(e){}</script>
 <style>
   /* =========================================================================
      Mi Rutina · sistema visual v23
@@ -25,29 +31,43 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
      ========================================================================= */
 
   :root{
-    /* --- superficies --- */
-    --bg:#f4f6f5; --bg2:#eef2f0; --card:#ffffff; --card2:#f8faf9; --sunk:#f0f3f2;
-    --line:#e4e9e7; --line2:#ccd5d1;
+    /* --- superficies: gris frio, para que el tema claro y el oscuro sean la
+           misma app. Antes el claro era verde-gris y el oscuro azul marino. --- */
+    --bg:#eef1f5; --bg2:#e7ebf1; --card:#ffffff; --card2:#f7f9fc; --sunk:#f1f4f8;
+    --line:#e2e7ee; --line2:#c8d1dd;
+    /* borde de un control, que es la unica senal de que ahi hay algo pulsable.
+       Va aparte de --line2 porque necesita 3:1 y un separador no. */
+    --ctl-line:#7d8b9e;
+    --hairline:#e8ecf2;
     /* --- texto --- */
-    --tx:#16211d; --tx2:#4a5a54; --mut:#5f706a;
-    /* --- color con significado: verde = acción y progreso, azul = información,
-           naranja = descanso, morado = carga, rojo = destructivo --- */
-    --primary:#0c8163; --primary2:#0a7458; --primary-tint:#e3f4ee; --on-primary:#ffffff;
-    /* verde de relleno (lleva texto blanco: 4.8:1) vs verde de texto sobre
-       fondo claro (5.8:1). Con un solo tono uno de los dos siempre falla. */
-    --primary-ink:#0a7458; --hero-accent:#4fd8a5;
-    --accent:#3f76e0; --accent-tint:#e9effc; --accent-ink:#1f4fa8;
-    --rest:#c9781f; --rest-tint:#fbefdd; --rest-ink:#8a5312;
-    /* ambar de energia: racha, record y "toca subir peso". Nunca es accion
-       primaria; si aparece en mas sitios deja de significar algo. */
+    --tx:#111827; --tx2:#4a5568; --mut:#5c6a7d;
+    /* --- cuatro familias, no seis: cobalto = accion, progreso e informacion;
+           ambar = energia, logro y espera; morado = carga; rojo = destructivo.
+           Antes descanso y energia eran el mismo naranja (1,13:1 de diferencia)
+           y el azul de informacion no se distinguia del primario en su papel. --- */
+    --primary:#2563eb; --primary2:#1e40af; --primary-tint:#dbeafe; --on-primary:#ffffff;
+    /* cobalto de relleno (texto blanco encima: 5,2:1) vs cobalto de texto sobre
+       fondo claro (8,7:1). Con un solo tono uno de los dos siempre falla. */
+    --primary-ink:#1e40af; --hero-accent:#7dd3fc;
+    /* informacion entra en la familia del primario: mismo color, otro papel */
+    --accent:#2563eb; --accent-tint:#dbeafe; --accent-ink:#1e40af;
+    /* descanso entra en energia */
+    --rest:#e07b1a; --rest-tint:#fdf0e0; --rest-ink:#8a4b06;
+    /* ambar de energia: racha, record, descanso y "toca subir peso". Nunca es
+       accion primaria; si aparece en mas sitios deja de significar algo.
+       -strong es el relleno para botones, porque el ambar claro no aguanta
+       texto blanco: daba 3,4:1 y ahora da 5,2:1. */
     --energy:#e07b1a; --energy-ink:#8a4b06; --energy-tint:#fdf0e0; --energy-hero:#ffb454;
+    --energy-strong:#a35a0c; --energy-on:#ffffff;
     --load:#6d5bc9; --load2:#5a49b0; --load-tint:#ece9fb; --load-ink:#3a2f6b;
     --danger:#c4443f; --danger-tint:#fbe9e8; --danger-ink:#a3322e;
     /* --- figuras y anillos (los SVG traen estos hex y se recolorean abajo) --- */
-    --diagram-ink:#2f4a41; --diagram-line:#c4d2cc; --diagram-hi:#0f9d76; --diagram-eye:#16211d;
-    --diagram-bg:#f0f3f2; --ring-track:#e4e9e7;
+    --diagram-ink:#2b3648; --diagram-line:#cbd3de; --diagram-hi:#2563eb; --diagram-eye:#111827;
+    --diagram-bg:#f1f4f8; --ring-track:#e2e7ee;
     --nav-bg:rgba(255,255,255,.94); --page-grad:#ffffff;
-    --hero:#14241f; --hero-tx:#ffffff; --hero-mut:#a7c5b9;
+    /* la superficie invertida. Degradado para que tenga materia y no parezca un
+       agujero, y azul profundo para que el boton primario se separe de ella. */
+    --hero:linear-gradient(155deg,#141f36,#0b111d); --hero-tx:#ffffff; --hero-mut:#a8bdd6;
 
     /* --- tipografía: 8 pasos, ni uno más --- */
     --t-mega:50px; --t-display:30px; --t-xl:26px; --t-title:22px; --t-lg:20px; --t-md:16px;
@@ -60,27 +80,35 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     /* --- radios --- */
     --r-sm:12px; --r-md:16px; --r-lg:20px; --r-xl:24px; --r-pill:999px;
     /* --- sombras --- */
-    --sh-card:0 1px 2px rgba(16,28,24,.05), 0 10px 24px -16px rgba(16,28,24,.28);
-    --sh-raised:0 8px 20px -6px rgba(15,157,118,.45);
-    --sh-focus:0 0 0 3px rgba(15,157,118,.28);
+    --sh-card:0 1px 2px rgba(17,24,39,.05), 0 10px 24px -16px rgba(17,24,39,.26);
+    /* el halo del boton primario tenia otro verde que el propio boton
+       (#0f9d76 contra #0c8163). Ahora los dos salen del primario. */
+    --sh-raised:0 8px 20px -6px rgba(37,99,235,.42);
+    --sh-focus:0 0 0 3px rgba(37,99,235,.30);
   }
   :root[data-theme="dark"]{
-    --bg:#0b1220; --bg2:#0e1826; --card:#152130; --card2:#1c2c3e; --sunk:#101d2c;
-    --line:#26374a; --line2:#3a4b60;
-    --tx:#f1f6fb; --tx2:#c5d2dc; --mut:#93a7ba;
-    --primary:#34d399; --primary2:#0e9f6e; --primary-tint:#123528; --on-primary:#04231b;
-    --primary-ink:#34d399; --hero-accent:#4fd8a5;
-    --accent:#38bdf8; --accent-tint:#0e2436; --accent-ink:#7dbaf5;
-    --rest:#f59e0b; --rest-tint:#3a2a10; --rest-ink:#f5b544;
+    --bg:#0a1020; --bg2:#0e1626; --card:#141d2e; --card2:#1b263a; --sunk:#101827;
+    --line:#243349; --line2:#38485f;
+    --ctl-line:#64748b; --hairline:transparent;
+    --tx:#f1f5fb; --tx2:#c4d1de; --mut:#92a4b8;
+    --primary:#60a5fa; --primary2:#3b82f6; --primary-tint:#132a4a; --on-primary:#0b1a33;
+    --primary-ink:#93c5fd; --hero-accent:#7dd3fc;
+    --accent:#60a5fa; --accent-tint:#132a4a; --accent-ink:#93c5fd;
+    --rest:#fbbf24; --rest-tint:#3a2a10; --rest-ink:#fbbf24;
     --energy:#fbbf24; --energy-ink:#fbbf24; --energy-tint:#3a2a10; --energy-hero:#fcd34d;
+    /* aqui el ambar es claro, asi que el boton lleva texto oscuro encima */
+    --energy-strong:#fbbf24; --energy-on:#3a2a10;
     --load:#a78bfa; --load2:#8b6df0; --load-tint:#241a44; --load-ink:#c3b3fb;
     --danger:#fca5a5; --danger-tint:#2a1414; --danger-ink:#fca5a5;
-    --diagram-ink:#cfeede; --diagram-line:#3a5069; --diagram-hi:#5fe39a; --diagram-eye:#0c1524;
-    --diagram-bg:#101d2c; --ring-track:#22303c;
-    --nav-bg:rgba(11,18,32,.94); --page-grad:#14243a;
-    --hero:#16232f; --hero-tx:#f2f6fb; --hero-mut:#9db2c4;
+    --diagram-ink:#cfe0f5; --diagram-line:#3a4b60; --diagram-hi:#60a5fa; --diagram-eye:#0a1020;
+    --diagram-bg:#101827; --ring-track:#243349;
+    --nav-bg:rgba(10,16,32,.94); --page-grad:#132038;
+    /* el fallo mas grande de la auditoria: el hero tenia 1,02:1 contra una
+       tarjeta normal, asi que "una sola cosa manda" solo existia en tema claro */
+    --hero:linear-gradient(155deg,#1e3a8a,#152a52); --hero-tx:#f2f6fb; --hero-mut:#a8bdd6;
     --sh-card:0 1px 2px rgba(0,0,0,.35), 0 10px 24px -16px rgba(0,0,0,.6);
-    --sh-focus:0 0 0 3px rgba(52,211,153,.32);
+    --sh-raised:0 8px 20px -6px rgba(96,165,250,.30);
+    --sh-focus:0 0 0 3px rgba(96,165,250,.34);
   }
 
   /* ============================ base ============================ */
@@ -107,8 +135,11 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
 
   /* ===================== superficies compartidas =====================
      Una sola definición de "tarjeta", "caja hundida" y "nota de color". */
+  /* el filo de 1 px es lo que de verdad hace visible la tarjeta en exterior:
+     el fondo contra la tarjeta solo da 1,13:1 y con sol la sombra se lava */
   .rcard,.stat,.hitem,.field,.cal,.chartcard,.ex,.day,.stepper,.daydet,.ovcard{
-    background:var(--card);box-shadow:var(--sh-card);border:none;border-radius:var(--r-lg)}
+    background:var(--card);box-shadow:var(--sh-card);border:1px solid var(--hairline);
+    border-radius:var(--r-lg)}
   :root[data-theme="dark"] .rcard,:root[data-theme="dark"] .stat,:root[data-theme="dark"] .hitem,
   :root[data-theme="dark"] .field,:root[data-theme="dark"] .cal,:root[data-theme="dark"] .chartcard,
   :root[data-theme="dark"] .ex,:root[data-theme="dark"] .day,:root[data-theme="dark"] .stepper,
@@ -153,7 +184,11 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     border:1px solid var(--line);box-shadow:none}
   .gbtn.fin{color:var(--tx2);font-size:var(--t-base);height:46px}
   .today-go.sec{background:rgba(255,255,255,.12);color:var(--hero-tx);box-shadow:none}
-  .gbtn.rest{background:var(--rest);color:#fff;box-shadow:none}
+  /* el blanco estaba escrito a mano sobre un naranja: daba 3,4:1 en claro y
+     2,2:1 en oscuro, y es el boton que sale en cada descanso de cada serie.
+     Ningun relleno calido aguanta texto blanco, asi que el relleno usa el tono
+     oscuro de la familia y el texto sale del token. */
+  .gbtn.rest{background:var(--energy-strong);color:var(--energy-on);box-shadow:none}
   .minibtn,.vbtn{background:var(--card2);border:1px solid var(--line);color:var(--tx);
     border-radius:var(--r-sm);font-size:var(--t-sm);font-weight:var(--w-semi);padding:10px 14px}
   .minibtn{margin-top:var(--s2)}
@@ -367,12 +402,17 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .today .alt{color:var(--hero-mut);margin-top:11px}
 
   .wkhead{display:flex;align-items:baseline;justify-content:space-between;padding:var(--s5) var(--gut) 0}
-  .week{display:flex;gap:5px;padding:var(--s2) var(--gut) var(--s1)}
+  /* aqui habia una segunda declaracion de .week, de antes del rediseno, que
+     ganaba en gap y padding y dejaba el riel con 32 px de inset lateral: 16 de
+     margen mas 16 de padding. Eso rompia la regla del margen unico, que dice
+     que todo bloque de primer nivel mide lo mismo. La buena es la de arriba. */
   .day{flex:1;min-width:0;border-radius:var(--r-sm);padding:9px 2px;text-align:center;cursor:pointer}
   .day .d{font-size:var(--t-xs);font-weight:var(--w-bold);color:var(--mut)}
   .day .tag{font-size:var(--t-2xs);font-weight:var(--w-semi);margin-top:4px;color:var(--mut);
     line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .day.on{box-shadow:0 0 0 2px var(--primary), var(--sh-card)} .day.on .d{color:var(--primary-ink)}
+  /* el dia de hoy se marca con el tinte del riel (.week .day.on), no tambien
+     con un anillo: dos senales para lo mismo se leen como un error */
+  .day.on .d{color:var(--primary-ink)}
   .day.d-p .tag{color:var(--primary-ink)} .day.d-n .tag{color:var(--accent-ink)}
   .day.d-g .tag{color:var(--load-ink)} .day.rest .tag{color:var(--mut)}
 
@@ -412,7 +452,9 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .diag{width:46px;height:46px;border-radius:12px;background:var(--diagram-bg);
     flex:0 0 auto;display:flex;align-items:center;justify-content:center;padding:5px}
   .diag svg{width:100%;height:100%}
-  .exck{width:28px;height:28px;border-radius:50%;border:2px solid var(--line2);background:transparent;
+  /* el circulo hueco es la UNICA senal de que ahi hay un control, asi que su
+     borde necesita 3:1. Con --line2 daba 1,5:1; --ctl-line existe para esto. */
+  .exck{width:28px;height:28px;border-radius:50%;border:2px solid var(--ctl-line);background:transparent;
     color:var(--on-primary);font-size:var(--t-sm);font-weight:var(--w-bold);display:flex;
     align-items:center;justify-content:center;flex:0 0 auto;cursor:pointer}
   .ex.checked{background:var(--primary-tint)}
@@ -747,7 +789,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   <!-- HOME -->
   <section id="home" class="view active">
     <div class="head">
-      <img src="icon-192.png" alt="">
+      <img src="icon-192-v25.png" alt="">
       <div><h1>Mi Rutina</h1><div class="sub">Postura, cuello y gimnasio</div></div>
     </div>
     <div id="install" class="install"><span><svg class="ic sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM11 17.5h2"/></svg> Instálala en tu pantalla de inicio</span><button id="installBtn">Instalar</button></div>
@@ -1051,7 +1093,7 @@ const SECDOSE={"gym_empuje": {"jalon_pecho": {"sets": 3}}, "gym_tiron": {"elevac
 const TAG={calent:["Calentamiento","b-calent"],diario:["Diario","b-diario"],carga:["Carga 3–4×/sem","b-carga"],opcional:["Opcional","b-opcional"]};
 const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
-const VERSION="v24 f3 · guiado, celebracion y datos";
+const VERSION="v25 · espalda, calentamiento de pie y objetivos";
 /* ==== [S5] ICONOS =========================================================
    Solo el interior del <svg>; ic() lo envuelve. Rejilla 24x24, sin relleno
    salvo los marcados .solid. */
@@ -1158,7 +1200,7 @@ function loadTheme(){return jget("rp_theme","auto");}
 function applyTheme(pref){const root=document.documentElement;
   let dark=false;try{dark=(pref==="dark")||(pref!=="light"&&matchMedia("(prefers-color-scheme:dark)").matches);}catch(e){}
   root.setAttribute("data-theme",dark?"dark":"light");
-  const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.setAttribute("content",dark?"#0b1220":"#f4f6f5");}
+  const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.setAttribute("content",dark?"#0a1020":"#eef1f5");}
 /* si el tema es automatico, seguir al sistema cuando cambie */
 try{matchMedia("(prefers-color-scheme:dark)").addEventListener("change",function(){
   if(loadTheme()==="auto")applyTheme("auto");});}catch(e){}
@@ -1611,7 +1653,7 @@ function qEditNum(id,which){const isW=which==="w",el=$((isW?"qw_":"qr_")+id);if(
   let done=false;
   const commit=()=>{if(done)return;done=true;const v=parseFloat(i.value);
     if(!isNaN(v)&&v>=0){if(isW)q.w=Math.round(v*10)/10;else q.reps=Math.max(1,Math.round(v));}
-    i.outerHTML=isW?`<b id="qw_${id}" onclick="qEditNum('${id}','w')" title="Toca para escribir el peso exacto">${fmtW(q.w)} <small>${e.unit||'kg'}</small></b>`
+    i.outerHTML=isW?`<b id="qw_${id}" onclick="qEditNum('${id}','w')" title="Toca para escribir el peso exacto">${fmtW(q.w)}</b>`
                    :`<b id="qr_${id}" onclick="qEditNum('${id}','r')" title="Toca para escribir las repeticiones">${q.reps}</b>`;};
   i.addEventListener("blur",commit);
   i.addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();commit();}});}
@@ -1626,7 +1668,7 @@ function quickBox(k,id,n){const e=EX[id]||{};
   const q=qGet(id),loaded=e.load===true,u=e.unit||"kg",hechas=todaySets(k,id),tgt=dose(k,id).sets||0;
   const lines=hechas.map((s,i)=>`<div class="setline${(i===hechas.length-1&&qPop===id)?" pop":""}" id="sl_${id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${id}','${s.src}',${s.ri},${s.si},${n},${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${loaded?fmtW(s.w)+" "+u+" × "+s.reps:s.reps+" reps"}</span><span class="del" onclick="delSet('${id}','${s.src}',${s.ri},${s.si},${n})" role="button" tabindex="0" aria-label="Borrar serie">${ic("close","xs")}</span></div>`).join("");
   const inc=incFor(id);
-  const wstep=loaded?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="qAdj('${id}','w',-${inc})" aria-label="Bajar peso">−</button><b id="qw_${id}" onclick="qEditNum('${id}','w')" title="Toca para escribir el peso exacto">${fmtW(q.w)} <small>${u}</small></b><button class="sq" onclick="qAdj('${id}','w',${inc})" aria-label="Subir peso">+</button></div></div>`:"";
+  const wstep=loaded?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="qAdj('${id}','w',-${inc})" aria-label="Bajar peso">−</button><b id="qw_${id}" onclick="qEditNum('${id}','w')" title="Toca para escribir el peso exacto">${fmtW(q.w)}</b><button class="sq" onclick="qAdj('${id}','w',${inc})" aria-label="Subir peso">+</button></div></div>`:"";
   return `<div class="qbox" id="q_${id}">
     <div class="qhead">Registrar serie${tgt?`<span class="qc">${hechas.length} de ${tgt} hoy</span>`:""}</div>
     <div class="logrow">${wstep}<div class="stepper"><div class="lab">Reps</div><div class="row"><button class="sq" onclick="qAdj('${id}','r',-1)" aria-label="Menos repeticiones">−</button><b id="qr_${id}" onclick="qEditNum('${id}','r')" title="Toca para escribir las repeticiones">${q.reps}</b><button class="sq" onclick="qAdj('${id}','r',1)" aria-label="Más repeticiones">+</button></div></div></div>
@@ -1722,7 +1764,7 @@ function editNum(which){const isW=which==="w",el=$(isW?"lw":"lr");if(!el)return;
   const commit=()=>{if(done)return;done=true;const v=parseFloat(i.value);
     if(!isNaN(v)&&v>=0){if(isW)curW=Math.round(v*10)/10;else curReps=Math.max(1,Math.round(v));}
     const s=steps[stepi];
-    i.outerHTML=isW?`<b id="lw" onclick="editNum('w')" title="Toca para escribir el peso exacto">${fmtW(curW)} <small>${s.unit}</small></b>`
+    i.outerHTML=isW?`<b id="lw" onclick="editNum('w')" title="Toca para escribir el peso exacto">${fmtW(curW)}</b>`
                    :`<b id="lr" onclick="editNum('r')" title="Toca para escribir las repeticiones">${curReps}</b>`;};
   i.addEventListener("blur",commit);
   i.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();commit();}});}
@@ -1918,7 +1960,7 @@ function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){cu
       const lastTxt=ll?('La última vez: '+ll.sets.map(x=>cargado?(fmtW(x.w)+'×'+x.reps):(x.reps+' reps')).join(', '))
                      :(cargado?'Primera vez — registra tu peso':'Primera vez — registra tus repeticiones');
       const setsTxt=ds.map((x,i)=>`<div class="setline" id="sl_${s.id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${valor(x)}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">${ic("close","xs")}</span></div>`).join("");
-      const pesoStep=cargado?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-2.5)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" title="Toca para escribir el peso exacto">${fmtW(curW)} <small>${s.unit}</small></b><button class="sq" onclick="adjW(2.5)" aria-label="Subir peso">+</button></div></div>`:'';
+      const pesoStep=cargado?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-2.5)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" title="Toca para escribir el peso exacto">${fmtW(curW)}</b><button class="sq" onclick="adjW(2.5)" aria-label="Subir peso">+</button></div></div>`:'';
       const repsStep=`<div class="stepper"${cargado?'':' style="max-width:220px;margin:0 auto"'}><div class="lab">${cargado?'Reps':'Repeticiones'}</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>`;
       inner=`<div class="logrow">${pesoStep}${repsStep}</div>
       <div class="last tap" onclick="toggleGChart('${s.id}')">${lastTxt}${spark(s.id)}</div>
@@ -1956,8 +1998,8 @@ function inGuided(){const g=$("guided");return !!(g&&g.classList.contains("activ
 function scheduleRestNotif(ms){if(!restNotifyOn())return;
   try{navigator.serviceWorker&&navigator.serviceWorker.ready.then(reg=>{
     if(typeof Notification!=="undefined"&&"showTrigger" in Notification.prototype&&typeof TimestampTrigger!=="undefined"){
-      reg.showNotification("Descanso terminado 💪",{body:"Vuelve a la serie.",icon:"icon-192.png",
-        badge:"icon-192.png",tag:"rp-rest",showTrigger:new TimestampTrigger(Date.now()+ms)});}}).catch(()=>{});}catch(e){}}
+      reg.showNotification("Descanso terminado 💪",{body:"Vuelve a la serie.",icon:"icon-192-v25.png",
+        badge:"icon-192-v25.png",tag:"rp-rest",showTrigger:new TimestampTrigger(Date.now()+ms)});}}).catch(()=>{});}catch(e){}}
 function clearRestNotif(){try{navigator.serviceWorker&&navigator.serviceWorker.ready.then(reg=>
     reg.getNotifications({tag:"rp-rest",includeTriggered:true}).then(ns=>ns.forEach(n=>n.close())).catch(()=>{})).catch(()=>{});}catch(e){}}
 function restDone(){clearRestNotif();
@@ -2176,7 +2218,7 @@ function toggleRem(){const r=loadRem();
   else{r.enabled=false;jset("rp_rem",r);$("remTog").classList.remove("on");scheduleRem();}}
 function testNotif(){if(typeof Notification==="undefined"){alert("Sin soporte de notificaciones.");return;}
   Notification.requestPermission().then(p=>{if(p==="granted")showNotif("Recordatorio de prueba ✅","Así te avisaré para tu rutina.");else alert("Permite las notificaciones primero.");});}
-function showNotif(title,body,opts){const o=Object.assign({body:body,icon:"icon-192.png",badge:"icon-192.png"},opts||{});
+function showNotif(title,body,opts){const o=Object.assign({body:body,icon:"icon-192-v25.png",badge:"icon-192-v25.png"},opts||{});
   try{navigator.serviceWorker?.ready.then(reg=>reg.showNotification(title,o)).catch(()=>new Notification(title,o));}
   catch(e){try{new Notification(title,o);}catch(_){}}}
 function scheduleRem(){remTimers.forEach(t=>clearTimeout(t));remTimers=[];const r=loadRem();if(!r.enabled)return;
@@ -2185,7 +2227,7 @@ function scheduleRem(){remTimers.forEach(t=>clearTimeout(t));remTimers=[];const 
     if(ms<24*3600*1000)remTimers.push(setTimeout(()=>{showNotif("Hora de tu rutina 🧍","Abre la app y mantén tu racha.");scheduleRem();},ms));
     // best-effort background schedule
     try{navigator.serviceWorker?.ready.then(reg=>{if("showTrigger" in Notification.prototype){reg.showNotification("Hora de tu rutina 🧍",
-      {body:"Abre la app y mantén tu racha.",icon:"icon-192.png",tag:"rp-"+hm,showTrigger:new TimestampTrigger(t.getTime())});}});}catch(e){}
+      {body:"Abre la app y mantén tu racha.",icon:"icon-192-v25.png",tag:"rp-"+hm,showTrigger:new TimestampTrigger(t.getTime())});}});}catch(e){}
   });}
 /* el boton dice "todos mis datos", asi que borra TODO: antes dejaba pesos,
    vistos, plan y peso corporal intactos */
