@@ -77,7 +77,9 @@ la estructura de bloques.
 
 ### Familias de rutina
 
-Cada rutina tiene `cls` (`p` postura · `n` cuello · `g` gimnasio) y de ahí sale su color, en el azulejo del icono de Inicio, el calendario y la hoja del plan. **El color de familia nunca tiñe la pantalla entera**: es una marca de identidad, no un tema.
+Cada rutina tiene `cls` (`p` postura · `n` cuello · `g` fuerza) y de ahí sale su color, en el azulejo del icono de Inicio, el calendario y la hoja del plan. **El color de familia nunca tiñe la pantalla entera**: es una marca de identidad, no un tema.
+
+Hay **cuatro grupos en `GROUPS` pero tres colores**, y es a propósito. En v26 entró un cuarto grupo —«Casa (3 días · 30 min)», tres sesiones de treinta minutos con mancuernas, banda y tapete— y reutiliza `cls:"g"`: lo que marca el morado `--load` es **que la sesión lleva carga**, no el edificio donde se hace. Por eso el mismo v26 renombró las siete cadenas que decían «gimnasio» en el calendario, el resumen del mes, el mapa de calor y Ajustes: ahora dicen «fuerza». Inventar un cuarto color habría costado tres tokens por dos temas, seis reglas CSS, un cuarto ítem en una leyenda que ya va a 11 px, y volver a verificar contraste (§10) sobre el único hueco libre del palette, que es `--energy` y está reservado a racha y récord.
 
 ### Tema oscuro
 
@@ -265,12 +267,34 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
 - **Superseries antagonistas.** Es la palanca con respaldo para recortar el tiempo de sesión
   sin tocar descansos: los tres días quedaron en 68-74 min. Necesita un flag de «par» entre dos
   ejercicios que alterne series y cuente el descanso solo al cerrar el par.
-- **Las figuras de los ejercicios nuevos.** Once movimientos de calentamiento de pie y el pec
-  deck inverso no tienen figura propia. Donde hay un movimiento equivalente ya dibujado se
-  reutiliza su figura vía `FIGALIAS`; cinco se quedan sin dibujo y los pasos de texto hacen el
-  trabajo. Dibujarlas no se improvisa: son fotogramas sobre la misma rejilla, con el suelo
-  siempre a la misma altura, y si se hacen con otro criterio quedarán once buenas y sesenta y
-  una de otra app.
+- **Las figuras de los ejercicios nuevos.** De los 86 ejercicios hay **61 dibujados**; otros 14
+  reutilizan la figura de un movimiento equivalente vía `FIGALIAS`, y **once se quedan sin dibujo**
+  y los pasos de texto hacen el trabajo: los calentamientos de pie de v25 y, de v26, la marcha en
+  el sitio, el equilibrio a una pierna, la caminata del granjero, el press Pallof, las piernas en
+  la pared y la respiración. No es casual que sean estos: son sostenes y desplazamientos, lo que
+  peor se cuenta con dos fotogramas fijos. Dibujarlas no se improvisa: van sobre la misma rejilla,
+  con el suelo siempre a la misma altura, y si se hacen con otro criterio quedarán once buenas y
+  sesenta y una de otra app.
+
+### Cerrado en v26
+
+- ~~El enlace de vídeo roto en la ficha del guiado.~~ `fichaEjercicio` pintaba el botón «Ver
+  video» y el enlace a YouTube sin comprobar que el ejercicio tuviera entrada en `VID`, así que
+  doce ejercicios —`caminadora` entre ellos, el paso 1 de Empuje— servían un `watch?v=undefined`
+  y un iframe vacío. La guarda existía desde antes en la tarjeta de la lista; a la ficha no había
+  llegado. Con los trece ejercicios de casa serían veintinueve, y ninguno de ellos tiene vídeo:
+  inventar identificadores de YouTube no es una opción, porque once caracteres al azar apuntan a
+  un vídeo real y arbitrario.
+- ~~Los 10 kg de la primera serie.~~ `suggestLoad` proponía 10 kg en el estreno de cualquier
+  ejercicio cargado, que es más del triple de lo que hay en una casa con mancuernas de 1-3 kg.
+  `dose(k,id)` gana un quinto campo, `startKg`, por la misma ruta que los otros cuatro: se declara
+  en `EX` o se ajusta por rutina en `SECDOSE`, y si nadie lo declara el default sigue siendo 10.
+  Así el mismo press de hombro arranca en 2 kg en casa y en 10 en el gimnasio, sin duplicar el
+  ejercicio.
+- ~~`SECDOSE` solo servía para el bloque secundario.~~ Su nombre y su comentario lo decían, pero
+  `progDose` nunca comprobó nada contra `secondary`: siempre fue un override de dosis por rutina.
+  Las tres sesiones de casa lo usan para bajar diecisiete ejercicios de la dosis de gimnasio que
+  vive en `EX` a la suya, sin una sola entrada duplicada. El comentario ya dice la verdad.
 
 ### Cerrado en v25
 
