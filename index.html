@@ -149,21 +149,20 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   :root[data-theme="dark"] .ex,:root[data-theme="dark"] .day,:root[data-theme="dark"] .stepper,
   :root[data-theme="dark"] .daydet,:root[data-theme="dark"] .ovcard{border:1px solid var(--line)}
 
-  .qbox,.exprog,.finempty,.finsum .fs,.frame,.setline,.planopt,.timepill{
+  .exprog,.finempty,.finsum .fs,.frame,.setline,.planopt,.timepill{
     background:var(--sunk);border:1px solid var(--line);border-radius:var(--r-sm)}
 
   /* notas de color: mismo formato, distinto significado */
-  .last,.qwhy,.coachtip,.optbox,.caveatbox,.callout{
+  .last,.qwhy,.optbox,.caveatbox,.callout{
     border-radius:var(--r-sm);padding:10px 12px;font-size:var(--t-sm);
     font-weight:var(--w-med);line-height:1.45;border:1px solid transparent}
-  .coachtip{background:var(--accent-tint);color:var(--accent-ink);border-color:transparent}
   .qwhy{background:var(--primary-tint);color:var(--primary-ink)}
   .last{background:var(--sunk);color:var(--tx2);border-color:var(--line)}
   .optbox{background:var(--load-tint);color:var(--load-ink)}
   .optbox.warm,.caveatbox,.callout{background:var(--rest-tint);color:var(--rest-ink)}
 
   /* etiquetas de sección: una sola voz */
-  .grouptitle,.blockt,.wkhead .t,.qhead,.stepper .lab,.finsum .fs span,.heroP .hkick,.today .kick{
+  .grouptitle,.blockt,.wkhead .t,.stepper .lab,.finsum .fs span,.heroP .hkick,.today .kick{
     font-size:var(--t-2xs);font-weight:var(--w-bold);letter-spacing:1.3px;
     text-transform:uppercase;color:var(--mut)}
   .grouptitle{margin:var(--s5) var(--gut) var(--s2)}
@@ -172,16 +171,15 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   /* ========================== botones ==========================
      Base común para las once clases de botón que habían crecido sueltas. */
   button{font-family:inherit}
-  .btn,.gbtn,.today-go,.qadd,.minibtn,.vbtn,.setok,.install button,.addrow button,.nav .tab{
+  .btn,.gbtn,.today-go,.minibtn,.vbtn,.setok,.install button,.addrow button,.nav .tab{
     font-family:inherit;border:none;cursor:pointer;font-weight:var(--w-bold);
     letter-spacing:-.01em;background:none;color:var(--tx)}
-  .btn,.gbtn,.today-go,.qadd{width:100%;display:block;border-radius:var(--r-md);
+  .btn,.gbtn,.today-go{width:100%;display:block;border-radius:var(--r-md);
     background:var(--primary);color:var(--on-primary);box-shadow:var(--sh-raised)}
   .btn{height:54px;padding:0;font-size:var(--t-md)}
   .gbtn{height:52px;padding:0;font-size:var(--t-md);margin-top:var(--s3)}
   .today-go{height:50px;padding:0;font-size:var(--t-md);margin-top:var(--s4)}
-  .qadd{height:46px;padding:0;font-size:var(--t-base);margin-top:var(--s2);box-shadow:none}
-  .btn:active,.gbtn:active,.today-go:active,.qadd:active{transform:translateY(1px)}
+  .btn:active,.gbtn:active,.today-go:active{transform:translateY(1px)}
   .btn[disabled]{opacity:.45;box-shadow:none;cursor:default;transform:none}
   /* variantes apagadas */
   .btn.sec,.gbtn.sec,.gbtn.fin{background:var(--card);color:var(--tx);
@@ -211,7 +209,6 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     justify-content:center;flex:0 0 auto;cursor:pointer;font-size:var(--t-sm)}
   .exstart{background:var(--primary-tint);color:var(--primary-ink);border:none}
   .exadd{background:var(--sunk);color:var(--mut);border:1px solid var(--line);font-size:var(--t-lg);font-weight:var(--w-bold)}
-  .exadd.on{background:var(--primary-tint);color:var(--primary-ink);border-color:var(--primary)}
   .setok{background:var(--primary);color:var(--on-primary);font-size:var(--t-sm);
     border-radius:10px;padding:6px 10px;margin-left:6px}
 
@@ -475,16 +472,13 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .ex.checked .exck{background:var(--primary);border-color:var(--primary)}
   .ex.checked .nm{color:var(--mut);text-decoration:line-through}
   .ex.off{opacity:.6}
-  .ex .panel{display:none;padding:0 12px 12px}
-  .ex.open .panel{display:block}
   .optsub{font-size:var(--t-xs);color:var(--mut);font-weight:var(--w-med);margin-top:2px}
 
   /* pasos numerados (detalle y guiado comparten formato) */
-  .steps,.glist{list-style:none;margin:var(--s2) 0 0;padding:0;counter-reset:s}
-  .steps li,.glist li{position:relative;padding:8px 0 8px 32px;color:var(--tx2);
+  .glist{list-style:none;margin:var(--s2) 0 0;padding:0;counter-reset:s}
+  .glist li{position:relative;padding:8px 0 8px 32px;color:var(--tx2);
     font-size:var(--t-base);line-height:1.5}
-  .steps li{border-top:1px solid var(--line);font-size:var(--t-sm)}
-  .steps li:before,.glist li:before{counter-increment:s;content:counter(s);position:absolute;
+  .glist li:before{counter-increment:s;content:counter(s);position:absolute;
     left:0;top:8px;width:22px;height:22px;background:var(--primary);color:var(--on-primary);
     border-radius:50%;font-size:var(--t-xs);font-weight:var(--w-bold);
     display:flex;align-items:center;justify-content:center}
@@ -504,20 +498,8 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .gframes{margin:2px 0}
   #guided .frame .fdiag{height:94px}
 
-  /* caja de registro rápido dentro del ejercicio */
-  .qbox{margin:var(--s3) 0 2px;padding:10px}
-  .qhead{display:flex;align-items:center;gap:var(--s2);margin-bottom:var(--s2)}
-  .qhead .qc{margin-left:auto;text-transform:none;letter-spacing:0;
-    font-size:var(--t-xs);color:var(--primary-ink)}
-  .qbox .stepper{padding:8px;box-shadow:none;border:1px solid var(--line)}
-  .qbox .stepper .row b{font-size:var(--t-title)}
-  /* editor de dosificacion: mismo formato que la caja de registro, tono
-     apagado para que no compita con ella, que es la accion principal */
-  .dosebox{background:var(--card2)}
-  .dosebox .qhead{color:var(--mut)}
   .chip.tiny{padding:1px 7px;font-size:var(--t-2xs);vertical-align:1px;
     background:var(--primary-tint);color:var(--primary-ink);border-color:transparent}
-  .qbox .sets{margin-top:var(--s3)}
 
   /* curva de evolución del ejercicio */
   .exprog{padding:11px 12px 6px;margin:2px 0 var(--s3)}
@@ -627,8 +609,6 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     font-weight:var(--w-bold);margin-bottom:var(--s1);text-transform:uppercase;letter-spacing:1px}
   .timer{font-size:var(--t-mega);font-weight:var(--w-bold);text-align:center;margin:var(--s5) 0 var(--s1)}
   .timer.rest{color:var(--rest)}
-  .restadj{display:flex;gap:var(--s2);margin-top:var(--s2)}
-  .restadj .gbtn{margin-top:0}
 
   /* pantalla final */
   .done{text-align:center;padding:46px var(--s5)}
@@ -760,9 +740,6 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     padding:0 18px;font-size:var(--t-base)}
 
   /* ========================== OVERLAYS ========================== */
-  #ov{position:fixed;inset:0;background:rgba(4,8,12,.9);display:none;z-index:60;
-    align-items:center;justify-content:center;padding:var(--gut)}
-  #ov.show{display:flex}
   #planov,#swapov,#finov{position:fixed;inset:0;background:rgba(4,8,12,.55);display:none;
     z-index:60;align-items:flex-end;justify-content:center}
   #finov{z-index:65}
@@ -776,8 +753,6 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     text-overflow:ellipsis;white-space:nowrap}
   .ovhead .x{cursor:pointer;font-size:20px;color:var(--mut);width:40px;height:40px;
     display:flex;align-items:center;justify-content:center}
-  .ovfoot{padding:var(--s3) 14px;font-size:var(--t-sm);color:var(--mut)}
-  .ovfoot a{color:var(--accent)}
   .planbody{padding:var(--s3) var(--s3) calc(var(--s4) + env(safe-area-inset-bottom));
     display:flex;flex-direction:column;gap:7px}
   .planopt{display:flex;align-items:center;gap:11px;padding:12px;cursor:pointer;
@@ -871,14 +846,6 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   <button type="button" class="tab" data-v="settings"><span class="i"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></span>Ajustes</button>
 </nav>
 
-<div id="ov">
-  <div class="ovcard">
-    <div class="ovhead"><div class="t" id="ovTitle">Video</div><div class="x" id="ovClose"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></div></div>
-    <div class="ratio"><iframe id="ovFrame" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
-    <div class="ovfoot">¿No carga? <a id="ovYt" target="_blank" rel="noopener">Abrir en YouTube <svg class="ic xs" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-8.5 8.5M18 14.5V19a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 19V8a1.5 1.5 0 0 1 1.5-1.5H10"/></svg></a></div>
-  </div>
-</div>
-
 <div id="planov">
   <div class="ovcard">
     <div class="ovhead"><div class="t" id="planTitle">Asignar rutina</div><div class="x" onclick="closePlan()"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></div></div>
@@ -914,7 +881,7 @@ const FRAMES={};
 const VID={
 abductores_maquina:"2KkuFEf7aZs", aductores_maquina:"dycKfaquQWo", aperturas_db:"FBaAsqAsQsc",
 bird_dog:"JM9MLYqMLjs", chin_tuck:"3N_sJ0svXCw", colgado_escapular:"XOJ3JdpalPI",
-cruce_poleas:"nRKN82X1Nrs", cuello_extension_manual:"PevfMtnAPSE", cuello_flexion_supina:"ORA0EwQ1yW0",
+cruce_poleas:"VhrLZ26mch8", cuello_extension_manual:"PevfMtnAPSE", cuello_flexion_supina:"ORA0EwQ1yW0",
 cuello_lateral_manual:"9J2HmPZd8FU", curl_barra:"MqYBweUzDT4", curl_biceps_db:"P1L6CD-tSnE",
 curl_concentrado:"ogwifBtU7aM", curl_femoral:"POgzKaM92X4", curl_martillo_cruzado:"eBO40t1WbP0",
 curl_predicador:"I3xmIfDJGbM", dead_bug:"wCg6qs5L3-U", elevacion_pantorrilla:"L4YnlvVLxtU",
@@ -932,12 +899,24 @@ remo_inclinado:"vN8xskk-7G8", remo_invertido:"clJOKVg4Ce8", remo_maquina:"TNnWsZ
 remo_polea:"D_UXjlrZIBw", reverse_fly:"xvEkgGUrGPM", rotacion_externa_db:"7jSfYgk8Bhs",
 sentadilla_bulgara:"bYWD8-UrFis", sentadilla_goblet:"PDfLkpT-KTk", sentadilla_smith:"4r9o_rqFZX4",
 tmj_mandibula:"2DM5X2NjTb8", trapecio_superior:"jgywvs9ZHsE", wall_angels:"GWTEYEXsSo4",
-zancadas_db:"NzrGe6bHI5M"
+zancadas_db:"NzrGe6bHI5M",
+abduccion_banda:"TLiIalBXl-M", apertura_toracica_rack:"5wv670fHuG4", balanceo_pierna_frontal:"wdAgcX0OUa8",
+balanceo_pierna_lateral:"wdAgcX0OUa8", banda_pull_apart:"w2wykk8ym1Q", bisagra_cadera_pie:"v179-qd579I",
+caminadora:"0MyU23DAzWQ", caminata_granjero:"oojPmgON094", circulos_brazos:"sytmEGA0HKU",
+curl_femoral_sentado:"FTOmWH1AZjo", elevacion_talones_pie:"qdogJJnXEmU", equilibrio_unipodal:"Cx1xXGGNFlg",
+extension_triceps_sobrecabeza_polea:"XwoUFSUHeDs", flexiones_inclinadas:"raM88m58n0o", flexiones_pared:"mTs83kUu7rc",
+gato_camello_pie:"KiFdkjRkTjI", hiperextension_banco:"-Mx-9yxCuco", marcha_sitio:"b_xiEh90Jc0",
+pallof_banda:"lCeRh2n0hTw", pec_deck_inverso:"Y9UXeMiAJSE", piernas_pared:"_NLAKv1WtDc",
+press_frances:"dRIdjDmkggY", puente_gluteo_banda:"bcuxKS2qRGY", pullover_polea:"b85nuVcpnlo",
+remo_banda:"yF8-o7chZf4", respiracion_diafragmatica:"h8rvNIO1f2w", sentadilla_aire:"qsAkuNORgmk",
+sentadilla_silla:"qz1aLwpuuGo", vuelos_posteriores_ligeros:"P0WFclYCZL4", zancada_estatica:"F4v1bBH3EPs"
 };
 const ZONA={
 abduccion_banda:"Cadera", apertura_toracica_rack:"Espalda alta", balanceo_pierna_frontal:"Cadera",
 balanceo_pierna_lateral:"Cadera", banda_pull_apart:"Espalda alta", bird_dog:"Zona baja",
 bisagra_cadera_pie:"Zona baja", caminadora:"General", caminata_granjero:"General",
+cruce_poleas:"Pecho superior", curl_femoral_sentado:"Isquiotibiales", extension_triceps_sobrecabeza_polea:"Tríceps · porción larga",
+hiperextension_banco:"Lumbares · glúteo", press_frances:"Tríceps · porción larga", pullover_polea:"Dorsal ancho",
 chin_tuck:"Cuello · postura", circulos_brazos:"Hombro", cuello_extension_manual:"Cuello · fuerza",
 cuello_flexion_supina:"Cuello · fuerza", cuello_lateral_manual:"Cuello · fuerza", dead_bug:"Zona baja",
 elevacion_talones_pie:"Gemelo", elevador_escapula:"Cuello · postura", encogimientos_db:"Hombro · estética",
@@ -984,8 +963,8 @@ circulos_brazos:{name:"Círculos de brazos",tag:"calent",type:"reps",sets:1,reps
   steps:["De pie, brazos extendidos en cruz, palmas abajo.","Haz círculos pequeños que van creciendo hasta amplios.","Mantén los hombros lejos de las orejas."]},
 colgado_escapular:{name:"Colgado con retracción escapular",tag:"carga",type:"reps",sets:2,reps:8,rest:45,load:false,unit:"kg",coach:"Calentamiento: sin doblar codos, hunde los hombros y aguanta 2 s.",
   steps:["Cuélgate de la barra con agarre prono al ancho de hombros y los brazos extendidos.","Sin doblar los codos, hunde los hombros bajando las escápulas y elevando el pecho.","Mantén 2 segundos y suelta lento hasta quedar colgado relajado."]},
-cruce_poleas:{name:"Cruce de poleas",tag:"opcional",type:"reps",sets:3,reps:12,rest:75,load:true,unit:"kg",coach:"Cruza un poco las manos al final para cerrar el pecho.",
-  steps:["Abre brazos a los lados con cables de poleas en tensión","Cruza los brazos al frente contrayendo pecho","Controla el regreso a posición abierta lentamente"]},
+cruce_poleas:{name:"Cruce de poleas de abajo hacia arriba",tag:"carga",type:"reps",sets:3,reps:12,rest:75,load:true,unit:"kg",coach:"Sube las manos hasta la altura de los ojos y júntalas como si abrazaras a alguien, con los hombros abajo.",
+  steps:["Pon las dos poleas en la posición más baja, toma un agarre en cada mano y da un paso al frente con el torso algo inclinado y los codos apenas flexionados.","Lleva las manos hacia arriba y hacia el centro en diagonal, hasta juntarlas frente al rostro, y aprieta el pecho un segundo.","Regresa controlado por la misma diagonal hasta sentir el estiramiento, sin dejar que los hombros roten hacia adelante."]},
 cuello_extension_manual:{name:"Extensión cervical con resistencia manual",tag:"diario",type:"reps",sets:2,reps:10,rest:30,load:false,unit:"kg",coach:"Extensores y esplenio: es lo que da grosor a la parte de atrás del cuello. Sube la presión de las manos, no las repeticiones.",
   steps:["Sentado erguido, entrelaza las manos detrás de la cabeza (sobre el hueso occipital), codos abiertos.","Empuja la cabeza hacia atrás contra las manos y deja que ellas cedan lento hasta mirar ligeramente arriba.","Vuelve al inicio resistiendo con las manos durante 3 s. Fuerza media, respira, nunca hasta el dolor."]},
 cuello_flexion_supina:{name:"Flexión cervical tumbado",tag:"diario",type:"reps",sets:2,reps:12,rest:40,load:false,unit:"kg",coach:"Flexores profundos + esternocleidomastoideo (el músculo que marca el frente del cuello). Semana 1–2 empieza con 8 reps si aparece temblor.",
@@ -998,15 +977,20 @@ curl_biceps_db:{name:"Curl de bíceps con mancuernas",tag:"carga",type:"reps",se
   steps:["Recuéstate en el banco inclinado con los brazos colgando.","Flexiona los codos subiendo las mancuernas hasta el hombro.","Baja controlando hasta estirar del todo el brazo."]},
 curl_concentrado:{name:"Curl concentrado",tag:"carga",type:"reps_side",sets:2,reps:12,rest:60,load:true,unit:"kg",coach:"12 por brazo, codo apoyado en el muslo y sin balanceo.",
   steps:["Siéntate y apoya el codo en la cara interna del muslo.","Sube la mancuerna hacia el hombro contrayendo el bíceps.","Baja lento hasta extender por completo el brazo."]},
-curl_femoral:{name:"Curl femoral",tag:"carga",type:"reps",sets:3,reps:12,rest:90,load:true,unit:"kg",coach:"Baja en 3 s: el isquio se construye en la fase negativa.",
+curl_femoral:{name:"Curl femoral acostado",tag:"carga",type:"reps",sets:3,reps:12,rest:75,load:true,unit:"kg",coach:"Baja en 3 s: el isquio se construye en la fase negativa.",
   steps:["Acuéstate boca abajo con las caderas sobre el cojín y las piernas extendidas","Levanta los talones hacia los glúteos flexionando las rodillas","Baja las piernas de forma controlada hasta la posición inicial"]},
+/* El sentado trabaja el isquio con la cadera flexionada, o sea con el musculo
+   mas alargado, y por eso no es el mismo ejercicio que el acostado: los dos
+   juntos son lo que devuelve el volumen que se perdio al quitar el rumano. */
+curl_femoral_sentado:{name:"Curl femoral sentado",tag:"carga",type:"reps",sets:4,reps:12,rest:90,load:true,unit:"kg",coach:"Pega la espalda baja al respaldo y no dejes que la cadera se levante al empujar.",
+  steps:["Siéntate con la espalda apoyada, el rodillo sobre la parte baja de los muslos y las pantorrillas encima de la almohadilla.","Lleva los talones hacia abajo y atrás hasta flexionar las rodillas por completo.","Regresa lento hasta estirar las piernas casi del todo, resistiendo el peso."]},
 curl_martillo_cruzado:{name:"Curl martillo cruzado",tag:"carga",type:"reps",sets:3,reps:12,rest:60,load:true,unit:"kg",coach:"12 por brazo, cruzando hacia el hombro contrario. Da grosor al brazo.",
   steps:["De pie con mancernas en agarre neutro a los costados","Levanta mancerna derecha cruzando hacia hombro izquierdo","Alterna lados con movimiento controlado y pausa en contracción"]},
-curl_predicador:{name:"Curl predicador con barra",tag:"carga",type:"reps",sets:3,reps:12,rest:60,load:true,unit:"kg",coach:"Estira casi del todo abajo y controla 2 s la bajada.",
+curl_predicador:{name:"Curl predicador con barra",tag:"carga",type:"reps",sets:3,reps:10,rest:75,load:true,unit:"kg",coach:"Estira casi del todo abajo y controla 2 s la bajada.",
   steps:["Siéntate en banco predicador con antebrazos apoyados en el pad","Flexiona codos llevando barra hacia barbilla","Baja con control manteniendo contacto constante con el pad"]},
 dead_bug:{name:"Dead bug",tag:"diario",type:"reps",sets:1,reps:10,rest:20,
   steps:["Boca arriba, brazos al techo y rodillas a 90°.","Pega la lumbar al piso y baja brazo y pierna opuestos sin tocar el suelo.","Regresa y alterna. La lumbar nunca se despega."]},
-elevacion_pantorrilla:{name:"Elevación de gemelos",tag:"carga",type:"reps",sets:5,reps:15,rest:45,load:true,unit:"kg",coach:"Pausa arriba en punta de pie y estiramiento completo abajo.",
+elevacion_pantorrilla:{name:"Elevación de gemelos",tag:"carga",type:"reps",sets:4,reps:15,rest:45,load:true,unit:"kg",coach:"Pausa arriba en punta de pie y estiramiento completo abajo.",
   steps:["De pie, pies al ancho de hombros, mancuernas a los lados o manos en un apoyo.","Sube sobre las puntas de los pies elevando los talones lo máximo posible.","Baja lentamente sin relajar; repite con rango completo."]},
 elevacion_talones_pie:{name:"Elevación de talones de pie",tag:"calent",type:"reps",sets:1,reps:15,rest:10,coach:"Despierta el gemelo y el tobillo antes de cargar.",
   steps:["De pie, apoyo ligero en el rack para el equilibrio.","Sube lo más alto posible sobre las puntas.","Baja lento hasta sentir el estiramiento del gemelo."]},
@@ -1018,14 +1002,19 @@ encogimientos_db:{name:"Encogimientos de hombros con mancuernas",tag:"diario",ty
   steps:["De pie, una mancuerna pesada en cada mano a los costados, brazos rectos y barbilla metida.","Sube los hombros recto hacia las orejas lo más alto que puedas, sin rotarlos ni tirar del cuello.","Aprieta arriba 2 s y baja en 3 s hasta el estiramiento completo del trapecio."]},
 equilibrio_unipodal:{name:"Equilibrio a una pierna",tag:"diario",type:"hold_side",sets:2,holdSec:20,rest:20,coach:"Cuando aguantes los 20 segundos sin tambalearte, cierra los ojos.",
   steps:["De pie junto a una pared, con la mano cerca por si acaso.","Levanta un pie hasta la altura del tobillo contrario y mira un punto fijo.","Aguanta el tiempo marcado respirando normal. Cambia de lado."]},
-extension_cuadriceps:{name:"Extensión de cuádriceps",tag:"carga",type:"reps",sets:4,reps:12,rest:90,load:true,unit:"kg",coach:"Pausa 1 s arriba; la última serie al fallo técnico.",
+extension_cuadriceps:{name:"Extensión de cuádriceps",tag:"carga",type:"reps",sets:3,reps:12,rest:90,load:true,unit:"kg",coach:"Pausa 1 s arriba; la última serie al fallo técnico.",
   steps:["Siéntate con la espalda contra el respaldo y los muslos apoyados","Levanta la plataforma extendiendo las rodillas de forma controlada","Baja la plataforma hasta la posición inicial sin bloquear los muslos"]},
 extension_toracica:{name:"Extensión torácica sobre bloque",tag:"diario",type:"reps",sets:2,reps:10,rest:20,coach:"Calentamiento: abre la espalda alta sin forzar la lumbar.",
   steps:["Coloca un bloque de yoga (o una toalla enrollada) cruzado bajo la espalda media, rodillas flexionadas.","Entrelaza las manos tras la cabeza para sostenerla.","Arquéate hacia atrás sobre el bloque abriendo el pecho; vuelve. Mueve la zona media, no la lumbar."]},
 extension_triceps_db:{name:"Extensión de tríceps sobre la cabeza",tag:"carga",type:"reps",sets:3,reps:12,rest:65,load:true,unit:"kg",coach:"Sobre la cabeza: estira bien abajo, ahí crece la porción larga.",
   steps:["Sujeta la mancuerna con ambas manos sobre la cabeza.","Baja tras la nuca doblando solo los codos.","Extiende los brazos sin abrir los codos."]},
-extension_triceps_polea:{name:"Extensión de tríceps en polea",tag:"carga",type:"reps",sets:4,reps:12,rest:75,load:true,unit:"kg",coach:"Codos fijos al costado, extiende del todo y aprieta abajo.",
+extension_triceps_polea:{name:"Extensión de tríceps en polea",tag:"carga",type:"reps",sets:3,reps:15,rest:60,load:true,unit:"kg",coach:"Pega los codos a las costillas y no los muevas: solo debe abrirse el antebrazo.",
   steps:["Mantén codos pegados al cuerpo en la máquina de polea","Extiende los brazos hacia abajo contrayendo tríceps","Regresa controlado a posición inicial sin perder tensión"]},
+/* La porcion larga solo se estira con el hombro flexionado, y ese estiramiento
+   es lo primero que se pierde con el codo cansado: por eso va antes que el
+   jalon en polea, no despues. */
+extension_triceps_sobrecabeza_polea:{name:"Extensión de tríceps sobre la cabeza en polea",tag:"carga",type:"reps",sets:4,reps:12,rest:75,load:true,unit:"kg",coach:"Deja que los codos se vayan bien atrás de la cabeza al bajar: ese estiramiento es todo el punto del ejercicio.",
+  steps:["Pon la polea a la altura baja, toma la cuerda, gírate de espaldas a la máquina y da un paso al frente con los brazos flexionados detrás de la nuca.","Estira los codos hacia adelante y arriba hasta bloquear los brazos, separando las manos al final.","Regresa lento hasta que las manos queden detrás de la cabeza, sin abrir los codos hacia los lados."]},
 face_yoga:{name:"Face yoga (facial)",tag:"opcional",type:"reps",sets:1,reps:10,rest:0,
   steps:["Sonríe con labios cerrados y sube las mejillas.","Coloca los dedos suave sobre las mejillas como resistencia.","Mantén 5 s y relaja. Movimientos suaves."]},
 flexiones:{name:"Flexiones de pecho",tag:"carga",type:"reps",sets:2,reps:12,rest:40,load:false,unit:"kg",coach:"Calentamiento suave, sin llegar al fallo. Si sustituye al press: 4 series duras con pies elevados.",
@@ -1038,7 +1027,7 @@ flexor_cadera:{name:"Estiramiento del flexor de cadera",tag:"diario",type:"hold_
   steps:["Media rodilla al piso; la otra pierna al frente a 90°.","Mete la pelvis (retroversión) y aprieta el glúteo de atrás.","Empuja la cadera al frente. Mantén sin arquear la lumbar."]},
 fondos_banco:{name:"Fondos en banco",tag:"carga",type:"reps",sets:3,reps:12,rest:75,load:false,unit:"kg",coach:"Codos hacia atrás; no bajes tanto que el hombro se vaya al frente.",
   steps:["Apoya las manos en el borde del banco","Baja la cadera flexionando los codos atrás","Empuja con los tríceps hasta extender"]},
-fondos_paralelas:{name:"Fondos en paralelas",tag:"carga",type:"reps",sets:4,reps:9,rest:120,load:false,unit:"kg",coach:"Inclina el torso al frente para cargar más pecho. Si te sobran reps, añade lastre.",
+fondos_paralelas:{name:"Fondos en paralelas",tag:"carga",type:"reps",sets:3,reps:9,rest:120,load:false,unit:"kg",coach:"Inclina el torso al frente para cargar más pecho. Si te sobran reps, añade lastre.",
   steps:["Sube el cuerpo con brazos extendidos en paralelas","Baja controlado inclinándote ligeramente al frente","Empuja hacia arriba contrayendo pecho y tríceps"]},
 gato_camello:{name:"Gato–camello",tag:"calent",type:"reps",sets:1,reps:10,rest:0,coach:"Calentamiento: movilidad lenta de columna, respirando.",
   steps:["Ponte en cuatro apoyos: manos bajo los hombros, rodillas bajo las caderas.","Redondea la espalda hacia arriba (gato) metiendo el ombligo, mira al abdomen.","Invierte: hunde la espalda y sube la mirada (camello). Alterna lento con la respiración."]},
@@ -1050,6 +1039,8 @@ hack_squat:{name:"Sentadilla en máquina inclinada (hack squat)",tag:"carga",typ
   steps:["Apoya espalda y hombros en la máquina, pies al ancho de hombros en el centro de la plataforma.","Baja controlado en 2-3 segundos hasta pasar la paralela, con las rodillas siguiendo la punta del pie.","Empuja con todo el pie hasta arriba sin bloquear las rodillas ni despegar la cadera del respaldo."]},
 hip_thrust_db:{name:"Hip thrust con mancuerna",tag:"carga",type:"reps",sets:4,reps:10,rest:120,load:true,unit:"kg",coach:"Alternativa: espalda alta en el banco, barbilla al pecho y aprieta el glúteo 1 s arriba.",
   steps:["Apoya la espalda alta en el banco","Coloca la mancuerna sobre la cadera y sujétala","Empuja la cadera arriba apretando los glúteos"]},
+hiperextension_banco:{name:"Hiperextensión en banco romano",tag:"opcional",type:"reps",sets:3,reps:12,rest:60,load:false,unit:"kg",coach:"Termina apretando el glúteo, no arqueando la espalda baja.",
+  steps:["Colócate en el banco con las caderas justo por delante del apoyo y los tobillos asegurados.","Baja el torso doblando la cadera hasta sentir el estiramiento en isquios y glúteo.","Sube hasta alinear el torso con las piernas, sin pasarte de la línea recta."]},
 isometricos_cervicales:{name:"Isométricos cervicales",tag:"diario",type:"hold",sets:3,reps:8,holdSec:8,rest:15,
   steps:["Palma en la frente: empuja la cabeza contra la mano sin que se mueva.","Repite con la mano en cada lado de la cabeza.","Termina con la mano en la nuca. Fuerza suave-media, respira."]},
 jalon_pecho:{name:"Jalón al pecho",tag:"carga",type:"reps",sets:4,reps:10,rest:120,load:true,unit:"kg",coach:"Primer pesado: baja los omóplatos y lleva la barra al pecho alto, subida controlada.",
@@ -1082,10 +1073,16 @@ prensa_inclinada:{name:"Prensa inclinada",tag:"carga",type:"reps",sets:3,reps:11
   steps:["Ajusta el asiento y apoya la espalda contra el respaldo","Baja las plataformas flexionando rodillas hasta formar ángulo de 90 grados","Empuja hacia arriba extendiendo piernas sin bloquear las rodillas"]},
 press_banca_db:{name:"Press de pecho con mancuernas",tag:"carga",type:"reps",sets:4,reps:8,rest:120,load:true,unit:"kg",coach:"Lo más pesado del día: baja en 2-3 s y deja 1-2 repeticiones en reserva.",
   steps:["Acuéstate en el banco con los pies firmes en el piso","Baja los mancuernas controladamente hasta tocar el pecho","Empuja explosivamente hacia arriba hasta extender los brazos"]},
+press_frances:{name:"Press francés con barra Z",tag:"opcional",type:"reps",sets:3,reps:10,rest:75,load:true,unit:"kg",coach:"Baja la barra hacia la frente o un poco por detrás de la cabeza, nunca hacia el pecho.",
+  steps:["Acuéstate en un banco plano con la barra Z sostenida y los brazos estirados sobre los hombros.","Flexiona los codos para bajar la barra hasta la frente, manteniendo los brazos apuntando al techo.","Estira los codos para volver al inicio, sin llevar la barra hacia adelante."]},
 press_hombro_db:{name:"Press de hombro con mancuernas",tag:"carga",type:"reps",sets:3,reps:10,rest:120,load:true,unit:"kg",coach:"Sentado con respaldo, sin arquear la lumbar al empujar.",
   steps:["De pie o sentado, mancuernas a la altura de los hombros con codos a 90°.","Presiona hacia arriba extendiendo los brazos, codos ligeramente flexionados al final.","Baja controlado a la altura de los hombros. Mantén el core activo sin arquear la lumbar."]},
 puente_gluteo_banda:{name:"Puente de glúteo con banda",tag:"carga",type:"reps",sets:2,reps:12,rest:40,load:false,unit:"kg",coach:"Empuja la banda hacia fuera todo el rato: así entra el glúteo medio.",
   steps:["Tumbada en el tapete, banda por encima de las rodillas y pies al ancho de cadera.","Aprieta los glúteos y sube la cadera hasta alinear tronco y muslos.","Aguanta 2 s arriba y baja en tres segundos sin dejar caer la cadera."]},
+/* Ni otro remo ni otro jalon: trabaja el dorsal en extension de hombro, que es
+   el tercer patron que le faltaba al dia de tiron. */
+pullover_polea:{name:"Pullover en polea alta",tag:"carga",type:"reps",sets:3,reps:12,rest:75,load:true,unit:"kg",coach:"Codos apenas flexionados y fijos todo el recorrido: si se doblan, se convierte en una extensión de tríceps.",
+  steps:["Toma la cuerda o la barra recta de la polea alta, retrocede dos pasos e inclina el torso al frente con los brazos estirados sobre la cabeza.","Baja el agarre en arco amplio hasta que las manos lleguen a los muslos, apretando el dorsal al final.","Deja que los brazos suban de nuevo controlados hasta sentir el estiramiento completo del dorsal."]},
 remo_banda:{name:"Remo con banda",tag:"carga",type:"reps",sets:2,reps:12,rest:45,load:false,unit:"kg",coach:"Tira con la espalda, no con los brazos: primero mueve el omóplato.",
   steps:["Sentada en el tapete, banda rodeando las plantas de los pies y una punta en cada mano.","Lleva los codos atrás pegados al cuerpo hasta las costillas.","Suelta en tres segundos manteniendo el pecho alto."]},
 remo_db:{name:"Remo con mancuerna",tag:"carga",type:"reps_side",sets:4,reps:10,rest:90,load:true,unit:"kg",coach:"10 por brazo, rango largo hacia la cadera y sin girar el torso.",
@@ -1094,7 +1091,7 @@ remo_inclinado:{name:"Remo inclinado con mancuernas",tag:"carga",type:"reps",set
   steps:["Bisagra de cadera, espalda plana ~45°, mancuernas bajo los hombros.","Jala ambas hacia las caderas llevando los codos atrás.","Aprieta los omóplatos y baja controlado. No rotes el torso."]},
 remo_invertido:{name:"Remo invertido",tag:"carga",type:"reps",sets:3,reps:12,rest:90,load:false,unit:"kg",coach:"Cuerpo recto como una tabla; cuanto más horizontal, más difícil.",
   steps:["Agárrate a la barra con el cuerpo recto","Tira llevando el pecho hacia la barra","Baja despacio sin hundir la cadera"]},
-remo_maquina:{name:"Remo sentado en máquina",tag:"carga",type:"reps",sets:4,reps:10,rest:120,load:true,unit:"kg",coach:"Pecho apoyado, tira con los codos y junta escápulas 1 s.",
+remo_maquina:{name:"Remo sentado en máquina",tag:"carga",type:"reps",sets:5,reps:10,rest:120,load:true,unit:"kg",coach:"Pecho apoyado, tira con los codos y junta escápulas 1 s.",
   steps:["Siéntate con la espalda apoyada en el respaldo, pecho contra el pad.","Hala las asas hacia ti, llevando los codos atrás de tu torso.","Mantén la contracción, luego extiende lentamente sin bloquear los brazos."]},
 remo_polea:{name:"Remo en polea baja",tag:"opcional",type:"reps",sets:4,reps:10,rest:120,load:true,unit:"kg",coach:"Torso firme, no tires con la lumbar ni te eches atrás.",
   steps:["Siéntate en el piso con las piernas extendidas, agarra el asa con brazos rectos.","Jala el asa hacia tu pecho, llevando los codos lo más atrás posible.","Controla la extensión y regresa al punto de partida manteniendo la tensión."]},
@@ -1130,24 +1127,34 @@ zancadas_db:{name:"Zancadas con mancuernas",tag:"carga",type:"reps_side",sets:3,
 const ROUTINES={
 cuello_rostro:{name:"Cuello y rostro",group:"Cuello y rostro",cls:"n",desc:"Fuerza de cuello y estética facial",
   list:["movilidad_cervical", "cuello_flexion_supina", "cuello_extension_manual", "cuello_lateral_manual", "encogimientos_db", "reverse_fly", "mewing_lengua", "mandibula_platisma"]},
+/* Pecho: press plano (medio) + fondos (inferior) + cruce bajo-alto (clavicular)
+   + pec deck. El inclinado, que seria lo obvio para la porcion clavicular, le
+   molesta el manguito, y el cruce da ese mismo vector sin compresion. */
 gym_empuje:{name:"Empuje",group:"Gimnasio",cls:"g",desc:"Pecho, hombro y tríceps",
-  list:["caminadora", "circulos_brazos", "wall_angels", "rotacion_externa_db", "flexiones_inclinadas", "press_banca_db", "fondos_paralelas", "press_hombro_db", "pec_deck", "elevaciones_laterales", "extension_triceps_polea", "extension_triceps_db", "jalon_pecho"],
+  list:["caminadora", "circulos_brazos", "wall_angels", "rotacion_externa_db", "flexiones_inclinadas", "press_banca_db", "fondos_paralelas", "cruce_poleas", "pec_deck", "press_hombro_db", "elevaciones_laterales", "extension_triceps_sobrecabeza_polea", "extension_triceps_polea", "jalon_pecho"],
   warm:["caminadora", "circulos_brazos", "wall_angels", "rotacion_externa_db", "flexiones_inclinadas"],
   secondary:["jalon_pecho"],
-  swaps:{"extension_triceps_polea": ["extension_triceps_db"], "fondos_paralelas": ["fondos_banco"], "pec_deck": ["aperturas_db"], "press_banca_db": ["flexiones"]},
-  extras:["reverse_fly", "cruce_poleas"]},
+  swaps:{"extension_triceps_sobrecabeza_polea": ["extension_triceps_db"], "fondos_paralelas": ["fondos_banco"], "pec_deck": ["aperturas_db"], "press_banca_db": ["flexiones"]},
+  extras:["reverse_fly", "press_frances"]},
+/* Fuera el peso muerto rumano, que no lo hace. Sin el, los isquios se quedaban
+   en 3 series contra 11 del cuadriceps: los dos curl femorales, sentado y
+   acostado, los devuelven a 7 sin repetir estimulo. */
 gym_pierna:{name:"Pierna",group:"Gimnasio",cls:"g",desc:"Pierna completa",
-  list:["caminadora", "sentadilla_aire", "balanceo_pierna_frontal", "balanceo_pierna_lateral", "bisagra_cadera_pie", "elevacion_talones_pie", "hack_squat", "prensa_inclinada", "peso_muerto_rumano_db", "curl_femoral", "extension_cuadriceps", "maquina_gluteo", "elevacion_pantorrilla", "elevaciones_laterales", "pec_deck_inverso"],
+  list:["caminadora", "sentadilla_aire", "balanceo_pierna_frontal", "balanceo_pierna_lateral", "bisagra_cadera_pie", "elevacion_talones_pie", "hack_squat", "prensa_inclinada", "maquina_gluteo", "curl_femoral_sentado", "extension_cuadriceps", "curl_femoral", "elevacion_pantorrilla", "elevaciones_laterales", "pec_deck_inverso"],
   warm:["caminadora", "sentadilla_aire", "balanceo_pierna_frontal", "balanceo_pierna_lateral", "bisagra_cadera_pie", "elevacion_talones_pie"],
   secondary:["elevaciones_laterales", "pec_deck_inverso"],
-  swaps:{"hack_squat": ["sentadilla_smith"], "maquina_gluteo": ["hip_thrust_db"], "peso_muerto_rumano_db": ["zancadas_db"]},
+  swaps:{"hack_squat": ["sentadilla_smith"], "maquina_gluteo": ["hip_thrust_db"]},
   extras:["sentadilla_bulgara", "aductores_maquina", "abductores_maquina"]},
+/* Fuera el remo con mancuerna (no lo hace y se pisaba con el remo sentado) y
+   los encogimientos. Para que la semana no quedara en 11 series de tiron
+   vertical contra 4 de horizontal, el remo sentado sube a 5 y entra el
+   pullover, que es extension de hombro y no repite ninguno de los dos. */
 gym_tiron:{name:"Tirón",group:"Gimnasio",cls:"g",desc:"Espalda y bíceps",
-  list:["caminadora", "gato_camello_pie", "apertura_toracica_rack", "colgado_escapular", "vuelos_posteriores_ligeros", "jalon_pecho", "remo_maquina", "remo_db", "pec_deck_inverso", "encogimientos_db", "curl_barra", "curl_martillo_cruzado", "pec_deck", "elevaciones_laterales"],
+  list:["caminadora", "gato_camello_pie", "apertura_toracica_rack", "colgado_escapular", "vuelos_posteriores_ligeros", "jalon_pecho", "remo_maquina", "pullover_polea", "pec_deck_inverso", "curl_barra", "curl_predicador", "curl_martillo_cruzado", "pec_deck", "elevaciones_laterales"],
   warm:["caminadora", "gato_camello_pie", "apertura_toracica_rack", "colgado_escapular", "vuelos_posteriores_ligeros"],
   secondary:["pec_deck", "elevaciones_laterales"],
-  swaps:{"curl_barra": ["curl_biceps_db"], "pec_deck_inverso": ["reverse_fly"], "remo_db": ["remo_invertido"], "remo_maquina": ["remo_polea"]},
-  extras:["peso_muerto_rumano_db", "curl_concentrado", "curl_predicador"]},
+  swaps:{"curl_barra": ["curl_biceps_db"], "pec_deck_inverso": ["reverse_fly"], "remo_maquina": ["remo_polea", "remo_invertido"]},
+  extras:["curl_concentrado", "hiperextension_banco"]},
 postura_completa:{name:"Postura — Completa",group:"Postura",cls:"p",desc:"Toda la espalda + cuello (fuerza) y rostro · con mancuernas",
   list:["gato_camello", "wall_angels", "extension_toracica", "open_book", "remo_inclinado", "reverse_fly", "glute_bridge", "bird_dog", "dead_bug", "chin_tuck", "isometricos_cervicales", "tmj_mandibula", "face_yoga"]},
 postura_movilidad:{name:"Postura — Movilidad",group:"Postura",cls:"p",desc:"Movilidad de espalda y cuello para postura · peso corporal",
@@ -1178,7 +1185,7 @@ const GROUPS=[{"keys": ["postura_completa", "postura_movilidad"], "title": "Post
    historial: sin el, suggestLoad arranca en 10 kg, que no es un punto de
    partida razonable con mancuernas de casa. */
 const SECDOSE={
-"gym_empuje": {"jalon_pecho": {"sets": 3}}, "gym_tiron": {"elevaciones_laterales": {"sets": 3}}, "gym_pierna": {"elevaciones_laterales": {"sets": 3}},
+"gym_empuje": {"jalon_pecho": {"sets": 3}, "pec_deck": {"sets": 2}}, "gym_tiron": {"elevaciones_laterales": {"sets": 3}}, "gym_pierna": {"elevaciones_laterales": {"sets": 3}},
 "salud_fuerza_a": {"gato_camello": {"reps": 8}, "circulos_brazos": {"reps": 12}, "press_hombro_db": {"sets": 2, "reps": 12, "rest": 45, "startKg": 2}, "dead_bug": {"sets": 2, "rest": 25}, "flexor_cadera": {"sets": 1}, "elevacion_pantorrilla": {"sets": 2, "rest": 30, "startKg": 2}, "pec_puerta": {"sets": 1}},
 "salud_fuerza_b": {"gato_camello": {"reps": 8}, "extension_toracica": {"sets": 1}, "peso_muerto_rumano_db": {"sets": 2, "rest": 45, "startKg": 3}, "remo_db": {"sets": 2, "reps": 12, "rest": 45, "startKg": 2}, "elevaciones_laterales": {"sets": 2, "rest": 40, "startKg": 1}, "trapecio_superior": {"sets": 1}, "extension_triceps_db": {"sets": 2, "rest": 40, "startKg": 1}},
 "salud_equilibrio": {"wall_angels": {"sets": 1}, "dead_bug": {"sets": 2, "rest": 25}}
@@ -1186,7 +1193,7 @@ const SECDOSE={
 const TAG={calent:["Calentamiento","b-calent"],diario:["Diario","b-diario"],carga:["Carga 3–4×/sem","b-carga"],opcional:["Opcional","b-opcional"]};
 const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
-const VERSION="v26 · rutina de casa, 3 días";
+const VERSION="v27 · entrar directo al ejercicio";
 /* ==== [S5] ICONOS =========================================================
    Solo el interior del <svg>; ic() lo envuelve. Rejilla 24x24, sin relleno
    salvo los marcados .solid. */
@@ -1427,10 +1434,20 @@ function dose(k,id){const b=progDose(k,id),o=(k&&doseOv(k,id))||{},
     custom:o.sets!=null||o.reps!=null||o.holdSec!=null||o.rest!=null};}
 function toggleExtra(k,id){const all=loadExtras(),a=(all[k]||[]).slice(),i=a.indexOf(id);
   if(i<0)a.push(id);else a.splice(i,1);all[k]=a;jset("rp_extras",all);openRoutine(k,true);}
-function effList(k){const r=ROUTINES[k];if(!r)return [];
-  const base=(r.list||[]).map(id=>swapOf(k,id)||id).filter(id=>EX[id]);
-  const out=[];base.forEach(id=>{if(out.indexOf(id)<0)out.push(id);});
-  return out.concat(extrasOn(k).filter(id=>EX[id]&&out.indexOf(id)<0));}
+/* El orden de la pantalla y el de la ejecucion tienen que salir del mismo
+   sitio, o el ejercicio resaltado como "siguiente" no es el que arranca al
+   darle a empezar. Un opcional que ya agregaste deja de ser opcional: entra al
+   bloque de entrenamiento, al final, y de ahi en adelante es uno mas. */
+function routineBuckets(k){const r=ROUTINES[k];if(!r)return {cal:[],ent:[],se:[]};
+  const warm=r.warm||[],sec=r.secondary||[],cal=[],ent=[],se=[],vistos={};
+  (r.list||[]).forEach(origin=>{const id=swapOf(k,origin)||origin,e=EX[id];
+    if(!e||vistos[id])return;vistos[id]=1;
+    const dest=(warm.indexOf(origin)>=0||e.tag==="calent")?cal:(sec.indexOf(origin)>=0?se:ent);
+    dest.push({id:id,origin:origin});});
+  extrasOn(k).forEach(id=>{if(EX[id]&&!vistos[id]){vistos[id]=1;ent.push({id:id,origin:null,added:true});}});
+  return {cal:cal,ent:ent,se:se};}
+function effList(k){const b=routineBuckets(k);
+  return b.cal.concat(b.ent).concat(b.se).map(x=>x.id);}
 function openSwap(k,origin){pushHist({ov:"swap"});const alts=[origin].concat(((ROUTINES[k].swaps||{})[origin])||[]),cur=swapOf(k,origin)||origin;
   $("swapTitle").textContent="Cambiar ejercicio";
   $("swapBody").innerHTML=alts.map(id=>{const e=EX[id];if(!e)return "";
@@ -1452,87 +1469,41 @@ function routineHead(k,r){
   return `<div class="bar"><div class="icbtn" onclick="history.back()" role="button" tabindex="0" aria-label="Volver">${ic("left")}</div><div class="ttl">${esc(r.name)}</div><div id="routProg" class="rring" aria-live="polite" aria-label="Avance de la rutina">${routineProgressHTML(k)}</div></div>
     <div class="subttl">${esc(r.desc)} · ~${estMinutes(k)} min</div>
     <div class="exwrap">`;}
-function routineExCard(k,ctx,id,origin,isExtra,isWarm){const e=EX[id];if(!e)return "";
+/* La tarjeta ya no despliega nada: tocarla mete DENTRO del ejercicio, que es
+   donde estan los pasos, la figura, el video, la curva y el ajuste de series.
+   isAdded distingue al opcional que ya agregaste: se pinta como uno normal,
+   con su boton de empezar, y solo se le suma un chip para poder quitarlo. */
+function routineExCard(k,ctx,id,origin,isExtra,isWarm,isAdded){const e=EX[id];if(!e)return "";
     const tg=isWarm?["Calentamiento","b-calent"]:(TAG[e.tag]||["Ejercicio","b-calent"]),done=!!ctx.chk[id],n=ctx.i++;
     const alts=origin?(ctx.swaps[origin]||[]):null,swapped=origin&&swapOf(k,origin);
-    const added=isExtra&&ctx.on.indexOf(id)>=0;
-    return `<div class="ex ${done?'checked':''} ${(id===ctx.next)?'next':''} ${isExtra&&!added?'off':''}" id="ex_${n}" data-ex="${id}">
+    return `<div class="ex ${done?'checked':''} ${(id===ctx.next)?'next':''} ${isExtra?'off':''}" id="ex_${n}" data-ex="${id}">
       <div class="top">
         <div class="exck" onclick="event.stopPropagation();toggleCheck('${id}',${n})" role="checkbox" tabindex="0" aria-checked="${done?'true':'false'}" aria-label="Marcar como hecho">${ic("check")}</div>
-        <div class="diag${(id===ctx.next)?' big':''}" onclick="toggleEx(${n})">${
+        <div class="diag${(id===ctx.next)?' big':''}" onclick="startRoutine('${id}')">${
           (id===ctx.next)?framesLoop(id,'diaginner'):(DIAG[id]||"")}</div>
-        <div style="flex:1;min-width:0" onclick="toggleEx(${n})"><div class="nm">${esc(e.name)}</div><div class="meta">${metaOf(e,ctx.d=dose(k,id))}${ctx.d.custom?' <span class="chip tiny">ajustado</span>':''}${(typeof ZONA!=="undefined"&&ZONA[id])?' · '+ZONA[id]:''}</div>
-          <div class="badges"><span class="badge ${tg[1]}">${tg[0]}</span>${isExtra?'<span class="badge b-opcional">Opcional · extra</span>':''}${(alts&&alts.length)?`<span class="chip" onclick="event.stopPropagation();openSwap('${k}','${origin}')">${ic("swap","xs")} ${swapped?('Cambiado · original: '+shortName(origin)):(alts.length===1?('Cambiar por '+shortName(alts[0])):('Cambiar ('+alts.length+' opciones)'))}</span>`:''}</div></div>
-        ${isExtra?`<div class="exadd ${added?'on':''}" onclick="event.stopPropagation();toggleExtra('${k}','${id}')" role="button" tabindex="0" aria-label="Añadir a la rutina">${added?ic("check"):ic("plus")}</div>`
+        <div style="flex:1;min-width:0" onclick="startRoutine('${id}')"><div class="nm">${esc(e.name)}</div><div class="meta">${metaOf(e,ctx.d=dose(k,id))}${ctx.d.custom?' <span class="chip tiny">ajustado</span>':''}${(typeof ZONA!=="undefined"&&ZONA[id])?' · '+ZONA[id]:''}</div>
+          <div class="badges"><span class="badge ${tg[1]}">${tg[0]}</span>${(alts&&alts.length)?`<span class="chip" onclick="event.stopPropagation();openSwap('${k}','${origin}')">${ic("swap","xs")} ${swapped?('Cambiado · original: '+shortName(origin)):(alts.length===1?('Cambiar por '+shortName(alts[0])):('Cambiar ('+alts.length+' opciones)'))}</span>`:''}${isAdded?`<span class="chip" onclick="event.stopPropagation();toggleExtra('${k}','${id}')" role="button" tabindex="0">${ic("close","xs")} Quitar</span>`:''}</div></div>
+        ${isExtra?`<div class="exadd" onclick="event.stopPropagation();toggleExtra('${k}','${id}')" role="button" tabindex="0" aria-label="Agregar a la rutina">${ic("plus")}</div>`
                  :`<div class="exstart" onclick="event.stopPropagation();startRoutine('${id}')" role="button" tabindex="0" aria-label="Empezar por este ejercicio" title="Empezar aquí">${ic("play","sm solid")}</div>`}
-      </div>
-      <div class="panel">
-        ${framesStrip(id)}
-        <ul class="steps">${e.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ul>
-        ${(e.coach)?`<div class="coachtip">${ic("bulb","sm")} ${esc(e.coach)}</div>`:''}
-        ${doseBox(k,id,n)}
-        ${quickBox(k,id,n)}
-        ${exChart(id,ctx.LOGS)}
-        ${VID[id]?`<div class="vbtn" onclick="openVideo('${id}')">${ic("play","sm solid")} Ver video</div>`:''}
       </div></div>`;}
-/* ---- editor de dosificacion ----
-   Vive en el panel del ejercicio, que ya viene plegado, asi que no ensucia la
-   lista y aparece justo cuando estas mirando ese ejercicio. Reutiliza el
-   .stepper de la caja de registro: cero CSS nuevo. No se cuelga de quickBox
-   porque esa funcion devuelve cadena vacia cuando el ejercicio no lleva carga,
-   y entonces los de postura no serian editables. */
-function doseBox(k,id,n){const e=EX[id]||{};if(e.type==="cardio")return "";
-  const d=dose(k,id),base=progDose(k,id),esHold=String(e.type||"").indexOf("hold")===0;
-  const paso=(lab,campo,val,mas,menos,suf)=>`<div class="stepper"><div class="lab">${lab}</div><div class="row">
-    <button class="sq" onclick="dAdj('${k}','${id}',${n},'${campo}',${menos})" aria-label="Bajar ${lab}">−</button>
-    <b id="dv_${campo}_${id}" onclick="dEditNum('${k}','${id}',${n},'${campo}')" title="Toca para escribir el valor">${val}${suf||""}</b>
-    <button class="sq" onclick="dAdj('${k}','${id}',${n},'${campo}',${mas})" aria-label="Subir ${lab}">+</button></div></div>`;
-  const prog=esHold?`${base.sets} × ${base.holdSec}s`:`${base.sets} × ${base.reps}`;
-  return `<div class="qbox dosebox" id="d_${id}">
-    <div class="qhead">${ic("swap","xs")} Tu dosificación${d.custom?`<span class="qc">ajustada</span>`:""}</div>
-    <div class="logrow">${paso("Series","sets",d.sets,1,-1)}${
-      esHold?paso("Sostén","holdSec",d.holdSec,5,-5,'<small>s</small>')
-            :paso("Descanso","rest",d.rest,15,-15,'<small>s</small>')}</div>
-    ${d.custom?`<button class="minibtn" style="margin-top:8px" onclick="dReset('${k}','${id}',${n})">Volver al programa · ${prog}, descanso ${base.rest}s</button>`
-              :`<div class="last" style="margin-top:8px">Recomendación del programa. Cámbiala si te sobra o te falta.</div>`}</div>`;}
-function dLimits(campo){return campo==="sets"?[1,10]:campo==="rest"?[0,300]:[5,180];}
-function dAdj(k,id,n,campo,delta){const d=dose(k,id),lim=dLimits(campo);
-  let v=Math.max(lim[0],Math.min(lim[1],(d[campo]||0)+delta));
-  /* suelo duro: con series ya registradas hoy, bajar por debajo dejaria el
-     contador de quickBox en "4 de 3" y el auto-visto sin sentido */
-  if(campo==="sets"){const hechas=todaySets(k,id).length;if(v<hechas)v=hechas;}
-  setDose(k,id,{[campo]:v});openRoutine(k,true);
-  setTimeout(()=>{const p=$("ex_"+n);if(p&&!p.classList.contains("open"))toggleEx(n);},0);}
-function dReset(k,id,n){setDose(k,id,{sets:null,reps:null,holdSec:null,rest:null});
-  openRoutine(k,true);setTimeout(()=>{const p=$("ex_"+n);if(p&&!p.classList.contains("open"))toggleEx(n);},0);}
-function dEditNum(k,id,n,campo){const el=$("dv_"+campo+"_"+id);if(!el)return;
-  const d=dose(k,id),lim=dLimits(campo);
-  el.outerHTML=`<input id="din" class="numin" type="number" inputmode="numeric" step="1" min="${lim[0]}" max="${lim[1]}" value="${d[campo]}">`;
-  const i=$("din");if(!i)return;i.focus();try{i.select();}catch(x){}
-  let done=false;
-  const commit=()=>{if(done)return;done=true;const v=parseInt(i.value,10);
-    if(!isNaN(v))dAdj(k,id,n,campo,v-d[campo]);else openRoutine(k,true);};
-  i.addEventListener("blur",commit);
-  i.addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();commit();}});}
-function routineList(k,r,ctx){const warm=r.warm||[],sec=r.secondary||[],cal=[],ent=[],se=[];
-  r.list.forEach(origin=>{const id=swapOf(k,origin)||origin,e=EX[id];if(!e)return;
-    const dest=(warm.indexOf(origin)>=0||e.tag==="calent")?cal:(sec.indexOf(origin)>=0?se:ent);
-    dest.push({id:id,origin:origin});});
+function routineList(k,r,ctx){const b=routineBuckets(k),cal=b.cal,ent=b.ent,se=b.se;
+  /* abajo solo quedan los opcionales que todavia no has agregado */
+  const sueltos=ctx.extras.filter(id=>EX[id]&&ctx.on.indexOf(id)<0);
   /* el siguiente sin hacer es el unico que destaca en toda la pantalla */
   const pend=cal.concat(ent).concat(se).filter(x=>!ctx.chk[x.id])[0];
   ctx.next=pend?pend.id:null;
   const bloque=(titulo,icono,arr,isW,isExtra,nota)=>arr.length?
     `<div class="exgroup"><div class="blockt">${ic(icono,"xs")} ${titulo}</div>`
     +(nota?`<div class="last" style="margin:0 12px 4px">${nota}</div>`:"")
-    +arr.map(x=>routineExCard(k,ctx,x.id,x.origin,!!isExtra,!!isW)).join("")+`</div>`:"";
+    +arr.map(x=>routineExCard(k,ctx,x.id,x.origin,!!isExtra,!!isW,!!x.added)).join("")+`</div>`:"";
   return bloque("Calentamiento","flame",cal,true)
     +bloque(cal.length?"Entrenamiento":"Ejercicios","dumbbell",ent)
     +bloque("Bloque secundario","refresh",se,false,false,
       "Un músculo de otro día. Sube su frecuencia a dos veces por semana sin alargar la rutina.")
-    +bloque("Opcionales · si tienes tiempo","plus",ctx.extras.map(id=>({id:id,origin:null})),false,true);}
+    +bloque("Opcionales · si tienes tiempo","plus",sueltos.map(id=>({id:id,origin:null})),false,true,
+      "Toca + y el ejercicio sube al bloque de entrenamiento, como uno más.");}
 function openRoutine(k,noPush){curRoutine=k;if(!noPush)pushHist({v:"routine",k:k});
   const r=ROUTINES[k];
-  qState={};
   if(sessActive(k)){const sv=loadSess();sessionLog=(sv&&sv.log)||{};sessionLogKey=k;}
   const ctx={chk:checksFor(k),swaps:r.swaps||{},extras:r.extras||[],on:extrasOn(k),LOGS:loadLogs(),i:0};
   $("routine").innerHTML=routineHead(k,r)+routineList(k,r,ctx)+`</div>`+routineCTA(k);
@@ -1560,11 +1531,6 @@ function isChecked(rk,id){return !!checksFor(rk)[id];}
 function markCheck(rk,id,val){const all=loadChecks(),t=today();all[t]=all[t]||{};all[t][rk]=all[t][rk]||{};
   if(val===false)delete all[t][rk][id];else all[t][rk][id]=true;jset("rp_checks",all);
   if(curRoutine===rk)updateRoutineProgress();}
-function toggleEx(i){const el=$("ex_"+i);if(!el)return;
-  const abrir=!el.classList.contains("open");
-  document.querySelectorAll("#routine .ex.open").forEach(x=>{if(x!==el)x.classList.remove("open");});
-  el.classList.toggle("open",abrir);
-  if(abrir)setTimeout(()=>{const r=el.getBoundingClientRect();if(r.top<0||r.top>window.innerHeight*0.5)el.scrollIntoView({block:"start",behavior:"smooth"});},60);}
 function toggleCheck(id,i){const cur=isChecked(curRoutine,id);
   if(!cur)startSess(curRoutine,"check");
   markCheck(curRoutine,id,!cur);
@@ -1725,8 +1691,6 @@ function lastLog(exId){const a=loadLogs()[exId];if(!a)return null;
   for(let i=a.length-1;i>=0;i--){const r=a[i];if(r&&r.sets&&r.sets.length)return r;}return null;}
 
 /* ==== [S2] REGISTRO RAPIDO + PESO SUGERIDO ================================ */
-let qState={},qPop=null;
-function incFor(id){return 2.5;}
 /* salto de progresion proporcional al peso: subir 2,5 kg en un ejercicio de
    10 kg es un 25% mas, demasiado para una sola semana */
 function progStep(w){return w<10?1:(w<20?2:2.5);}
@@ -1749,56 +1713,12 @@ function suggestLoad(id,k){const e=EX[id]||{},kk=k!=null?k:curRoutine,d=dose(kk,
   if(loaded)return {w:first.w,reps:first.reps,why:"Mismo peso que la vez pasada · apunta a "+tgt+" reps"};
   const r=(first.reps>=tgt)?first.reps+1:tgt;
   return {w:0,reps:r,why:(first.reps>=tgt)?("La vez pasada llegaste a "+first.reps+": prueba con "+r):("Apunta a "+tgt+" repeticiones")};}
-function qGet(id){if(!qState[id])qState[id]=suggestLoad(id);return qState[id];}
-function qAdj(id,which,d){const q=qGet(id),e=EX[id]||{};
-  if(which==="w"){q.w=Math.max(0,Math.round((q.w+d)*10)/10);const el=$("qw_"+id);
-    if(el)el.innerHTML=fmtW(q.w)+' <small>'+(e.unit||'kg')+'</small>';}
-  else{q.reps=Math.max(1,q.reps+d);const el=$("qr_"+id);if(el)el.textContent=q.reps;}}
-function qEditNum(id,which){const isW=which==="w",el=$((isW?"qw_":"qr_")+id);if(!el)return;
-  const q=qGet(id),e=EX[id]||{};
-  el.outerHTML=`<input id="qin" class="numin" type="number" inputmode="decimal" step="${isW?"0.5":"1"}" min="0" value="${isW?q.w:q.reps}">`;
-  const i=$("qin");if(!i)return;i.focus();try{i.select();}catch(x){}
-  let done=false;
-  const commit=()=>{if(done)return;done=true;const v=parseFloat(i.value);
-    if(!isNaN(v)&&v>=0){if(isW)q.w=Math.round(v*10)/10;else q.reps=Math.max(1,Math.round(v));}
-    i.outerHTML=isW?`<b id="qw_${id}" onclick="qEditNum('${id}','w')" title="Toca para escribir el peso exacto">${fmtW(q.w)}</b>`
-                   :`<b id="qr_${id}" onclick="qEditNum('${id}','r')" title="Toca para escribir las repeticiones">${q.reps}</b>`;};
-  i.addEventListener("blur",commit);
-  i.addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();commit();}});}
 /* series de hoy = las de la sesion en curso + las ya registradas hoy */
 function todaySets(k,id){const out=[],t=today(),logs=loadLogs()[id]||[];
   logs.forEach((r,ri)=>{if(r.date===t&&(!r.k||r.k===k)&&r.sets&&r.sets.length)
     r.sets.forEach((s,si)=>out.push({w:s.w||0,reps:s.reps||0,src:"l",ri:ri,si:si}));});
   (sessLog(k)[id]||[]).forEach((s,si)=>out.push({w:s.w||0,reps:s.reps||0,src:"s",ri:-1,si:si}));
   return out;}
-function quickBox(k,id,n){const e=EX[id]||{};
-  if(e.load!==true&&e.load!==false)return "";
-  const q=qGet(id),loaded=e.load===true,u=e.unit||"kg",hechas=todaySets(k,id),tgt=dose(k,id).sets||0;
-  const lines=hechas.map((s,i)=>`<div class="setline${(i===hechas.length-1&&qPop===id)?" pop":""}" id="sl_${id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${id}','${s.src}',${s.ri},${s.si},${n},${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${loaded?fmtW(s.w)+" "+u+" × "+s.reps:s.reps+" reps"}</span><span class="del" onclick="delSet('${id}','${s.src}',${s.ri},${s.si},${n})" role="button" tabindex="0" aria-label="Borrar serie">${ic("close","xs")}</span></div>`).join("");
-  const inc=incFor(id);
-  const wstep=loaded?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="qAdj('${id}','w',-${inc})" aria-label="Bajar peso">−</button><b id="qw_${id}" onclick="qEditNum('${id}','w')" title="Toca para escribir el peso exacto">${fmtW(q.w)}</b><button class="sq" onclick="qAdj('${id}','w',${inc})" aria-label="Subir peso">+</button></div></div>`:"";
-  return `<div class="qbox" id="q_${id}">
-    <div class="qhead">Registrar serie${tgt?`<span class="qc">${hechas.length} de ${tgt} hoy</span>`:""}</div>
-    <div class="logrow">${wstep}<div class="stepper"><div class="lab">Reps</div><div class="row"><button class="sq" onclick="qAdj('${id}','r',-1)" aria-label="Menos repeticiones">−</button><b id="qr_${id}" onclick="qEditNum('${id}','r')" title="Toca para escribir las repeticiones">${q.reps}</b><button class="sq" onclick="qAdj('${id}','r',1)" aria-label="Más repeticiones">+</button></div></div></div>
-    ${q.why?`<div class="qwhy">${ic("bulb","xs")} ${esc(q.why)}</div>`:""}
-    <button class="qadd" onclick="quickLog('${id}',${n})">${ic("check","sm")} Registrar serie</button>
-    ${lines?`<div class="sets">${lines}</div>`:""}</div>`;}
-function quickLog(id,n){const e=EX[id]||{},q=qGet(id);
-  useSessionLog(curRoutine);
-  const pr=isPR(id,(e.load===true?q.w:0),q.reps);
-  (sessionLog[id]=sessionLog[id]||[]).push({w:(e.load===true?q.w:0),reps:q.reps,t:Date.now()});
-  touchSess();delete qState[id];
-  if(pr)markPR(id,(e.load===true?q.w:0),q.reps);
-  qPop=id;
-  const tgt=dose(curRoutine,id).sets||0,hechas=todaySets(curRoutine,id).length;
-  if(tgt&&hechas>=tgt&&!isChecked(curRoutine,id)){markCheck(curRoutine,id,true);
-    const el=$("ex_"+n);if(el){el.classList.add("checked");const ck=el.querySelector(".exck");
-      if(ck)ck.setAttribute("aria-checked","true");}
-    updateNextEx();}
-  try{if(navigator.vibrate)navigator.vibrate(18);}catch(x){}
-  qRefresh(id,n);updateRoutineProgress();updateRoutineCTA();}
-function qRefresh(id,n){const b=$("q_"+id);if(b)b.outerHTML=quickBox(curRoutine,id,n);qPop=null;
-  const c=$("exprog_"+id);if(c)c.outerHTML=exChart(id);}
 /* tocar el valor de una serie la deja editable en el sitio */
 function setValue(id,src,ri,si){let s=null;
   if(src==="s")s=(sessLog(curRoutine)[id]||[])[si];
@@ -1820,17 +1740,13 @@ function saveSet(id,src,ri,si,n){
     if(a&&a[si]){if(nw!=null)a[si].w=nw;if(nr!=null)a[si].reps=nr;}touchSess();}
   else logsWrite(logs=>{const rec=(logs[id]||[])[ri];
     if(rec&&rec.sets&&rec.sets[si]){if(nw!=null)rec.sets[si].w=nw;if(nr!=null)rec.sets[si].reps=nr;}});
-  delete qState[id];
-  if(n<0){renderStep();return;}
-  qRefresh(id,n);updateRoutineCTA();}
+  renderStep();}
 function delSet(id,src,ri,si,n){
   if(src==="s"){useSessionLog(curRoutine);const a=sessionLog[id];
     if(a){a.splice(si,1);if(!a.length)delete sessionLog[id];}touchSess();}
   else{logsWrite(logs=>{const r=(logs[id]||[])[ri];if(!r||!r.sets)return;
     r.sets.splice(si,1);if(!r.sets.length&&!r.checked)logs[id].splice(ri,1);});}
-  delete qState[id];
-  if(n<0){renderStep();return;}
-  qRefresh(id,n);updateRoutineCTA();}
+  renderStep();}
 /* ==== fin [S2] ============================================================ */
 function persistSession(k,dateOverride,startedAt){
   const logs=loadLogs(),t=dateOverride||today(),merged=sessLog(k),list=effList(k);
@@ -1869,9 +1785,6 @@ function logSet(){const s=steps[stepi];useSessionLog(curRoutine);
     b.classList.add("done");b.innerHTML=ic("check","sm")+" Serie registrada";
     setTimeout(afterAction,300);
   }else afterAction();}
-function adjRest(d){restEnds+=d*1000;restR=Math.max(0,Math.ceil((restEnds-Date.now())/1000));
-  const el=$("rv");if(el)el.textContent=restR;
-  clearRestNotif();if(restR>0)scheduleRestNotif(restR*1000);}
 function editNum(which){const isW=which==="w",el=$(isW?"lw":"lr");if(!el)return;
   const val=isW?curW:curReps;
   el.outerHTML=`<input id="numin" class="numin" type="number" inputmode="decimal" step="${isW?"0.5":"1"}" min="0" value="${val}">`;
@@ -1997,24 +1910,21 @@ function resumeSessionCheck(){try{const s=loadSess();if(!s||s.date===today())ret
   openFinish(s.key);}catch(e){}}
 
 /* ---------- VIDEO OVERLAY ---------- */
-function openVideo(id){pushHist({ov:"video"});$("ovTitle").textContent=EX[id].name;$("ovFrame").src=embed(VID[id]);$("ovYt").href=watch(VID[id]);$("ov").classList.add("show");}
-$("ovClose").onclick=()=>{history.back();};
-$("ov").onclick=e=>{if(e.target===$("ov"))history.back();};
 
 /* ---------- BUILD STEPS ---------- */
 function buildSteps(k){const out=[],list=effList(k),total=list.length;
   list.forEach((id,idx)=>{const e=EX[id],d=dose(k,id),
     base={id,name:e.name,steps:e.steps,tag:e.tag,caveat:!!e.caveat,exI:idx+1,exN:total,load:e.load,unit:e.unit||"kg"};
-    if(e.type==="reps"||e.type==="reps_side"){for(let s=1;s<=d.sets;s++)out.push(Object.assign({},base,{kind:"count",reps:d.reps,perSide:e.type==="reps_side",
+    if(e.type==="reps"||e.type==="reps_side"){for(let s=1;s<=d.sets;s++)out.push(Object.assign({},base,{kind:"count",reps:d.reps,perSide:e.type==="reps_side",setNo:s,side:"",
       label:`Serie ${s} de ${d.sets}`+(e.type==="reps_side"?" · cada lado":""),restAfter:s<d.sets?d.rest:0,first:s===1}));}
-    else if(e.type==="hold"){for(let s=1;s<=d.sets;s++)out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,
+    else if(e.type==="hold"){for(let s=1;s<=d.sets;s++)out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,setNo:s,side:"",
       label:`Mantén ${s} de ${d.sets}`,restAfter:s<d.sets?(d.rest||15):0,first:s===1}));}
     else if(e.type==="hold_side"){for(let s=1;s<=d.sets;s++){
-      out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,label:`Serie ${s}/${d.sets} · Izquierdo`,restAfter:0,first:s===1}));
-      out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,label:`Serie ${s}/${d.sets} · Derecho`,restAfter:s<d.sets?(d.rest||10):0,first:false}));}}
+      out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,setNo:s,side:"izq",label:`Serie ${s}/${d.sets} · Izquierdo`,restAfter:0,first:s===1}));
+      out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,setNo:s,side:"der",label:`Serie ${s}/${d.sets} · Derecho`,restAfter:s<d.sets?(d.rest||10):0,first:false}));}}
     /* cardio: un solo paso cronometrado y sin descanso detras. Es la caminadora,
        que sube la temperatura pero no ensaya ningun patron de movimiento. */
-    else if(e.type==="cardio"){out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,
+    else if(e.type==="cardio"){out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,setNo:1,side:"",
       label:"Calentamiento general",restAfter:0,first:true}));}
   });return out;}
 
@@ -2043,7 +1953,8 @@ function fichaEjercicio(s){
   const veces=(loadLogs()[s.id]||[]).length;
   const abierta=(gInfoOpen===null)?(veces<3):gInfoOpen;
   const caveat=s.caveat?'<div class="caveatbox">'+ic("alert","sm")+' Evidencia floja: los ejercicios faciales muestran, en el mejor caso, mejoras modestas tras meses. Hazlo sin grandes expectativas.</div>':'';
-  const opt=(ROUTINES[curRoutine]&&(ROUTINES[curRoutine].extras||[]).indexOf(s.id)>=0)
+  /* un opcional que ya agregaste dejo de serlo: el aviso sobraría */
+  const opt=(ROUTINES[curRoutine]&&(ROUTINES[curRoutine].extras||[]).indexOf(s.id)>=0&&extrasOn(curRoutine).indexOf(s.id)<0)
       ?'<div class="optbox">'+ic("plus","xs")+' Opcional — hazlo solo si te queda tiempo y energía.</div>'
       :((ROUTINES[curRoutine]&&(ROUTINES[curRoutine].warm||[]).indexOf(s.id)>=0)
         ?'<div class="optbox warm">'+ic("flame","xs")+' Calentamiento — peso ligero, sin llegar al fallo.</div>':'');
@@ -2058,6 +1969,44 @@ function fichaEjercicio(s){
     <div id="gvid" class="videobox"><div class="ratio"><iframe id="gvframe" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>
     <div><a class="ytlink" target="_blank" rel="noopener" href="${watch(vid)}">Abrir en YouTube ${ic("external","xs")}</a></div>`:``}
     </div></details>`;}
+/* ---- lo unico ajustable a mano: cuantas series haces ----
+   El descanso y los sostenes los fija el programa, asi que aqui no hay mas
+   control que este. Vive dentro del ejercicio porque es justo ahi, a mitad de
+   la cuarta serie, donde te das cuenta de que te sobra o te falta una. */
+function seriesBox(s){const e=EX[s.id]||{};if(e.type==="cardio")return "";
+  const k=curRoutine,d=dose(k,s.id),base=progDose(k,s.id),ov=(doseOv(k,s.id)||{});
+  const ajustada=ov.sets!=null&&ov.sets!==base.sets;
+  return `<div class="logrow" style="max-width:250px;margin:var(--s4) auto 0">
+    <div class="stepper"><div class="lab">Series</div><div class="row">
+      <button class="sq" onclick="gAdjSets(-1)" aria-label="Una serie menos">−</button>
+      <b style="cursor:default" aria-live="polite">${d.sets}</b>
+      <button class="sq" onclick="gAdjSets(1)" aria-label="Una serie más">+</button></div></div></div>
+    ${ajustada?`<button class="minibtn" style="display:block;margin:var(--s2) auto 0" onclick="gResetSets()">Volver a las sugeridas · ${base.sets}</button>`
+              :`<div class="last" style="text-align:center">Sugeridas por el programa: ${base.sets} ${plural(base.sets,"serie","series")}</div>`}`;}
+function gAdjSets(delta){const s=steps[stepi];if(!s)return;
+  const k=curRoutine,d=dose(k,s.id);
+  /* suelo doble: ni por debajo de lo ya registrado hoy, ni por debajo de la
+     serie que estas haciendo ahora mismo */
+  const piso=Math.max(1,todaySets(k,s.id).length,s.setNo||1);
+  const v=Math.max(piso,Math.min(10,(d.sets||1)+delta));
+  if(v===d.sets)return;
+  setDose(k,s.id,{sets:v});reanclar(s);}
+function gResetSets(){const s=steps[stepi];if(!s)return;
+  setDose(curRoutine,s.id,{sets:null});reanclar(s);}
+/* cambiar las series rehace la lista de pasos entera, asi que hay que volver a
+   plantarse en la misma serie del mismo ejercicio; si la recortaste por debajo,
+   en la ultima que quede. El peso y las reps que ya tenias marcados se
+   conservan: no son parte de lo que acabas de cambiar. */
+function reanclar(prev){const w=curW,r=curReps;
+  steps=buildSteps(curRoutine);
+  let i=steps.findIndex(x=>x.id===prev.id&&x.setNo===prev.setNo&&x.side===prev.side);
+  if(i<0)for(let j=steps.length-1;j>=0;j--){if(steps[j].id===prev.id){i=j;break;}}
+  stepi=(i<0)?Math.min(stepi,steps.length-1):i;
+  touchSess(stepi);renderStep();
+  const ahora=steps[stepi];
+  if(ahora&&ahora.id===prev.id){
+    if(w!=null){curW=w;const lw=$("lw");if(lw)lw.innerHTML=fmtW(curW)+' <small>'+(ahora.unit||'kg')+'</small>';}
+    if(r!=null){curReps=r;const lr=$("lr");if(lr)lr.textContent=curReps;}}}
 function frame(inner,opt){opt=opt||{};const s=steps[stepi],prog=Math.round(stepi/steps.length*100);
   const conFicha=(opt.info!==false);
   return `<div class="gtop"><div class="icbtn" onclick="guidedBack()">${ic("left")}</div>
@@ -2065,6 +2014,7 @@ function frame(inner,opt){opt=opt||{};const s=steps[stepi],prog=Math.round(stepi
     <div class="gcount">${s.exI}/${s.exN}</div><div class="icbtn" onclick="guidedExit()" role="button" tabindex="0" aria-label="Salir" title="Salir (se guarda solo)">${ic("close")}</div></div>
     <div class="stage${opt.rest?" isrest":""}">${opt.rest?"":`<div class="setlab">${s.label}</div><div class="exname">${s.name}</div>`}${(conFicha&&typeof ZONA!=="undefined"&&ZONA[s.id])?'<div class="zonatag">'+ZONA[s.id]+'</div>':''}
     ${inner}
+    ${conFicha?seriesBox(s):""}
     ${conFicha?fichaEjercicio(s):""}
     ${conFicha?`<button class="skip" onclick="guidedSkipExercise()">Saltar ejercicio ${ic("skip","xs")}</button>`:""}</div>`;}
 
@@ -2160,7 +2110,6 @@ function renderRest(sec){clearTimer();restR=sec;restEnds=Date.now()+sec*1000;
       <circle id="rarc" cx="100" cy="100" r="90" stroke="var(--energy-strong)" stroke-width="13" fill="none" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="0"/></g></svg>
       <div class="val"><b id="rv" aria-live="polite">${fmtDur(restR,sec)}</b><span>${sec>=120?"minutos":"segundos"}</span></div></div>
     <div class="nextup">${esc(nextStepLabel())}</div>
-    <div class="restadj"><button class="gbtn sec" onclick="adjRest(-30)">−30 s</button><button class="gbtn sec" onclick="adjRest(30)">+30 s</button></div>
     <button class="gbtn rest" onclick="skipRest()">Saltar descanso ${ic("next","sm")}</button>`,{info:false,rest:true});
   const arc=$("rarc"),CC=2*Math.PI*90;
   const upd=()=>{restR=Math.max(0,Math.ceil((restEnds-Date.now())/1000));const el=$("rv");
@@ -2376,7 +2325,7 @@ function wipe(){
   if(!confirm("Esto borra TODO de este dispositivo: racha, historial, pesos registrados, vistos, plan semanal, peso corporal y recordatorios.\n\n¿Seguro? Exporta antes tu copia de seguridad si no quieres perderlo."))return;
   if(!confirm("Última confirmación: no hay vuelta atrás."))return;
   Object.keys(localStorage).filter(k=>k.indexOf("rp_")===0).forEach(k=>localStorage.removeItem(k));
-  sessionLog={};sessionLogKey=null;qState={};calSel=null;
+  sessionLog={};sessionLogKey=null;calSel=null;
   renderSettings();renderHome();alert("Listo, este dispositivo quedó en blanco.");}
 
 async function forceUpdate(b){if(b&&b.textContent!=null)b.textContent="Actualizando…";try{if("serviceWorker" in navigator){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.update().catch(()=>{})));}if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}}catch(e){}setTimeout(()=>location.reload(),300);}
@@ -2394,7 +2343,6 @@ function resumeGuided(k){curRoutine=k;const sess=loadSess();
   stepi=(sess&&sess.stepi>0&&sess.stepi<steps.length)?sess.stepi:0;
   curW=null;curReps=null;show("guided");renderStep();}
 window.addEventListener("popstate",function(e){
-  if($("ov")&&$("ov").classList.contains("show")){$("ov").classList.remove("show");$("ovFrame").src="";return;}
   var fv=$("finov");if(fv&&fv.classList.contains("show")){fv.classList.remove("show");finRescue=null;return;}
   var pv=$("planov");if(pv&&pv.classList.contains("show")){pv.classList.remove("show");return;}
   var sv=$("swapov");if(sv&&sv.classList.contains("show")){sv.classList.remove("show");return;}
@@ -2415,18 +2363,10 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){window.
 /* las figuras viven en figuras.js; si no cargara, la app sigue funcionando */
 Object.assign(FRAMES,(window.FIG&&FIG.FRAMES)||{});
 Object.assign(DIAG,(window.FIG&&FIG.DIAG)||{});
-/* Los ejercicios nuevos de v25 no tienen figura propia todavia. Donde existe
-   un movimiento equivalente ya dibujado, se reutiliza su figura; el resto se
-   queda sin dibujo y los pasos de texto hacen el trabajo. Dibujarlas es una
-   tarea aparte: son 125 fotogramas sobre la misma rejilla y no se improvisan. */
-const FIGALIAS={gato_camello_pie:"gato_camello", flexiones_inclinadas:"flexiones",
-  sentadilla_aire:"sentadilla_goblet", elevacion_talones_pie:"elevacion_pantorrilla",
-  vuelos_posteriores_ligeros:"reverse_fly", bisagra_cadera_pie:"peso_muerto_rumano_db",
-  pec_deck_inverso:"reverse_fly",
-  abduccion_banda:"abductores_maquina", banda_pull_apart:"reverse_fly",
-  flexiones_pared:"flexiones", puente_gluteo_banda:"glute_bridge",
-  remo_banda:"remo_polea", sentadilla_silla:"sentadilla_goblet",
-  zancada_estatica:"sentadilla_bulgara"};
+/* Ya no queda ningun ejercicio sin dibujo propio. El unico prestamo que sigue
+   en pie es honesto: los vuelos posteriores ligeros del calentamiento SON un
+   reverse fly, solo que con menos peso, asi que comparten figura. */
+const FIGALIAS={vuelos_posteriores_ligeros:"reverse_fly"};
 Object.keys(FIGALIAS).forEach(function(id){var src=FIGALIAS[id];
   if(!DIAG[id]&&DIAG[src])DIAG[id]=DIAG[src];
   if(!FRAMES[id]&&FRAMES[src])FRAMES[id]=FRAMES[src];});

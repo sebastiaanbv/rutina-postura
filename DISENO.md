@@ -182,16 +182,24 @@ Manda la **tarjeta de hoy**: superficie oscura, título a 30 px, icono de la fam
 Estados de la tarjeta de hoy: hoy toca · en curso (manda sobre todo) · ya entrenaste · día de descanso.
 
 ### Detalle de rutina
-Cabecera con título a 30 px y **anillo de avance**. Los ejercicios en **una tarjeta por bloque** (calentamiento · entrenamiento · opcionales), cada uno una fila.
+Cabecera con título a 30 px y **anillo de avance**. Los ejercicios en **una tarjeta por bloque** (calentamiento · entrenamiento · bloque secundario · opcionales), cada uno una fila.
+
+La fila **no despliega nada**: tocarla entra al ejercicio. Hasta v26 abría un panel acordeón con los pasos, la figura, el vídeo, la curva y los ajustes — una vista previa que obligaba a mirar el ejercicio antes de hacerlo y partía cada dato en dos sitios. Ahora todo eso vive dentro, y la lista vuelve a ser lo que dice ser: una lista.
+
+Un opcional que agregas con el `+` **sube al bloque de entrenamiento** y pasa a ser una fila normal, con su botón de empezar y contando en el anillo; abajo solo quedan los que aún no has agregado. Para que el orden que se ve y el que se ejecuta no puedan divergir, los dos salen de `routineBuckets(k)`.
 
 Estados de la fila: pendiente · **siguiente** (filo verde y su botón de empezar en verde sólido; es lo único que destaca) · hecha (encoge: se ocultan meta y etiquetas, la figura se atenúa, de 108 a 71 px).
 
 Abajo, barra fija con dos acciones: continuar y finalizar.
 
 ### Modo guiado
-Manda **la serie**: pastilla con "Serie 2 de 4", nombre del ejercicio, y los controles de peso y reps inmediatamente debajo. La ficha de cómo se hace —figura, avisos, pasos y vídeo— va **después**, plegada, y viene cerrada si ya has hecho ese ejercicio tres veces o más.
+Manda **la serie**: pastilla con "Serie 2 de 4", nombre del ejercicio, y los controles de peso y reps inmediatamente debajo. Bajo la acción, el **único ajuste que se edita a mano**: cuántas series. Arranca en la del programa, con "Sugeridas: N" debajo, y si la cambias ese texto se convierte en el botón para volver. La ficha de cómo se hace —figura, avisos, pasos y vídeo— va **después**, plegada, y viene cerrada si ya has hecho ese ejercicio tres veces o más.
 
-El descanso es pantalla propia: contador, ±30 s y saltar. No hereda la ficha del ejercicio.
+**El tiempo no se edita.** Descansos y sostenes los fija el programa: el criterio para ponerlos ya está tomado y ofrecer un stepper solo invita a deshacerlo sin datos. Cambiar las series, en cambio, responde a algo que solo sabes tú — cómo te sientes hoy y cuánto tiempo tienes.
+
+Subir o bajar series rehace la lista de pasos entera, así que `reanclar()` te devuelve a la misma serie del mismo ejercicio (o a la última que quede, si la recortaste) y conserva el peso y las reps que ya tenías marcados. No se puede bajar por debajo de lo ya registrado hoy ni por debajo de la serie en curso.
+
+El descanso es pantalla propia: contador y saltar. No hereda la ficha del ejercicio, y ya no lleva ±30 s — por lo mismo que el resto del tiempo no se edita; para adelantarlo está saltar.
 
 ### Calendario
 Resumen del mes arriba, calendario, y las sesiones del día seleccionado con icono y color de familia. El detalle se despliega **dentro** de la tarjeta de su sesión.
@@ -265,16 +273,39 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
   un `cache.add()` aparte con `catch`. Si entra en `ASSETS` y su descarga falla, el service
   worker no se instala y la app pierde el offline por completo.
 - **Superseries antagonistas.** Es la palanca con respaldo para recortar el tiempo de sesión
-  sin tocar descansos: los tres días quedaron en 68-74 min. Necesita un flag de «par» entre dos
-  ejercicios que alterne series y cuente el descanso solo al cerrar el par.
-- **Las figuras de los ejercicios nuevos.** De los 86 ejercicios hay **61 dibujados**; otros 14
-  reutilizan la figura de un movimiento equivalente vía `FIGALIAS`, y **once se quedan sin dibujo**
-  y los pasos de texto hacen el trabajo: los calentamientos de pie de v25 y, de v26, la marcha en
-  el sitio, el equilibrio a una pierna, la caminata del granjero, el press Pallof, las piernas en
-  la pared y la respiración. No es casual que sean estos: son sostenes y desplazamientos, lo que
-  peor se cuenta con dos fotogramas fijos. Dibujarlas no se improvisa: van sobre la misma rejilla,
-  con el suelo siempre a la misma altura, y si se hacen con otro criterio quedarán once buenas y
-  sesenta y una de otra app.
+  sin tocar descansos: los tres días quedaron en 66-72 min. Necesita un flag de «par» entre dos
+  ejercicios que alterne series y cuente el descanso solo al cerrar el par. El especialista que
+  revisó las rutinas en v27 la señaló otra vez, y para el bloque secundario en concreto.
+
+### Cerrado en v27
+
+- ~~La vista previa del ejercicio.~~ Tocar una fila desplegaba un panel con los pasos, la figura,
+  el editor de dosificación, el registro rápido, la curva y el vídeo. Todo eso ya existía dentro
+  del ejercicio, así que era una segunda copia de la misma pantalla con menos sitio. Se fue el
+  panel, y con él `toggleEx`, `doseBox`, la familia `quickBox` y el overlay `#ov` del vídeo. Se
+  pierde el registro de series desde la lista; es el precio de que tocar signifique entrar.
+- ~~El tiempo era editable y las series no estaban donde se necesitan.~~ Ahora el stepper de
+  series vive dentro del ejercicio y el descanso lo fija el programa. Misma clave de siempre,
+  `rp_doses`, así que el cambio se ve al instante en la meta de la tarjeta, en el anillo y en el
+  `~N min` de la cabecera.
+- ~~Agregar un opcional lo dejaba abajo.~~ El `+` lo sube al bloque de entrenamiento como un
+  ejercicio más, con un chip «Quitar» para deshacer.
+- ~~Treinta ejercicios sin vídeo.~~ Los 91 tienen uno, y **cada identificador se comprobó contra
+  el oembed de YouTube antes de escribirlo**: once caracteres al azar apuntan a un vídeo real y
+  arbitrario, que es exactamente la trampa que v26 dejó anotada.
+- ~~Las figuras que faltaban.~~ De 91 ejercicios, **90 tienen figura propia**. Se dibujaron 29
+  nuevas sobre la misma rejilla del resto — suelo a 150, cuerpo `#cfeede`, aparatos `#46596f`,
+  flecha de movimiento `#5fe39a` —: las 16 que no tenían nada, y las 13 que salían del paso con
+  la figura prestada de otro movimiento, que en casi todas engañaba (al pec deck inverso le tocaba
+  una de mancuernas; a la sentadilla al aire, una con mancuerna). `FIGALIAS` se queda con un solo
+  préstamo, el honesto: los vuelos posteriores ligeros **son** un reverse fly con menos peso.
+- ~~Las rutinas de gimnasio no eran las que se entrenan.~~ Fuera el remo con mancuerna, los
+  encogimientos y el peso muerto rumano, que no se hacían. Quitarlos abría dos agujeros y los dos
+  se taparon: los isquios caían a 3 series semanales contra 11 del cuádriceps (entra el curl
+  femoral sentado, que trabaja el isquio con la cadera flexionada y no repite al acostado), y la
+  semana quedaba en 11 series de tirón vertical contra 4 de horizontal (el remo sentado sube a 5
+  y entra el pullover en polea). En empuje, el cruce de poleas sale de opcionales al bloque fijo
+  como bajo-alto: cubre la porción clavicular sin el banco inclinado, que le molesta el manguito.
 
 ### Cerrado en v26
 
