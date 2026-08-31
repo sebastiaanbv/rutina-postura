@@ -278,6 +278,39 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
   ejercicios que alterne series y cuente el descanso solo al cerrar el par. El especialista que
   revisó las rutinas en v27 la señaló otra vez, y para el bloque secundario en concreto.
 
+### Cerrado en v29
+
+- ~~Los vídeos eran rutinas enteras, no el ejercicio.~~ De los 91, **51 pasaban del minuto** y la
+  mediana era de 1:44; el peor duraba 13:39 y en `caminadora` ni siquiera había demostración, era
+  una charla sobre si conviene la cinta o la movilidad. Consultar la técnica a mitad de una serie
+  no funciona así. Ahora los 91 duran **75 s o menos**: 41 no llegan a 30 s, 48 se quedan entre 31
+  y 60, y solo dos pasan de un minuto (74 s y 61 s). Se cambiaron 52 y se conservaron 39.
+- **El criterio de v27 era insuficiente.** Comprobar el identificador contra el oembed sólo prueba
+  que el vídeo existe, no que muestre el ejercicio: por eso entraron rutinas de diez minutos. El
+  criterio ahora tiene cuatro filtros, y los cuatro se comprueban leyendo la página del vídeo:
+  dura entre 8 y 75 s, es incrustable (`playableInEmbed`), el título no lleva marcas de rutina o
+  recopilación (`rutina`, `workout`, `top 5`, «N minutos», «día N»…), y **casa con los términos
+  obligatorios de ese ejercicio en español y en inglés**. Esos términos separan los pares que se
+  confunden solos: el remo con mancuerna del remo en polea, el femoral acostado del sentado, el
+  abductor del aductor. No es un adorno — el vídeo de `curl_femoral` llevaba desde v27 mostrando
+  el femoral **sentado** en la clave del **acostado**, y este filtro fue lo que lo cazó.
+- ~~El mismo vídeo en dos ejercicios distintos.~~ `balanceo_pierna_frontal` y
+  `balanceo_pierna_lateral` compartían uno de 5:51. La auditoría ahora falla si un identificador
+  aparece en dos claves.
+- **`VID` admite recorte y orientación.** Cada valor puede ser `"id"`, `"id|v"` o
+  `"id|h|inicio|fin"`, y `vidInfo()` normaliza las tres formas para que el resto del código no
+  tenga que saber cuál es. El recorte no hizo falta esta vez —los 91 encontraron clip propio—
+  pero queda como salida para el ejercicio que algún día no tenga uno: mejor treinta segundos
+  recortados de un vídeo largo que soltar los ocho minutos enteros. Cuando hay recorte, el enlace
+  «Abrir en YouTube» lleva `&t=` para caer en el mismo punto.
+- ~~Un Short vertical se veía como un sello.~~ Casi todos los clips de un solo ejercicio son 9:16,
+  y la caja estaba fija en 16:9. Con `.videobox.vert` la caja se estrecha y se centra en vez de
+  deformar el vídeo: en un teléfono de 375×812 el reproductor pasa de 109×193 a 276×491. De los
+  91 vídeos, 52 son verticales.
+- ~~El primer toque de «Ver video» no hacía nada.~~ `gVidOn` es global y no se reiniciaba al
+  cambiar de ejercicio, así que si dejabas un vídeo abierto y avanzabas, el toque siguiente sólo
+  servía para apagar una bandera que ya no correspondía a nada en pantalla.
+
 ### Cerrado en v28
 
 - ~~No había forma de anotar una rutina que ya te sabes de memoria y hiciste sin abrir la app.~~

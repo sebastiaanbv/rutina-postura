@@ -575,6 +575,11 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .videobox.show{display:block}
   .ratio{position:relative;width:100%;padding-top:56.25%}
   .ratio iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  /* casi todos los clips de un solo ejercicio son Shorts verticales: dentro de
+     la caja 16:9 quedarian como un sello en medio de dos franjas negras, asi
+     que la caja se estrecha y se centra en vez de deformar el video */
+  .videobox.vert{max-width:min(100%,34vh);margin-left:auto;margin-right:auto}
+  .videobox.vert .ratio{padding-top:177.78%}
   .ytlink{display:inline-block;color:var(--accent-ink);font-size:var(--t-sm);
     margin:var(--s2) 2px 0;text-decoration:none;font-weight:var(--w-med)}
   .target{text-align:center;font-size:var(--t-lg);font-weight:var(--w-bold);margin:var(--s5) 0 var(--s1)}
@@ -897,37 +902,37 @@ const FRAMES={};
    archivo, asi que no habia forma de saber cuantas series
    tenia un ejercicio sin ejecutar la app. */
 const VID={
-abductores_maquina:"2KkuFEf7aZs", aductores_maquina:"dycKfaquQWo", aperturas_db:"FBaAsqAsQsc",
-bird_dog:"JM9MLYqMLjs", chin_tuck:"3N_sJ0svXCw", colgado_escapular:"XOJ3JdpalPI",
-cruce_poleas:"VhrLZ26mch8", cuello_extension_manual:"PevfMtnAPSE", cuello_flexion_supina:"ORA0EwQ1yW0",
-cuello_lateral_manual:"9J2HmPZd8FU", curl_barra:"MqYBweUzDT4", curl_biceps_db:"P1L6CD-tSnE",
-curl_concentrado:"ogwifBtU7aM", curl_femoral:"POgzKaM92X4", curl_martillo_cruzado:"eBO40t1WbP0",
-curl_predicador:"I3xmIfDJGbM", dead_bug:"wCg6qs5L3-U", elevacion_pantorrilla:"L4YnlvVLxtU",
-elevaciones_laterales:"zBqZqAjCnR4", elevador_escapula:"CYXjNf2whCw", encogimientos_db:"nZMqsAbKuVE",
-extension_cuadriceps:"64TOH_2XkEQ", extension_toracica:"_KVE3qEytJ4", extension_triceps_db:"PyNaiTP1PIA",
-extension_triceps_polea:"fyY-ubX23j8", face_yoga:"vWIebuU1xFo", flexiones:"Yd79XBIdDnI",
-flexor_cadera:"8kfH_OhZNAg", fondos_banco:"V1K9BFx9OeM", fondos_paralelas:"cvyZAIa7heU",
-gato_camello:"MSBOBAIeLqI", glute_bridge:"R1OXPHRqehw", hack_squat:"itmlCUc0P3k",
-hip_thrust_db:"bcw_C8bPw1g", isometricos_cervicales:"Ik6U4kIMmsg", jalon_pecho:"xozEWF56NRQ",
-mandibula_platisma:"00NGq91xgtM", maquina_gluteo:"HCuDBzeh0F8", mewing_lengua:"5JYZkFErMiA",
-movilidad_cervical:"CdGR0c3UHb4", open_book:"afnbgpW7Fx0", pec_deck:"WtMmRk1SCEM",
-pec_puerta:"DK1FtsnIAD0", peso_muerto_rumano_db:"D2Ac4HyXsB8", prensa_inclinada:"ELhU12oRYT0",
-press_banca_db:"jWnGhz1f5D4", press_hombro_db:"Hbt2fEa2cTU", remo_db:"uV-mE3rT7g4",
-remo_inclinado:"vN8xskk-7G8", remo_invertido:"clJOKVg4Ce8", remo_maquina:"TNnWsZfWlLI",
-remo_polea:"D_UXjlrZIBw", reverse_fly:"xvEkgGUrGPM", rotacion_externa_db:"7jSfYgk8Bhs",
-sentadilla_bulgara:"bYWD8-UrFis", sentadilla_goblet:"PDfLkpT-KTk", sentadilla_smith:"4r9o_rqFZX4",
-tmj_mandibula:"2DM5X2NjTb8", trapecio_superior:"jgywvs9ZHsE", wall_angels:"GWTEYEXsSo4",
-zancadas_db:"NzrGe6bHI5M",
-abduccion_banda:"TLiIalBXl-M", apertura_toracica_rack:"5wv670fHuG4", balanceo_pierna_frontal:"wdAgcX0OUa8",
-balanceo_pierna_lateral:"wdAgcX0OUa8", banda_pull_apart:"w2wykk8ym1Q", bisagra_cadera_pie:"v179-qd579I",
-caminadora:"0MyU23DAzWQ", caminata_granjero:"oojPmgON094", circulos_brazos:"sytmEGA0HKU",
-curl_femoral_sentado:"FTOmWH1AZjo", elevacion_talones_pie:"qdogJJnXEmU", equilibrio_unipodal:"Cx1xXGGNFlg",
-extension_triceps_sobrecabeza_polea:"XwoUFSUHeDs", flexiones_inclinadas:"raM88m58n0o", flexiones_pared:"mTs83kUu7rc",
-gato_camello_pie:"KiFdkjRkTjI", hiperextension_banco:"-Mx-9yxCuco", marcha_sitio:"b_xiEh90Jc0",
-pallof_banda:"lCeRh2n0hTw", pec_deck_inverso:"Y9UXeMiAJSE", piernas_pared:"_NLAKv1WtDc",
-press_frances:"dRIdjDmkggY", puente_gluteo_banda:"bcuxKS2qRGY", pullover_polea:"b85nuVcpnlo",
-remo_banda:"yF8-o7chZf4", respiracion_diafragmatica:"h8rvNIO1f2w", sentadilla_aire:"qsAkuNORgmk",
-sentadilla_silla:"qz1aLwpuuGo", vuelos_posteriores_ligeros:"P0WFclYCZL4", zancada_estatica:"F4v1bBH3EPs"
+abduccion_banda:"qgwrbh4T1m0", abductores_maquina:"2KkuFEf7aZs|v", aductores_maquina:"76uNT_VMhPI|v",
+apertura_toracica_rack:"0RwQ5m-fjNA", aperturas_db:"FBaAsqAsQsc|v", balanceo_pierna_frontal:"qkPcARrI-F0",
+balanceo_pierna_lateral:"6aw8CAH_65Y", banda_pull_apart:"A9Ep05sIW-M", bird_dog:"JM9MLYqMLjs|v",
+bisagra_cadera_pie:"Gs6--_Mk3WE", caminadora:"kn9OddlhPvY", caminata_granjero:"aVRZmmXpFCo",
+chin_tuck:"3N_sJ0svXCw|v", circulos_brazos:"_zNxZGOjNXk", colgado_escapular:"XOJ3JdpalPI|v",
+cruce_poleas:"nP9KArjEDeU|v", cuello_extension_manual:"dQzoJraNKwc", cuello_flexion_supina:"ORA0EwQ1yW0",
+cuello_lateral_manual:"9J2HmPZd8FU", curl_barra:"MqYBweUzDT4|v", curl_biceps_db:"ll0bUuWH7Ac|v",
+curl_concentrado:"oI7LxnEFmZU|v", curl_femoral:"C9YlA0vmSHA", curl_femoral_sentado:"CBCPBnMzsMI",
+curl_martillo_cruzado:"eBO40t1WbP0", curl_predicador:"I3xmIfDJGbM|v", dead_bug:"wCg6qs5L3-U|v",
+elevacion_pantorrilla:"L4YnlvVLxtU", elevacion_talones_pie:"1BL4681pIz4", elevaciones_laterales:"OCoQIC9ojAA",
+elevador_escapula:"CYXjNf2whCw|v", encogimientos_db:"xeJjTRIYOIM", equilibrio_unipodal:"6PJwitXoxVQ",
+extension_cuadriceps:"zfJOoHBGXa8", extension_toracica:"_KVE3qEytJ4|v", extension_triceps_db:"nYYUSVml9As|v",
+extension_triceps_polea:"fyY-ubX23j8|v", extension_triceps_sobrecabeza_polea:"JJ3aW2IcE74|v", face_yoga:"vWIebuU1xFo|v",
+flexiones:"cWrJFIdTje0|v", flexiones_inclinadas:"uCTbmCjiF7Y", flexiones_pared:"p8ZpiJTMKew|v",
+flexor_cadera:"8kfH_OhZNAg|v", fondos_banco:"4ua3MzaU0QU|v", fondos_paralelas:"cvyZAIa7heU|v",
+gato_camello:"MSBOBAIeLqI|v", gato_camello_pie:"15MVyE5UEBw|v", glute_bridge:"R1OXPHRqehw|v",
+hack_squat:"itmlCUc0P3k|v", hip_thrust_db:"_DUsaQwJioc", hiperextension_banco:"xiZJN2pBoJQ",
+isometricos_cervicales:"Ik6U4kIMmsg|v", jalon_pecho:"3e-76jcA91w|v", mandibula_platisma:"00NGq91xgtM|v",
+maquina_gluteo:"HCuDBzeh0F8|v", marcha_sitio:"1B0nQ-x1Lr4", mewing_lengua:"6lo9TbXTrTQ|v",
+movilidad_cervical:"CdGR0c3UHb4|v", open_book:"afnbgpW7Fx0|v", pallof_banda:"fhSXLtRAaFI",
+pec_deck:"hmZrepX1DqU", pec_deck_inverso:"Of-lAw0bv_8|v", pec_puerta:"DK1FtsnIAD0|v",
+peso_muerto_rumano_db:"D2Ac4HyXsB8|v", piernas_pared:"OVJzZP3aP4E", prensa_inclinada:"z1gYlpqWTMY",
+press_banca_db:"QTKX-FKoeFA|v", press_frances:"CAUWI4sNPKk|v", press_hombro_db:"Hbt2fEa2cTU|v",
+puente_gluteo_banda:"7OwCakAdfS8", pullover_polea:"ESxrBlMSlIk", remo_banda:"KmpDowjBY2A",
+remo_db:"uV-mE3rT7g4|v", remo_inclinado:"vN8xskk-7G8|v", remo_invertido:"dRJH9Gepwu0",
+remo_maquina:"TNnWsZfWlLI|v", remo_polea:"D_UXjlrZIBw|v", respiracion_diafragmatica:"YVaGUgFIoiw",
+reverse_fly:"xvEkgGUrGPM|v", rotacion_externa_db:"wQdfeB80fqo", sentadilla_aire:"jCJ0jrjrg7I|v",
+sentadilla_bulgara:"bYWD8-UrFis|v", sentadilla_goblet:"PDfLkpT-KTk|v", sentadilla_silla:"u6hh6vOgXNI",
+sentadilla_smith:"iCOBGhyK4sQ", tmj_mandibula:"2DM5X2NjTb8|v", trapecio_superior:"jgywvs9ZHsE|v",
+vuelos_posteriores_ligeros:"9kxW6XJzcF0", wall_angels:"gr3i4mU5kBc", zancada_estatica:"K69_pVU11qs|v",
+zancadas_db:"NzrGe6bHI5M|v"
 };
 const ZONA={
 abduccion_banda:"Cadera", apertura_toracica_rack:"Espalda alta", balanceo_pierna_frontal:"Cadera",
@@ -1289,8 +1294,20 @@ function show(v){document.querySelectorAll(".view").forEach(x=>x.classList.remov
   document.querySelectorAll(".nav .tab").forEach(t=>{const on=t.dataset.v===v;if(on)t.setAttribute("aria-current","page");else t.removeAttribute("aria-current");});
   const main=["home","history","progress","settings"].includes(v);$("nav").classList.toggle("hide",!main);
   document.querySelectorAll(".nav .tab").forEach(a=>a.classList.toggle("on",a.dataset.v===v));window.scrollTo(0,0);}
-function embed(id){return "https://www.youtube-nocookie.com/embed/"+id+"?rel=0&modestbranding=1&playsinline=1";}
-function watch(id){return "https://www.youtube.com/watch?v="+id;}
+/* VID guarda "id" o "id|orientacion|inicio|fin". El sufijo existe porque de
+   unos pocos ejercicios no hay ningun clip corto decente, y para esos se
+   recorta el tramo util de un video largo en vez de soltar los ocho minutos
+   enteros. vidInfo normaliza las dos formas para el resto del codigo. */
+function vidInfo(k){const r=(typeof VID!=="undefined")?VID[k]:null;if(!r)return null;
+  const p=String(r).split("|");
+  return {id:p[0],vert:p[1]==="v",s:+p[2]||0,e:+p[3]||0};}
+function embed(v){const i=(typeof v==="string")?{id:v,s:0,e:0}:v;
+  return "https://www.youtube-nocookie.com/embed/"+i.id+"?rel=0&modestbranding=1&playsinline=1"
+    +(i.s?"&start="+i.s:"")+(i.e?"&end="+i.e:"");}
+/* el enlace externo cae en el mismo punto que el embed: mandar a alguien al
+   segundo cero de un video de ocho minutos es justo lo que queriamos evitar */
+function watch(v){const i=(typeof v==="string")?{id:v,s:0}:v;
+  return "https://www.youtube.com/watch?v="+i.id+(i.s?"&t="+i.s:"");}
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
 /* Enter y Espacio activan cualquier control marcado como boton o casilla */
 document.addEventListener("keydown",function(e){
@@ -1967,7 +1984,7 @@ let gInfoOpen=null;
 function fichaEjercicio(s){
   /* no todos los ejercicios tienen video: sin esta guarda el enlace sale como
      watch?v=undefined y el iframe carga un embed vacio */
-  const vid=(typeof VID!=="undefined")?VID[s.id]:null;
+  const vid=vidInfo(s.id);
   const veces=(loadLogs()[s.id]||[]).length;
   const abierta=(gInfoOpen===null)?(veces<3):gInfoOpen;
   const caveat=s.caveat?'<div class="caveatbox">'+ic("alert","sm")+' Evidencia floja: los ejercicios faciales muestran, en el mejor caso, mejoras modestas tras meses. Hazlo sin grandes expectativas.</div>':'';
@@ -1984,7 +2001,7 @@ function fichaEjercicio(s){
     ${caveat}${opt}
     <ul class="glist">${s.steps.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>
     ${vid?`<div class="vbtn" onclick="toggleGVid()">${ic("play","sm solid")} Ver video</div>
-    <div id="gvid" class="videobox"><div class="ratio"><iframe id="gvframe" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>
+    <div id="gvid" class="videobox${vid.vert?" vert":""}"><div class="ratio"><iframe id="gvframe" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>
     <div><a class="ytlink" target="_blank" rel="noopener" href="${watch(vid)}">Abrir en YouTube ${ic("external","xs")}</a></div>`:``}
     </div></details>`;}
 /* ---- lo unico ajustable a mano: cuantas series haces ----
@@ -2096,7 +2113,7 @@ function restDone(){clearRestNotif();
 /* ==== fin [S4] ============================================================ */
 
 let gVidOn=false;
-function toggleGVid(){const b=$("gvid");if(!b)return;gVidOn=!gVidOn;if(gVidOn){$("gvframe").src=embed(VID[steps[stepi].id]);b.classList.add("show");}else{$("gvframe").src="";b.classList.remove("show");}}
+function toggleGVid(){const b=$("gvid");if(!b)return;gVidOn=!gVidOn;if(gVidOn){$("gvframe").src=embed(vidInfo(steps[stepi].id));b.classList.add("show");}else{$("gvframe").src="";b.classList.remove("show");}}
 /* Un sosten de 30 s se lee mejor en segundos; ocho minutos de caminadora, en
    mm:ss. El segundo argumento es la duracion total, para que el formato no
    cambie a mitad de cuenta cuando baja de 120. */
@@ -2140,7 +2157,9 @@ function renderRest(sec){clearTimer();restR=sec;restEnds=Date.now()+sec*1000;
   tickFn=upd;tId=setInterval(upd,250);}
 function skipRest(){clearTimer();clearRestNotif();advance();}
 function advance(){clearTimer();const prev=steps[stepi];stepi++;
-  if(prev&&(stepi>=steps.length||steps[stepi].id!==prev.id))gInfoOpen=null;
+  /* gVidOn es global: sin resetearlo, si dejabas un video abierto y avanzabas,
+     el primer toque de "Ver video" del ejercicio siguiente no abria nada */
+  if(prev&&(stepi>=steps.length||steps[stepi].id!==prev.id)){gInfoOpen=null;gVidOn=false;}
   if(prev&&(stepi>=steps.length||steps[stepi].id!==prev.id))markCheck(curRoutine,prev.id,true);
   touchSess(Math.min(stepi,steps.length-1));
   if(stepi>=steps.length)finish();else renderStep();}
