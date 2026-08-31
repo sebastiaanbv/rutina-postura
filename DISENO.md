@@ -203,6 +203,7 @@ El descanso es pantalla propia: contador y saltar. No hereda la ficha del ejerci
 
 ### Calendario
 Resumen del mes arriba, calendario, y las sesiones del día seleccionado con icono y color de familia. El detalle se despliega **dentro** de la tarjeta de su sesión.
+La cabecera del día lleva **Registrar rutina**: elige el día y añade a mano una sesión que hiciste y nunca quedó anotada. Solo aparece en días pasados o en hoy. Lo añadido a mano se marca como tal y se puede quitar; la racha se recuenta desde el historial, que es la única fuente de qué días hubo.
 
 ### Progreso
 Un dato hero (índice de fuerza) y seis bloques con el mismo ritmo. Los récords van justo detrás del hero, porque son la recompensa, y en ámbar.
@@ -276,6 +277,17 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
   sin tocar descansos: los tres días quedaron en 66-72 min. Necesita un flag de «par» entre dos
   ejercicios que alterne series y cuente el descanso solo al cerrar el par. El especialista que
   revisó las rutinas en v27 la señaló otra vez, y para el bloque secundario en concreto.
+
+### Cerrado en v28
+
+- ~~No había forma de anotar una rutina que ya te sabes de memoria y hiciste sin abrir la app.~~
+  El calendario deja registrarla en su día desde la cabecera del día seleccionado. La sesión se
+  inserta en su sitio dentro de `rp_history` (que va de más nueva a más vieja y se recorta a 200),
+  se marca `manual` con un `mid` propio para poder quitarla, y `recalcStreak()` vuelve a contar la
+  racha y el total desde el historial en vez de fiarse de lo guardado.
+- ~~El día de hoy salía con un borrón negro en el calendario.~~ La celda usaba la clase `today`,
+  que es la de la tarjeta oscura de la portada: heredaba su fondo `--hero` y su margen de 16 px.
+  Ahora se llama `istoday` y hoy se marca solo con la circunferencia azul.
 
 ### Cerrado en v27
 

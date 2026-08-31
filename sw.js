@@ -1,4 +1,4 @@
-const CACHE = "mi-rutina-v27";
+const CACHE = "mi-rutina-v28";
 const ASSETS = ["./", "index.html", "figuras.js", "manifest.webmanifest", "icon-192-v25.png", "icon-512-v25.png",
   "icon-maskable-512-v25.png", "icon-mono-512-v25.png",
   "apple-touch-icon-v25.png", "favicon.ico"];

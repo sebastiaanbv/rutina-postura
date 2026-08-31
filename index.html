@@ -632,7 +632,9 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .calcell .dnum{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
     justify-content:center;font-size:var(--t-sm);font-weight:var(--w-med);color:var(--tx2)}
   .calcell.has .dnum{color:var(--tx);font-weight:var(--w-semi)}
-  .calcell.today .dnum{border:2px solid var(--primary);color:var(--primary-ink)}
+  /* ojo: la clase se llama "istoday" y no "today" a proposito. ".today" es la
+     tarjeta oscura de la portada y se colaba aqui pintando la celda de negro */
+  .calcell.istoday .dnum{border:2px solid var(--primary);color:var(--primary-ink)}
   .calcell.sel .dnum{background:var(--primary);color:var(--on-primary)}
   .calcell .dots{display:flex;gap:3px;height:6px;align-items:center}
   .calcell .cdot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
@@ -655,6 +657,22 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .hitem .dt{color:var(--mut);font-size:var(--t-sm);margin-top:2px;text-transform:capitalize}
   .hitem .dt2{font-size:var(--t-xs);color:var(--mut);font-weight:var(--w-med);margin-top:3px}
   .hitem .go{color:var(--mut);font-size:var(--t-lg)}
+  /* cabecera del dia elegido: fecha a la izquierda y el boton de anadir a mano
+     a la derecha, para poder registrar una rutina que no se anoto ese dia */
+  .caldayhead{display:flex;align-items:center;gap:var(--s2);margin:2px 2px 8px}
+  .caldayhead .grouptitle{margin:0;flex:1}
+  .calladd{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);
+    background:var(--card);color:var(--primary-ink);border-radius:var(--r-pill);
+    padding:7px 13px 7px 10px;font-size:var(--t-xs);font-weight:var(--w-bold);
+    font-family:inherit;cursor:pointer;flex:0 0 auto;box-shadow:var(--sh-card)}
+  .calladd:active{transform:scale(.97)}
+  .calladd .ic{width:16px;height:16px}
+  .dayblock .mrow{display:flex;align-items:center;justify-content:space-between;
+    gap:var(--s2);padding:0 14px 11px}
+  .dayblock .mtag{font-size:var(--t-2xs);font-weight:var(--w-bold);letter-spacing:.04em;
+    text-transform:uppercase;color:var(--mut)}
+  .dayblock .mdel{border:none;background:none;color:var(--mut);font-family:inherit;
+    font-size:var(--t-xs);font-weight:var(--w-semi);cursor:pointer;padding:4px 2px}
   .calsum{font-size:var(--t-sm);color:var(--mut);font-weight:var(--w-med);margin:0 2px var(--s3)}
   .calsum b{color:var(--tx);font-weight:var(--w-bold);font-variant-numeric:tabular-nums}
   /* el detalle vive dentro de la tarjeta de su sesion: antes era un bloque
@@ -1193,7 +1211,7 @@ const SECDOSE={
 const TAG={calent:["Calentamiento","b-calent"],diario:["Diario","b-diario"],carga:["Carga 3–4×/sem","b-carga"],opcional:["Opcional","b-opcional"]};
 const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
-const VERSION="v27 · entrar directo al ejercicio";
+const VERSION="v28 · registrar rutinas en el calendario";
 /* ==== [S5] ICONOS =========================================================
    Solo el interior del <svg>; ic() lo envuelve. Rejilla 24x24, sin relleno
    salvo los marcados .solid. */
@@ -2201,23 +2219,68 @@ function renderHistory(){const s=loadStreak(),idx=histIndex(),now=new Date();
   const first=new Date(calY,calM,1),lead=(first.getDay()+6)%7,dim=new Date(calY,calM+1,0).getDate();
   for(let i=0;i<lead;i++)b+=`<div class="calcell empty"></div>`;
   for(let d=1;d<=dim;d++){const key=calY+"-"+String(calM+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
-    const sess=idx[key]||[],cls=["calcell"];if(sess.length)cls.push("has");if(key===today())cls.push("today");if(key===calSel)cls.push("sel");
+    const sess=idx[key]||[],cls=["calcell"];if(sess.length)cls.push("has");if(key===today())cls.push("istoday");if(key===calSel)cls.push("sel");
     const cols=[];sess.forEach(x=>{const c=routColor(x.key);if(cols.indexOf(c)<0)cols.push(c);});
     const dots=cols.slice(0,3).map(c=>`<span class="cdot ${c}"></span>`).join("");
     b+=`<div class="${cls.join(" ")}" onclick="calPick('${key}')"><span class="dnum">${d}</span><span class="dots">${dots}</span></div>`;}
   b+=`</div></div>`;
   b+=`<div class="callegend"><span><i class="cdot p"></i>Postura</span><span><i class="cdot n"></i>Cuello</span><span><i class="cdot g"></i>Fuerza</span></div>`;
-  const sel=idx[calSel]||[],p=calSel.split("-");
-  b+=`<div class="grouptitle" style="margin:2px 2px 8px">${p[2]}/${p[1]}/${p[0]}</div>`;
-  if(!sel.length)b+=`<div class="empty" style="padding:16px 10px">Sin actividad este día.<br>Completa una rutina y quedará registrada aquí.</div>`;
+  const sel=idx[calSel]||[],p=calSel.split("-"),futuro=calSel>today();
+  b+=`<div class="caldayhead"><div class="grouptitle">${p[2]}/${p[1]}/${p[0]}</div>
+    ${futuro?"":`<button type="button" class="calladd" onclick="openCalLog()">${ic("plus")} Registrar rutina</button>`}</div>`;
+  if(!sel.length)b+=`<div class="empty" style="padding:16px 10px">Sin actividad este día.<br>${futuro?"Todavía no ha llegado.":"Si hiciste una rutina y no quedó anotada, añádela con «Registrar rutina»."}</div>`;
   else b+=sel.map((x,i)=>{const rows=dayRows(calSel,x.key,x.iso?Date.parse(x.iso):0),tot=dayTotals(x,rows);
+    const meta=[x.day||"",x.manual?"":(x.time||"")].filter(Boolean).join(" · ");
     return `<div class="dayblock"><div class="hitem" onclick="toggleDay(${i})" role="button" tabindex="0" aria-label="Ver detalle">
       <div class="dot ${routColor(x.key)}">${ic(routIcon(x.key),"sm")}</div>
-      <div style="flex:1"><div class="nm">${esc(x.name)}</div><div class="dt">${x.day||""} · ${x.time||""}</div>
+      <div style="flex:1"><div class="nm">${esc(x.name)}</div><div class="dt">${meta}</div>
       ${tot?`<div class="dt2">${tot}</div>`:""}</div>
       <div class="go">${rows.length?ic("right","sm"):""}</div></div>
-      <div class="daydet" id="dd_${i}">${rows.length?rows.map(r=>`<div class="ddrow"><span class="dn">${esc(shortName(r.id))}</span><span class="dv">${r.txt}</span></div>`).join(""):`<div class="ddrow"><span class="dn">Sin series anotadas ese día.</span></div>`}</div></div>`;}).join("");
+      <div class="daydet" id="dd_${i}">${rows.length?rows.map(r=>`<div class="ddrow"><span class="dn">${esc(shortName(r.id))}</span><span class="dv">${r.txt}</span></div>`).join(""):`<div class="ddrow"><span class="dn">Sin series anotadas ese día.</span></div>`}</div>
+      ${x.manual?`<div class="mrow"><span class="mtag">Añadida a mano</span><button type="button" class="mdel" onclick="calLogDel(${x.mid||0})">Quitar</button></div>`:""}</div>`;}).join("");
   $("histBody").innerHTML=b;}
+
+/* ---- registrar a mano una rutina que no se anoto ese dia ---- */
+/* el historial se guarda de mas nuevo a mas viejo y se recorta a 200: por eso
+   una sesion retroactiva se inserta en su sitio y no al principio */
+function histStamp(x){if(x&&x.iso){const t=Date.parse(x.iso);if(!isNaN(t))return t;}
+  if(x&&x.date&&x.date.indexOf("/")>0){const p=x.date.split("/");
+    const t=Date.parse(p[2]+"-"+p[1].padStart(2,"0")+"-"+p[0].padStart(2,"0")+"T12:00:00");
+    if(!isNaN(t))return t;}
+  return 0;}
+function openCalLog(){if(!calSel||calSel>today())return;
+  pushHist({ov:"plan"});
+  const p=calSel.split("-");
+  $("planTitle").textContent=(calSel===today()?"Registrar hoy":"Registrar el "+p[2]+"/"+p[1]);
+  let h="";
+  GROUPS.forEach(g=>g.keys.forEach(k=>{const r=ROUTINES[k];
+    h+=`<div class="planopt" onclick="calLogPick('${k}')"><div class="em ${r.cls}">${ic(routIcon(k))}</div>${esc(r.name)}</div>`;}));
+  $("planBody").innerHTML=h;$("planov").classList.add("show");}
+function calLogPick(key){const r=ROUTINES[key];if(!r||!calSel){closePlan();return;}
+  const p=calSel.split("-"),d=new Date(+p[0],+p[1]-1,+p[2],12,0,0),
+    e={key:key,name:r.name,iso:d.toISOString(),day:DAYS[d.getDay()],
+       date:p[2]+"/"+p[1]+"/"+p[0],time:"",manual:true,mid:Date.now()},
+    h=loadHist(),st=histStamp(e);
+  let i=0;while(i<h.length&&histStamp(h[i])>=st)i++;
+  h.splice(i,0,e);jset("rp_history",h.slice(0,200));
+  recalcStreak();closePlan();renderHistory();}
+function calLogDel(mid){if(!mid)return;
+  if(!confirm("¿Quitar esta rutina del calendario?"))return;
+  const h=loadHist().filter(x=>!(x.manual&&x.mid===mid));
+  jset("rp_history",h);recalcStreak();renderHistory();}
+/* al anadir o quitar dias sueltos la racha deja de coincidir con lo guardado:
+   se recuenta desde el historial, que es la fuente real de que dias hubo */
+function recalcStreak(){const s=loadStreak(),idx=histIndex(),keys=Object.keys(idx).sort();
+  let d=new Date(),n=0;
+  if(!idx[ds(d)])d.setDate(d.getDate()-1);
+  while(idx[ds(d)]&&n<1000){n++;d.setDate(d.getDate()-1);}
+  let run=0,best=0,prev=null;
+  keys.forEach(k=>{const cur=Date.parse(k+"T00:00:00");
+    run=(prev&&(cur-prev)===86400000)?run+1:1;prev=cur;if(run>best)best=run;});
+  let tot=0;keys.forEach(k=>{tot+=idx[k].length;});
+  s.count=n;s.last=keys.length?keys[keys.length-1]:null;
+  s.best=Math.max(s.best||0,best,n);s.total=Math.max(s.total||0,tot);
+  jset("rp_streak",s);return s;}
 /* que se hizo un dia concreto: se cruza rp_logs por fecha y rutina, y si la
    sesion trae marca de tiempo se filtra por ella para no mezclar dos sesiones
    de la misma rutina el mismo dia */
