@@ -159,7 +159,8 @@ Once pasos, todos tokens. Ningún tamaño escrito a mano.
 
 ## 7. Movimiento
 
-Regla: **toda animación es CSS**, nunca un contador por `setInterval`. Así una sola regla las apaga todas.
+Regla: **toda animación es declarativa** —CSS, o SMIL en las figuras (§15)—, nunca un contador
+en JS. El navegador lleva el tiempo, y apagarlas sigue siendo una decisión en un sitio.
 
 | Qué | Duración |
 |---|---|
@@ -267,16 +268,96 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
 - **Tipografía incrustada.** El motivo ya no es estético: `--w-bold` es 800 y buena parte de
   los Roboto instalados en Android no tienen ese peso, así que el navegador lo aproxima a 700
   y la pareja 700/800 que sostiene toda la jerarquía de §3 puede desaparecer en ese teléfono.
-  Los dos argumentos que lo dejaban fuera ya no se sostienen: el peso es irrelevante en una app
-  que descarga 325 KB de `figuras.js`, y el modo sin conexión está resuelto porque el service
-  worker precachea en install. Queda pendiente por falta del archivo, no de criterio.
+  Los dos argumentos que lo dejaban fuera ya no se sostienen: el modo sin conexión está resuelto
+  porque el service worker precachea en install, y el peso deja de ser excusa en cuanto termine la
+  migración de §15 — `figuras.js` son 465 KB y el sistema paramétrico que lo sustituye cabe en
+  unos 120. Queda pendiente por falta del archivo, no de criterio.
   **Trampa al implementarlo:** `caches.addAll` es atómico, así que el `.woff2` tiene que ir en
   un `cache.add()` aparte con `catch`. Si entra en `ASSETS` y su descarga falla, el service
   worker no se instala y la app pierde el offline por completo.
+- **Migrar las 84 figuras que faltan.** §15 ya está en pie y seis ejercicios lo usan, uno por
+  arquetipo: `sentadilla_aire` (frontal, suelo), `press_banca_db` (banco y mancuernas),
+  `jalon_pecho` (máquina y polea), `chin_tuck` (silla, movimiento de cabeza), `flexor_cadera`
+  (sostén con profundidad) y `remo_banda` (banda). El resto sigue con los dos fotogramas fundidos,
+  y la app resuelve en dos capas para que no quede a medias. Va por lotes de unos diez, agrupados
+  por arquetipo, y ningún lote entra sin pasar por `_forja/comparar.html`, que pinta vieja contra
+  nueva en los dos temas. El criterio por figura: la postura es la del ejercicio, ningún miembro
+  cambia de longitud durante el ciclo, ninguna articulación se abre, el aparato no atraviesa el
+  cuerpo.
 - **Superseries antagonistas.** Es la palanca con respaldo para recortar el tiempo de sesión
-  sin tocar descansos: los tres días quedaron en 66-72 min. Necesita un flag de «par» entre dos
+  sin tocar descansos: los tres días quedaron en 62-68 min tras la revisión de programa de v30. Necesita un flag de «par» entre dos
   ejercicios que alterne series y cuente el descanso solo al cerrar el par. El especialista que
   revisó las rutinas en v27 la señaló otra vez, y para el bloque secundario en concreto.
+
+### Cerrado en v30
+
+- ~~Las figuras no se movían: se fundían.~~ `framesLoop` apilaba los dos fotogramas y cruzaba
+  opacidades, así que a mitad del ciclo se veían **dos cuerpos fantasma superpuestos**. Ahora la
+  pose es un esqueleto de 18 articulaciones y el movimiento se **interpola por cinemática
+  directa** — ángulo por el arco corto y longitud, reconstruyendo la cadena desde la pelvis —, con
+  el ritmo real del ejercicio (concéntrica rápida, excéntrica lenta, pausa en los dos extremos)
+  sacado del `type` que ya estaba en `EX`. Todo el sistema, en §15.
+- ~~La figura saltaba de escala a mitad del fundido.~~ 36 de 90 traían un `viewBox` distinto en
+  cada fotograma y cada `<i>` escalaba el suyo por separado, así que hasta la raya del suelo se
+  desplazaba. El encuadre se calcula ahora del *bounding box* de todas las poses juntas: uno solo
+  por ejercicio.
+- ~~No había escala de proporciones.~~ 31 grosores distintos entre 3 y 40 y cabezas de radio 12 a
+  18, en una app que tiene escala para la tipografía, el espacio y los radios. La tabla de §15 la
+  fija, y al ser paramétrica no se puede incumplir.
+- ~~En vista lateral los dos brazos se fundían en un bulto.~~ El miembro lejano va en
+  `--diagram-ink-far`, token nuevo en los dos temas, y pintado detrás.
+- ~~La muesca del codo.~~ Los remates redondos solo aguantaban hasta unos 90°. Cada hueso empieza
+  con el radio con el que acaba el anterior, así que la unión sale lisa a cualquier ángulo.
+- ~~La flecha se teletransportaba.~~ Ahora se traza sobre la trayectoria real de la articulación y
+  solo está encendida mientras el cuerpo recorre ese tramo.
+- ~~Todos flotaban sobre la misma raya de suelo, incluso tumbados.~~ La sombra de contacto se
+  calcula del esqueleto, articulación por articulación.
+- ~~La miniatura de 46 px era ilegible.~~ Sale del mismo esqueleto, reducida a lo esencial y
+  recortada al cuerpo. Sale gratis de ser paramétrica.
+- ~~Las 29 figuras sin `captions` dejaban divs vacíos~~ en la tira numerada del guiado. Los datos
+  nuevos las traen siempre.
+- **El parche de `prefers-reduced-motion` desaparece con la migración.** Hoy sigue ahí porque las
+  84 figuras sin migrar aún lo necesitan: la regla global habría congelado el fundido a media
+  opacidad con los dos fotogramas encima. En el sistema nuevo basta con no emitir los `<animate>`.
+
+Y una segunda auditoría de las rutinas de gimnasio, esta vez del programa y no del código:
+
+- ~~El pecho iba 3:1 contra el remo horizontal.~~ 15 series semanales de pecho contra 5 de remo,
+  en una app que existe por la postura. El pectoral y el deltoides anterior son justo los que
+  llevan el hombro a protracción, y el remo es lo que lo compensa. Se arregló sin añadir tiempo:
+  el bloque secundario del día de empuje pasa de **jalón a remo** —el tirón vertical ya iba
+  sobrado con 7 series y el horizontal se quedaba en 5— y el **pec deck sale del empuje**, donde
+  era la cuarta variante de pecho del mismo día. El pecho conserva frecuencia 2× con el pec deck
+  del día de tirón. Queda en **1,6:1**, que sí es compatible con priorizar pecho.
+- ~~Los gemelos vivían en 4 series de un solo día.~~ Es el músculo que mejor responde a frecuencia
+  alta y el más barato en tiempo (45 s de descanso). Entran como secundario en empuje y tirón, 2
+  series en cada uno: **8 semanales repartidas en los tres días**.
+- ~~El hueco del peso muerto rumano nunca se tapó del todo.~~ v27 devolvió el volumen de isquios
+  a 7 series con los dos curl femorales, pero **las 7 eran flexión de rodilla**. Faltaba extensión
+  de cadera con el isquio alargado, que la máquina de glúteo no cubre porque lleva la rodilla
+  flexionada. Entra la **hiperextensión en banco romano** al día de pierna (sube de `extras` del
+  tirón y pasa de `opcional` a `carga`): es esa función, y no es un rumano.
+- ~~El cruce de poleas se rompía cuando no había dos poleas libres,~~ que en su gimnasio es lo
+  normal. La ficha explica ahora la variante **a un brazo en una sola polea** —misma curva y más
+  rango— y hay swap a aperturas con mancuernas.
+- ~~Sobraba calentamiento general y faltaba el específico.~~ La caminadora baja de 8 a **5 min**
+  (y la ficha avisa de que se salta si vienes de una rutina de postura, que ya la sustituye), y
+  los cuatro compuestos pesados piden **series de aproximación** en el `coach`: 1×10 con la mitad
+  y 1×5 con el 70%. Antes, la primera serie de trabajo del hack squat era la primera vez que se
+  tocaba peso ese día.
+- ~~Los fondos no tenían ruta de progresión:~~ `load:false` impedía registrar lastre, así que la
+  única salida eran más repeticiones. Ahora se puede anotar el cinturón.
+- **Los descansos se recortaron solo en aislamientos.** En compuestos con carga alta, descansar
+  poco baja las repeticiones de las series siguientes y con ellas el volumen efectivo, así que el
+  **hack squat conserva sus 180 s**. Los 90 y 75 s de aislamientos bajan a 60-75.
+- **El 4º día es rotativo, no una rutina nueva.** Se va 3 o 4 días según la semana, así que las
+  tres rutinas tienen que seguir siendo una semana completa por sí solas; cuando hay cuarto día se
+  hace el siguiente de la lista. Se evaluó un día fijo de torso y se descartó: dejaba el bíceps en
+  15 series semanales —techo alto para un músculo pequeño con otras tantas indirectas— y abandonaba
+  la pierna en 1×/semana. Con el rotativo todo escala ×1,33, pierna incluida.
+- **Los tres curls se quedan juntos en el día de tirón.** Se evaluó mover el martillo al empuje
+  para sacar al bíceps de la prefatiga, y se descartó: el efecto del orden sobre un músculo pequeño
+  aislado es modesto, y no compensa perder los tres seguidos en el día que él prefiere.
 
 ### Cerrado en v29
 
@@ -385,15 +466,138 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
 
 ## 14. Fuera de alcance
 
-- **Redibujar las 61 figuras.** Sigue fuera, pero por menos motivo que antes: en v25 se
-  descubrió que 65 ejercicios ya traían **dos fotogramas dibujados**, las dos posiciones del
-  movimiento sobre la misma rejilla, y que se pintaban uno al lado del otro y quietos. Apilarlos
-  y fundirlos hace que la figura ejecute el ejercicio sin dibujar nada. Solo se anima el
-  ejercicio que toca, y hay un override para `prefers-reduced-motion` porque la regla global
-  habría congelado el fundido a media opacidad con los dos fotogramas encima.
 - **Que el color primario cambie según la rutina abierta:** obligaría a re-verificar el contraste
   de todos los componentes en tres variantes por dos temas, y el azulejo de familia ya consigue
   la misma lectura.
 - **Mecánicas de gamificación competitivas:** tablas de clasificación, comparación con otros,
   puntos canjeables e insignias por presentarse. Para un usuario único no tienen sentido, y los
   leaderboards son el elemento más asociado a efectos motivacionales negativos.
+
+---
+
+## 15. La figura
+
+Las figuras dejaron de ser dibujos. Una pose es un **esqueleto de 18 articulaciones**, y un solo
+renderizador (`figura.js`) saca de él la figura quieta, la miniatura y la animación. Esta sección
+es a la figura lo que §3 es a la tipografía: si un número no está aquí, no se escribe a mano.
+
+**Por qué.** El sistema anterior eran 183 SVG literales escritos uno a uno. No tenía escala de
+proporciones —31 grosores distintos entre 3 y 40, cabezas de radio 12 a 18—, 36 de 90 figuras
+cambiaban de `viewBox` entre sus dos fotogramas, así que la figura saltaba de escala a mitad del
+fundido, y la «animación» era un cruce de opacidades: dos cuerpos fantasma superpuestos, no un
+movimiento.
+
+### Rejilla y proporción
+
+Rejilla única `0 0 240 160`, suelo en **y=150**. El `viewBox` de cada ejercicio se calcula del
+*bounding box* de **todas** sus poses juntas, más el aparato y la flecha: mismo encuadre en todos
+los fotogramas, que es lo que mata el salto de escala de raíz.
+
+De pie, la figura mide **137 unidades** con la cabeza en Ø22 — **6,2 cabezas**.
+
+| Segmento | Largo | Ancho proximal → distal |
+|---|---|---|
+| Cabeza | Ø22 | — |
+| Cuello (pecho→cuello→cabeza) | 14 + 20 | 16 → 13 |
+| Torso (cadera→pecho) | 32 | 26 → 22 en la cintura → 26 |
+| Clavícula (pecho→hombro) | 21 | 24 → 14 |
+| Brazo · antebrazo | 24 · 22 | 14 → 12 · 12 → 10 |
+| Mano | Ø11 | — |
+| Cadera · muslo · pierna | 10 · 26 · 27 | 26 → 18 · 18 → 16 · 16 → 10 |
+| Pie | 10–15 | 10 → 7 |
+
+### Las cinco reglas del dibujo
+
+**1 · Cada hueso es una cápsula cónica**, no una línea con remate redondo: dos círculos unidos por
+sus tangentes exteriores.
+
+**2 · No hay discos de articulación, y por eso no hay muesca.** El radio con el que acaba un hueso
+es exactamente el que tiene el siguiente al empezar, así que la unión sale lisa **a cualquier
+ángulo**. Los remates redondos del sistema viejo solo aguantaban hasta unos 90°; pasado eso
+aparecía la muesca del codo, y no tenía arreglo.
+
+**3 · Cada miembro lleva halo.** En una silueta plana un brazo pegado al torso se funde con él. El
+halo es un trazo de 3 unidades del color del fondo, y va **por grupo entero** —el brazo, no el
+hueso— para que el relleno del hueso siguiente tape el halo del anterior y no salga una costura en
+el codo. Los huesos **interiores** (clavícula, cresta ilíaca) no lo llevan: están dentro de la masa
+del tronco, y rodearlos dibujaría un contorno fantasma por dentro del torso.
+
+**4 · Profundidad.** De lado, el miembro lejano va en `--diagram-ink-far` y pintado detrás. Sin
+eso, los dos brazos en la misma tinta se funden en un bulto y no se sabe cuál es cuál. Contraste
+verificado (§10): 3,35:1 contra el fondo del diagrama en claro y 4,39:1 en oscuro; 3,3:1 y 3,0:1
+contra la tinta cercana. Se lee como cuerpo, no como sombra.
+
+**5 · Orden de profundidad, y depende de la vista.**
+
+| Vista | De atrás hacia delante |
+|---|---|
+| Lateral | pierna lejana · brazo lejano · pierna cercana · tronco · brazo cercano |
+| Frontal | pierna lejana · pierna cercana · tronco · brazo lejano · brazo cercano |
+
+La pierna cercana va **debajo** del tronco a propósito: el muslo nace dentro de la pelvis, y encima
+su halo dibujaría el contorno del muslo por dentro del torso. Y **de frente no hay lado lejano**:
+los dos brazos van encima y las dos piernas debajo, para que el recorte salga igual a izquierda y
+derecha. Con el orden lateral, el brazo izquierdo salía mordido por el halo del torso y el derecho
+no.
+
+### Suelo, aparato y flecha
+
+**Nadie flota.** Bajo cada articulación que apoya —a menos de 11 unidades del suelo— va una elipse
+blanda en `--diagram-shadow`. Se calcula del esqueleto, así que el que está tumbado apoya en toda
+la espalda y el que está colgado (`ground:"none"`) no apoya en nada.
+
+**El aparato usa otro idioma a propósito:** remates planos, trazo más fino, `--diagram-line`.
+Hombre y máquina no se confunden. Tres clases, y la diferencia importa:
+
+- **Fijo** — banco, silla, poste, travesaño, torre de placas, colchoneta. No se mueve.
+- **Sujeto** — mancuerna, barra. Declara la articulación y **viaja con ella** en cada fotograma
+  interpolado. Antes la mancuerna estaba dibujada dos veces y saltaba; ahora sigue la mano.
+- **Enlace** — cable, banda. Se recalcula entre sus dos extremos en cada muestra, y la banda pierde
+  la comba al tensarse. Es la diferencia entre una polea dibujada y una polea que tira.
+
+**La flecha** ya no es un palo que salta de sitio: se traza sobre la **trayectoria real** de la
+articulación que se indica, y solo está encendida mientras el cuerpo recorre ese tramo. Fuera de
+él se apaga, para que nunca señale en dirección contraria a lo que se está viendo.
+
+### El movimiento
+
+**Se interpola por cinemática directa.** Cada hueso interpola su **ángulo** por el arco corto y su
+**longitud**, y la cadena se reconstruye desde la pelvis hacia fuera. Un *lerp* de coordenadas
+acortaría el antebrazo un 29% a mitad de un giro de 90°: brazo de goma.
+
+**El ritmo sale del `type` que el ejercicio ya declara en `EX`.** Un press no baja igual de rápido
+que sube, y eso es la mitad de lo que hace que una animación se lea como profesional.
+
+| `type` | Pausa · esfuerzo · pausa · vuelta | Ciclo |
+|---|---|---|
+| `reps`, `reps_side` | 0,35 · 0,9 · 0,25 · 1,4 s | 2,9 s |
+| `cardio` | 0,12 · 0,5 · 0,1 · 0,55 s | 1,27 s |
+| `hold`, `hold_side` | 0,5 · 1,1 · 2,4 · 0,9 s | 4,9 s |
+
+`effort` dice cuál de los dos tramos es el esfuerzo y por tanto cuál va rápido: en una sentadilla
+es el de vuelta, porque lo que cuesta es subir.
+
+**Se reproduce con SMIL, no con un bucle en JS.** La interpolación se muestrea en 11 poses y a cada
+`<path>` se le cuelga un `<animate attributeName="d">` con sus `keyTimes` y `keySplines`. El tiempo
+lo lleva el navegador. Con `prefers-reduced-motion` no se emite ningún `<animate>` y se pinta la
+primera pose — sin el parche que hacía falta antes para que el fundido no se congelara a media
+opacidad con los dos fotogramas encima.
+
+### Lo que sale gratis de ser paramétrico
+
+La **miniatura de 46 px**: el mismo esqueleto sin ojo, sin aparato, sin flecha, sin distinción
+cerca/lejos, con los grosores un 14% mayores y recortada al cuerpo en vez de a la rejilla. A esa
+escala el dibujo completo era ilegible por aritmética —255 unidades en 36 px útiles, la cabeza a
+4 px—; ahora se lee. En el sistema anterior habrían sido 90 dibujos más a mano.
+
+### Datos y migración
+
+`poses.js` son los datos, `figura.js` el renderizador, y `figuras.js` el sistema viejo, que sigue
+ahí. Se resuelve en dos capas: si el ejercicio tiene esqueleto lo pinta el sistema nuevo, y si no,
+sigue el camino de los dos fotogramas fundidos. **La app nunca queda a medias** y la migración va
+por lotes. Una pose solo declara lo que cambia respecto de la anterior; lo demás se hereda, así que
+en un press de banca las piernas se escriben una vez.
+
+Peso: `figuras.js` son 465 KB. El sistema nuevo son 22 KB de renderizador más ~1 KB por ejercicio,
+o sea unos 120 KB para los 90 cuando la migración termine. Eso es lo que deja sitio a la tipografía
+incrustada que pide §13.
