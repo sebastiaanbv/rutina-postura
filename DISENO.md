@@ -477,127 +477,156 @@ Y una segunda auditoría de las rutinas de gimnasio, esta vez del programa y no 
 
 ## 15. La figura
 
-Las figuras dejaron de ser dibujos. Una pose es un **esqueleto de 18 articulaciones**, y un solo
-renderizador (`figura.js`) saca de él la figura quieta, la miniatura y la animación. Esta sección
-es a la figura lo que §3 es a la tipografía: si un número no está aquí, no se escribe a mano.
+Las figuras dejaron de ser dibujos. Son **un maniquí articulado en 3D** y, por
+ejercicio, **dos posturas escritas como ángulos**; el movimiento se interpola
+entre ellas. Lo dibuja `figura3d.js` sobre
+[mannequin.js](https://github.com/boytchev/mannequin.js) (GPL-3.0, copia local
+en `lib/mannequin/`, parches anotados en su `PARCHES.md`).
 
-**Por qué.** El sistema anterior eran 183 SVG literales escritos uno a uno. No tenía escala de
-proporciones —31 grosores distintos entre 3 y 40, cabezas de radio 12 a 18—, 36 de 90 figuras
-cambiaban de `viewBox` entre sus dos fotogramas, así que la figura saltaba de escala a mitad del
-fundido, y la «animación» era un cruce de opacidades: dos cuerpos fantasma superpuestos, no un
-movimiento.
+Antes eran 476 KB de SVG escritos a mano, dos fotogramas por ejercicio y un
+fundido de opacidad entre ambos: a mitad de ciclo se veían dos cuerpos fantasma
+superpuestos, 36 de 90 cambiaban de escala entre fotogramas, y la mancuerna
+estaba dibujada dos veces, así que saltaba.
 
-### Rejilla y proporción
+### La tinta
 
-Rejilla única `0 0 240 160`, suelo en **y=150**. El `viewBox` de cada ejercicio se calcula del
-*bounding box* de **todas** sus poses juntas, más el aparato y la flecha: mismo encuadre en todos
-los fotogramas, que es lo que mata el salto de escala de raíz.
+**Un solo color para todo el cuerpo.** Las siete zonas que la librería pinta por
+separado —cabeza, pies, pelvis, articulaciones, miembros, torso, uñas— llevan
+todas `--diagram-ink`. Con las articulaciones en otro tono el muñeco se lee como
+palitos y bolitas; en tono único se lee como un cuerpo. El volumen lo pone la
+luz: ambiente alto y una direccional frontal suave, lo justo para que se
+distinga una pieza de otra sin convertirlo en un render de estudio.
 
-De pie, la figura mide **137 unidades** con la cabeza en Ø22 — **6,2 cabezas**.
+**El aparato habla otro idioma**: `--diagram-line`, más claro. Hombre y máquina
+no se confunden.
 
-| Segmento | Largo | Ancho proximal → distal |
+**El suelo es una sombra de contacto** blanda bajo los puntos de apoyo, no una
+raya dura igual para todos. En las miniaturas de 46 px no se dibuja.
+
+### La cámara
+
+Ortográfica, y **el ángulo lo fija el arquetipo**. Esto no es decoración:
+un movimiento sagital —sentadilla, press, bisagra— **no se ve de frente**,
+porque el recorrido entra y sale de la pantalla en vez de recorrerla. Con
+`body.turn = -90`, que es la orientación de reposo, **0° es frontal y ±90° es
+perfil**.
+
+**Un solo encuadre para todo el ciclo**: se mide la caja de las dos posturas
+juntas. Es lo que impide que la figura cambie de tamaño a mitad de repetición.
+Y el lienzo toma la proporción de la figura, para que no queden medias cajas
+vacías. Los ejercicios de cuello se encuadran como **busto**: a cuerpo entero la
+cabeza quedaría en veinte píxeles y el gesto está justo ahí.
+
+### Los tres tamaños
+
+Un solo esqueleto los alimenta; no se dibuja nada tres veces.
+
+| Sitio | Tamaño | Qué se pinta |
 |---|---|---|
-| Cabeza | Ø22 | — |
-| Cuello (pecho→cuello→cabeza) | 14 + 20 | 16 → 13 |
-| Torso (cadera→pecho) | 32 | 26 → 22 en la cintura → 26 |
-| Clavícula (pecho→hombro) | 21 | 24 → 14 |
-| Brazo · antebrazo | 24 · 22 | 14 → 12 · 12 → 10 |
-| Mano | Ø11 | — |
-| Cadera · muslo · pierna | 10 · 26 · 27 | 26 → 18 · 18 → 16 · 16 → 10 |
-| Pie | 10–15 | 10 → 7 |
+| Guiado | 172 px | Lienzo vivo, el ciclo del ejercicio |
+| Fila «siguiente» | 76 px | Imagen fija de la postura de partida, cacheada |
+| Lista | 46 px | Igual, recortada al cuerpo y sin suelo |
 
-### Las cinco reglas del dibujo
+**Un solo contexto WebGL** para toda la app, y solo se anima la figura que está
+a la vista. `prefers-reduced-motion` pinta la primera postura y para el bucle —
+con esto desaparece la excepción que existía para que el fundido no se congelara
+a media opacidad.
 
-**1 · Cada hueso es una cápsula cónica**, no una línea con remate redondo: dos círculos unidos por
-sus tangentes exteriores.
+### El ritmo
 
-**2 · No hay discos de articulación, y por eso no hay muesca.** El radio con el que acaba un hueso
-es exactamente el que tiene el siguiente al empezar, así que la unión sale lisa **a cualquier
-ángulo**. Los remates redondos del sistema viejo solo aguantaban hasta unos 90°; pasado eso
-aparecía la muesca del codo, y no tenía arreglo.
+Sale del `type` que cada ejercicio ya tiene en `EX`:
 
-**3 · Cada miembro lleva halo.** En una silueta plana un brazo pegado al torso se funde con él. El
-halo es un trazo de 3 unidades del color del fondo, y va **por grupo entero** —el brazo, no el
-hueso— para que el relleno del hueso siguiente tape el halo del anterior y no salga una costura en
-el codo. Los huesos **interiores** (clavícula, cresta ilíaca) no lo llevan: están dentro de la masa
-del tronco, y rodearlos dibujaría un contorno fantasma por dentro del torso.
-
-**4 · Profundidad.** De lado, el miembro lejano va en `--diagram-ink-far` y pintado detrás. Sin
-eso, los dos brazos en la misma tinta se funden en un bulto y no se sabe cuál es cuál. Contraste
-verificado (§10): 3,35:1 contra el fondo del diagrama en claro y 4,39:1 en oscuro; 3,3:1 y 3,0:1
-contra la tinta cercana. Se lee como cuerpo, no como sombra.
-
-**5 · Orden de profundidad, y depende de la vista.**
-
-| Vista | De atrás hacia delante |
+| `type` | Perfil |
 |---|---|
-| Lateral | pierna lejana · brazo lejano · pierna cercana · tronco · brazo cercano |
-| Frontal | pierna lejana · pierna cercana · tronco · brazo lejano · brazo cercano |
+| `reps`, `reps_side` | Excéntrica ~1,4 s · pausa 0,25 s · concéntrica ~0,9 s · pausa 0,35 s |
+| `hold`, `hold_side` | Entra a la postura y sostiene, con respiración muy leve |
+| `cardio` | Ciclo corto y continuo |
 
-La pierna cercana va **debajo** del tronco a propósito: el muslo nace dentro de la pelvis, y encima
-su halo dibujaría el contorno del muslo por dentro del torso. Y **de frente no hay lado lejano**:
-los dos brazos van encima y las dos piernas debajo, para que el recorte salga igual a izquierda y
-derecha. Con el orden lateral, el brazo izquierdo salía mordido por el halo del torso y el derecho
-no.
+Un press no baja igual de rápido que sube. Esa asimetría es la mitad de lo que
+hace que una animación se lea como profesional.
 
-### Suelo, aparato y flecha
+### Los trece arquetipos
 
-**Nadie flota.** Bajo cada articulación que apoya —a menos de 11 unidades del suelo— va una elipse
-blanda en `--diagram-shadow`. Se calcula del esqueleto, así que el que está tumbado apoya en toda
-la espalda y el que está colgado (`ground:"none"`) no apoya en nada.
+Los 91 ejercicios se agrupan en trece patrones de movimiento. Cada arquetipo fija
+la postura base, la cámara, los apoyos y **qué articulación es la protagonista**;
+cada ejercicio guarda solo los ángulos en los que se aparta del suyo. Eso
+convierte 182 posturas en trece problemas y 91 ajustes.
 
-**El aparato usa otro idioma a propósito:** remates planos, trazo más fino, `--diagram-line`.
-Hombre y máquina no se confunden. Tres clases, y la diferencia importa:
+Sentadilla · bisagra de cadera · puente · pierna aislada · cadera de pie ·
+empuje horizontal · empuje vertical · tracción vertical · tracción horizontal ·
+codo aislado · hombro fino · core y cuadrupedia · cuello y cara.
 
-- **Fijo** — banco, silla, poste, travesaño, torre de placas, colchoneta. No se mueve.
-- **Sujeto** — mancuerna, barra. Declara la articulación y **viaja con ella** en cada fotograma
-  interpolado. Antes la mancuerna estaba dibujada dos veces y saltaba; ahora sigue la mano.
-- **Enlace** — cable, banda. Se recalcula entre sus dos extremos en cada muestra, y la banda pierde
-  la comba al tensarse. Es la diferencia entre una polea dibujada y una polea que tira.
+### Tres reglas de este rig que cuestan una tarde si no se saben
 
-**La flecha** ya no es un palo que salta de sitio: se traza sobre la **trayectoria real** de la
-articulación que se indica, y solo está encendida mientras el cuerpo recorre ese tramo. Fuera de
-él se apaga, para que nunca señale en dirección contraria a lo que se está viendo.
+Están medidas, no supuestas, y viven comentadas en `pose3d.js` y `poses3d.js`.
 
-### El movimiento
+1. **Cadera y rodilla giran en el mismo sentido.** La tibia solo vuelve a la
+   vertical si `knee` tiene el signo de `raise` y casi su valor. Con el signo
+   contrario el muñeco no se agacha: se sienta en el suelo con las piernas
+   estiradas.
 
-**Se interpola por cinemática directa.** Cada hueso interpola su **ángulo** por el arco corto y su
-**longitud**, y la cadena se reconstruye desde la pelvis hacia fuera. Un *lerp* de coordenadas
-acortaría el antebrazo un 29% a mitad de un giro de 90°: brazo de goma.
+2. **Las rotaciones se escriben enteras y de una vez.** Los setters de la
+   librería (`arm.raise`, `torso.bend`…) reordenan el Euler y escriben una
+   componente, así que el resultado depende del orden en que se escriban y, con
+   el tronco tumbado, caen en el bloqueo de cardán y devuelven NaN.
 
-**El ritmo sale del `type` que el ejercicio ya declara en `EX`.** Un press no baja igual de rápido
-que sube, y eso es la mitad de lo que hace que una animación se lea como profesional.
+3. **Se interpolan ángulos anatómicos, nunca los Euler.** Su descomposición es
+   ambigua: con las dos posturas extremas perfectas, a mitad de ciclo las
+   piernas llegaban a cruzarse atravesándose.
 
-| `type` | Pausa · esfuerzo · pausa · vuelta | Ciclo |
+Y una consecuencia de la segunda: **con el tronco tumbado, el signo de `raise`
+deja de significar "adelante"** y pasa a decidir si el miembro va hacia el suelo
+o hacia arriba. De ahí que la cuadrupedia use `raise` positivo en brazo y pierna.
+
+### El validador
+
+`_forja/validador.html` corre **diez comprobaciones numéricas sobre las once
+muestras del ciclo**, no sobre las dos posturas clave: un miembro puede
+atravesar el torso a mitad de camino y estar limpio en los dos extremos.
+
+1. Límites articulares · 2. Apoyo en el suelo · 3. Nada bajo el suelo ·
+4. Auto-intersección · 5. Choque con el aparato · 6. Amplitud real ·
+7. Se ve desde la cámara · 8. Encuadre estable · 9. Tamaño en el encuadre ·
+10. Simetría.
+
+Existe porque mirar no basta, y porque un fallo de postura se propaga a los
+siete ejercicios que cuelgan del mismo arquetipo. Los límites de la 1 no se
+inventan: los declara la propia librería, y para hombro y cadera —esféricos, sin
+caja de ángulos suficiente— usa su test geométrico.
+
+**Ningún ejercicio se da por bueno con fallos abiertos.** Los avisos sí quedan
+abiertos a propósito cuando son honestos: un sostén no tiene recorrido que
+enseñar, y hay gestos que este maniquí **no puede representar** —el encogimiento
+de hombros no tiene escápula, y los cuatro ejercicios de cara no tienen cara—.
+Esos van marcados con `gestoLimitado` y la explicación la llevan los pasos y el
+vídeo.
+
+### El peso, medido
+
+| | Bruto | Comprimido |
 |---|---|---|
-| `reps`, `reps_side` | 0,35 · 0,9 · 0,25 · 1,4 s | 2,9 s |
-| `cardio` | 0,12 · 0,5 · 0,1 · 0,55 s | 1,27 s |
-| `hold`, `hold_side` | 0,5 · 1,1 · 2,4 · 0,9 s | 4,9 s |
+| **Antes** · `figuras.js` | 477 KB | 43 KB |
+| **Ahora** · three.js | 692 KB | 171 KB |
+| **Ahora** · mannequin.js + addons | 83 KB | 18 KB |
+| **Ahora** · `poses3d` + `pose3d` + `figura3d` | 78 KB | 19 KB |
+| **Total ahora** | **852 KB** | **207 KB** |
 
-`effort` dice cuál de los dos tramos es el esfuerzo y por tanto cuál va rápido: en una sentadilla
-es el de vuelta, porque lo que cuesta es subir.
+**Es casi cinco veces más pesado, no el doble.** La estimación previa (~180 KB)
+se quedó corta. Todo el exceso es three.js: 171 de los 207 KB. Se descarga una
+vez y lo guarda el service worker, así que en uso diario no se nota, pero la
+primera visita sí. Si algún día molesta, la salida conocida es una compilación a
+medida de three.js con solo lo que se usa —renderer, escena, cámara ortográfica,
+geometrías paramétricas—, que baja de 171 KB a unos 60-80 KB. No se ha hecho
+porque exige un paso de compilación, y la app no tiene ninguno.
 
-**Se reproduce con SMIL, no con un bucle en JS.** La interpolación se muestrea en 11 poses y a cada
-`<path>` se le cuelga un `<animate attributeName="d">` con sus `keyTimes` y `keySplines`. El tiempo
-lo lleva el navegador. Con `prefers-reduced-motion` no se emite ningún `<animate>` y se pinta la
-primera pose — sin el parche que hacía falta antes para que el fundido no se congelara a media
-opacidad con los dos fotogramas encima.
+### Las herramientas del taller
 
-### Lo que sale gratis de ser paramétrico
+En `_forja/`, fuera del despliegue:
 
-La **miniatura de 46 px**: el mismo esqueleto sin ojo, sin aparato, sin flecha, sin distinción
-cerca/lejos, con los grosores un 14% mayores y recortada al cuerpo en vez de a la rejilla. A esa
-escala el dibujo completo era ilegible por aritmética —255 unidades en 36 px útiles, la cabeza a
-4 px—; ahora se lee. En el sistema anterior habrían sido 90 dibujos más a mano.
+- `posador.html` — tres cámaras a la vez, mandos por articulación topados con
+  los límites anatómicos, y el validador en vivo.
+- `hoja.html` — los 91 renderizados y validados de una pasada, con el resumen
+  por comprobación.
+- `mirar.html` — una figura de cerca, a tres ángulos y en los tres momentos del
+  ciclo. Es donde se cazan los fallos que ningún número detecta.
 
-### Datos y migración
-
-`poses.js` son los datos, `figura.js` el renderizador, y `figuras.js` el sistema viejo, que sigue
-ahí. Se resuelve en dos capas: si el ejercicio tiene esqueleto lo pinta el sistema nuevo, y si no,
-sigue el camino de los dos fotogramas fundidos. **La app nunca queda a medias** y la migración va
-por lotes. Una pose solo declara lo que cambia respecto de la anterior; lo demás se hereda, así que
-en un press de banca las piernas se escriben una vez.
-
-Peso: `figuras.js` son 465 KB. El sistema nuevo son 22 KB de renderizador más ~1 KB por ejercicio,
-o sea unos 120 KB para los 90 cuando la migración termine. Eso es lo que deja sitio a la tipografía
-incrustada que pide §13.

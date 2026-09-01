@@ -66,7 +66,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     /* el miembro lejano: en vista lateral los dos brazos en la misma tinta se
        funden en un bulto. Da 3,35:1 contra el fondo del diagrama y 3,30:1
        contra la tinta cercana, asi que se lee como cuerpo y no como sombra. */
-    --diagram-ink-far:#78869c; --diagram-shadow:#d3dae4;
+    --diagram-ink-far:#66748b; --diagram-shadow:#d3dae4;
     --diagram-bg:#f1f4f8; --ring-track:#e2e7ee;
     --nav-bg:rgba(255,255,255,.94); --page-grad:#ffffff;
     /* la superficie invertida. Degradado para que tenga materia y no parezca un
@@ -105,7 +105,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     --load:#a78bfa; --load2:#8b6df0; --load-tint:#241a44; --load-ink:#c3b3fb;
     --danger:#fca5a5; --danger-tint:#2a1414; --danger-ink:#fca5a5;
     --diagram-ink:#cfe0f5; --diagram-line:#3a4b60; --diagram-hi:#60a5fa; --diagram-eye:#0a1020;
-    --diagram-ink-far:#6c8099; --diagram-shadow:#1a2436;
+    --diagram-ink-far:#8298b0; --diagram-shadow:#1a2436;
     --diagram-bg:#101827; --ring-track:#243349;
     --nav-bg:rgba(10,16,32,.94); --page-grad:#132038;
     /* el fallo mas grande de la auditoria: el hero tenia 1,02:1 contra una
@@ -465,6 +465,10 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .diag svg{width:100%;height:100%}
   .diag.big{width:76px;height:76px;border-radius:var(--r-sm);padding:6px}
   .diaginner{position:relative;width:100%;height:100%}
+  /* huecos del motor 3D: el lienzo o la imagen se ajustan al alto de la caja */
+  .minifig{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+  [data-fig3d]{display:flex;align-items:center;justify-content:center}
+  [data-fig3d] canvas,[data-fig3d] img{height:100%;width:auto;max-width:100%;display:block}
   .diaginner i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
   .diaginner i svg{width:100%;height:100%}
   /* el circulo hueco es la UNICA senal de que ahi hay un control, asi que su
@@ -897,12 +901,13 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   </div>
 </div>
 
-<script src="figuras.js"></script>
-<script src="poses.js"></script>
-<script src="figura.js"></script>
+<script src="poses3d.js"></script>
+<script type="importmap">
+{"imports":{"three":"./lib/three.module.min.js","three/addons/":"./lib/three-addons/",
+ "mannequin":"./lib/mannequin/mannequin.js"}}
+</script>
+<script type="module" src="figura3d.js"></script>
 <script>
-const DIAG = {};   /* se rellena desde figuras.js */
-const FRAMES={};
 /* ==== DATOS ================================================
    Fuente unica de verdad. Antes esto eran cinco literales mas
    una cola de dieciseis mutaciones en runtime al final del
@@ -1656,33 +1661,33 @@ function toggleGChart(id){const g=$("gchart");if(!g)return;
   if(g.classList.contains("show")){g.classList.remove("show");g.innerHTML="";}
   else{g.innerHTML=exChart(id,null);g.classList.add("show");}}
 /* ==== fin [S3] ============================================================ */
-/* Las figuras se resuelven en dos capas: si el ejercicio ya tiene esqueleto en
-   poses.js lo pinta figura.js -- proporcion comun, articulaciones, profundidad
-   y movimiento interpolado de verdad --, y si todavia no, sigue el camino
-   viejo de los dos fotogramas fundidos. Asi la migracion va por lotes sin que
-   la app quede a medias en ningun momento. */
-const NUEVA=id=>(typeof FIGURA!=="undefined")&&FIGURA.has(id);
+/* Las figuras las pinta figura3d.js: aquí solo se deja el hueco con el id del
+   ejercicio y el modo. Un MutationObserver del motor lo monta en cuanto
+   aparece en el DOM, así que estos puntos no tienen que esperar a que cargue
+   el módulo ni saber nada de three.js.
+   Si un ejercicio todavía no tiene postura 3D —o el aparato no soporta
+   WebGL— se sigue por el camino viejo de los dos fotogramas fundidos, así
+   que la app nunca queda a medias. */
+const NUEVA=id=>(typeof FIG3D!=="undefined")&&!!(FIG3D.POSES&&FIG3D.POSES[id]);
+const hueco=(id,modo,cls,extra)=>
+  `<div class="${cls}" data-fig3d="${id}" data-modo="${modo}"${extra||""}></div>`;
+
 function framesStrip(id){
-  if(NUEVA(id)){const n=FIGURA.poseCount(id),cap=FIGURA.captions(id);
-    if(n<2)return "";
-    return `<div class="frames">`+Array.from({length:n},(_,i)=>
-      `<div class="frame"><div class="fnum">${i+1}</div><div class="fdiag">${FIGURA.still(id,i)}</div><div class="fcap">${esc(cap[i]||"")}</div></div>`).join("")+`</div>`;}
-  const f=(typeof FRAMES!=="undefined")?FRAMES[id]:null;if(!f||!f.frames||f.frames.length<2)return "";
-  return `<div class="frames">`+f.frames.map((sv,i)=>`<div class="frame"><div class="fnum">${i+1}</div><div class="fdiag">${sv}</div><div class="fcap">${esc((f.captions&&f.captions[i])||"")}</div></div>`).join("")+`</div>`;}
-/* Los fotogramas del sistema viejo ya estaban dibujados: traen exactamente dos,
-   que son las dos posiciones del movimiento sobre la misma rejilla. Apilandolos
-   y fundiendolos, el dibujo al menos ejecuta el ejercicio.
-   Solo se anima el ejercicio que toca, nunca los 90 a la vez. */
+  if(NUEVA(id)){const cap=(FIG3D.POSES[id].pies)||[];
+    if(cap.length<2)return "";
+    return `<div class="frames">`+cap.map((t,i)=>
+      `<div class="frame"><div class="fnum">${i+1}</div>`+
+      hueco(id,"pose","fdiag",` data-k="${i/(cap.length-1)}"`)+
+      `<div class="fcap">${esc(t)}</div></div>`).join("")+`</div>`;}
+  return "";}
+
 function framesLoop(id,cls){
-  if(NUEVA(id))return `<div class="${cls||'gdiag'}">${FIGURA.anim(id)}</div>`;
-  const f=(typeof FRAMES!=="undefined")?FRAMES[id]:null;
-  if(!f||!f.frames||f.frames.length<2)return `<div class="${cls||'gdiag'}">${DIAG[id]||""}</div>`;
-  const a=f.frames[0],b=f.frames[f.frames.length-1];
-  return `<div class="${cls||'gdiag'} anim"><i class="fa">${a}</i><i class="fb">${b}</i></div>`;}
-/* La miniatura de la lista: el esqueleto da una version reducida a lo esencial
-   --sin ojo, sin aparato, sin flecha y recortada al cuerpo-- que a 46 px se
-   lee, que es justo lo que el dibujo completo no conseguia a esa escala. */
-function miniDiag(id){return NUEVA(id)?FIGURA.mini(id):(DIAG[id]||"");}
+  if(NUEVA(id))return hueco(id,"anim",cls||"gdiag");
+  return "";}
+
+/* La miniatura de la lista sale del mismo esqueleto, recortada al cuerpo y sin
+   suelo: a 46 px el dibujo completo no se leía. */
+function miniDiag(id){return NUEVA(id)?hueco(id,"mini","minifig"):"";}
 
 /* ===== GIMNASIO: registro de peso, planificador semanal, progreso ===== */
 let sessionLog={}, curW=null, curReps=null, restR=0, planDay=0;
@@ -2033,7 +2038,7 @@ function fichaEjercicio(s){
     <summary>${ic("bulb","sm")} Cómo se hace</summary>
     <div class="exinfo-b">
     ${framesLoop(s.id)}
-    ${(NUEVA(s.id)||(typeof FRAMES!=="undefined"&&FRAMES[s.id]))?`<div class="gframes">${framesStrip(s.id)}</div>`:``}
+    ${NUEVA(s.id)?`<div class="gframes">${framesStrip(s.id)}</div>`:``}
     ${caveat}${opt}
     <ul class="glist">${s.steps.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>
     ${vid?`<div class="vbtn" onclick="toggleGVid()">${ic("play","sm solid")} Ver video</div>
@@ -2478,16 +2483,13 @@ window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;
 $("installBtn").onclick=async()=>{if(deferred){deferred.prompt();await deferred.userChoice;deferred=null;$("install").style.display="none";}};
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
 
-/* las figuras viven en figuras.js; si no cargara, la app sigue funcionando */
-Object.assign(FRAMES,(window.FIG&&FIG.FRAMES)||{});
-Object.assign(DIAG,(window.FIG&&FIG.DIAG)||{});
-/* Ya no queda ningun ejercicio sin dibujo propio. El unico prestamo que sigue
-   en pie es honesto: los vuelos posteriores ligeros del calentamiento SON un
-   reverse fly, solo que con menos peso, asi que comparten figura. */
-const FIGALIAS={vuelos_posteriores_ligeros:"reverse_fly"};
-Object.keys(FIGALIAS).forEach(function(id){var src=FIGALIAS[id];
-  if(!DIAG[id]&&DIAG[src])DIAG[id]=DIAG[src];
-  if(!FRAMES[id]&&FRAMES[src])FRAMES[id]=FRAMES[src];});
+/* Los 476 KB de SVG escritos a mano (figuras.js) se retiraron en v31: los 91
+   ejercicios tienen postura 3D en poses3d.js. Lo que queda aquí es solo la red
+   de seguridad por si un id no tuviera postura o el aparato no soportara WebGL:
+   entonces no se pinta figura y la ficha sigue funcionando con los pasos y el
+   vídeo, que es donde vive la información que de verdad hace falta.
+   El préstamo honesto sigue en pie: los vuelos posteriores ligeros SON un
+   reverse fly con menos peso, y comparten figura (ver poses3d.js). */
 /* ================= Dashboard de progreso (v19) ================= */
 /* Que rutinas cuentan como "programa de fuerza": de aqui salen la meta semanal,
    la racha, la adherencia y el mapa de calor. Las de casa entran por derecho
