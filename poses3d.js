@@ -223,9 +223,11 @@ function sentadilla(prof, incl){          /* prof: 0…1 de profundidad */
                   ankle:{bend:Math.max(0, raise-knee)}}),
              {torso:{bend:incl===undefined?30:incl}});
 }
-var MANC = function(en, dy, rot, esc){
-  return {tipo:"mancuerna", en:en||["l_wrist","r_wrist"], dy:dy===undefined?1.2:dy,
-          rot:rot||[1.5708,0,0], escala:esc};
+/* La mancuerna se centra en la caja de la MANO —props3d.js la mide— y solo hay
+   que decirle por dónde va la barra: de frente a espalda en un agarre normal,
+   vertical en el goblet, a lo ancho del cuerpo en una barra. */
+var MANC = function(en, eje, esc){
+  return {tipo:"mancuerna", en:en||["l_wrist","r_wrist"], eje:eje||"frente", escala:esc};
 };
 
 /* ---- 1 · SENTADILLA (9) ------------------------------------------------- */
@@ -235,33 +237,33 @@ E("sentadilla_aire","sentadilla",{ camara:-60, aparato:[], apoyos:["l_ankle","r_
   pies:["De pie, pies al ancho","Baja buscando rango"] });
 
 E("sentadilla_goblet","sentadilla",{ camara:-60, apoyos:["l_ankle","r_ankle"],
-  aparato:[MANC(["l_wrist"], 1.5, [0,0,0])],
+  aparato:[MANC(["l_wrist"],"arriba")],
   A: amb({arm:{raise:-58,straddle:4,turn:10}, elbow:{bend:146}, wrist:{bend:-6}}),
   B: une(sentadilla(0.98,34), amb({arm:{raise:-58,straddle:4,turn:10},
         elbow:{bend:146}, wrist:{bend:-6}})),
   pies:["Mancuerna al pecho","Baja a la paralela"] });
 
 E("sentadilla_silla","sentadilla",{ camara:-60, apoyos:["l_ankle","r_ankle"],
-  aparato:[{tipo:"silla", alto:-0.24, pos:[-0.10,0,0]}],
+  aparato:[{tipo:"silla", apoya:["pelvis"]}],
   A: une(sentadilla(0.80,34), amb({arm:{raise:-80,straddle:6}, elbow:{bend:18}})),
   B: amb({arm:{raise:-14,straddle:7}, elbow:{bend:10}}),
   pies:["Sentado en la silla","De pie sin impulso"] });
 
 E("sentadilla_smith","sentadilla",{ camara:-60, apoyos:["l_ankle","r_ankle"],
-  aparato:[{tipo:"poste", x:-0.62}, {tipo:"barra", en:["l_wrist"], dy:1.4, largo:1.6}],
+  aparato:[{tipo:"barra", en:["l_wrist"], eje:"lateral", largo:1.6}],
   A: amb({arm:{raise:-118,straddle:34}, elbow:{bend:96}, wrist:{bend:-14}}),
   B: une(sentadilla(0.92,22), amb({arm:{raise:-118,straddle:34}, elbow:{bend:96}, wrist:{bend:-14}})),
   pies:["Barra en la espalda","Baja a la paralela"] });
 
 E("hack_squat","sentadilla",{ camara:-60, apoyos:["l_ankle","r_ankle"],
-  aparato:[{tipo:"maquina", alto:-0.16, x:-0.66}],
+  aparato:[{tipo:"maquina", apoya:["pelvis"]}],
   A: une({body:{bend:-16}}, amb({arm:{raise:-30,straddle:22}, elbow:{bend:96}})),
   B: une({body:{bend:-16}}, sentadilla(0.92,10),
          amb({arm:{raise:-30,straddle:22}, elbow:{bend:96}})),
   pies:["Espalda en el respaldo","Baja pasando la paralela"] });
 
 E("prensa_inclinada","sentadilla",{ amplitudMin:0.09, protagonista:"l_knee",  camara:-90, apoyos:[],
-  aparato:[{tipo:"maquina", alto:-0.36, x:0.72}],
+  aparato:[{tipo:"maquina", apoya:["torso","pelvis"]}],
   A: une({body:{bend:64}, alza:0.30},
          amb({leg:{raise:52,straddle:9}, knee:{bend:38}, ankle:{bend:14},
               arm:{raise:-16,straddle:26}, elbow:{bend:40}})),
@@ -271,7 +273,7 @@ E("prensa_inclinada","sentadilla",{ amplitudMin:0.09, protagonista:"l_knee",  ca
   pies:["Piernas casi extendidas","Rodillas al pecho"] });
 
 E("sentadilla_bulgara","sentadilla",{ camara:-90, apoyos:[], unilateral:true,
-  aparato:[{tipo:"banco", alto:-0.30, largo:0.7, pos:[-0.42,0,0]}],
+  aparato:[{tipo:"banco", apoya:["r_ankle"]}],
   A: une(amb({arm:{raise:-3,straddle:6}, elbow:{bend:6}}),
          {r_leg:{raise:-34,straddle:5}, r_knee:{bend:64}, r_ankle:{bend:-30},
           l_leg:{raise:14,straddle:5}, l_knee:{bend:10}, l_ankle:{bend:4}}),
@@ -290,7 +292,7 @@ E("zancada_estatica","sentadilla",{ camara:-90, apoyos:["l_ankle"], unilateral:t
   pies:["Un pie delante","Baja la rodilla de atrás"] });
 
 E("zancadas_db","sentadilla",{ camara:-90, apoyos:["l_ankle"], unilateral:true,
-  aparato:[MANC(["l_wrist","r_wrist"], 1.3)],
+  aparato:[MANC(["l_wrist","r_wrist"],"frente")],
   A: une(amb({arm:{raise:-2,straddle:6}, elbow:{bend:4}}),
          {l_leg:{raise:22,straddle:5}, l_knee:{bend:16}, l_ankle:{bend:6},
           r_leg:{raise:-24,straddle:5}, r_knee:{bend:20}, r_ankle:{bend:-16}}),
@@ -307,14 +309,14 @@ E("bisagra_cadera_pie","bisagra",{ camara:-90, aparato:[], apoyos:["l_ankle","r_
   pies:["De pie, espalda recta","Cadera atrás, pecho abajo"] });
 
 E("peso_muerto_rumano_db","bisagra",{ camara:-90, apoyos:["l_ankle","r_ankle"],
-  aparato:[MANC(["l_wrist","r_wrist"], 1.3)],
+  aparato:[MANC(["l_wrist","r_wrist"],"frente")],
   A: amb({arm:{raise:-2,straddle:5}, elbow:{bend:4}}),
   B: une({torso:{bend:54}}, amb({arm:{raise:6,straddle:5}, elbow:{bend:4},
          leg:{raise:26,straddle:6}, knee:{bend:14}, ankle:{bend:10}})),
   pies:["Mancuernas al muslo","Cadera atrás, espalda recta"] });
 
 E("hiperextension_banco","bisagra",{ protagonista:"head",  camara:-90, apoyos:[],
-  aparato:[{tipo:"banco", alto:-0.34, largo:0.9, pos:[0.18,0,0]}],
+  aparato:[{tipo:"banco", apoya:["pelvis"]}],
   A: une({torso:{bend:52}, alza:0.34}, amb({arm:{raise:-52,straddle:14}, elbow:{bend:132},
          leg:{raise:-6,straddle:6}})),
   B: une({torso:{bend:-6}, alza:0.34}, amb({arm:{raise:-52,straddle:14}, elbow:{bend:132},
@@ -322,7 +324,7 @@ E("hiperextension_banco","bisagra",{ protagonista:"head",  camara:-90, apoyos:[]
   pies:["Tronco colgando","Sube hasta la línea"] });
 
 E("remo_inclinado","bisagra",{ protagonista:"l_wrist",  camara:-70, apoyos:["l_ankle","r_ankle"],
-  aparato:[MANC(["l_wrist","r_wrist"], 1.3)],
+  aparato:[MANC(["l_wrist","r_wrist"],"frente")],
   A: une({torso:{bend:52}}, amb({arm:{raise:10,straddle:6}, elbow:{bend:8},
          leg:{raise:22,straddle:6}, knee:{bend:14}, ankle:{bend:8}})),
   B: une({torso:{bend:52}}, amb({arm:{raise:-16,straddle:16}, elbow:{bend:104},
@@ -352,8 +354,7 @@ E("puente_gluteo_banda","puente",{ camara:-90, aparato:[], apoyos:[],
   pies:["Banda sobre las rodillas","Sube abriendo rodillas"] });
 
 E("hip_thrust_db","puente",{ camara:-90, apoyos:[],
-  aparato:[{tipo:"banco", alto:-0.28, largo:0.8, pos:[-0.34,0,0]},
-           MANC(["l_wrist"], 1.0, [0,0,1.5708])],
+  aparato:[{tipo:"banco", apoya:["torso"]}, MANC(["l_wrist"],"lateral")],
   A: une({body:{bend:80}, alza:0.10}, amb({leg:{raise:60,straddle:8}, knee:{bend:80},
          ankle:{bend:-16}, arm:{raise:-40,straddle:14}, elbow:{bend:74}})),
   B: une({body:{bend:44}, alza:0.10}, amb({leg:{raise:30,straddle:8}, knee:{bend:84},
@@ -361,7 +362,7 @@ E("hip_thrust_db","puente",{ camara:-90, apoyos:[],
   pies:["Espalda alta en el banco","Cadera a la línea del tronco"] });
 
 E("maquina_gluteo","puente",{ camara:-90, apoyos:[],
-  aparato:[{tipo:"maquina", alto:-0.30, x:-0.66}],
+  aparato:[{tipo:"maquina", apoya:["torso"]}],
   A: une({body:{bend:78}, alza:0.16}, amb({leg:{raise:58,straddle:8}, knee:{bend:78},
          ankle:{bend:-16}, arm:{raise:-34,straddle:20}, elbow:{bend:84}})),
   B: une({body:{bend:42}, alza:0.16}, amb({leg:{raise:28,straddle:8}, knee:{bend:82},
@@ -375,18 +376,18 @@ function sentado(alza, extra){
          arm:{raise:-14, straddle:14}, elbow:{bend:26}}), extra||{});
 }
 E("extension_cuadriceps","pierna_aislada",{ camara:-90, apoyos:[],
-  aparato:[{tipo:"maquina", alto:-0.06, x:-0.60}],
+  aparato:[{tipo:"maquina", apoya:["pelvis"]}],
   A: sentado(0.34), B: sentado(0.34, amb({knee:{bend:14}, ankle:{bend:10}})),
   pies:["Sentado, rodillas dobladas","Estira sin bloquear"] });
 
 E("curl_femoral_sentado","pierna_aislada",{ camara:-90, apoyos:[],
-  aparato:[{tipo:"maquina", alto:-0.06, x:-0.60}],
+  aparato:[{tipo:"maquina", apoya:["pelvis"]}],
   A: sentado(0.34, amb({knee:{bend:26}, ankle:{bend:12}})),
   B: sentado(0.34, amb({knee:{bend:104}, ankle:{bend:-6}})),
   pies:["Piernas casi rectas","Talones bajo el asiento"] });
 
 E("curl_femoral","pierna_aislada",{ camara:-90, apoyos:[],
-  aparato:[{tipo:"banco", alto:-0.44, largo:1.1}],
+  aparato:[{tipo:"banco", apoya:["torso","pelvis"]}],
   A: une({body:{bend:90}, alza:0.30},
          amb({leg:{raise:4,straddle:7}, knee:{bend:6}, ankle:{bend:0},
               arm:{raise:64,straddle:12}, elbow:{bend:96}})),
@@ -396,19 +397,19 @@ E("curl_femoral","pierna_aislada",{ camara:-90, apoyos:[],
   pies:["Boca abajo, piernas rectas","Talones al glúteo"] });
 
 E("aductores_maquina","pierna_aislada",{ camara:0, apoyos:[],
-  aparato:[{tipo:"maquina", alto:-0.06, x:-0.60}],
+  aparato:[{tipo:"maquina", apoya:["pelvis"]}],
   A: sentado(0.34, amb({leg:{straddle:40}, knee:{bend:84}})),
   B: sentado(0.34, amb({leg:{straddle:6}, knee:{bend:84}})),
   pies:["Rodillas abiertas","Junta apretando"] });
 
 E("abductores_maquina","pierna_aislada",{ camara:0, apoyos:[],
-  aparato:[{tipo:"maquina", alto:-0.06, x:-0.60}],
+  aparato:[{tipo:"maquina", apoya:["pelvis"]}],
   A: sentado(0.34, amb({leg:{straddle:6}, knee:{bend:84}})),
   B: sentado(0.34, amb({leg:{straddle:44}, knee:{bend:84}})),
   pies:["Rodillas juntas","Abre contra la resistencia"] });
 
 E("elevacion_pantorrilla","pierna_aislada",{ amplitudMin:0.035,  camara:-90, apoyos:["l_ankle","r_ankle"],
-  aparato:[MANC(["l_wrist","r_wrist"], 1.3)],
+  aparato:[MANC(["l_wrist","r_wrist"],"frente")],
   A: amb({ankle:{bend:14}, arm:{raise:-2,straddle:5}, elbow:{bend:4}}),
   B: amb({ankle:{bend:-46}, arm:{raise:-2,straddle:5}, elbow:{bend:4}}),
   pies:["Talones abajo","Sube a la punta"] });
@@ -474,7 +475,7 @@ E("marcha_sitio","cadera_pie",{ camara:-70, aparato:[], apoyos:[],
   pies:["Rodilla arriba","Cambia de pierna"] });
 
 E("caminadora","cadera_pie",{ camara:-90, apoyos:[], unilateral:true,
-  aparato:[{tipo:"maquina", alto:-0.62, x:0.70}],
+  aparato:[{tipo:"banco", apoya:["l_ankle","r_ankle"]}],
   A: une({l_leg:{raise:30,straddle:5}, l_knee:{bend:22}, l_ankle:{bend:8},
           r_leg:{raise:-22,straddle:5}, r_knee:{bend:8}, r_ankle:{bend:-16},
           l_arm:{raise:-24,straddle:7}, l_elbow:{bend:66},
@@ -486,31 +487,35 @@ E("caminadora","cadera_pie",{ camara:-90, apoyos:[], unilateral:true,
   pies:["Paso adelante","Paso atrás"] });
 
 /* ---- 6 · EMPUJE HORIZONTAL (8) ------------------------------------------ */
+/* Tumbado boca arriba en un banco: los pies apoyan en el SUELO, no en el aire.
+   Con el tronco tumbado el signo de `raise` se invierte respecto a la postura
+   de pie —lo mismo que pasa en la cuadrupedia—, así que el muslo baja con
+   valor negativo. Medido en pantalla, no supuesto. */
 function tumbado(alza){
   return une({body:{bend:90}, alza:alza||0},
-    amb({leg:{raise:64,straddle:8}, knee:{bend:80}, ankle:{bend:-12}}));
+    amb({leg:{raise:118,straddle:8}, knee:{bend:78}, ankle:{bend:-10}}));
 }
 E("press_banca_db","empuje_h",{ camara:-60, apoyos:[],
-  aparato:[{tipo:"banco", alto:-0.34, largo:1.15}, MANC(["l_wrist","r_wrist"], 1.3)],
+  aparato:[{tipo:"banco", apoya:["torso","pelvis"]}, MANC(["l_wrist","r_wrist"],"lateral")],
   A: une(tumbado(0.34), amb({arm:{raise:-84,straddle:52}, elbow:{bend:92}})),
   B: une(tumbado(0.34), amb({arm:{raise:-88,straddle:20}, elbow:{bend:10}})),
   pies:["Codos abajo, pecho abierto","Empuja hasta arriba"] });
 
 E("aperturas_db","empuje_h",{ camara:-60, apoyos:[],
-  aparato:[{tipo:"banco", alto:-0.34, largo:1.15}, MANC(["l_wrist","r_wrist"], 1.3)],
+  aparato:[{tipo:"banco", apoya:["torso","pelvis"]}, MANC(["l_wrist","r_wrist"],"lateral")],
   A: une(tumbado(0.34), amb({arm:{raise:-88,straddle:76}, elbow:{bend:22}})),
   B: une(tumbado(0.34), amb({arm:{raise:-90,straddle:12}, elbow:{bend:18}})),
   pies:["Brazos abiertos en cruz","Junta arriba sin chocar"] });
 
 E("pec_deck","empuje_h",{ camara:-25, apoyos:[],
-  aparato:[{tipo:"maquina", alto:-0.18, x:-0.64}],
+  aparato:[{tipo:"maquina", apoya:["pelvis"]}],
   A: une({alza:0.32}, amb({leg:{raise:86,straddle:9}, knee:{bend:84}, ankle:{bend:4},
          arm:{raise:-88,straddle:78}, elbow:{bend:26}})),
   B: une({alza:0.32}, amb({leg:{raise:86,straddle:9}, knee:{bend:84}, ankle:{bend:4},
          arm:{raise:-88,straddle:14}, elbow:{bend:26}})),
   pies:["Codos atrás, pecho abierto","Junta delante del pecho"] });
 
-E("flexiones","empuje_h",{ camara:-70, apoyos:[],
+E("flexiones","empuje_h",{ camara:-90, apoyos:[],
   aparato:[],
   A: une({body:{bend:80}}, amb({arm:{raise:92,straddle:12}, elbow:{bend:4},
          leg:{raise:4,straddle:7}, knee:{bend:2}, ankle:{bend:-40}})),
@@ -518,16 +523,16 @@ E("flexiones","empuje_h",{ camara:-70, apoyos:[],
          leg:{raise:4,straddle:7}, knee:{bend:2}, ankle:{bend:-40}})),
   pies:["Plancha con brazos rectos","Baja el pecho al suelo"] });
 
-E("flexiones_pared","empuje_h",{ camara:-70, apoyos:["l_ankle","r_ankle"],
-  aparato:[{tipo:"pared", x:0.52}],
+E("flexiones_pared","empuje_h",{ camara:-90, apoyos:["l_ankle","r_ankle"],
+  aparato:[{tipo:"pared", ante:["l_wrist","r_wrist"]}],
   A: une({torso:{bend:8}}, amb({arm:{raise:-92,straddle:20}, elbow:{bend:6},
          leg:{raise:-6,straddle:6}})),
   B: une({torso:{bend:12}}, amb({arm:{raise:-72,straddle:40}, elbow:{bend:82},
          leg:{raise:-6,straddle:6}})),
   pies:["Manos en la pared","Acerca el pecho"] });
 
-E("flexiones_inclinadas","empuje_h",{ camara:-70, apoyos:["l_ankle","r_ankle"],
-  aparato:[{tipo:"banco", alto:-0.12, largo:0.8, pos:[0.44,0,0]}],
+E("flexiones_inclinadas","empuje_h",{ camara:-90, apoyos:["l_ankle","r_ankle"],
+  aparato:[{tipo:"barra_fija", ante:["l_wrist","r_wrist"]}],
   A: une({body:{bend:48}}, amb({arm:{raise:96,straddle:14}, elbow:{bend:6},
          leg:{raise:4,straddle:7}, knee:{bend:2}, ankle:{bend:-26}})),
   B: une({body:{bend:48}}, amb({arm:{raise:78,straddle:40}, elbow:{bend:84},
@@ -535,7 +540,7 @@ E("flexiones_inclinadas","empuje_h",{ camara:-70, apoyos:["l_ankle","r_ankle"],
   pies:["Manos en la barra","Baja el pecho"] });
 
 E("fondos_banco","empuje_h",{ camara:-90, apoyos:[],
-  aparato:[{tipo:"banco", alto:-0.28, largo:0.7, pos:[-0.40,0,0]}],
+  aparato:[{tipo:"banco", apoya:["l_wrist","r_wrist"]}],
   A: une({torso:{bend:8}}, amb({arm:{raise:34,straddle:12}, elbow:{bend:8},
          leg:{raise:70,straddle:8}, knee:{bend:56}, ankle:{bend:14}})),
   B: une({torso:{bend:8}}, amb({arm:{raise:44,straddle:14}, elbow:{bend:88},
@@ -543,7 +548,7 @@ E("fondos_banco","empuje_h",{ camara:-90, apoyos:[],
   pies:["Manos en el banco, brazos rectos","Baja doblando codos"] });
 
 E("fondos_paralelas","empuje_h",{ camara:-70, apoyos:[],
-  aparato:[{tipo:"poste", x:-0.34}, {tipo:"poste", x:0.34}],
+  aparato:[{tipo:"poste", ante:["l_wrist"]}, {tipo:"poste", ante:["r_wrist"]}],
   A: une({torso:{bend:12}}, amb({arm:{raise:12,straddle:10}, elbow:{bend:6},
          leg:{raise:26,straddle:7}, knee:{bend:44}, ankle:{bend:-10}})),
   B: une({torso:{bend:16}}, amb({arm:{raise:24,straddle:12}, elbow:{bend:94},
@@ -552,13 +557,13 @@ E("fondos_paralelas","empuje_h",{ camara:-70, apoyos:[],
 
 /* ---- 7 · EMPUJE VERTICAL Y HOMBRO (4) ----------------------------------- */
 E("press_hombro_db","empuje_v",{ camara:-25, apoyos:["l_ankle","r_ankle"],
-  aparato:[MANC(["l_wrist","r_wrist"], 1.3)],
+  aparato:[MANC(["l_wrist","r_wrist"],"lateral")],
   A: amb({arm:{raise:-96,straddle:62}, elbow:{bend:92}}),
   B: amb({arm:{raise:-166,straddle:16}, elbow:{bend:10}}),
   pies:["Mancuernas a la altura de la oreja","Arriba sin encoger el cuello"] });
 
 E("elevaciones_laterales","empuje_v",{ camara:0, apoyos:["l_ankle","r_ankle"],
-  aparato:[MANC(["l_wrist","r_wrist"], 1.3, [1.5708,0,0], 0.8)],
+  aparato:[MANC(["l_wrist","r_wrist"],"frente",0.8)],
   A: amb({arm:{raise:-4,straddle:8}, elbow:{bend:10}}),
   B: amb({arm:{raise:-4,straddle:88}, elbow:{bend:14}}),
   pies:["Brazos al costado","Sube hasta la horizontal"] });
@@ -569,21 +574,20 @@ E("elevaciones_laterales","empuje_v",{ camara:0, apoyos:["l_ankle","r_ankle"],
    anote como límite conocido en vez de darlo por bueno. */
 E("encogimientos_db","empuje_v",{ sostiene:true, gestoLimitado:true, amplitudMin:0.008,
   camara:-70, apoyos:["l_ankle","r_ankle"],
-  aparato:[MANC(["l_wrist","r_wrist"], 1.3)],
+  aparato:[MANC(["l_wrist","r_wrist"],"frente")],
   A: une({torso:{bend:3}, head:{nod:-8}}, amb({arm:{raise:0,straddle:8}, elbow:{bend:2}})),
   B: une({torso:{bend:-5}, head:{nod:12}}, amb({arm:{raise:-22,straddle:14}, elbow:{bend:14}})),
   pies:["Hombros abajo","Sube los hombros a las orejas"] });
 
 E("cruce_poleas","empuje_v",{ camara:-25, apoyos:["l_ankle","r_ankle"],
-  aparato:[{tipo:"poste", x:-0.70}, {tipo:"poste", x:0.70}],
+  aparato:[{tipo:"poste", ante:["l_wrist"]}, {tipo:"poste", ante:["r_wrist"]}],
   A: amb({arm:{raise:22,straddle:36}, elbow:{bend:14}}),
   B: amb({arm:{raise:-128,straddle:44}, elbow:{bend:16}}),
   pies:["Manos abajo, delante del muslo","Sube en diagonal"] });
 
 /* ---- 8 · TRACCIÓN VERTICAL (3) ------------------------------------------ */
 E("jalon_pecho","traccion_v",{ camara:-25, apoyos:[],
-  aparato:[{tipo:"maquina", alto:-0.20, x:-0.70},
-           {tipo:"barra", en:["l_wrist"], dy:1.5, largo:1.4}],
+  aparato:[{tipo:"maquina", apoya:["pelvis"]}, {tipo:"barra", en:["l_wrist"], eje:"lateral", largo:1.4}],
   A: une({alza:0.28, torso:{bend:-6}},
          amb({leg:{raise:88,straddle:8}, knee:{bend:86}, ankle:{bend:4},
               arm:{raise:-158,straddle:24}, elbow:{bend:8}, wrist:{bend:-12}})),
@@ -593,7 +597,7 @@ E("jalon_pecho","traccion_v",{ camara:-25, apoyos:[],
   pies:["Brazos estirados arriba","Barra al pecho, codos abajo"] });
 
 E("colgado_escapular","traccion_v",{ amplitudMin:0.02,  sostiene:true, camara:-25, apoyos:[],
-  aparato:[{tipo:"barra", en:["l_wrist"], dy:1.5, largo:1.2}],
+  aparato:[{tipo:"barra_fija", ante:["l_wrist","r_wrist"]}],
   A: amb({arm:{raise:-176,straddle:12}, elbow:{bend:4}, leg:{raise:6,straddle:6},
           knee:{bend:24}, ankle:{bend:-14}}),
   B: amb({arm:{raise:-166,straddle:12}, elbow:{bend:6}, leg:{raise:6,straddle:6},
@@ -601,7 +605,7 @@ E("colgado_escapular","traccion_v",{ amplitudMin:0.02,  sostiene:true, camara:-2
   pies:["Colgado, hombros sueltos","Baja los hombros sin doblar codos"] });
 
 E("pullover_polea","traccion_v",{ camara:-70, apoyos:["l_ankle","r_ankle"],
-  aparato:[{tipo:"poste", x:-0.66}, {tipo:"barra", en:["l_wrist"], dy:1.4, largo:1.0}],
+  aparato:[{tipo:"poste", ante:["l_wrist"]}, {tipo:"barra", en:["l_wrist"], eje:"lateral", largo:1.0}],
   A: une({torso:{bend:20}}, amb({arm:{raise:-138,straddle:16}, elbow:{bend:12},
          leg:{raise:16,straddle:6}, knee:{bend:12}, ankle:{bend:6}})),
   B: une({torso:{bend:26}}, amb({arm:{raise:-34,straddle:12}, elbow:{bend:10},
@@ -610,8 +614,7 @@ E("pullover_polea","traccion_v",{ camara:-70, apoyos:["l_ankle","r_ankle"],
 
 /* ---- 9 · TRACCIÓN HORIZONTAL (10) --------------------------------------- */
 E("remo_db","traccion_h",{ camara:-70, apoyos:[], unilateral:true,
-  aparato:[{tipo:"banco", alto:-0.30, largo:0.8, pos:[0.20,0,0]},
-           MANC(["l_wrist"], 1.3)],
+  aparato:[{tipo:"banco", apoya:["r_knee"]}, MANC(["l_wrist"],"frente")],
   A: une({torso:{bend:48}}, {l_arm:{raise:8,straddle:6}, l_elbow:{bend:6},
          r_arm:{raise:-48,straddle:16}, r_elbow:{bend:100},
          l_leg:{raise:18,straddle:6}, l_knee:{bend:10}, l_ankle:{bend:8},
@@ -628,7 +631,7 @@ E("remo_banda","traccion_h",{ camara:-70, aparato:[], apoyos:["l_ankle","r_ankle
   pies:["Brazos estirados al frente","Codos atrás, escápulas juntas"] });
 
 E("remo_maquina","traccion_h",{ camara:-70, apoyos:[],
-  aparato:[{tipo:"maquina", alto:-0.18, x:0.66}],
+  aparato:[{tipo:"maquina", apoya:["pelvis"]}],
   A: une({alza:0.32, torso:{bend:14}},
          amb({leg:{raise:86,straddle:8}, knee:{bend:84}, ankle:{bend:4},
               arm:{raise:-80,straddle:14}, elbow:{bend:14}})),
@@ -638,7 +641,7 @@ E("remo_maquina","traccion_h",{ camara:-70, apoyos:[],
   pies:["Brazos largos al frente","Tira hasta el abdomen"] });
 
 E("remo_polea","traccion_h",{ camara:-70, apoyos:[],
-  aparato:[{tipo:"poste", x:0.72}],
+  aparato:[{tipo:"poste", ante:["l_wrist"]}],
   A: une({alza:0.06, torso:{bend:22}},
          amb({leg:{raise:70,straddle:8}, knee:{bend:22}, ankle:{bend:34},
               arm:{raise:-74,straddle:12}, elbow:{bend:14}})),
@@ -648,7 +651,7 @@ E("remo_polea","traccion_h",{ camara:-70, apoyos:[],
   pies:["Sentado, brazos al frente","Tira al ombligo, pecho alto"] });
 
 E("remo_invertido","traccion_h",{ camara:-70, apoyos:["l_ankle","r_ankle"],
-  aparato:[{tipo:"barra", en:["l_wrist"], dy:1.4, largo:1.3}],
+  aparato:[{tipo:"barra_fija", ante:["l_wrist","r_wrist"]}],
   A: une({body:{bend:66}}, amb({arm:{raise:-96,straddle:18}, elbow:{bend:8},
          leg:{raise:-4,straddle:7}, ankle:{bend:16}})),
   B: une({body:{bend:66}}, amb({arm:{raise:-58,straddle:32}, elbow:{bend:92},
@@ -656,7 +659,7 @@ E("remo_invertido","traccion_h",{ camara:-70, apoyos:["l_ankle","r_ankle"],
   pies:["Colgado bajo la barra","Pecho a la barra"] });
 
 E("reverse_fly","traccion_h",{ camara:-25, apoyos:["l_ankle","r_ankle"],
-  aparato:[MANC(["l_wrist","r_wrist"], 1.2, [1.5708,0,0], 0.8)],
+  aparato:[MANC(["l_wrist","r_wrist"],"frente",0.8)],
   A: une({torso:{bend:46}}, amb({arm:{raise:-84,straddle:8}, elbow:{bend:18},
          leg:{raise:20,straddle:6}, knee:{bend:16}, ankle:{bend:6}})),
   B: une({torso:{bend:46}}, amb({arm:{raise:-84,straddle:78}, elbow:{bend:20},
@@ -664,7 +667,7 @@ E("reverse_fly","traccion_h",{ camara:-25, apoyos:["l_ankle","r_ankle"],
   pies:["Brazos colgando juntos","Abre en cruz"] });
 
 E("pec_deck_inverso","traccion_h",{ camara:-25, apoyos:[],
-  aparato:[{tipo:"maquina", alto:-0.18, x:0.64}],
+  aparato:[{tipo:"maquina", apoya:["pelvis"]}],
   A: une({alza:0.32}, amb({leg:{raise:86,straddle:9}, knee:{bend:84}, ankle:{bend:4},
          arm:{raise:-88,straddle:12}, elbow:{bend:22}})),
   B: une({alza:0.32}, amb({leg:{raise:86,straddle:9}, knee:{bend:84}, ankle:{bend:4},
@@ -672,7 +675,7 @@ E("pec_deck_inverso","traccion_h",{ camara:-25, apoyos:[],
   pies:["Brazos al frente","Abre juntando escápulas"] });
 
 E("vuelos_posteriores_ligeros","traccion_h",{ camara:-25, apoyos:["l_ankle","r_ankle"],
-  aparato:[MANC(["l_wrist","r_wrist"], 1.2, [1.5708,0,0], 0.7)],
+  aparato:[MANC(["l_wrist","r_wrist"],"frente",0.7)],
   A: une({torso:{bend:40}}, amb({arm:{raise:-82,straddle:10}, elbow:{bend:22},
          leg:{raise:18,straddle:6}, knee:{bend:14}, ankle:{bend:6}})),
   B: une({torso:{bend:40}}, amb({arm:{raise:-82,straddle:62}, elbow:{bend:24},
@@ -685,7 +688,7 @@ E("banda_pull_apart","traccion_h",{ camara:-25, aparato:[], apoyos:["l_ankle","r
   pies:["Banda al frente","Abre hasta el pecho"] });
 
 E("apertura_toracica_rack","traccion_h",{ protagonista:"torso", sostiene:true, camara:-60, apoyos:["l_ankle","r_ankle"],
-  aparato:[{tipo:"poste", x:-0.60}],
+  aparato:[{tipo:"poste", ante:["l_wrist"]}],
   A: une({torso:{bend:26}}, amb({arm:{raise:-142,straddle:18}, elbow:{bend:16},
          leg:{raise:10,straddle:7}, knee:{bend:8}, ankle:{bend:4}})),
   B: une({torso:{bend:54}}, amb({arm:{raise:-172,straddle:20}, elbow:{bend:4},
@@ -694,19 +697,19 @@ E("apertura_toracica_rack","traccion_h",{ protagonista:"torso", sostiene:true, c
 
 /* ---- 10 · CODO AISLADO (9) ---------------------------------------------- */
 E("curl_barra","codo",{ camara:-70, apoyos:["l_ankle","r_ankle"],
-  aparato:[{tipo:"barra", en:["l_wrist"], dy:1.4, largo:1.1}],
+  aparato:[{tipo:"barra", en:["l_wrist"], eje:"lateral", largo:1.1}],
   A: amb({arm:{raise:-6,straddle:8}, elbow:{bend:12}, wrist:{bend:-10}}),
   B: amb({arm:{raise:-16,straddle:8}, elbow:{bend:134}, wrist:{bend:-14}}),
   pies:["Barra en los muslos","Sube sin mover el codo"] });
 
 E("curl_biceps_db","codo",{ camara:-70, apoyos:["l_ankle","r_ankle"],
-  aparato:[MANC(["l_wrist","r_wrist"], 1.3)],
+  aparato:[MANC(["l_wrist","r_wrist"],"frente")],
   A: amb({arm:{raise:-6,straddle:8}, elbow:{bend:10}}),
   B: amb({arm:{raise:-16,straddle:8}, elbow:{bend:132}}),
   pies:["Brazos colgando","Sube hasta el hombro"] });
 
 E("curl_concentrado","codo",{ protagonista:"l_wrist",  camara:-70, apoyos:[], unilateral:true,
-  aparato:[{tipo:"banco", alto:-0.30, largo:0.7}, MANC(["l_wrist"], 1.3)],
+  aparato:[{tipo:"banco", apoya:["pelvis"]}, MANC(["l_wrist"],"frente")],
   A: une({alza:0.30, torso:{bend:34, turn:-10}},
          amb({leg:{raise:86,straddle:22}, knee:{bend:84}, ankle:{bend:4}}),
          {l_arm:{raise:-26,straddle:20}, l_elbow:{bend:14},
@@ -718,14 +721,13 @@ E("curl_concentrado","codo",{ protagonista:"l_wrist",  camara:-70, apoyos:[], un
   pies:["Codo apoyado en el muslo","Sube hasta cerrar"] });
 
 E("curl_martillo_cruzado","codo",{ camara:-30, apoyos:["l_ankle","r_ankle"],
-  aparato:[MANC(["l_wrist","r_wrist"], 1.3, [0,0,0])],
+  aparato:[MANC(["l_wrist","r_wrist"],"lateral")],
   A: amb({arm:{raise:-6,straddle:7}, elbow:{bend:10}, wrist:{turn:40}}),
   B: amb({arm:{raise:-14,straddle:4}, elbow:{bend:128}, wrist:{turn:40}}),
   pies:["Palmas enfrentadas","Cruza hacia el hombro opuesto"] });
 
 E("curl_predicador","codo",{ camara:-70, apoyos:[],
-  aparato:[{tipo:"banco", alto:-0.16, largo:0.6, pos:[0.30,0,0]},
-           {tipo:"barra", en:["l_wrist"], dy:1.4, largo:0.9}],
+  aparato:[{tipo:"banco", apoya:["l_elbow","r_elbow"]}, {tipo:"barra", en:["l_wrist"], eje:"lateral", largo:0.9}],
   A: une({alza:0.28, torso:{bend:20}},
          amb({leg:{raise:86,straddle:9}, knee:{bend:84}, ankle:{bend:4},
               arm:{raise:-60,straddle:12}, elbow:{bend:16}})),
@@ -735,26 +737,25 @@ E("curl_predicador","codo",{ camara:-70, apoyos:[],
   pies:["Brazos apoyados, casi rectos","Sube sin despegar el codo"] });
 
 E("press_frances","codo",{ camara:-70, apoyos:[],
-  aparato:[{tipo:"banco", alto:-0.34, largo:1.15},
-           {tipo:"barra", en:["l_wrist"], dy:1.4, largo:0.9}],
+  aparato:[{tipo:"banco", apoya:["torso","pelvis"]}, {tipo:"barra", en:["l_wrist"], eje:"lateral", largo:0.9}],
   A: une(tumbado(0.34), amb({arm:{raise:-96,straddle:14}, elbow:{bend:14}})),
   B: une(tumbado(0.34), amb({arm:{raise:-96,straddle:14}, elbow:{bend:126}})),
   pies:["Brazos verticales","Baja la barra a la frente"] });
 
 E("extension_triceps_db","codo",{ camara:-70, apoyos:["l_ankle","r_ankle"],
-  aparato:[MANC(["l_wrist"], 1.3, [0,0,0])],
+  aparato:[MANC(["l_wrist"],"arriba")],
   A: amb({arm:{raise:-172,straddle:14}, elbow:{bend:130}}),
   B: amb({arm:{raise:-176,straddle:10}, elbow:{bend:12}}),
   pies:["Mancuerna detrás de la nuca","Estira sin abrir los codos"] });
 
 E("extension_triceps_polea","codo",{ camara:-70, apoyos:["l_ankle","r_ankle"],
-  aparato:[{tipo:"poste", x:-0.62}],
+  aparato:[{tipo:"poste", ante:["l_wrist"]}],
   A: une({torso:{bend:8}}, amb({arm:{raise:-14,straddle:8}, elbow:{bend:96}})),
   B: une({torso:{bend:8}}, amb({arm:{raise:-8,straddle:8}, elbow:{bend:8}})),
   pies:["Codos pegados, 90°","Estira hasta abajo"] });
 
 E("extension_triceps_sobrecabeza_polea","codo",{ camara:-70, apoyos:["l_ankle","r_ankle"],
-  aparato:[{tipo:"poste", x:0.66}],
+  aparato:[{tipo:"poste", ante:["l_wrist"], detras:true}],
   A: une({torso:{bend:16}}, amb({arm:{raise:-152,straddle:12}, elbow:{bend:124},
          leg:{raise:10,straddle:6}, knee:{bend:8}})),
   B: une({torso:{bend:16}}, amb({arm:{raise:-156,straddle:10}, elbow:{bend:10},
@@ -763,7 +764,7 @@ E("extension_triceps_sobrecabeza_polea","codo",{ camara:-70, apoyos:["l_ankle","
 
 /* ---- 11 · HOMBRO FINO Y TORÁCICA (5) ------------------------------------ */
 E("rotacion_externa_db","hombro_fino",{ camara:-25, apoyos:["l_ankle","r_ankle"],
-  unilateral:true, aparato:[MANC(["l_wrist"], 1.3, [0,0,0], 0.7)],
+  unilateral:true, aparato:[MANC(["l_wrist"],"frente",0.7)],
   A: une({l_arm:{raise:-8,straddle:6}, l_elbow:{bend:92}, l_wrist:{turn:0},
           r_arm:{raise:-6,straddle:7}, r_elbow:{bend:10}}),
   B: une({l_arm:{raise:-8,straddle:6,turn:-58}, l_elbow:{bend:92},
@@ -776,13 +777,13 @@ E("circulos_brazos","hombro_fino",{ camara:0, aparato:[], apoyos:["l_ankle","r_a
   pies:["Brazos en cruz","Círculo hasta arriba"] });
 
 E("wall_angels","hombro_fino",{ camara:-25, apoyos:["l_ankle","r_ankle"],
-  aparato:[{tipo:"pared", x:-0.30}],
+  aparato:[{tipo:"pared", ante:["torso"], detras:true}],
   A: amb({arm:{raise:-88,straddle:66}, elbow:{bend:92}}),
   B: amb({arm:{raise:-158,straddle:32}, elbow:{bend:24}}),
   pies:["Codos a 90° contra la pared","Sube sin despegar"] });
 
 E("pec_puerta","hombro_fino",{ protagonista:"l_wrist", amplitudMin:0.03,  sostiene:true, camara:-30, apoyos:["l_ankle","r_ankle"], unilateral:true,
-  aparato:[{tipo:"pared", x:-0.42}],
+  aparato:[{tipo:"pared", ante:["l_wrist"]}],
   A: une({l_arm:{raise:-90,straddle:56}, l_elbow:{bend:88},
           r_arm:{raise:-6,straddle:7}, r_elbow:{bend:10}, torso:{turn:0}}),
   B: une({l_arm:{raise:-90,straddle:56}, l_elbow:{bend:88},
@@ -790,7 +791,7 @@ E("pec_puerta","hombro_fino",{ protagonista:"l_wrist", amplitudMin:0.03,  sostie
   pies:["Antebrazo en el marco","Gira el tronco al lado contrario"] });
 
 E("extension_toracica","hombro_fino",{ camara:-90, apoyos:[],
-  aparato:[{tipo:"banco", alto:-0.46, largo:0.5}],
+  aparato:[{tipo:"banco", apoya:["torso"]}],
   A: une({body:{bend:90}, alza:0.16, torso:{bend:10}},
          amb({leg:{raise:62,straddle:8}, knee:{bend:78}, ankle:{bend:-10},
               arm:{raise:-120,straddle:20}, elbow:{bend:60}})),
@@ -829,7 +830,7 @@ E("pallof_banda","core",{ camara:-25, aparato:[], apoyos:["l_ankle","r_ankle"],
   pies:["Manos al pecho","Estira sin girar el tronco"] });
 
 E("caminata_granjero","core",{ protagonista:"l_knee", amplitudMin:0.05,  sostiene:true, camara:-40, apoyos:["r_ankle"],
-  aparato:[MANC(["l_wrist","r_wrist"], 1.3)],
+  aparato:[MANC(["l_wrist","r_wrist"],"frente")],
   A: une({torso:{bend:2}}, amb({arm:{raise:-2,straddle:9}, elbow:{bend:4}})),
   B: une({torso:{bend:2}}, {l_leg:{raise:22,straddle:6}, l_knee:{bend:18}, l_ankle:{bend:6},
           r_leg:{raise:-16,straddle:6}, r_knee:{bend:6}, r_ankle:{bend:-12},
@@ -866,7 +867,7 @@ E("open_book","core",{ camara:-40, aparato:[], apoyos:[], unilateral:true,
   pies:["De lado, brazos juntos","Abre el brazo de arriba"] });
 
 E("piernas_pared","core",{ sostiene:true, camara:-90, apoyos:[],
-  aparato:[{tipo:"pared", x:-0.60}],
+  aparato:[{tipo:"pared", ante:["l_ankle","r_ankle"]}],
   A: une({body:{bend:90}}, amb({leg:{raise:88,straddle:6}, knee:{bend:6}, ankle:{bend:-8},
          arm:{raise:-6,straddle:26}, elbow:{bend:6}})),
   B: une({body:{bend:90}}, amb({leg:{raise:90,straddle:6}, knee:{bend:4}, ankle:{bend:-14},

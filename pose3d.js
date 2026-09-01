@@ -141,8 +141,11 @@ export var TOPES = {
   l_elbow: {bend:[0,150]},  r_elbow: {bend:[0,150]},
   l_wrist: {bend:[-70,70],  turn:[-90,90], tilt:[-35,35]},
   r_wrist: {bend:[-70,70],  turn:[-90,90], tilt:[-35,35]},
-  l_leg:   {raise:[-45,120],straddle:[-30,90], turn:[-90,90]},
-  r_leg:   {raise:[-45,120],straddle:[-30,90], turn:[-90,90]},
+  /* La cadera, como el hombro, es un ángulo que da la vuelta entera en cuanto
+     el tronco se tumba: ahí un raise negativo grande no es hiperextensión,
+     es la pierna bajando al suelo. El juez de verdad es el test geométrico. */
+  l_leg:   {raise:[-190,190],straddle:[-30,90], turn:[-90,90]},
+  r_leg:   {raise:[-190,190],straddle:[-30,90], turn:[-90,90]},
   l_knee:  {bend:[0,150]},  r_knee:  {bend:[0,150]},
   l_ankle: {bend:[-80,70],  turn:[-30,30], tilt:[-25,25]},
   r_ankle: {bend:[-80,70],  turn:[-30,30], tilt:[-25,25]}

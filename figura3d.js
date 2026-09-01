@@ -24,6 +24,7 @@
 import * as THREE from "three";
 import { Male } from "mannequin";
 import { completa as _completa, mezclar, poner as _poner } from "./pose3d.js";
+import { montar as montarProps, desmontar as quitarProps } from "./props3d.js";
 
 var D = window.FIG3D || {};
 var ARQ = D.ARQUETIPOS || {}, POSES = D.POSES || {};
@@ -93,84 +94,15 @@ function completa(id, cual){ return _completa(id, cual, D); }
 function poner(pose){ _poner(man, pose); }
 
 /* ------------------------------------------------------------------- aparato */
-function mancuerna(e){
-  e = e || 1;
-  var g = new THREE.Group();
-  g.add(new THREE.Mesh(new THREE.CylinderGeometry(.030*e,.030*e,.26*e,10), matApar));
-  [-1,1].forEach(function(k){
-    var d = new THREE.Mesh(new THREE.CylinderGeometry(.088*e,.088*e,.11*e,14), matApar);
-    d.position.y = k*.165*e; g.add(d);
-  });
-  return g;
-}
-function barra(largo){
-  var g = new THREE.Group();
-  g.add(new THREE.Mesh(new THREE.CylinderGeometry(.028,.028,largo||1.5,10), matApar));
-  [-1,1].forEach(function(k){
-    var d = new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,.09,14), matApar);
-    d.position.y = k*((largo||1.5)/2 - .10); g.add(d);
-  });
-  g.rotation.z = Math.PI/2;
-  return g;
-}
-function bloque(w,h,d){
-  return new THREE.Mesh(new THREE.BoxGeometry(w,h,d), matApar);
-}
-/* aparato fijo: banco, silla, máquina. No cuelga del cuerpo, vive en la escena
-   y el validador comprueba que el cuerpo no lo atraviesa. */
-function fijo(tipo, p){
-  var g = new THREE.Group(), a = p || {};
-  if (tipo === "banco"){
-    var asiento = bloque(a.largo||1.2, .08, .34); asiento.position.y = a.alto || -0.26;
-    g.add(asiento);
-    [-1,1].forEach(function(k){
-      var pata = bloque(.07,(a.alto||-0.26) - (-0.71), .28);
-      pata.position.set(k*((a.largo||1.2)/2 - .12),
-                        ((a.alto||-0.26) + (-0.71))/2, 0);
-      g.add(pata);
-    });
-  } else if (tipo === "silla"){
-    var s = bloque(.42,.07,.40); s.position.y = a.alto || -0.26; g.add(s);
-    var r = bloque(.42,.46,.06); r.position.set(0,(a.alto||-0.26)+.26,-.19); g.add(r);
-    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(function(q){
-      var pata = bloque(.05,(a.alto||-0.26)-(-0.71),.05);
-      pata.position.set(q[0]*.17, ((a.alto||-0.26)+(-0.71))/2, q[1]*.16); g.add(pata);
-    });
-  } else if (tipo === "pared"){
-    var w = bloque(.10, 2.0, 1.4); w.position.set(a.x || 0.55, 0.29, 0); g.add(w);
-  } else if (tipo === "maquina"){
-    var as = bloque(.44,.09,.42); as.position.y = a.alto || -0.20; g.add(as);
-    var re = bloque(.42,.62,.08); re.position.set(0,(a.alto||-0.20)+.34,-.22); g.add(re);
-    var col = bloque(.14,1.5,.14); col.position.set(a.x || -0.62, 0.05, 0); g.add(col);
-  } else if (tipo === "poste"){
-    var c2 = bloque(.10,1.9,.10); c2.position.set(a.x || -0.7, 0.24, 0); g.add(c2);
-  }
-  return g;
-}
-
-var colgados = [], fijos = [];
+/* El aparato se mide de la figura YA POSADA (ver props3d.js): el banco se pone
+   debajo de lo que apoya en él, la pared más allá de las manos, y la mancuerna
+   centrada en la caja de la mano. Antes iba con coordenadas escritas a mano y
+   el resultado eran bloques atravesando el cuerpo. */
+var montaje = {colgados:[], fijos:[]};
 function montarAparato(id){
-  colgados.forEach(function(q){ q.j.detach(q.o); });
-  colgados = [];
-  fijos.forEach(function(o){ centro.remove(o); });
-  fijos = [];
-  var lista = (POSES[id] || {}).aparato || [];
-  lista.forEach(function(a){
-    if (a.tipo === "mancuerna" || a.tipo === "barra" || a.tipo === "asa"){
-      (a.en || []).forEach(function(n){
-        if (!man[n]) return;
-        var o = a.tipo === "barra" ? barra(a.largo) : mancuerna(a.escala);
-        o.position.set(a.dx||0, a.dy===undefined?1.2:a.dy, a.dz||0);
-        if (a.rot) o.rotation.set(a.rot[0]||0, a.rot[1]||0, a.rot[2]||0);
-        man[n].attach(o);
-        colgados.push({j:man[n], o:o});
-      });
-    } else {
-      var o2 = fijo(a.tipo, a);
-      if (a.pos) o2.position.set(a.pos[0]||0, a.pos[1]||0, a.pos[2]||0);
-      centro.add(o2); fijos.push(o2);
-    }
-  });
+  quitarProps(centro, montaje);
+  poner(completa(id, "A"));
+  montaje = montarProps(THREE, matApar, man, centro, (POSES[id] || {}).aparato);
 }
 
 /* ------------------------------------------------------------------ encuadre */
@@ -184,12 +116,13 @@ function marco(id, recorta){
   var clave = id + (recorta ? "|m" : "");
   if (marcos[clave]) return marcos[clave];
   var e = POSES[id], ang = (e.camara || 0) * Math.PI/180;
+  montarAparato(id);
   pivote.rotation.y = ang; centro.position.set(0,0,0);
   caja.makeEmpty();
   [completa(id,"A"), completa(id,"B")].forEach(function(p){
     poner(p);
     tmp.setFromObject(man, true); caja.union(tmp);
-    fijos.forEach(function(o){ tmp.setFromObject(o, true); caja.union(tmp); });
+    montaje.fijos.forEach(function(o){ tmp.setFromObject(o, true); caja.union(tmp); });
   });
   /* Los ejercicios de cuello se encuadran como un BUSTO: el cuerpo entero
      dejaría la cabeza en veinte píxeles y el gesto es justo ahí. */
@@ -232,8 +165,6 @@ var cache = {};
 function imagen(id, k, alto, recorta){
   var clave = id + "|" + k.toFixed(3) + "|" + Math.round(alto) + "|" + (recorta?1:0) + "|" + tema();
   if (cache[clave]) return cache[clave];
-  montarAparato(id);
-  marcos = {};                       // el aparato cambia la caja
   var A = completa(id,"A"), B = completa(id,"B");
   dibujar(id, k <= 0 ? A : (k >= 1 ? B : mezclar(A,B,k)), alto, recorta);
   return (cache[clave] = lienzo.toDataURL());
@@ -275,7 +206,6 @@ function latir(ahora){
   vivos.forEach(function(v){
     if (!v.visible || !v.el.isConnected) return;
     var k = fase(v.r, t);
-    montarAparato(v.id);
     var d = dibujar(v.id, mezclar(v.A, v.B, k), v.alto, false);
     if (v.cnv.width !== d.w || v.cnv.height !== d.h){ v.cnv.width = d.w; v.cnv.height = d.h; }
     v.ctx.clearRect(0,0,d.w,d.h);
