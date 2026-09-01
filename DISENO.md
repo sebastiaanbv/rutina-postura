@@ -127,13 +127,16 @@ Once pasos, todos tokens. Ningún tamaño escrito a mano.
 
 ## 5. Iconografía
 
-29 iconos propios. **Cero emojis en la interfaz.**
+36 iconos propios. **Cero emojis en la interfaz.**
 
 - Rejilla `viewBox="0 0 24 24"`, sin relleno, `stroke:currentColor`, grosor 2, remates redondos.
 - Tamaños: `.ic` 20 · `.ic.xs` 15 · `.ic.sm` 17 · `.ic.lg` 26 · `.ic.hero` 34. `.ic.solid` rellena en vez de perfilar, para el triángulo de reproducir, que a tamaño pequeño se lee mejor macizo.
 - Heredan el color del texto, así que se tiñen solos en cada contexto y en los dos temas.
 - Se declaran en `ICON` y se pintan con `ic(nombre, clases)`. Uno nuevo se añade al mapa, no se escribe suelto en una plantilla.
 - El icono de cada rutina sale de `RICON`, no de los datos de `ROUTINES`.
+- Siete de los 36 son **glifos de equipamiento** (`dumbbell barbell machine cable band
+  pullbar bench wall`): los usa el mapa corporal de §15 para decir con qué se hace el
+  ejercicio. Son iconos normales del mapa `ICON`, no un set aparte.
 
 **Por qué importa:** los emojis se dibujan distinto en cada teléfono, no comparten grosor ni rejilla y no se pueden colorear. Era lo que más delataba que la app estaba hecha en casa.
 
@@ -143,9 +146,9 @@ Once pasos, todos tokens. Ningún tamaño escrito a mano.
 
 **Tarjeta** (`.rcard .stat .hitem .field .cal .chartcard .exgroup .day .stepper .daydet .ovcard`) — fondo `--card`, radio `--r-lg`, sombra `--sh-card`. Es un contenedor de bloque.
 
-**Caja hundida** (`.qbox .exprog .finempty .frame .setline .planopt .timepill`) — fondo `--sunk` con borde. Va **dentro** de una tarjeta. Nunca al revés.
+**Caja hundida** (`.qbox .exprog .finempty .setline .planopt .timepill`) — fondo `--sunk` con borde. Va **dentro** de una tarjeta. Nunca al revés.
 
-**Nota de color** (`.last .qwhy .coachtip .optbox .caveatbox .callout`) — mismo formato, distinto significado según el color. Todas comparten radio, padding y tamaño de texto: lo único que cambia es el par tinte/tinta.
+**Nota de color** (`.last .qwhy .coachtip .optbox .caveatbox .callout`) — mismo formato, distinto significado según el color. Todas comparten radio, padding y tamaño de texto: lo único que cambia es el par tinte/tinta. `.coachtip` estuvo documentado aquí durante seis versiones **sin existir en el CSS**: no se notó porque el campo que debía llenarla, `EX[id].coach`, tampoco se mostraba. Las dos cosas se cerraron en v32.
 
 **Botones.** Como máximo **uno primario por pantalla**. El resto son secundarios (`.sec`, fondo de tarjeta con borde) o apagados (`.gbtn.fin`, `.skip`). Todas las clases de botón comparten base; las variantes solo cambian color y altura.
 
@@ -159,7 +162,7 @@ Once pasos, todos tokens. Ningún tamaño escrito a mano.
 
 ## 7. Movimiento
 
-Regla: **toda animación es declarativa** —CSS, o SMIL en las figuras (§15)—, nunca un contador
+Regla: **toda animación es declarativa** —CSS—, nunca un contador
 en JS. El navegador lleva el tiempo, y apagarlas sigue siendo una decisión en un sitio.
 
 | Qué | Duración |
@@ -189,12 +192,12 @@ La fila **no despliega nada**: tocarla entra al ejercicio. Hasta v26 abría un p
 
 Un opcional que agregas con el `+` **sube al bloque de entrenamiento** y pasa a ser una fila normal, con su botón de empezar y contando en el anillo; abajo solo quedan los que aún no has agregado. Para que el orden que se ve y el que se ejecuta no puedan divergir, los dos salen de `routineBuckets(k)`.
 
-Estados de la fila: pendiente · **siguiente** (filo verde y su botón de empezar en verde sólido; es lo único que destaca) · hecha (encoge: se ocultan meta y etiquetas, la figura se atenúa, de 108 a 71 px).
+Estados de la fila: pendiente · **siguiente** (filo verde y su botón de empezar en verde sólido; es lo único que destaca) · hecha (encoge: se ocultan meta y etiquetas, el mapa se atenúa, de 108 a 71 px).
 
 Abajo, barra fija con dos acciones: continuar y finalizar.
 
 ### Modo guiado
-Manda **la serie**: pastilla con "Serie 2 de 4", nombre del ejercicio, y los controles de peso y reps inmediatamente debajo. Bajo la acción, el **único ajuste que se edita a mano**: cuántas series. Arranca en la del programa, con "Sugeridas: N" debajo, y si la cambias ese texto se convierte en el botón para volver. La ficha de cómo se hace —figura, avisos, pasos y vídeo— va **después**, plegada, y viene cerrada si ya has hecho ese ejercicio tres veces o más.
+Manda **la serie**: pastilla con "Serie 2 de 4", nombre del ejercicio, y los controles de peso y reps inmediatamente debajo. Bajo la acción, el **único ajuste que se edita a mano**: cuántas series. Arranca en la del programa, con "Sugeridas: N" debajo, y si la cambias ese texto se convierte en el botón para volver. La ficha de cómo se hace —mapa corporal, consejo, avisos, pasos y vídeo— va **después**, plegada, y viene cerrada si ya has hecho ese ejercicio tres veces o más.
 
 **El tiempo no se edita.** Descansos y sostenes los fija el programa: el criterio para ponerlos ya está tomado y ofrecer un stepper solo invita a deshacerlo sin datos. Cambiar las series, en cambio, responde a algo que solo sabes tú — cómo te sientes hoy y cuánto tiempo tienes.
 
@@ -269,25 +272,39 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
   los Roboto instalados en Android no tienen ese peso, así que el navegador lo aproxima a 700
   y la pareja 700/800 que sostiene toda la jerarquía de §3 puede desaparecer en ese teléfono.
   Los dos argumentos que lo dejaban fuera ya no se sostienen: el modo sin conexión está resuelto
-  porque el service worker precachea en install, y el peso deja de ser excusa en cuanto termine la
-  migración de §15 — `figuras.js` son 465 KB y el sistema paramétrico que lo sustituye cabe en
-  unos 120. Queda pendiente por falta del archivo, no de criterio.
+  porque el service worker precachea en install, y el peso dejó de ser excusa en v32 — retirar
+  three.js liberó 226 KB comprimidos, y un `.woff2` con los dos pesos cabe en unos 30. Queda
+  pendiente por falta del archivo, no de criterio.
   **Trampa al implementarlo:** `caches.addAll` es atómico, así que el `.woff2` tiene que ir en
   un `cache.add()` aparte con `catch`. Si entra en `ASSETS` y su descarga falla, el service
   worker no se instala y la app pierde el offline por completo.
-- **Migrar las 84 figuras que faltan.** §15 ya está en pie y seis ejercicios lo usan, uno por
-  arquetipo: `sentadilla_aire` (frontal, suelo), `press_banca_db` (banco y mancuernas),
-  `jalon_pecho` (máquina y polea), `chin_tuck` (silla, movimiento de cabeza), `flexor_cadera`
-  (sostén con profundidad) y `remo_banda` (banda). El resto sigue con los dos fotogramas fundidos,
-  y la app resuelve en dos capas para que no quede a medias. Va por lotes de unos diez, agrupados
-  por arquetipo, y ningún lote entra sin pasar por `_forja/comparar.html`, que pinta vieja contra
-  nueva en los dos temas. El criterio por figura: la postura es la del ejercicio, ningún miembro
-  cambia de longitud durante el ciclo, ninguna articulación se abre, el aparato no atraviesa el
-  cuerpo.
 - **Superseries antagonistas.** Es la palanca con respaldo para recortar el tiempo de sesión
   sin tocar descansos: los tres días quedaron en 62-68 min tras la revisión de programa de v30. Necesita un flag de «par» entre dos
   ejercicios que alterne series y cuente el descanso solo al cerrar el par. El especialista que
   revisó las rutinas en v27 la señaló otra vez, y para el bloque secundario en concreto.
+
+### Cerrado en v32
+
+- ~~Dibujar a una persona haciendo el ejercicio.~~ Se intentó **tres veces** —SVG a mano, redibujo
+  paramétrico 2D y maniquí articulado en three.js— y las tres fracasaron. En v32 se retiró la
+  figura en pose y entró **el mapa corporal** (§15). El razonamiento está en §14, porque esto no
+  es una tarea aplazada: es una decisión.
+- ~~`EX[id].coach` llevaba versiones escrito y oculto.~~ 81 de los 91 ejercicios tenían una frase
+  de entrenador —*"El peso no debe balancearse: es el core el que trabaja"*— y **no se mostraba en
+  ninguna parte**. Ahora ocupa el sitio de la tira de fotogramas, en la `.coachtip` que §6
+  documentaba desde hacía seis versiones sin que existiera en el CSS.
+  Al empezar a mostrarla se descubrió que una de las 81 no le hablaba al usuario: la de
+  `remo_inclinado` era una nota de dosificación para el desarrollador. Pasó a ser un comentario,
+  que es donde vivía su información.
+- ~~La etiqueta de zona solo salía en 55 de los 91.~~ `zonaTexto()` cae al nombre de la región
+  primaria cuando `ZONA` no trae frase escrita a mano, así que ahora sale en los 91 sin inventar
+  una palabra.
+- ~~La app dependía de 875 KB de JavaScript externo.~~ No queda ninguno: todo vive en
+  `index.html`, que ya iba *network-first*. **La clase de fallo que quemó seis rondas —el service
+  worker sirviendo figuras congeladas— dejó de ser posible**, no por disciplina sino porque no hay
+  archivo que congelar.
+- ~~GPL-3.0 por contagio.~~ La licencia solo existía porque mannequin.js lo es. Sin él, `LICENSE`
+  vuelve a ser MIT sobre código propio.
 
 ### Cerrado en v30
 
@@ -469,164 +486,158 @@ Y una segunda auditoría de las rutinas de gimnasio, esta vez del programa y no 
 - **Que el color primario cambie según la rutina abierta:** obligaría a re-verificar el contraste
   de todos los componentes en tres variantes por dos temas, y el azulejo de familia ya consigue
   la misma lectura.
+- **Volver a dibujar una persona haciendo el ejercicio.** Tres intentos, tres fracasos, y el
+  tercero con validador de diez comprobaciones y trece arquetipos. El error no fue la técnica: fue
+  el encargo. A 46 y 76 px un cuerpo en postura no se lee —es aritmética, no gusto—, y a 172 px el
+  vídeo específico que existe para los 91 desde v29 explica el movimiento mejor que cualquier
+  dibujo. Lo que faltaba por contar era *qué trabaja este ejercicio*, y eso lo dice el mapa. **Si
+  algún día parece que hace falta más, la respuesta es el vídeo, que ya está.** El mapa no gana una
+  postura, ni un latido, ni una tercera vista.
 - **Mecánicas de gamificación competitivas:** tablas de clasificación, comparación con otros,
   puntos canjeables e insignias por presentarse. Para un usuario único no tienen sentido, y los
   leaderboards son el elemento más asociado a efectos motivacionales negativos.
 
 ---
 
-## 15. La figura
+## 15. El mapa corporal
 
-Las figuras dejaron de ser dibujos. Son **un maniquí articulado en 3D** y, por
-ejercicio, **dos posturas escritas como ángulos**; el movimiento se interpola
-entre ellas. Lo dibuja `figura3d.js` sobre
-[mannequin.js](https://github.com/boytchev/mannequin.js) (GPL-3.0, copia local
-en `lib/mannequin/`, parches anotados en su `PARCHES.md`).
+La figura de la app **no es una persona haciendo el ejercicio**. Es una silueta plana con la zona
+trabajada encendida, más un glifo del aparato. Se dibuja en `MAPA` y lo montan `zonaSVG(id,tam)` y
+`panelZona(id)`, todo dentro de `index.html`.
 
-Antes eran 476 KB de SVG escritos a mano, dos fotogramas por ejercicio y un
-fundido de opacidad entre ambos: a mitad de ciclo se veían dos cuerpos fantasma
-superpuestos, 36 de 90 cambiaban de escala entre fotogramas, y la mancuerna
-estaba dibujada dos veces, así que saltaba.
+### Por qué no hay una figura en pose
+
+Se intentó tres veces: SVG a mano con dos fotogramas fundidos (477 KB), redibujo paramétrico 2D, y
+un maniquí articulado sobre three.js con validador de diez comprobaciones. Las tres se retiraron.
+
+El motivo no es que faltara técnica, es que el encargo no se sostenía:
+
+| Sitio | Qué se necesita ahí | Qué daba la figura |
+|---|---|---|
+| **46 px**, filas de la lista | Reconocer la rutina de un vistazo | Un cuerpo en postura a 46 px no se lee. Es aritmética. |
+| **76 px**, fila «siguiente» | Lo mismo, algo más grande | Igual |
+| **172 px**, «Cómo se hace» | Entender el movimiento | Debajo ya hay pasos numerados y un botón «Ver video», con 91 vídeos específicos desde v29 |
+
+El movimiento ya estaba resuelto por el vídeo. Lo que ninguna de las tres tentativas contaba, y sí
+hace falta de un vistazo, es **qué trabaja este ejercicio**. Eso es lo que dibuja el mapa, y lo
+hace para los 91 sin excepción, porque es geometría plana: no tiene forma de quedar mal.
+
+Decisión cerrada en §14.
+
+### Cómo está construido
+
+- **La silueta son primitivas sueltas** —elipses, rectángulos, dos rutas— que se funden solas al
+  compartir relleno. Corregir la postura de un brazo es mover un rectángulo, no reescribir una
+  ruta de 400 caracteres.
+- **Las mismas primitivas forman el `<clipPath>`**, así que una región **no puede** desbordar el
+  cuerpo por mucho que se equivoque su rectángulo. Es geométricamente imposible, no una
+  precaución. Por eso las regiones se dibujan burdas: el recorte les da el borde exacto.
+- **Solo se escribe el lado derecho**; `refleja()` genera el izquierdo. Ninguna región puede
+  quedarse coja de un lado por descuido.
+- **Dos pasadas para el contorno.** La primera dibuja las piezas con un trazo grueso del color del
+  borde —eso da la unión dilatada—, la segunda las rellena encima y tapa el interior. Sin esto se
+  veía la costura de cada primitiva y el cuerpo parecía un muñeco articulado de juguete.
+- **El trazo no escala** (`vector-effect:non-scaling-stroke`). Así un mismo grosor sirve para el
+  cuerpo (viewBox 46×100) y para el busto (50×64), y el reborde pesa proporcionalmente más a 46 px,
+  que es justo donde hace falta.
+
+**Dos trampas que costaron una tarde cada una, y que no se ven mirando:**
+
+1. **`<clipPath>` ignora los `<g>` en silencio.** Solo admite formas, `<text>` y `<use>`. El espejo
+   estaba envuelto en un grupo, así que el recorte se quedaba sin medio cuerpo y **todas** las
+   regiones simétricas salían cojas de un lado. En el DOM se veía perfecto —los dos rectángulos
+   ahí, azules, en su sitio— y solo lo cazó muestrear los píxeles del render. El espejo va forma a
+   forma, componiendo el `transform`.
+2. **Un `id` de recorte fijo colisiona.** Con catorce mapas en una lista, todos los `url(#…)`
+   resolvían al primer `clipPath` del documento. Lleva contador.
+
+### Las regiones
+
+22 en el cuerpo y 9 en el busto. El vocabulario es **a propósito más grueso que el de `MUSC`**,
+que separa las tres cabezas del deltoides: `MUSC` alimenta el gráfico de series por músculo y
+cubre solo el trabajo con carga; `ZONAS` alimenta un dibujo de 46 px y cubre los 91. **Ninguno se
+deriva del otro**, y si algún día se intenta fundirlos el que se corrompe es el gráfico. Viven a
+1.500 líneas de distancia justamente por eso.
+
+- *Frente:* `cuello trapecio_cuello delt_lateral delt_anterior pecho biceps antebrazo core
+  flexor_cadera cuadriceps aductores gemelo`
+- *Espalda:* `cuello trapecio_cuello delt_posterior espalda triceps antebrazo lumbar gluteo
+  isquios gemelo`
+- *Busto:* `cervical_post cervical_ant cervical_lat trapecio_sup elevador mandibula platisma
+  lengua rostro`
+
+Un mapa de zona no distingue «lo fortalece» de «lo estira», y no le hace falta: el `tag`
+(`calent` / `carga` / `diario`) ya está en la fila y el `coach` lo dice con palabras.
+
+### El busto, de perfil
+
+Los 12 ejercicios de cuello y cara usan una segunda silueta: cabeza, cuello y hombros **de
+perfil**. No es un capricho. Es la única vista donde se leen a la vez la nuca, la garganta, la
+mandíbula y —para `mewing_lengua`— la lengua contra el paladar, que de frente sencillamente no
+existe. Sin ojos: la mandíbula no inquieta, los ojos sí.
+
+Esto resuelve además lo que el sistema anterior admitía por escrito como irresoluble («son gestos
+DENTRO de la cara, que este maniquí no tiene»): un mapa **sí** puede señalar la zona de un gesto
+que no puede representar.
 
 ### La tinta
 
-**Un solo color para todo el cuerpo.** Las siete zonas que la librería pinta por
-separado —cabeza, pies, pelvis, articulaciones, miembros, torso, uñas— llevan
-todas `--diagram-ink`. Con las articulaciones en otro tono el muñeco se lee como
-palitos y bolitas; en tono único se lee como un cuerpo. El volumen lo pone la
-luz: ambiente alto y una direccional frontal suave, lo justo para que se
-distinga una pieza de otra sin convertirlo en un render de estudio.
+Tres tonos y ni uno más, en cuatro reglas de CSS:
 
-**El aparato habla otro idioma**: `--diagram-line`, más claro. Hombre y máquina
-no se confunden.
+| | Color |
+|---|---|
+| Silueta | relleno `--diagram-line`, contorno `--diagram-ink-far` |
+| Zona **primaria** | `--diagram-hi` |
+| Zona **secundaria** | `--diagram-hi` al 45 % |
 
-**El suelo es una sombra de contacto** blanda bajo los puntos de apoyo, no una
-raya dura igual para todos. En las miniaturas de 46 px no se dibuja.
-
-### La cámara
-
-Ortográfica, y **el ángulo lo fija el arquetipo**. Esto no es decoración:
-un movimiento sagital —sentadilla, press, bisagra— **no se ve de frente**,
-porque el recorrido entra y sale de la pantalla en vez de recorrerla. Con
-`body.turn = -90`, que es la orientación de reposo, **0° es frontal y ±90° es
-perfil**.
-
-**Un solo encuadre para todo el ciclo**: se mide la caja de las dos posturas
-juntas. Es lo que impide que la figura cambie de tamaño a mitad de repetición.
-Y el lienzo toma la proporción de la figura, para que no queden medias cajas
-vacías. Los ejercicios de cuello se encuadran como **busto**: a cuerpo entero la
-cabeza quedaría en veinte píxeles y el gesto está justo ahí.
+**Qué región se enciende lo decide el JS** —solo emite las encendidas—; el CSS solo pone color.
+Por eso cambiar de tema no toca una línea de JavaScript.
 
 ### Los tres tamaños
 
-Un solo esqueleto los alimenta; no se dibuja nada tres veces.
-
-| Sitio | Tamaño | Qué se pinta |
-|---|---|---|
-| Guiado | 172 px | Lienzo vivo, el ciclo del ejercicio |
-| Fila «siguiente» | 76 px | Imagen fija de la postura de partida, cacheada |
-| Lista | 46 px | Igual, recortada al cuerpo y sin suelo |
-
-**Un solo contexto WebGL** para toda la app, y solo se anima la figura que está
-a la vista. `prefers-reduced-motion` pinta la primera postura y para el bucle —
-con esto desaparece la excepción que existía para que el fundido no se congelara
-a media opacidad.
-
-### El ritmo
-
-Sale del `type` que cada ejercicio ya tiene en `EX`:
-
-| `type` | Perfil |
+| Sitio | Qué se pinta |
 |---|---|
-| `reps`, `reps_side` | Excéntrica ~1,4 s · pausa 0,25 s · concéntrica ~0,9 s · pausa 0,35 s |
-| `hold`, `hold_side` | Entra a la postura y sostiene, con respiración muy leve |
-| `cardio` | Ciclo corto y continuo |
+| **46 px**, filas | Una sola vista, sin secundarias: dos tonos en 36 px útiles no se distinguen |
+| **76 px**, fila «siguiente» | Una sola vista, con secundarias |
+| **172 px**, «Cómo se hace» | **Las dos vistas**, con la zona, las secundarias y el aparato a la izquierda |
 
-Un press no baja igual de rápido que sube. Esa asimetría es la mitad de lo que
-hace que una animación se lea como profesional.
+Las dos vistas solo caben a 172 px: en una caja de 76 con su relleno, un viewBox de 102 de ancho
+deja la figura en 32 px de alto. La vista se **deduce** del lado al que pertenece la región
+primaria; `ZONAS[id].v` solo aparece donde hay que forzarla (gemelo y trapecio se leen mejor por
+detrás).
 
-### Los trece arquetipos
+### El hueco de 172 px
 
-Los 91 ejercicios se agrupan en trece patrones de movimiento. Cada arquetipo fija
-la postura base, la cámara, los apoyos y **qué articulación es la protagonista**;
-cada ejercicio guarda solo los ángulos en los que se aparta del suyo. Eso
-convierte 182 posturas en trece problemas y 91 ajustes.
+Dos columnas: **el texto manda a la izquierda y la figura acompaña a la derecha**. Dice tres cosas
+que la figura en pose no dijo nunca —qué músculo, por qué lado y con qué aparato— y debajo van el
+consejo de entrenador, los pasos numerados y el vídeo.
 
-Sentadilla · bisagra de cadera · puente · pierna aislada · cadera de pie ·
-empuje horizontal · empuje vertical · tracción vertical · tracción horizontal ·
-codo aislado · hombro fino · core y cuadrupedia · cuello y cara.
-
-### Tres reglas de este rig que cuestan una tarde si no se saben
-
-Están medidas, no supuestas, y viven comentadas en `pose3d.js` y `poses3d.js`.
-
-1. **Cadera y rodilla giran en el mismo sentido.** La tibia solo vuelve a la
-   vertical si `knee` tiene el signo de `raise` y casi su valor. Con el signo
-   contrario el muñeco no se agacha: se sienta en el suelo con las piernas
-   estiradas.
-
-2. **Las rotaciones se escriben enteras y de una vez.** Los setters de la
-   librería (`arm.raise`, `torso.bend`…) reordenan el Euler y escriben una
-   componente, así que el resultado depende del orden en que se escriban y, con
-   el tronco tumbado, caen en el bloqueo de cardán y devuelven NaN.
-
-3. **Se interpolan ángulos anatómicos, nunca los Euler.** Su descomposición es
-   ambigua: con las dos posturas extremas perfectas, a mitad de ciclo las
-   piernas llegaban a cruzarse atravesándose.
-
-Y una consecuencia de la segunda: **con el tronco tumbado, el signo de `raise`
-deja de significar "adelante"** y pasa a decidir si el miembro va hacia el suelo
-o hacia arriba. De ahí que la cuadrupedia use `raise` positivo en brazo y pierna.
-
-### El validador
-
-`_forja/validador.html` corre **diez comprobaciones numéricas sobre las once
-muestras del ciclo**, no sobre las dos posturas clave: un miembro puede
-atravesar el torso a mitad de camino y estar limpio en los dos extremos.
-
-1. Límites articulares · 2. Apoyo en el suelo · 3. Nada bajo el suelo ·
-4. Auto-intersección · 5. Choque con el aparato · 6. Amplitud real ·
-7. Se ve desde la cámara · 8. Encuadre estable · 9. Tamaño en el encuadre ·
-10. Simetría.
-
-Existe porque mirar no basta, y porque un fallo de postura se propaga a los
-siete ejercicios que cuelgan del mismo arquetipo. Los límites de la 1 no se
-inventan: los declara la propia librería, y para hombro y cadera —esféricos, sin
-caja de ángulos suficiente— usa su test geométrico.
-
-**Ningún ejercicio se da por bueno con fallos abiertos.** Los avisos sí quedan
-abiertos a propósito cuando son honestos: un sostén no tiene recorrido que
-enseñar, y hay gestos que este maniquí **no puede representar** —el encogimiento
-de hombros no tiene escápula, y los cuatro ejercicios de cara no tienen cara—.
-Esos van marcados con `gestoLimitado` y la explicación la llevan los pasos y el
-vídeo.
+**No se anima, y es deliberado.** §7 dice que nada dura más de medio segundo; un latido infinito
+en visión periférica mientras cuentas repeticiones es ruido durante cuarenta segundos por serie. Y
+los tres intentos que fracasaron fueron los tres de movimiento: meterle una animación al mapa
+sería empezar el cuarto el mismo día que se cierra el tercero. El presupuesto de movimiento ya
+está gastado, y bien: `.stage` entra con `stageIn`, 180 ms.
 
 ### El peso, medido
 
 | | Bruto | Comprimido |
 |---|---|---|
-| **Antes** · `figuras.js` | 477 KB | 43 KB |
-| **Ahora** · three.js | 692 KB | 171 KB |
-| **Ahora** · mannequin.js + addons | 83 KB | 18 KB |
-| **Ahora** · `poses3d` + `pose3d` + `figura3d` | 78 KB | 19 KB |
-| **Total ahora** | **852 KB** | **207 KB** |
+| v31 · `index.html` + three.js + mannequin.js + las cuatro `.js` | 1.125 KB | 304 KB |
+| v32 · `index.html`, y nada más | **249 KB** | **78 KB** |
+| Ahorro | 876 KB | **226 KB** |
 
-**Es casi cinco veces más pesado, no el doble.** La estimación previa (~180 KB)
-se quedó corta. Todo el exceso es three.js: 171 de los 207 KB. Se descarga una
-vez y lo guarda el service worker, así que en uso diario no se nota, pero la
-primera visita sí. Si algún día molesta, la salida conocida es una compilación a
-medida de three.js con solo lo que se usa —renderer, escena, cámara ortográfica,
-geometrías paramétricas—, que baja de 171 KB a unos 60-80 KB. No se ha hecho
-porque exige un paso de compilación, y la app no tiene ninguno.
+`index.html` engordó unos 20 KB —el mapa, los 91 registros de `ZONAS` y siete iconos— y a cambio
+desaparecieron 875 KB de JavaScript externo. Cuatro veces más ligero comprimido que la v31, y por
+debajo también de los 477 KB de `figuras.js` que había antes de todo esto.
 
-### Las herramientas del taller
+### La comprobación
 
-En `_forja/`, fuera del despliegue:
+No hay taller ni validador aparte: el mapa no tiene nada que validar postura a postura. Lo que sí
+se comprueba, y se hizo, son dos cosas objetivas:
 
-- `posador.html` — tres cámaras a la vez, mandos por articulación topados con
-  los límites anatómicos, y el validador en vivo.
-- `hoja.html` — los 91 renderizados y validados de una pasada, con el resumen
-  por comprobación.
-- `mirar.html` — una figura de cerca, a tres ángulos y en los tres momentos del
-  ciclo. Es donde se cazan los fallos que ningún número detecta.
-
+1. **Cobertura**, por consola: que los 91 ids de `EX` tengan registro en `ZONAS`, que toda región
+   citada exista, que toda región tenga nombre en `ZNAME`, que todo `eq` tenga icono, y que los
+   273 SVG (91 × tres tamaños) se generen sin lanzar. Salió 91/91.
+2. **Que cada región pinte de verdad**, contando píxeles del render y comparando mitad izquierda
+   con mitad derecha. Las 31 pintan; las 12 que van por pares salen simétricas al 100 %. Es la
+   comprobación que cazó el fallo del `<clipPath>`, que ninguna inspección del DOM detectaba.

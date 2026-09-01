@@ -131,11 +131,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     .view{animation:none}
     /* sin animation-duration, las celebraciones se colarian igual */
     *{transition-duration:.01ms !important;animation-duration:.01ms !important;
-      animation-iteration-count:1 !important}
-    /* la regla de arriba congelaria el fundido de la figura a media opacidad,
-       con los dos fotogramas encima. Aqui se fija en el primero. */
-    .anim .fa{animation:none !important;opacity:1}
-    .anim .fb{animation:none !important;opacity:0}}
+      animation-iteration-count:1 !important}}
   h1{font-size:var(--t-xl);margin:0;font-weight:var(--w-bold);letter-spacing:-.8px}
   .mut{color:var(--mut)}
   /* cifras siempre con ancho fijo: no bailan al contar */
@@ -154,17 +150,22 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   :root[data-theme="dark"] .ex,:root[data-theme="dark"] .day,:root[data-theme="dark"] .stepper,
   :root[data-theme="dark"] .daydet,:root[data-theme="dark"] .ovcard{border:1px solid var(--line)}
 
-  .exprog,.finempty,.finsum .fs,.frame,.setline,.planopt,.timepill{
+  .exprog,.finempty,.finsum .fs,.setline,.planopt,.timepill{
     background:var(--sunk);border:1px solid var(--line);border-radius:var(--r-sm)}
 
   /* notas de color: mismo formato, distinto significado */
-  .last,.qwhy,.optbox,.caveatbox,.callout{
+  .last,.qwhy,.coachtip,.optbox,.caveatbox,.callout{
     border-radius:var(--r-sm);padding:10px 12px;font-size:var(--t-sm);
     font-weight:var(--w-med);line-height:1.45;border:1px solid transparent}
   .qwhy{background:var(--primary-tint);color:var(--primary-ink)}
   .last{background:var(--sunk);color:var(--tx2);border-color:var(--line)}
   .optbox{background:var(--load-tint);color:var(--load-ink)}
   .optbox.warm,.caveatbox,.callout{background:var(--rest-tint);color:var(--rest-ink)}
+  /* .coachtip estaba en DISENO 6 desde hace versiones y nunca existio en el
+     CSS. Ahora tiene contenido: la frase de entrenador de EX[id].coach, que
+     estaba escrita en 80 de los 91 ejercicios y no se mostraba en ningun
+     sitio. --accent es "informacion" en esta paleta, que es justo lo que es. */
+  .coachtip{background:var(--accent-tint);color:var(--accent-ink)}
 
   /* etiquetas de sección: una sola voz */
   .grouptitle,.blockt,.wkhead .t,.stepper .lab,.finsum .fs span,.heroP .hkick,.today .kick{
@@ -462,15 +463,28 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
      "siguiente" -- la unica que debe destacar -- la lleva grande y animada. */
   .diag{width:46px;height:46px;border-radius:12px;background:var(--diagram-bg);
     flex:0 0 auto;display:flex;align-items:center;justify-content:center;padding:5px}
-  .diag svg{width:100%;height:100%}
+  .diag svg{height:100%;width:auto;max-width:100%}
   .diag.big{width:76px;height:76px;border-radius:var(--r-sm);padding:6px}
-  .diaginner{position:relative;width:100%;height:100%}
-  /* huecos del motor 3D: el lienzo o la imagen se ajustan al alto de la caja */
-  .minifig{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
-  [data-fig3d]{display:flex;align-items:center;justify-content:center}
-  [data-fig3d] canvas,[data-fig3d] img{height:100%;width:auto;max-width:100%;display:block}
-  .diaginner i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-  .diaginner i svg{width:100%;height:100%}
+
+  /* ======================= el mapa corporal =======================
+     Cuatro reglas para las 31 regiones. Que region se enciende lo decide el
+     JS -- solo emite las encendidas --; aqui vive unicamente el color, asi
+     que cambiar de tema sigue sin tocar una linea de JavaScript. */
+  .mborde{fill:var(--diagram-ink-far);stroke:var(--diagram-ink-far);
+    stroke-linejoin:round;vector-effect:non-scaling-stroke}
+  .mrelleno{fill:var(--diagram-line)}
+  .mzona g{fill:var(--diagram-hi);vector-effect:non-scaling-stroke}
+  /* El trazo NO escala con el viewBox: asi un mismo grosor sirve para el
+     cuerpo (46x100) y para el busto (50x64), que tienen escalas muy
+     distintas, y de paso el reborde pesa proporcionalmente mas a 46 px, que
+     es donde hace falta. Engordar la region con su propio trazo es lo que
+     salva a las estrechas -- aductores, gemelo, lengua -- sin dibujarlas
+     aparte: el recorte pilla tambien el trazo, asi que no se puede salir
+     del cuerpo. */
+  .diag .mborde{stroke-width:2}
+  .diag .mzona g{stroke:var(--diagram-hi);stroke-width:2}
+  .diag.big .mzona g{stroke-width:1.4}
+  .gdiag .mborde{stroke-width:2}
   /* el circulo hueco es la UNICA senal de que ahi hay un control, asi que su
      borde necesita 3:1. Con --line2 daba 1,5:1; --ctl-line existe para esto. */
   .exck{width:28px;height:28px;border-radius:50%;border:2px solid var(--ctl-line);background:transparent;
@@ -493,19 +507,6 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     display:flex;align-items:center;justify-content:center}
   .glist{margin-top:var(--s4)}
 
-  /* figuras paso a paso */
-  .frames{display:flex;gap:var(--s2);margin:var(--s1) 0 var(--s3)}
-  .frame{flex:1;min-width:0;background:var(--diagram-bg);padding:8px 6px 7px;
-    display:flex;flex-direction:column;align-items:center;gap:5px}
-  .frame .fnum{width:20px;height:20px;border-radius:50%;background:var(--primary);
-    color:var(--on-primary);font-size:var(--t-xs);font-weight:var(--w-bold);
-    display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
-  .frame .fdiag{width:100%;height:74px}
-  .frame .fdiag svg{width:100%;height:100%;display:block}
-  .frame .fcap{font-size:var(--t-2xs);color:var(--tx2);text-align:center;
-    font-weight:var(--w-med);line-height:1.2}
-  .gframes{margin:2px 0}
-  #guided .frame .fdiag{height:94px}
 
   .chip.tiny{padding:1px 7px;font-size:var(--t-2xs);vertical-align:1px;
     background:var(--primary-tint);color:var(--primary-ink);border-color:transparent}
@@ -553,14 +554,20 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .exinfo-b{padding-bottom:var(--s2)}
   .exname{font-size:var(--t-title);font-weight:var(--w-bold);letter-spacing:-.9px;
     margin:10px 0 var(--s4);line-height:1.1;text-wrap:balance}
+  /* dos columnas: el texto manda y la figura acompaña. Con la figura sola
+     centrada, la caja era un marco alrededor de un dibujo pequeño. */
   .gdiag{width:100%;height:172px;background:var(--diagram-bg);border-radius:var(--r-md);
-    display:flex;align-items:center;justify-content:center;padding:12px;margin-bottom:6px}
-  .gdiag svg{height:100%;width:auto;max-width:100%}
+    display:flex;align-items:center;justify-content:space-between;gap:var(--s4);
+    padding:14px 18px;margin-bottom:6px}
+  .gdiag svg{height:100%;width:auto;max-width:56%}
+  .gdiag .ginfo{flex:1;min-width:0}
+  .gdiag .gz1{font-size:var(--t-xs);font-weight:var(--w-bold);letter-spacing:1.1px;
+    text-transform:uppercase;color:var(--tx)}
+  .gdiag .gz2{font-size:var(--t-sm);color:var(--mut);margin-top:3px}
+  .gdiag .gz3{font-size:var(--t-sm);color:var(--tx2);margin-top:var(--s2);
+    display:flex;align-items:center;gap:6px}
   /* la figura ejecuta el ejercicio: los dos fotogramas apilados y fundidos,
      con meseta en cada extremo para que se lea la postura y no sea un parpadeo */
-  .anim{position:relative}
-  .anim i{position:absolute;inset:12px;display:flex;align-items:center;justify-content:center}
-  .anim i svg{height:100%;width:auto;max-width:100%}
   /* --- micro-interaccion (v25) --- */
   /* el boton se convierte en visto antes de que entre el descanso */
   .gbtn.go.done{background:var(--primary2);transform:scale(.985)}
@@ -576,10 +583,6 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   /* cada paso del guiado entra con un gesto corto en vez de aparecer de golpe */
   .stage{animation:stageIn .18s ease-out}
   @keyframes stageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-  .anim .fa{animation:figA 2.6s ease-in-out infinite}
-  .anim .fb{animation:figB 2.6s ease-in-out infinite}
-  @keyframes figA{0%,38%{opacity:1}50%,88%{opacity:0}100%{opacity:1}}
-  @keyframes figB{0%,38%{opacity:0}50%,88%{opacity:1}100%{opacity:0}}
   .videobox{margin:var(--s3) 0 2px;border-radius:var(--r-md);overflow:hidden;background:#000;display:none}
   .videobox.show{display:block}
   .ratio{position:relative;width:100%;padding-top:56.25%}
@@ -814,11 +817,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .finhead{font-size:var(--t-sm);color:var(--mut);margin:0 0 var(--s3)}
   .donesub{font-size:var(--t-sm);color:var(--mut);margin-top:var(--s3)}
 
-  /* ============ figuras: los SVG traen hex fijos y se recolorean ============ */
-  [stroke="#cfeede"]{stroke:var(--diagram-ink)} [fill="#cfeede"]{fill:var(--diagram-ink)}
-  [stroke="#5fe39a"]{stroke:var(--diagram-hi)} [fill="#5fe39a"]{fill:var(--diagram-hi)}
-  [fill="#0c1524"]{fill:var(--diagram-eye)}
-  [stroke="#3a5069"],[stroke="#46596f"]{stroke:var(--diagram-line)}
+  /* ====== el anillo de progreso trae sus hex fijos y se recolorea aqui ====== */
   [stroke="#22303c"]{stroke:var(--ring-track)} [stroke="#34d399"]{stroke:var(--primary)}
 
   /* ============================ foco ============================ */
@@ -901,12 +900,6 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   </div>
 </div>
 
-<script src="poses3d.js"></script>
-<script type="importmap">
-{"imports":{"three":"./lib/three.module.min.js","three/addons/":"./lib/three-addons/",
- "mannequin":"./lib/mannequin/mannequin.js"}}
-</script>
-<script type="module" src="figura3d.js"></script>
 <script>
 /* ==== DATOS ================================================
    Fuente unica de verdad. Antes esto eran cinco literales mas
@@ -967,6 +960,128 @@ sentadilla_aire:"Cuádriceps", sentadilla_silla:"Cuádriceps", tmj_mandibula:"Ro
 trapecio_superior:"Cuello · postura", vuelos_posteriores_ligeros:"Hombro posterior", wall_angels:"Espalda alta",
 zancada_estatica:"Cuádriceps"
 };
+
+/* ===================== EL MAPA CORPORAL: LOS DATOS =====================
+   Que enciende el mapa de cada ejercicio, y con que aparato se hace.
+     p = zona primaria  ·  s = secundarias  ·  eq = glifo  ·  v = vista forzada
+   El vocabulario de p/s es CERRADO -- las 22 regiones del cuerpo o las 9 del
+   busto -- y es a proposito MAS GRUESO que el de MUSC, que separa las tres
+   cabezas del deltoides. MUSC alimenta el grafico de series por musculo y
+   cubre solo los ejercicios de carga; esto alimenta un dibujo de 46 px y cubre
+   los 91. Ninguno se deriva del otro: si algun dia se intenta fundirlos, el
+   que se corrompe es el grafico. Por eso viven a 1.500 lineas de distancia.
+   La vista se DEDUCE del lado al que pertenece la primaria; `v` solo aparece
+   donde hay que forzarla (gemelo y trapecio se leen mejor por detras).
+   El glifo: gana lo que llevas en las manos sobre el mueble donde te apoyas,
+   asi que el banco solo sale cuando el banco ES el ejercicio. */
+const ZONAS={
+abduccion_banda:{p:["gluteo"],s:["core"],eq:"banda"},
+abductores_maquina:{p:["gluteo"],s:[],eq:"maquina"},
+aductores_maquina:{p:["aductores"],s:[],eq:"maquina"},
+apertura_toracica_rack:{p:["pecho"],s:["espalda"],eq:"pullbar"},
+aperturas_db:{p:["pecho"],s:["delt_anterior"],eq:"mancuerna"},
+balanceo_pierna_frontal:{p:["flexor_cadera"],s:["isquios"],eq:""},
+balanceo_pierna_lateral:{p:["gluteo"],s:["aductores"],eq:""},
+banda_pull_apart:{p:["delt_posterior"],s:["espalda"],eq:"banda"},
+bird_dog:{p:["lumbar"],s:["gluteo","core"],eq:""},
+bisagra_cadera_pie:{p:["isquios"],s:["lumbar","gluteo"],eq:""},
+caminadora:{p:["cuadriceps","gemelo"],s:["gluteo"],eq:"maquina"},
+caminata_granjero:{p:["antebrazo","trapecio_cuello"],s:["core"],eq:"mancuerna"},
+chin_tuck:{v:"busto",p:["cervical_post"],s:["cervical_ant"],eq:""},
+circulos_brazos:{p:["delt_lateral"],s:["trapecio_cuello"],eq:""},
+colgado_escapular:{p:["espalda"],s:["trapecio_cuello","antebrazo"],eq:"pullbar"},
+cruce_poleas:{p:["pecho"],s:["delt_anterior"],eq:"polea"},
+cuello_extension_manual:{v:"busto",p:["cervical_post"],s:[],eq:""},
+cuello_flexion_supina:{v:"busto",p:["cervical_ant"],s:[],eq:""},
+cuello_lateral_manual:{v:"busto",p:["cervical_lat"],s:[],eq:""},
+curl_barra:{p:["biceps"],s:["antebrazo"],eq:"barra"},
+curl_biceps_db:{p:["biceps"],s:["antebrazo"],eq:"mancuerna"},
+curl_concentrado:{p:["biceps"],s:[],eq:"mancuerna"},
+curl_femoral:{p:["isquios"],s:["gemelo"],eq:"maquina"},
+curl_femoral_sentado:{p:["isquios"],s:[],eq:"maquina"},
+curl_martillo_cruzado:{p:["biceps"],s:["antebrazo"],eq:"mancuerna"},
+curl_predicador:{p:["biceps"],s:[],eq:"barra"},
+dead_bug:{p:["core"],s:["flexor_cadera"],eq:""},
+elevacion_pantorrilla:{v:"espalda",p:["gemelo"],s:[],eq:"maquina"},
+elevacion_talones_pie:{v:"espalda",p:["gemelo"],s:[],eq:""},
+elevaciones_laterales:{p:["delt_lateral"],s:["trapecio_cuello"],eq:"mancuerna"},
+elevador_escapula:{v:"busto",p:["elevador"],s:["cervical_lat"],eq:""},
+encogimientos_db:{v:"espalda",p:["trapecio_cuello"],s:[],eq:"mancuerna"},
+equilibrio_unipodal:{p:["core"],s:["gemelo","gluteo"],eq:""},
+extension_cuadriceps:{p:["cuadriceps"],s:[],eq:"maquina"},
+extension_toracica:{p:["espalda"],s:["pecho"],eq:""},
+extension_triceps_db:{p:["triceps"],s:[],eq:"mancuerna"},
+extension_triceps_polea:{p:["triceps"],s:[],eq:"polea"},
+extension_triceps_sobrecabeza_polea:{p:["triceps"],s:[],eq:"polea"},
+face_yoga:{v:"busto",p:["rostro"],s:["mandibula"],eq:""},
+flexiones:{p:["pecho"],s:["triceps","delt_anterior"],eq:""},
+flexiones_inclinadas:{p:["pecho"],s:["triceps"],eq:"pullbar"},
+flexiones_pared:{p:["pecho"],s:["triceps"],eq:"wall"},
+flexor_cadera:{p:["flexor_cadera"],s:["cuadriceps"],eq:""},
+fondos_banco:{p:["triceps"],s:["pecho"],eq:"banco"},
+fondos_paralelas:{p:["triceps"],s:["pecho","delt_anterior"],eq:"pullbar"},
+gato_camello:{p:["lumbar"],s:["core"],eq:""},
+gato_camello_pie:{p:["lumbar"],s:["core"],eq:""},
+glute_bridge:{p:["gluteo"],s:["isquios"],eq:""},
+hack_squat:{p:["cuadriceps"],s:["gluteo"],eq:"maquina"},
+hip_thrust_db:{p:["gluteo"],s:["isquios"],eq:"mancuerna"},
+hiperextension_banco:{p:["lumbar"],s:["gluteo","isquios"],eq:"banco"},
+isometricos_cervicales:{v:"busto",p:["cervical_ant","cervical_lat"],s:[],eq:""},
+jalon_pecho:{p:["espalda"],s:["biceps"],eq:"maquina"},
+mandibula_platisma:{v:"busto",p:["platisma"],s:["mandibula"],eq:""},
+maquina_gluteo:{p:["gluteo"],s:["isquios"],eq:"maquina"},
+marcha_sitio:{p:["flexor_cadera"],s:["cuadriceps"],eq:""},
+mewing_lengua:{v:"busto",p:["lengua"],s:[],eq:""},
+movilidad_cervical:{v:"busto",p:["cervical_lat"],s:["cervical_post"],eq:""},
+open_book:{p:["espalda"],s:["pecho"],eq:""},
+pallof_banda:{p:["core"],s:["delt_anterior"],eq:"banda"},
+pec_deck:{p:["pecho"],s:[],eq:"maquina"},
+pec_deck_inverso:{p:["delt_posterior"],s:["espalda"],eq:"maquina"},
+pec_puerta:{p:["pecho"],s:["delt_anterior"],eq:"wall"},
+peso_muerto_rumano_db:{p:["isquios"],s:["gluteo","lumbar"],eq:"mancuerna"},
+piernas_pared:{p:["isquios"],s:["lumbar"],eq:"wall"},
+prensa_inclinada:{p:["cuadriceps"],s:["gluteo"],eq:"maquina"},
+press_banca_db:{p:["pecho"],s:["triceps","delt_anterior"],eq:"mancuerna"},
+press_frances:{p:["triceps"],s:[],eq:"barra"},
+press_hombro_db:{p:["delt_anterior"],s:["delt_lateral","triceps"],eq:"mancuerna"},
+puente_gluteo_banda:{p:["gluteo"],s:["isquios"],eq:"banda"},
+pullover_polea:{p:["espalda"],s:["triceps"],eq:"polea"},
+remo_banda:{p:["espalda"],s:["biceps","delt_posterior"],eq:"banda"},
+remo_db:{p:["espalda"],s:["biceps","delt_posterior"],eq:"mancuerna"},
+remo_inclinado:{p:["espalda"],s:["biceps","delt_posterior"],eq:"mancuerna"},
+remo_invertido:{p:["espalda"],s:["biceps"],eq:"pullbar"},
+remo_maquina:{p:["espalda"],s:["biceps","delt_posterior"],eq:"maquina"},
+remo_polea:{p:["espalda"],s:["biceps","delt_posterior"],eq:"polea"},
+respiracion_diafragmatica:{p:["core"],s:[],eq:""},
+reverse_fly:{p:["delt_posterior"],s:["espalda"],eq:"mancuerna"},
+rotacion_externa_db:{p:["delt_posterior"],s:["delt_lateral"],eq:"mancuerna"},
+sentadilla_aire:{p:["cuadriceps"],s:["gluteo"],eq:""},
+sentadilla_bulgara:{p:["cuadriceps"],s:["gluteo"],eq:"banco"},
+sentadilla_goblet:{p:["cuadriceps"],s:["gluteo"],eq:"mancuerna"},
+sentadilla_silla:{p:["cuadriceps"],s:["gluteo"],eq:"silla"},
+sentadilla_smith:{p:["cuadriceps"],s:["gluteo"],eq:"barra"},
+tmj_mandibula:{v:"busto",p:["mandibula"],s:[],eq:""},
+trapecio_superior:{v:"busto",p:["trapecio_sup"],s:["cervical_lat"],eq:""},
+vuelos_posteriores_ligeros:{p:["delt_posterior"],s:[],eq:"mancuerna"},
+wall_angels:{p:["espalda"],s:["delt_posterior"],eq:"wall"},
+zancada_estatica:{p:["cuadriceps"],s:["gluteo"],eq:""},
+zancadas_db:{p:["cuadriceps"],s:["gluteo"],eq:"mancuerna"}
+};
+const ZNAME={pecho:"Pecho",espalda:"Espalda",delt_lateral:"Hombro lateral",
+ delt_anterior:"Hombro frontal",delt_posterior:"Hombro posterior",triceps:"Triceps",
+ biceps:"Biceps",antebrazo:"Antebrazo",cuadriceps:"Cuadriceps",isquios:"Isquios",
+ gluteo:"Gluteo",gemelo:"Gemelo",aductores:"Aductores",core:"Core",lumbar:"Lumbares",
+ flexor_cadera:"Flexor de cadera",trapecio_cuello:"Trapecio",cuello:"Cuello",
+ cervical_post:"Cuello \u00b7 nuca",cervical_ant:"Cuello \u00b7 garganta",
+ cervical_lat:"Cuello \u00b7 lateral",trapecio_sup:"Trapecio superior",
+ elevador:"Elevador de la escapula",mandibula:"Mandibula",platisma:"Platisma",
+ lengua:"Lengua y paladar",rostro:"Rostro"};
+/* glifo e etiqueta del aparato, en el mismo sitio para no desincronizarlos */
+const EQ={mancuerna:["dumbbell","Mancuerna"],barra:["barbell","Barra"],
+ maquina:["machine","Maquina"],polea:["cable","Polea"],banda:["band","Banda elastica"],
+ pullbar:["pullbar","Barra fija"],banco:["bench","Banco"],silla:["bench","Silla"],
+ wall:["wall","Pared"]};
+
 const EX={
 abduccion_banda:{name:"Abducción de cadera con banda",tag:"carga",type:"reps_side",sets:2,reps:12,rest:30,load:false,unit:"kg",coach:"Tronco quieto: si te inclinas, la banda es demasiado dura.",
   steps:["De pie, banda alrededor de los tobillos y una mano en la pared.","Lleva una pierna al lado sin girar la cadera ni doblar la rodilla.","Vuelve despacio sin dejar que el pie descanse. Cambia de lado."]},
@@ -1122,7 +1237,12 @@ remo_banda:{name:"Remo con banda",tag:"carga",type:"reps",sets:2,reps:12,rest:45
   steps:["Sentada en el tapete, banda rodeando las plantas de los pies y una punta en cada mano.","Lleva los codos atrás pegados al cuerpo hasta las costillas.","Suelta en tres segundos manteniendo el pecho alto."]},
 remo_db:{name:"Remo con mancuerna",tag:"carga",type:"reps_side",sets:4,reps:10,rest:90,load:true,unit:"kg",coach:"10 por brazo, rango largo hacia la cadera y sin girar el torso.",
   steps:["Inclina el torso hacia adelante, espalda recta, rodillas ligeramente flexionadas","Tira la mancuerna hacia tu cadera, codo pegado al cuerpo, aprieta los omoplatos","Baja con control, extiende el brazo completamente sin bloquear el codo"]},
-remo_inclinado:{name:"Remo inclinado con mancuernas",tag:"carga",type:"reps",sets:2,reps:12,rest:40,load:true,unit:"kg",coach:"SOLO para postura_completa (no va en cuello_rostro). Con este dosaje postura_completa queda en ~19 min; con su dosaje por defecto 3x10/60 s se pasaría de 20.",
+remo_inclinado:{name:"Remo inclinado con mancuernas",tag:"carga",type:"reps",sets:2,reps:12,rest:40,load:true,unit:"kg",/* dosis: SOLO para postura_completa (no va en cuello_rostro). Con este
+      dosaje postura_completa queda en ~19 min; con el suyo por defecto de
+      3x10/60 s se pasaría de 20. Esta nota vivió dentro de `coach` hasta v32,
+      cuando esa frase empezó a mostrarse en la ficha: era la única de las 81
+      que no le hablaba al usuario. */
+  coach:"Torso inclinado unos 45° y espalda recta: lleva los codos hacia la cadera y junta los omóplatos arriba.",
   steps:["Bisagra de cadera, espalda plana ~45°, mancuernas bajo los hombros.","Jala ambas hacia las caderas llevando los codos atrás.","Aprieta los omóplatos y baja controlado. No rotes el torso."]},
 remo_invertido:{name:"Remo invertido",tag:"carga",type:"reps",sets:3,reps:12,rest:90,load:false,unit:"kg",coach:"Cuerpo recto como una tabla; cuanto más horizontal, más difícil.",
   steps:["Agárrate a la barra con el cuerpo recto","Tira llevando el pecho hacia la barra","Baja despacio sin hundir la cadera"]},
@@ -1241,11 +1361,19 @@ const SECDOSE={
 const TAG={calent:["Calentamiento","b-calent"],diario:["Diario","b-diario"],carga:["Carga 3–4×/sem","b-carga"],opcional:["Opcional","b-opcional"]};
 const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
-const VERSION="v30 · figuras por esqueleto y vídeos cortos";
+const VERSION="v32 · mapa corporal";
 /* ==== [S5] ICONOS =========================================================
    Solo el interior del <svg>; ic() lo envuelve. Rejilla 24x24, sin relleno
    salvo los marcados .solid. */
 const ICON={
+/* --- equipamiento: los usa el mapa corporal, misma rejilla que el resto --- */
+barbell:'<path d="M3 9v6M6 6.5v11M18 6.5v11M21 9v6M6 12h12"/>',
+machine:'<rect x="3.5" y="4" width="7" height="15" rx="1.2"/><path d="M3.5 9h7M3.5 14h7M14 20V9.5A3.5 3.5 0 0 1 17.5 6H20"/>',
+cable:'<circle cx="12" cy="5" r="2.6"/><path d="M12 7.6V14M8 14h8M8 14v4.5M16 14v4.5"/>',
+band:'<path d="M2.5 10.5v3M21.5 10.5v3M4 12c2.7-5.5 5.3 5.5 8 0s5.3-5.5 8 0"/>',
+pullbar:'<path d="M4 4v16M20 4v16M4 8.5h16"/>',
+bench:'<path d="M3 11h18M5.5 11v7M18.5 11v7M8 11V6.5h4"/>',
+wall:'<path d="M4 4.5h16v15H4z"/><path d="M4 9.5h16M4 14.5h16M12 4.5v5M8 9.5v5M16 9.5v5M12 14.5v5"/>',
 check:'<path d="M5 12l5 5L19 7"/>',
 checkc:'<circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.5 2.5 4.5-5"/>',
 close:'<path d="M6 6l12 12M18 6L6 18"/>',
@@ -1540,8 +1668,8 @@ function routineExCard(k,ctx,id,origin,isExtra,isWarm,isAdded){const e=EX[id];if
       <div class="top">
         <div class="exck" onclick="event.stopPropagation();toggleCheck('${id}',${n})" role="checkbox" tabindex="0" aria-checked="${done?'true':'false'}" aria-label="Marcar como hecho">${ic("check")}</div>
         <div class="diag${(id===ctx.next)?' big':''}" onclick="startRoutine('${id}')">${
-          (id===ctx.next)?framesLoop(id,'diaginner'):miniDiag(id)}</div>
-        <div style="flex:1;min-width:0" onclick="startRoutine('${id}')"><div class="nm">${esc(e.name)}</div><div class="meta">${metaOf(e,ctx.d=dose(k,id))}${ctx.d.custom?' <span class="chip tiny">ajustado</span>':''}${(typeof ZONA!=="undefined"&&ZONA[id])?' · '+ZONA[id]:''}</div>
+          zonaSVG(id,(id===ctx.next)?"fila":"mini")}</div>
+        <div style="flex:1;min-width:0" onclick="startRoutine('${id}')"><div class="nm">${esc(e.name)}</div><div class="meta">${metaOf(e,ctx.d=dose(k,id))}${ctx.d.custom?' <span class="chip tiny">ajustado</span>':''}${zonaTexto(id)?' · '+esc(zonaTexto(id)):''}</div>
           <div class="badges"><span class="badge ${tg[1]}">${tg[0]}</span>${(alts&&alts.length)?`<span class="chip" onclick="event.stopPropagation();openSwap('${k}','${origin}')">${ic("swap","xs")} ${swapped?('Cambiado · original: '+shortName(origin)):(alts.length===1?('Cambiar por '+shortName(alts[0])):('Cambiar ('+alts.length+' opciones)'))}</span>`:''}${isAdded?`<span class="chip" onclick="event.stopPropagation();toggleExtra('${k}','${id}')" role="button" tabindex="0">${ic("close","xs")} Quitar</span>`:''}</div></div>
         ${isExtra?`<div class="exadd" onclick="event.stopPropagation();toggleExtra('${k}','${id}')" role="button" tabindex="0" aria-label="Agregar a la rutina">${ic("plus")}</div>`
                  :`<div class="exstart" onclick="event.stopPropagation();startRoutine('${id}')" role="button" tabindex="0" aria-label="Empezar por este ejercicio" title="Empezar aquí">${ic("play","sm solid")}</div>`}
@@ -1661,33 +1789,184 @@ function toggleGChart(id){const g=$("gchart");if(!g)return;
   if(g.classList.contains("show")){g.classList.remove("show");g.innerHTML="";}
   else{g.innerHTML=exChart(id,null);g.classList.add("show");}}
 /* ==== fin [S3] ============================================================ */
-/* Las figuras las pinta figura3d.js: aquí solo se deja el hueco con el id del
-   ejercicio y el modo. Un MutationObserver del motor lo monta en cuanto
-   aparece en el DOM, así que estos puntos no tienen que esperar a que cargue
-   el módulo ni saber nada de three.js.
-   Si un ejercicio todavía no tiene postura 3D —o el aparato no soporta
-   WebGL— se sigue por el camino viejo de los dos fotogramas fundidos, así
-   que la app nunca queda a medias. */
-const NUEVA=id=>(typeof FIG3D!=="undefined")&&!!(FIG3D.POSES&&FIG3D.POSES[id]);
-const hueco=(id,modo,cls,extra)=>
-  `<div class="${cls}" data-fig3d="${id}" data-modo="${modo}"${extra||""}></div>`;
+/* ============================ EL MAPA CORPORAL ============================
+   Una silueta plana con regiones que se encienden. Sustituye a la figura en
+   pose, que se intento tres veces y nunca llego a leerse.
 
-function framesStrip(id){
-  if(NUEVA(id)){const cap=(FIG3D.POSES[id].pies)||[];
-    if(cap.length<2)return "";
-    return `<div class="frames">`+cap.map((t,i)=>
-      `<div class="frame"><div class="fnum">${i+1}</div>`+
-      hueco(id,"pose","fdiag",` data-k="${i/(cap.length-1)}"`)+
-      `<div class="fcap">${esc(t)}</div></div>`).join("")+`</div>`;}
-  return "";}
+   Como esta construida, y por que asi:
+   · La silueta son primitivas sueltas que se funden solas al compartir
+     relleno. Mucho mas facil de corregir que una unica ruta gigante: se mueve
+     un rectangulo y ya.
+   · Las MISMAS primitivas forman el <clipPath>, asi que una region no puede
+     desbordar el cuerpo por mucho que se equivoque su rectangulo. Es
+     geometricamente imposible, no una precaucion.
+   · Solo se escribe el lado derecho: refleja() genera el izquierdo. Ninguna
+     region se puede quedar coja de un lado por descuido.
+   · Tres tonos y ni uno mas: silueta, secundaria al 45%, primaria al 100%.
+   · El id del recorte lleva contador. Con un id fijo, en una lista de catorce
+     ejercicios los url(#) de todos apuntaban al primer clipPath del documento.
+   · NO se anima. Nunca. Los tres intentos que fracasaron fueron los tres de
+     movimiento, y DISENO 7 dice que nada dura mas de medio segundo. */
 
-function framesLoop(id,cls){
-  if(NUEVA(id))return hueco(id,"anim",cls||"gdiag");
-  return "";}
+var MAPA=(function(){
+var CX=23, ANCHO=46, ALTO=100;
+/* El espejo se aplica forma a forma, NUNCA envolviendo en un <g>.
+   <clipPath> solo admite formas, <text> y <use>: un <g> dentro se ignora en
+   silencio. Con el envoltorio, el recorte se quedaba sin medio cuerpo y TODAS
+   las regiones simetricas salian cojas de un lado -- se veia igual de bien en
+   el DOM (los dos rectangulos ahi, azules, en su sitio) y solo lo cazo el
+   muestreo de pixeles. */
+function refleja(s){
+  var base='translate('+(2*CX)+',0) scale(-1,1)';
+  return s.replace(/<(\w+)([^>]*?)\/>/g, function(m,tag,at){
+    var t=/ transform="([^"]*)"/.exec(at);
+    return t ? '<'+tag+at.replace(t[0],' transform="'+base+' '+t[1]+'"')+'/>'
+             : '<'+tag+at+' transform="'+base+'"/>'; }); }
 
-/* La miniatura de la lista sale del mismo esqueleto, recortada al cuerpo y sin
-   suelo: a 46 px el dibujo completo no se leía. */
-function miniDiag(id){return NUEVA(id)?hueco(id,"mini","minifig"):"";}
+var EJE=[
+  '<ellipse cx="23" cy="7.2" rx="5.7" ry="7.2"/>',
+  '<rect x="19.7" y="11.5" width="6.6" height="7" rx="2.6"/>',
+  /* el hombro cae en pendiente desde el cuello: con un rectangulo el muñeco
+     salia de hombreras */
+  '<path d="M8.8 25.5Q10.6 17.6 16.8 17H29.2Q35.4 17.6 37.2 25.5Z"/>',
+  '<path d="M9.6 22H36.4L33.4 45H12.6Z"/>',
+  '<path d="M12.4 43.5H33.6L31.4 57.5Q23 61.5 14.6 57.5Z"/>'
+];
+var LADO=[
+  '<rect x="33.4" y="20" width="6.6" height="26" rx="3.3" transform="rotate(7 36.7 22)"/>',
+  '<rect x="35.8" y="43" width="5.8" height="23" rx="2.9" transform="rotate(7 38.7 44)"/>',
+  '<ellipse cx="40.1" cy="66.5" rx="3.2" ry="4.4"/>',
+  /* las piernas van algo mas abiertas de lo natural a proposito: pegadas, dos
+     muslos encendidos se leian como una sola mancha a 46 px */
+  '<rect x="24.6" y="54" width="8.4" height="27" rx="4.2"/>',
+  '<rect x="25.4" y="77" width="6.8" height="21" rx="3.4"/>',
+  '<rect x="24.4" y="94.6" width="8.4" height="5" rx="2.4"/>'
+];
+var SIL = EJE.join("") + LADO.join("") + refleja(LADO.join(""));
+
+/* regiones · la barra final marca "va en los dos lados" */
+var FRENTE={
+  cuello:         '<rect x="19.2" y="10" width="7.6" height="9" rx="3"/>',
+  trapecio_cuello:'<path d="M9.4 25Q11 18.4 16.8 17.8H29.2Q35 18.4 36.6 25Z"/>',
+  delt_lateral:   '<ellipse cx="35" cy="24.6" rx="4.6" ry="5.4"/>|',
+  delt_anterior:  '<ellipse cx="30.4" cy="26.4" rx="4.4" ry="5"/>|',
+  pecho:          '<path d="M11.6 25H34.4L33 37.6Q23 41.4 13 37.6Z"/>',
+  biceps:         '<rect x="33.8" y="27" width="6" height="16" rx="3" transform="rotate(7 36.7 27)"/>|',
+  antebrazo:      '<rect x="36" y="45" width="5.2" height="19" rx="2.6" transform="rotate(7 38.7 45)"/>|',
+  core:           '<rect x="14.6" y="38" width="16.8" height="13.5" rx="4"/>',
+  flexor_cadera:  '<path d="M13.6 51.5H32.4L31.2 58Q23 61.5 14.8 58Z"/>',
+  cuadriceps:     '<rect x="25" y="59" width="7.6" height="20" rx="3.8"/>|',
+  aductores:      '<rect x="18.4" y="58" width="9.2" height="15" rx="4"/>',
+  gemelo:         '<rect x="25.6" y="79" width="6.4" height="15" rx="3.2"/>|'
+};
+var ESPALDA={
+  cuello:         '<rect x="19.2" y="10" width="7.6" height="9" rx="3"/>',
+  trapecio_cuello:'<path d="M9.4 25Q11 18 16.8 17.4H29.2Q35 18 36.6 25L34.2 32H11.8Z"/>',
+  delt_posterior: '<ellipse cx="35" cy="24.6" rx="4.6" ry="5.4"/>|',
+  espalda:        '<path d="M12.2 30H33.8L32.4 45.5H13.6Z"/>',
+  triceps:        '<rect x="33.8" y="27" width="6" height="16" rx="3" transform="rotate(7 36.7 27)"/>|',
+  antebrazo:      '<rect x="36" y="45" width="5.2" height="19" rx="2.6" transform="rotate(7 38.7 45)"/>|',
+  lumbar:         '<rect x="14.6" y="43.5" width="16.8" height="9.5" rx="3.4"/>',
+  gluteo:         '<path d="M13.2 52H32.8L31.4 57.5Q23 62 14.6 57.5Z"/>',
+  isquios:        '<rect x="25" y="60" width="7.6" height="20" rx="3.8"/>|',
+  gemelo:         '<rect x="25.6" y="79" width="6.4" height="15" rx="3.2"/>|'
+};
+
+/* el busto, de perfil mirando a la derecha. Es la unica vista donde se leen a
+   la vez la nuca, la garganta, la mandibula y --para el mewing-- la lengua
+   contra el paladar, que de frente no existe. Sin ojos: la mandibula no
+   inquieta, los ojos si. */
+var BANCHO=50, BALTO=64;
+/* La cabeza va como UN contorno cerrado, no como piezas: un perfil es una sola
+   linea y con primitivas la nariz y el menton se los comia la union. */
+var BSIL=[
+  '<path d="M20 3Q32 3 35 13Q36.5 16.2 33.8 18.2L38 22.6L33.4 24.2L34.8 26.2'+
+    'Q33.8 28.6 29.8 29.6Q28.8 32.6 24.4 33.2Q15 34 11 27Q6.4 21 7 14Q8 3 20 3Z"/>',
+  '<path d="M16.4 30H27.6V47H16.4Z"/>',
+  '<path d="M1.6 64Q5.2 51 15.4 47.6H30.6Q41.2 51 46.6 64Z"/>'
+].join("");
+var BUSTO={
+  cervical_post: '<path d="M15 30H21.4V47.6H15Z"/>',
+  cervical_ant:  '<path d="M22.6 30H28.8V47.6H22.6Z"/>',
+  cervical_lat:  '<path d="M18.6 30H25.4V47.6H18.6Z"/>',
+  trapecio_sup:  '<path d="M1.6 64Q5.2 51 15.4 47.6H30.6Q41.2 51 46.6 64L37.6 64Q32.6 53.4 23 53Q12.4 53.4 9 64Z"/>',
+  elevador:      '<path d="M13 30H20V47Q12.4 50.6 7.6 60L2.8 57.6Q7.8 46 13 41.6Z"/>',
+  mandibula:     '<path d="M11 27Q15 34 24.4 33.2Q28.8 32.6 29.8 29.6L31.6 25.6Q27 30 21 29.4Q15.4 28.6 12.6 23.6Z"/>',
+  platisma:      '<path d="M18 30Q24 34.6 29.4 30.4L28.6 46Q22.4 48.6 18 46Z"/>',
+  lengua:        '<path d="M22.4 22.4Q27.6 20.6 32 22.6Q27.8 26.6 22.4 25.4Z"/>',
+  rostro:        '<path d="M27 8.4Q35.4 12 35 13.6Q36.5 16.2 33.8 18.2L38 22.6L33.4 24.2L34.8 26.2Q33.8 28.6 29.8 29.6L27 30Z"/>'
+};
+
+var N=0;
+function trozos(M,claves,tono){ var o="";
+  (claves||[]).forEach(function(k){ var d=M[k]; if(!d) return;
+    var dos = d.slice(-1)==="|"; if(dos) d=d.slice(0,-1);
+    o+='<g opacity="'+tono+'">'+d+(dos?refleja(d):"")+'</g>'; });
+  return o; }
+
+/* vistas: ["frente"], ["espalda"], ["frente","espalda"] o ["busto"] */
+function dibuja(vistas,p,s){
+  var cid="mz"+(++N), busto=vistas[0]==="busto";
+  var an=busto?BANCHO:ANCHO, al=busto?BALTO:ALTO, sil=busto?BSIL:BSIL;
+  sil = busto?BSIL:SIL;
+  var w = vistas.length>1 ? an*2+10 : an;
+  var g = vistas.map(function(v,i){
+    var M = busto?BUSTO:(v==="frente"?FRENTE:ESPALDA);
+    var pp=(p||[]).filter(function(k){return M[k];}),
+        ss=(s||[]).filter(function(k){return M[k];});
+    /* dos pasadas para tener UN contorno del cuerpo entero y no la costura de
+       cada primitiva: la primera dibuja las piezas con un trazo grueso del
+       color del borde, lo que da la union dilatada; la segunda las rellena
+       encima y tapa todo el interior, dejando solo el reborde. */
+    return '<g transform="translate('+(i*(an+10))+',0)">'+
+      '<g class="mborde">'+sil+'</g><g class="mrelleno">'+sil+'</g>'+
+      '<g class="mzona" clip-path="url(#'+cid+')">'+trozos(M,ss,.45)+trozos(M,pp,1)+'</g></g>'; }).join("");
+  return '<svg class="mapa" viewBox="0 0 '+w+' '+al+'" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
+    '<defs><clipPath id="'+cid+'">'+sil+'</clipPath></defs>'+g+'</svg>'; }
+
+/* de que vista es una region: decide que se enseña cuando solo cabe una */
+function ladoDe(k){ return (ESPALDA[k]&&!FRENTE[k])?"espalda":"frente"; }
+return {dibuja:dibuja, ladoDe:ladoDe, FRENTE:FRENTE, ESPALDA:ESPALDA, BUSTO:BUSTO};
+})();
+
+/* zonaSVG(id, tam) -> el SVG del mapa, sincrono y sin dependencias.
+   tam: "mini" (46 px) · "fila" (76 px) · "guiado" (172 px)
+   Si a un ejercicio le falta su registro devuelve la silueta apagada en vez de
+   lanzar: la caja nunca se queda rota. */
+function zonaSVG(id,tam){
+  var z=ZONAS[id]||{p:[],s:[]}, p=z.p||[], v=z.v;
+  var vistas = (v==="busto") ? ["busto"]
+    /* las dos vistas solo a 172 px: a 76 la figura bajaria a 32 px de alto */
+    : (tam==="guiado" ? ["frente","espalda"]
+                      : [ (v==="espalda"||v==="frente") ? v
+                          : (p[0]?MAPA.ladoDe(p[0]):"frente") ]);
+  /* a 46 px se cae la secundaria: dos tonos en 36 px utiles no se distinguen */
+  return MAPA.dibuja(vistas, p, tam==="mini"?[]:(z.s||[]));
+}
+
+/* ZONA es texto escrito a mano y solo cubre 55 de los 91; ZONAS los cubre
+   todos. Donde no hay frase, sirve el nombre de la region primaria, asi que la
+   etiqueta de zona pasa a salir en los 91 sin inventar una sola palabra. */
+function zonaTexto(id){
+  if(typeof ZONA!=="undefined" && ZONA[id]) return ZONA[id];
+  var z=ZONAS[id]; return (z&&z.p&&z.p[0]) ? (ZNAME[z.p[0]]||"") : "";
+}
+
+/* El panel de 172 px: el texto manda a la izquierda, la figura acompaña a la
+   derecha. Dice tres cosas que la figura en pose no dijo nunca -- que musculo,
+   por que lado y con que aparato -- y el movimiento lo sigue explicando el
+   video, que esta a un toque aqui debajo. */
+function panelZona(id){
+  var z=ZONAS[id]||{p:[],s:[]};
+  var sec=(z.s||[]).map(function(k){return ZNAME[k]||k;}).join(" · ");
+  var e=z.eq?EQ[z.eq]:null;
+  return '<div class="gdiag"><div class="ginfo">'+
+    '<div class="gz1">'+esc(zonaTexto(id))+'</div>'+
+    (sec?'<div class="gz2">También: '+esc(sec)+'</div>':'')+
+    (e?'<div class="gz3">'+ic(e[0],"sm")+' '+esc(e[1])+'</div>':'')+
+    '</div>'+zonaSVG(id,"guiado")+'</div>';
+}
+
 
 /* ===== GIMNASIO: registro de peso, planificador semanal, progreso ===== */
 let sessionLog={}, curW=null, curReps=null, restR=0, planDay=0;
@@ -2037,8 +2316,8 @@ function fichaEjercicio(s){
   return `<details class="exinfo"${abierta?" open":""} ontoggle="gInfoOpen=this.open">
     <summary>${ic("bulb","sm")} Cómo se hace</summary>
     <div class="exinfo-b">
-    ${framesLoop(s.id)}
-    ${NUEVA(s.id)?`<div class="gframes">${framesStrip(s.id)}</div>`:``}
+    ${panelZona(s.id)}
+    ${(EX[s.id]&&EX[s.id].coach)?`<div class="coachtip">${ic("bulb","xs")} ${esc(EX[s.id].coach)}</div>`:``}
     ${caveat}${opt}
     <ul class="glist">${s.steps.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>
     ${vid?`<div class="vbtn" onclick="toggleGVid()">${ic("play","sm solid")} Ver video</div>
@@ -2088,7 +2367,7 @@ function frame(inner,opt){opt=opt||{};const s=steps[stepi],prog=Math.round(stepi
   return `<div class="gtop"><div class="icbtn" onclick="guidedBack()">${ic("left")}</div>
     <div class="pbar"><i style="width:${prog}%"></i></div>
     <div class="gcount">${s.exI}/${s.exN}</div><div class="icbtn" onclick="guidedExit()" role="button" tabindex="0" aria-label="Salir" title="Salir (se guarda solo)">${ic("close")}</div></div>
-    <div class="stage${opt.rest?" isrest":""}">${opt.rest?"":`<div class="setlab">${s.label}</div><div class="exname">${s.name}</div>`}${(conFicha&&typeof ZONA!=="undefined"&&ZONA[s.id])?'<div class="zonatag">'+ZONA[s.id]+'</div>':''}
+    <div class="stage${opt.rest?" isrest":""}">${opt.rest?"":`<div class="setlab">${s.label}</div><div class="exname">${s.name}</div>`}${(conFicha&&zonaTexto(s.id))?'<div class="zonatag">'+esc(zonaTexto(s.id))+'</div>':''}
     ${inner}
     ${conFicha?seriesBox(s):""}
     ${conFicha?fichaEjercicio(s):""}
@@ -2483,13 +2762,14 @@ window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;
 $("installBtn").onclick=async()=>{if(deferred){deferred.prompt();await deferred.userChoice;deferred=null;$("install").style.display="none";}};
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
 
-/* Los 476 KB de SVG escritos a mano (figuras.js) se retiraron en v31: los 91
-   ejercicios tienen postura 3D en poses3d.js. Lo que queda aquí es solo la red
-   de seguridad por si un id no tuviera postura o el aparato no soportara WebGL:
-   entonces no se pinta figura y la ficha sigue funcionando con los pasos y el
-   vídeo, que es donde vive la información que de verdad hace falta.
+/* Dibujar a una persona haciendo el ejercicio se intentó tres veces --SVG a
+   mano, redibujo paramétrico 2D y maniquí articulado en three.js-- y las tres
+   fracasaron. En v32 se retiró: a 46 y 76 px un cuerpo en postura no se lee, y
+   a 172 px el vídeo específico que ya existe para los 91 explica el movimiento
+   mejor que cualquier dibujo. Lo que quedaba sin contar --qué trabaja este
+   ejercicio-- lo dice ahora el mapa corporal, que cubre los 91 sin excepción.
    El préstamo honesto sigue en pie: los vuelos posteriores ligeros SON un
-   reverse fly con menos peso, y comparten figura (ver poses3d.js). */
+   reverse fly con menos peso, y comparten zona. */
 /* ================= Dashboard de progreso (v19) ================= */
 /* Que rutinas cuentan como "programa de fuerza": de aqui salen la meta semanal,
    la racha, la adherencia y el mapa de calor. Las de casa entran por derecho
