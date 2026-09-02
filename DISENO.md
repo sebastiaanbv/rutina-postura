@@ -144,9 +144,9 @@ Once pasos, todos tokens. Ningún tamaño escrito a mano.
 
 ## 6. Componentes
 
-**Tarjeta** (`.rcard .stat .hitem .field .cal .chartcard .exgroup .day .stepper .daydet .ovcard`) — fondo `--card`, radio `--r-lg`, sombra `--sh-card`. Es un contenedor de bloque.
+**Tarjeta** (`.rcard .stat .hitem .field .cal .chartcard .ex .day .stepper .daydet .ovcard`) — fondo `--card`, radio `--r-lg`, sombra `--sh-card`. Es un contenedor de bloque.
 
-**Caja hundida** (`.qbox .exprog .finempty .setline .planopt .timepill`) — fondo `--sunk` con borde. Va **dentro** de una tarjeta. Nunca al revés.
+**Caja hundida** (`.exprog .finempty .finsum .fs .setline .planopt .timepill`) — fondo `--sunk` con borde. Va **dentro** de una tarjeta. Nunca al revés.
 
 **Nota de color** (`.last .qwhy .coachtip .optbox .caveatbox .callout`) — mismo formato, distinto significado según el color. Todas comparten radio, padding y tamaño de texto: lo único que cambia es el par tinte/tinta. `.coachtip` estuvo documentado aquí durante seis versiones **sin existir en el CSS**: no se notó porque el campo que debía llenarla, `EX[id].coach`, tampoco se mostraba. Las dos cosas se cerraron en v32.
 
@@ -233,9 +233,26 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
 ## 10. Accesibilidad
 
 - **Contraste mínimo 4,5:1** para texto normal y 3:1 para texto grande, verificado **elemento a elemento** en las cinco pantallas y los dos temas. La verificación se repite en cada cambio visual y ninguno puede empeorarla.
-- **Áreas táctiles de 44 px.** Los controles pequeños conservan su tamaño visual y amplían la zona pulsable con un pseudo-elemento.
-- **Teclado**: todo lo que se comporta como botón es enfocable y responde a Enter y Espacio. Las pestañas son botones reales con `aria-current`.
-- **Lector de pantalla**: el visto es `role="checkbox"` con `aria-checked`; el progreso de la rutina y el descanso son `aria-live`; los iconos decorativos van con `aria-hidden`.
+- **Áreas táctiles de 44 px.** Los controles pequeños conservan su tamaño visual y amplían la zona
+  pulsable con un pseudo-elemento. Cubre **19 familias de control**: hasta v32 cubría cinco, y la
+  mitad de los botones se quedaba fuera —los `+`/`−` del guiado medían 42 px, los interruptores 28
+  y el de confirmar una serie 30—. Solo se amplían controles **hoja**: el pseudo-elemento se pinta
+  por encima y se tragaría el clic de un hijo pulsable.
+- **Teclado**: todo lo que se comporta como botón es enfocable y responde a Enter y Espacio. Las
+  pestañas son botones reales con `aria-current`. En v32 había **22 controles que eran `<div>` con
+  `onclick` y ni `role` ni `tabindex`** —entre ellos la lista entera de rutinas de Inicio, el
+  planificador semanal y todas las celdas del calendario—, y el manejador global solo atendía a lo
+  que llevara `role`. Se cerró: hoy solo queda fuera la figura de la fila de ejercicio, **a
+  propósito**, porque sería un segundo tabulador para la misma acción que ya hace el cuerpo de la
+  fila.
+- **Lector de pantalla**: el visto es `role="checkbox"` con `aria-checked`; los tres interruptores
+  son `role="switch"` con `aria-checked`; el selector de métrica lleva `aria-pressed`; las tres
+  hojas superpuestas son `role="dialog"` con `aria-modal` y `aria-labelledby`; el progreso de la
+  rutina y el descanso son `aria-live`; los iconos decorativos van con `aria-hidden`.
+- **Avisos**: los mensajes no destructivos salen por el `toast()` propio, no por `alert()`. Los
+  cinco `confirm()` que quedan son todos destructivos —reemplazar datos al importar, descartar la
+  sesión, quitar una rutina del calendario y las dos de borrarlo todo— y ahí el diálogo del
+  sistema es una ventaja: cuesta más pulsarlo por accidente.
 - **Movimiento**: `prefers-reduced-motion` respetado.
 - **Zonas seguras**: `env(safe-area-inset-top)` en las tres cabeceras y `inset-bottom` en la barra inferior y las hojas.
 
@@ -282,6 +299,27 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
   sin tocar descansos: los tres días quedaron en 62-68 min tras la revisión de programa de v30. Necesita un flag de «par» entre dos
   ejercicios que alterne series y cuente el descanso solo al cerrar el par. El especialista que
   revisó las rutinas en v27 la señaló otra vez, y para el bloque secundario en concreto.
+
+### Cerrado en v33
+
+- ~~El fotograma del medio parpadeaba.~~ Venía **dibujado con más trazo** que sus dos hermanos
+  —medido: hasta 4× en `push-up`— y el ciclo lo enseña dos veces por repetición, así que la figura
+  daba un golpe de tinta en cada rep. Afectaba a **38 de 67**. Se corrigió adelgazando cada
+  fotograma con un trazo del color del fondo, con el ancho sacado de una bisección contando
+  píxeles. De hasta 4× de diferencia a **1,20 en el peor caso y 1,03 de mediana**.
+- ~~Once no se podían igualar sin comerse el dibujo.~~ Esos se animan con **dos fotogramas**, el
+  primero y el último, y se descarta el grueso del medio. Sus dos extremos son posturas buenas, así
+  que la repetición se sigue entendiendo.
+- ~~El panel enseñaba el gesto o el músculo, nunca los dos.~~ Ahora enseña los dos: figura
+  animada y, más pequeño, el mapa con su etiqueta de lado. §15.
+- ~~El busto de cuello y cara estaba mal.~~ La cabeza se comía el 48 % del dibujo y los hombros
+  leían como una colina; el trapecio era una cúpula que tapaba el busto, y el elevador y el rostro
+  se salían del cuerpo. Redibujado: cabeza al 42 %, hombros de borde a borde, y las cuatro regiones
+  rehechas sobre rasgos reales del dibujo. Las nueve pintan a 46 px.
+- ~~22 controles fuera del teclado y 14 familias de botón por debajo de 44 px.~~ §10.
+- ~~Diez `alert()` del navegador.~~ Pasan al `toast()` propio.
+- ~~«Sin horas aún.»~~ Incumplía §9, que prohíbe el «sin datos» a secas. Ahora dice qué hacer.
+- ~~`DISENO` citaba `.qbox`, que no existe en el CSS, y `.exgroup` donde la regla usa `.ex`.~~ §6.
 
 ### Cerrado en v32
 
@@ -582,7 +620,14 @@ Un mapa de zona no distingue «lo fortalece» de «lo estira», y no le hace fal
 ### El busto, de perfil
 
 Los 12 ejercicios de cuello y cara usan una segunda silueta: cabeza, cuello y hombros **de
-perfil**. No es un capricho. Es la única vista donde se leen a la vez la nuca, la garganta, la
+perfil**. La primera versión estaba mal y se rehízo en v33: la cabeza se comía el 48 % del dibujo
+y los hombros, de 45 unidades en un marco de 64, leían como una colina. Ahora la cabeza es el 42 %
+y los hombros llegan de borde a borde, que es lo que los hace leer como hombros. Con ellos se
+rehicieron cuatro regiones que estaban mal apoyadas: el trapecio era una cúpula que tapaba el
+busto y pasó a ser una banda por el filo del hombro; el elevador bajaba por fuera y ahora va por
+dentro; la mandíbula flotaba y ahora se apoya en el filo real de la cara; y el rostro desbordaba
+el perfil. Las tres bandas del cuello se ensancharon a 7 unidades porque con 6 quedaban en
+astillas de un píxel a 46 px. No es un capricho. Es la única vista donde se leen a la vez la nuca, la garganta, la
 mandíbula y —para `mewing_lengua`— la lengua contra el paladar, que de frente sencillamente no
 existe. Sin ojos: la mandíbula no inquieta, los ojos sí.
 
@@ -616,11 +661,35 @@ deja la figura en 32 px de alto. La vista se **deduce** del lado al que pertenec
 primaria; `ZONAS[id].v` solo aparece donde hay que forzarla (gemelo y trapecio se leen mejor por
 detrás).
 
-### El hueco de 172 px, y el movimiento
+### El panel de 196 px: por fuera y por dentro
 
-Dos columnas: **el texto manda a la izquierda y la figura se mueve a la derecha**. A la izquierda,
-qué músculo, qué secundarios y con qué aparato; debajo, el consejo de entrenador, los pasos
-numerados y el vídeo.
+**Tres piezas**: a la izquierda qué músculo, qué secundarios y con qué aparato; en el centro la
+figura **haciendo** el ejercicio; a la derecha, más pequeño y con su etiqueta de lado, el mapa que
+dice **dónde se nota**. Son dos dibujos con dos trabajos distintos, y por eso ninguno sustituye al
+otro. Debajo van el consejo, los pasos y el vídeo.
+
+El reparto está calculado y suma exacto sobre los 307 px útiles (343 menos el relleno):
+`112 texto + 12 + 123 figura + 12 + 48 mapa`. El mapa de apoyo va de **una sola silueta**: con dos
+haría falta una columna de 98 px y le comería el 41 % a la figura; metidas a la fuerza en 48, cada
+cuerpo bajaría a 21 px, la mitad del sello que ya se retiró por ilegible. Lo que se pierde al
+enseñar una vista —por qué lado estás mirando— lo dice la etiqueta, que cuesta 15 px de alto en
+vez de 52 de ancho.
+
+El panel subió de 172 a 196 px porque esos 60 px del mapa no podían salir solo del ancho: sacados
+de ahí, `bird-dog` caía a 97 px de alto, **menos de los 109 que tenía sin mapa**. Y hay dos
+excepciones, las dos decididas con datos que ya existían:
+
+- **`gancha`** — las 17 cajas más anchas que altas (tumbados, cuadrupedia, prensa): el texto sube a
+  su propia fila y la figura cobra el ancho entero. `glute-bridge` gana un 44 %. El corte en
+  «más ancha que alta» no es redondo por gusto: es donde las dos maquetas empatan.
+- **`solomapa`** — los 21 sin ilustración: el mapa **es** la figura, sale a dos vistas y se queda
+  el hueco entero. Añadirle además un mapa chico sí sería decir dos veces lo mismo.
+
+El precio asumido: diez ejercicios casi cuadrados pierden entre un 7 y un 16 % de alto de figura.
+Es la forma que peor encaja en cualquiera de las dos maquetas. Repararlo costaría subir el panel a
+216 px, y no compensa.
+
+### El movimiento
 
 **Corte seco entre tres fotogramas, nunca un fundido.** El fundido es exactamente lo que hundió el
 sistema viejo: a mitad de ciclo se veían dos cuerpos fantasma superpuestos. `steps(1,end)` no
@@ -630,6 +699,22 @@ apilados y tres `@keyframes` que se turnan la opacidad.
 El ciclo va **1-2-3-2**, porque una repetición va y vuelve. El ritmo sale del `type` que cada
 ejercicio ya tenía: 2,4 s en `reps`, 1,5 s en `cardio`, y **quieto en los `hold`** — un sostén no
 se mueve, y fingir que sí sería mentir sobre el ejercicio.
+
+**El trazo se normaliza, porque venía desigual.** El fotograma del medio está dibujado con más
+tinta que sus hermanos —hasta 4× en `push-up`— y el ciclo lo enseña dos veces por repetición, así
+que daba un golpe visible en cada rep. Pasaba en **38 de 67**. Se corrige adelgazando: un `stroke`
+del color del fondo se pinta encima del relleno y le come la mitad de su ancho hacia dentro,
+mientras la mitad de fuera cae sobre el fondo y no se ve. El ancho de cada fotograma sale de una
+bisección contando píxeles hasta igualar al más fino, con tope de 4 unidades y una salvaguarda: si
+adelgazar deja el dibujo por debajo del 70 % del objetivo es que se está comiendo detalle, y
+entonces se deja como estaba. Resultado: de 4× a **1,20 en el peor caso, 1,03 de mediana**.
+
+**Once se animan con dos fotogramas.** Son aquellos donde adelgazar no bastaba sin embarrar el
+dibujo. Se descarta el grueso del medio y se alternan el primero y el último, que son las dos
+posturas de la repetición. Ahí el fotograma de reposo pasa a ser el primero.
+
+**Ojo:** el adelgazado solo es invisible sobre `--diagram-bg`. Es el fondo de `.gdiag`, y el trazo
+usa ese mismo token; si algún día la figura se pinta sobre otro fondo, hay que revisarlo.
 
 **Una sola caja de recorte para los tres fotogramas** (`window.CAJAS`, calculada del `getBBox` real
 de cada ruta). El `viewBox` de 512 trae mucho aire y dejaba la figura pequeña; recortarlo la

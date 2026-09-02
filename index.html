@@ -234,8 +234,20 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .b-opcional{background:var(--rest-tint);color:var(--rest-ink)}
   .zonatag{color:var(--accent-ink);border-radius:0;font-size:var(--t-xs);margin:0 0 var(--s2)}
   /* área de toque cómoda sin agrandar el control */
-  .exck,.chip,.mchip,.setline .del,.calnav{position:relative}
-  .exck:after,.chip:after,.mchip:after,.setline .del:after,.calnav:after{content:"";
+  /* DISENO 10 pide 44 px de zona pulsable. El truco es un pseudo-elemento que
+     agranda el area SIN tocar el tamaño visual. Cubria cinco selectores y la
+     mitad de los controles se quedaba fuera: los +/- del guiado median 42, los
+     interruptores 28 y el boton de confirmar una serie 30. Solo se amplian
+     controles HOJA -- los que no llevan dentro otra cosa pulsable --, porque el
+     pseudo-elemento se pone por encima y se tragaria el clic del hijo. */
+  .exck,.chip,.mchip,.setline .del,.calnav,
+  .sq,.exstart,.exadd,.ovhead .x,.minibtn,.vbtn,.setok,.calladd,.skip,
+  .themeseg button,.install button,.toggle,.mdel,.timepill .x{position:relative}
+  .exck:after,.chip:after,.mchip:after,.setline .del:after,.calnav:after,
+  .sq:after,.exstart:after,.exadd:after,.ovhead .x:after,.minibtn:after,
+  .vbtn:after,.setok:after,.calladd:after,.skip:after,
+  .themeseg button:after,.install button:after,.toggle:after,.mdel:after,
+  .timepill .x:after{content:"";
     position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
     min-width:44px;min-height:44px;width:100%;height:100%}
 
@@ -453,7 +465,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .exwrap{margin:6px var(--gut)}
   .ex{margin-bottom:var(--s2);overflow:hidden;border-radius:var(--r-lg)}
   .ex .top{display:flex;gap:11px;align-items:center;padding:12px;cursor:pointer}
-  .ex .nm{font-weight:var(--w-semi);font-size:var(--t-lead);line-height:1.2;letter-spacing:-.2px}
+  .ex .nm{font-weight:var(--w-semi);font-size:var(--t-lead);line-height:1.2;letter-spacing:-.2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .ex .meta{color:var(--mut);font-size:var(--t-sm);margin-top:3px}
   .badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
   /* la miniatura de 46 px era ilegible por aritmetica: el SVG mide ~255
@@ -554,25 +566,100 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .exinfo-b{padding-bottom:var(--s2)}
   .exname{font-size:var(--t-title);font-weight:var(--w-bold);letter-spacing:-.9px;
     margin:10px 0 var(--s4);line-height:1.1;text-wrap:balance}
-  /* dos columnas: el texto manda y la figura acompaña. Con la figura sola
-     centrada, la caja era un marco alrededor de un dibujo pequeño. */
-  .gdiag{width:100%;height:172px;background:var(--diagram-bg);border-radius:var(--r-md);
-    display:flex;align-items:center;justify-content:space-between;gap:var(--s4);
+  /* ============ la ficha: texto · figura · mapa ============
+     Tres piezas en 307 px utiles (343 menos 2x18 de relleno). El reparto esta
+     calculado, no tanteado, y suma exacto:
+       mapa   48 px  -- una silueta mide 46x100, asi que a 96 px de alto ocupa
+                        44 de ancho y la etiqueta "Espalda" 38. Va UNA silueta:
+                        dos pedirian 98 px de columna y le comerian el 41% a la
+                        figura, y a la fuerza en 48 px darian cuerpos de 21 px
+                        -- la mitad del sello que ya se retiro por ilegible.
+       texto 112 px minimo -- lo que mide "Banda elastica" con su glifo sin
+                        partirse; el aparato es el dato que peor aguanta un
+                        salto de linea.
+       figura el resto, techo del 40% = 123 px.
+       112 + 12 + 123 + 12 + 48 = 307.
+     El panel sube de 172 a 196 porque los 60 px del mapa no pueden salir solo
+     del ancho: sacandolos de ahi, bird-dog caia a 97 px de alto, menos de los
+     109 que tenia SIN mapa. Pagar un rediseño para empeorar el caso peor. */
+  .gdiag{width:100%;height:196px;background:var(--diagram-bg);border-radius:var(--r-md);
+    display:flex;align-items:center;gap:var(--s3);
     padding:14px 18px;margin-bottom:6px}
-  .gdiag svg{height:100%;width:auto;max-width:56%}
-  .gdiag .ginfo{flex:1;min-width:0}
+  .gdiag .ginfo{flex:1 1 auto;min-width:112px;display:flex;flex-direction:column;
+    justify-content:center}
   .gdiag .gz1{font-size:var(--t-xs);font-weight:var(--w-bold);letter-spacing:1.1px;
-    text-transform:uppercase;color:var(--tx)}
+    text-transform:uppercase;color:var(--tx);text-wrap:balance}
   .gdiag .gz2{font-size:var(--t-sm);color:var(--mut);margin-top:3px}
   .gdiag .gz3{font-size:var(--t-sm);color:var(--tx2);margin-top:var(--s2);
     display:flex;align-items:center;gap:6px}
+
+  /* el techo va en el envoltorio y no en el SVG: como hijo directo del panel,
+     su % mide contra los 307 px utiles, que son un numero definido. Dentro de
+     .gfig el SVG solo tiene que caber. */
+  .gdiag .gfig{flex:0 0 auto;height:100%;max-width:40%;min-width:0;
+    display:flex;align-items:center;justify-content:center}
+  .gdiag .gfig svg{height:100%;width:auto;max-width:100%}
+
+  /* El mapa de apoyo: el mismo dibujo de UNA vista que la fila de 76 px, a 96
+     de alto, con su etiqueta de lado debajo. La etiqueta va en caja baja: en
+     mayusculas con letter-spacing, "ESPALDA" mide 49 px y desborda la columna. */
+  .gdiag .gmap{flex:0 0 48px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:var(--s1)}
+  .gdiag .gmap svg{height:96px;width:auto;max-width:100%}
+  .gdiag .gmlab{font-size:var(--t-2xs);font-weight:var(--w-med);color:var(--mut);
+    line-height:1;white-space:nowrap}
+  /* el reborde de zona SI hace falta a este tamaño: con el cuerpo en 44 px de
+     ancho, aductores y gemelo miden un pixel. Misma correccion que .diag.big. */
+  .gdiag .gmap .mzona g{stroke:var(--diagram-hi);stroke-width:1.4}
+
+  /* Los 21 sin ilustracion: el mapa ES la figura, sale a dos vistas y se queda
+     el hueco entero. No se le añade ademas un mapa chico, porque eso si seria
+     decir dos veces lo mismo. De paso ganan tamaño: los de cuerpo pasan de
+     147x144 a 160x157, y los 12 de busto de 112x144 a 131x168. */
+  .gdiag.solomapa .gfig{max-width:52%}
+
+  /* Los apaisados (caja mas ancha que alta: tumbados, cuadrupedia, prensa).
+     Con el texto al lado, bird-dog se quedaba en 78 px de alto; con el texto
+     arriba sube a 121, mas de los 109 que tenia antes de existir el mapa, y
+     glute-bridge gana un 44%. El corte en "ar >= 1" no es redondo por gusto:
+     es donde las dos maquetas empatan (123/ar = 121).
+     .ginfo pasa a rejilla para que "Tambien:" ocupe la fila entera y no se
+     parta contra el aparato: asi la fila de texto mide 39 px SIEMPRE y la de
+     la figura no depende de cuantas secundarias tenga el ejercicio. */
+  .gdiag.gancha{display:grid;grid-template-columns:minmax(0,1fr) 48px;
+    grid-template-rows:auto minmax(0,1fr);column-gap:var(--s3);row-gap:var(--s2);
+    align-items:center}
+  .gdiag.gancha .ginfo{grid-column:1/-1;grid-row:1;display:grid;
+    grid-template-columns:minmax(0,1fr) auto;column-gap:var(--s3);align-items:center}
+  .gdiag.gancha .gz1{grid-column:1;grid-row:1}
+  .gdiag.gancha .gz3{grid-column:2;grid-row:1;margin-top:0}
+  .gdiag.gancha .gz2{grid-column:1/-1;grid-row:2}
+  .gdiag.gancha .gfig{grid-column:1;grid-row:2;max-width:none;width:100%}
+  .gdiag.gancha .gmap{grid-column:2;grid-row:2}
+
+  /* A 320 px el panel util baja a 252 y el reparto de arriba pide 281: 29 px
+     de desbordamiento que se comerian el aparato. Se recortan relleno, hueco y
+     mapa (40 px de columna, 84 de alto: aun 2,3 veces el sello de la lista) y
+     el texto recupera sus 112. Es el primer punto de ruptura por ancho del
+     archivo, y se paga a conciencia. */
+  @media (max-width:359px){
+    .gdiag{padding:14px;gap:var(--s2)}
+    .gdiag .gfig{max-width:38%}
+    .gdiag .gmap{flex:0 0 40px}
+    .gdiag .gmap svg{height:84px}
+    .gdiag.gancha{grid-template-columns:minmax(0,1fr) 40px}
+  }
 
   /* ============ la figura en movimiento ============
      Tres fotogramas apilados y CORTE SECO entre ellos, nunca un fundido: el
      fundido es lo que hundio el sistema viejo, porque a mitad de ciclo se veian
      dos cuerpos fantasma a la vez. steps(1,end) no mezcla dos jamas.
      Es CSS puro, sin temporizador en JS, como pide el 7. */
-  .figmov path{fill:var(--diagram-ink);opacity:0}
+  /* El trazo va del color del FONDO y su ancho lo pone cada <path> por atributo:
+     adelgaza el fotograma que viene dibujado mas gordo. El COLOR tiene que ir por
+     CSS -- var() no se resuelve dentro de un atributo de presentacion. */
+  .figmov path{fill:var(--diagram-ink);stroke:var(--diagram-bg);
+    stroke-linejoin:round;opacity:0}
   /* el fotograma del medio es la postura de referencia: es lo que se ve en los
      sostenes, y lo que queda si el sistema pide menos movimiento -- la regla
      global de prefers-reduced-motion corta la animacion y el estilo base
@@ -588,6 +675,17 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   @keyframes fgA{0%{opacity:1}25%{opacity:0}100%{opacity:0}}
   @keyframes fgB{0%{opacity:0}25%{opacity:1}50%{opacity:0}75%{opacity:1}100%{opacity:1}}
   @keyframes fgC{0%{opacity:0}50%{opacity:1}75%{opacity:0}100%{opacity:0}}
+  /* Once ejercicios traen el fotograma del medio tan cargado de tinta que
+     adelgazarlo se comeria el dibujo. Esos se animan con DOS: el primero y el
+     ultimo, que son las dos posturas de la repeticion. Aqui el fotograma de
+     reposo pasa a ser el primero. */
+  .figmov.dos path:nth-child(1){opacity:1}
+  .figmov.dos path:nth-child(2){opacity:0}
+  .figmov.dos.corre path:nth-child(2){animation:none}
+  .figmov.dos.corre path:nth-child(1){animation-name:fgD}
+  .figmov.dos.corre path:nth-child(3){animation-name:fgE}
+  @keyframes fgD{0%{opacity:1}50%{opacity:0}100%{opacity:0}}
+  @keyframes fgE{0%{opacity:0}50%{opacity:1}100%{opacity:1}}
   /* la figura ejecuta el ejercicio: los dos fotogramas apilados y fundidos,
      con meseta en cada extremo para que se lea la postura y no sea un parpadeo */
   /* --- micro-interaccion (v25) --- */
@@ -900,15 +998,15 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
 </nav>
 
 <div id="planov">
-  <div class="ovcard">
-    <div class="ovhead"><div class="t" id="planTitle">Asignar rutina</div><div class="x" onclick="closePlan()"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></div></div>
+  <div class="ovcard" role="dialog" aria-modal="true" aria-labelledby="planTitle">
+    <div class="ovhead"><div class="t" id="planTitle">Asignar rutina</div><div class="x" onclick="closePlan()" role="button" tabindex="0" aria-label="Cerrar"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></div></div>
     <div id="planBody" class="planbody"></div>
   </div>
 </div>
 
 <div id="swapov">
-  <div class="ovcard">
-    <div class="ovhead"><div class="t" id="swapTitle">Cambiar ejercicio</div><div class="x" onclick="closeSwap()"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></div></div>
+  <div class="ovcard" role="dialog" aria-modal="true" aria-labelledby="swapTitle">
+    <div class="ovhead"><div class="t" id="swapTitle">Cambiar ejercicio</div><div class="x" onclick="closeSwap()" role="button" tabindex="0" aria-label="Cerrar"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></div></div>
     <div id="swapBody" class="planbody"></div>
   </div>
 </div>
@@ -916,8 +1014,8 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <div id="finov">
-  <div class="ovcard">
-    <div class="ovhead"><div class="t" id="finTitle">Resumen de la sesión</div><div class="x" onclick="closeFinish()"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></div></div>
+  <div class="ovcard" role="dialog" aria-modal="true" aria-labelledby="finTitle">
+    <div class="ovhead"><div class="t" id="finTitle">Resumen de la sesión</div><div class="x" onclick="closeFinish()" role="button" tabindex="0" aria-label="Cerrar"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></div></div>
     <div id="finBody" class="planbody"></div>
   </div>
 </div>
@@ -1130,7 +1228,7 @@ flexiones_inclinadas:"incline-push-up",flexiones_pared:"wall-push-up",
 flexor_cadera:"kneeling-hip-flexor-stretch",fondos_banco:"bench-dip",fondos_paralelas:"dip",
 gato_camello:"cat-cow-stretch",glute_bridge:"glute-bridge",hack_squat:"hack-squat",
 hip_thrust_db:"dumbbell-hip-thrust",hiperextension_banco:"back-extension",
-jalon_pecho:"lat-pulldown",maquina_gluteo:"smith-machine-hip-thrust",
+jalon_pecho:"lat-pulldown",marcha_sitio:"high-knees",maquina_gluteo:"smith-machine-hip-thrust",
 pallof_banda:"banded-pallof-press",pec_deck:"pec-deck",pec_deck_inverso:"reverse-pec-deck",
 pec_puerta:"doorway-chest-stretch",peso_muerto_rumano_db:"dumbbell-romanian-deadlift",
 prensa_inclinada:"leg-press",press_banca_db:"dumbbell-bench-press",
@@ -1424,7 +1522,7 @@ const SECDOSE={
 const TAG={calent:["Calentamiento","b-calent"],diario:["Diario","b-diario"],carga:["Carga 3–4×/sem","b-carga"],opcional:["Opcional","b-opcional"]};
 const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
-const VERSION="v32 · mapa corporal";
+const VERSION="v33 · figuras parejas y app accesible";
 /* ==== [S5] ICONOS =========================================================
    Solo el interior del <svg>; ic() lo envuelve. Rejilla 24x24, sin relleno
    salvo los marcados .solid. */
@@ -1529,7 +1627,7 @@ function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"
 document.addEventListener("keydown",function(e){
   if(e.key!=="Enter"&&e.key!==" ")return;
   const t=e.target;if(!t||!t.matches)return;
-  if(t.matches('[role="button"][tabindex],[role="checkbox"][tabindex]')){e.preventDefault();t.click();}});
+  if(t.matches('[role="button"][tabindex],[role="checkbox"][tabindex],[role="switch"][tabindex]')){e.preventDefault();t.click();}});
 
 /* audio + haptics */
 function beep(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();
@@ -1628,7 +1726,7 @@ function renderHome(){
   GROUPS.forEach(g=>{
     h+=`<div class="grouptitle">${g.title}</div><div class="rlist">`;
     g.keys.forEach(k=>{const r=ROUTINES[k];
-      h+=`<div class="rcard" onclick="openRoutine('${k}')">
+      h+=`<div class="rcard" onclick="openRoutine('${k}')" role="button" tabindex="0">
         <div class="em ${r.cls}">${ic(routIcon(k),"lg")}</div>
         <div class="t"><div class="nm">${r.name}</div><div class="ds">${esc(r.desc)}</div></div>
         <div class="rt">${estMinutes(k)}′</div>
@@ -1702,7 +1800,7 @@ function effList(k){const b=routineBuckets(k);
 function openSwap(k,origin){pushHist({ov:"swap"});const alts=[origin].concat(((ROUTINES[k].swaps||{})[origin])||[]),cur=swapOf(k,origin)||origin;
   $("swapTitle").textContent="Cambiar ejercicio";
   $("swapBody").innerHTML=alts.map(id=>{const e=EX[id];if(!e)return "";
-    return `<div class="planopt ${id===cur?'sel':''}" onclick="pickSwap('${k}','${origin}','${id}')">
+    return `<div class="planopt ${id===cur?'sel':''}" onclick="pickSwap('${k}','${origin}','${id}')" role="button" tabindex="0">
       <div class="em">${ic("swap")}</div><div style="flex:1;min-width:0"><div>${esc(e.name)}</div>
       <div class="optsub">${id===origin?'Ejercicio principal':'Alternativa'} · ${metaOf(e,dose(k,id))}</div></div>${id===cur?`<div class="optck">${ic("check","sm")}</div>`:''}</div>`;}).join("");
   $("swapov").classList.add("show");}
@@ -1732,8 +1830,8 @@ function routineExCard(k,ctx,id,origin,isExtra,isWarm,isAdded){const e=EX[id];if
         <div class="exck" onclick="event.stopPropagation();toggleCheck('${id}',${n})" role="checkbox" tabindex="0" aria-checked="${done?'true':'false'}" aria-label="Marcar como hecho">${ic("check")}</div>
         <div class="diag${(id===ctx.next)?' big':''}" onclick="startRoutine('${id}')">${
           zonaSVG(id,(id===ctx.next)?"fila":"mini")}</div>
-        <div style="flex:1;min-width:0" onclick="startRoutine('${id}')"><div class="nm">${esc(e.name)}</div><div class="meta">${metaOf(e,ctx.d=dose(k,id))}${ctx.d.custom?' <span class="chip tiny">ajustado</span>':''}${zonaTexto(id)?' · '+esc(zonaTexto(id)):''}</div>
-          <div class="badges"><span class="badge ${tg[1]}">${tg[0]}</span>${(alts&&alts.length)?`<span class="chip" onclick="event.stopPropagation();openSwap('${k}','${origin}')">${ic("swap","xs")} ${swapped?('Cambiado · original: '+shortName(origin)):(alts.length===1?('Cambiar por '+shortName(alts[0])):('Cambiar ('+alts.length+' opciones)'))}</span>`:''}${isAdded?`<span class="chip" onclick="event.stopPropagation();toggleExtra('${k}','${id}')" role="button" tabindex="0">${ic("close","xs")} Quitar</span>`:''}</div></div>
+        <div style="flex:1;min-width:0" onclick="startRoutine('${id}')" role="button" tabindex="0"><div class="nm">${esc(e.name)}</div><div class="meta">${metaOf(e,ctx.d=dose(k,id))}${ctx.d.custom?' <span class="chip tiny">ajustado</span>':''}${zonaTexto(id)?' · '+esc(zonaTexto(id)):''}</div>
+          <div class="badges"><span class="badge ${tg[1]}">${tg[0]}</span>${(alts&&alts.length)?`<span class="chip" onclick="event.stopPropagation();openSwap('${k}','${origin}')" role="button" tabindex="0">${ic("swap","xs")} ${swapped?('Cambiado · original: '+shortName(origin)):(alts.length===1?('Cambiar por '+shortName(alts[0])):('Cambiar ('+alts.length+' opciones)'))}</span>`:''}${isAdded?`<span class="chip" onclick="event.stopPropagation();toggleExtra('${k}','${id}')" role="button" tabindex="0">${ic("close","xs")} Quitar</span>`:''}</div></div>
         ${isExtra?`<div class="exadd" onclick="event.stopPropagation();toggleExtra('${k}','${id}')" role="button" tabindex="0" aria-label="Agregar a la rutina">${ic("plus")}</div>`
                  :`<div class="exstart" onclick="event.stopPropagation();startRoutine('${id}')" role="button" tabindex="0" aria-label="Empezar por este ejercicio" title="Empezar aquí">${ic("play","sm solid")}</div>`}
       </div></div>`;}
@@ -1831,7 +1929,7 @@ function exChart(id,LOGS){const e=EX[id]||{},all=(((LOGS||loadLogs())[id])||[]);
   const best=Math.max.apply(null,vals),last=vals[vals.length-1],first=vals[0];
   const delta=Math.round((last-first)*10)/10;
   const bs=bestSet(recs[recs.length-1].sets);
-  const chips=loaded?`<div class="mchips">`+METRICS.map(m=>`<span class="mchip ${m.k===metric?"on":""}" onclick="setMetric('${id}','${m.k}')" role="button" tabindex="0">${m.n}</span>`).join("")+`</div>`:"";
+  const chips=loaded?`<div class="mchips">`+METRICS.map(m=>`<span class="mchip ${m.k===metric?"on":""}" onclick="setMetric('${id}','${m.k}')" aria-pressed="${m.k===metric}" role="button" tabindex="0">${m.n}</span>`).join("")+`</div>`:"";
   return `<div class="exprog" id="exprog_${id}">${head}${(vals.length>1&&delta!==0)?`<span class="delta ${delta>0?"up":"down"}">${delta>0?"↑ +":"↓ "}${fmtW(Math.abs(delta))}</span>`:""}</div>
     <div class="cs">Récord ${fmtW(best)} ${s.unit}${(bs&&loaded)?" · última "+fmtW(bs.w||0)+" "+(e.unit||"kg")+" × "+bs.reps:""} · ${recs.length} ${plural(recs.length,"sesión","sesiones")}</div>
     ${chips}
@@ -1939,25 +2037,42 @@ var ESPALDA={
    la vez la nuca, la garganta, la mandibula y --para el mewing-- la lengua
    contra el paladar, que de frente no existe. Sin ojos: la mandibula no
    inquieta, los ojos si. */
-var BANCHO=50, BALTO=64;
+var BANCHO=50, BALTO=74;
 /* La cabeza va como UN contorno cerrado, no como piezas: un perfil es una sola
-   linea y con primitivas la nariz y el menton se los comia la union. */
+   linea y con primitivas la nariz y el menton se los comia la union.
+   El cuello y los hombros son mas largos y mas anchos que la cabeza a
+   proposito: con la primera version --hombros de 45 de ancho en un marco de
+   64-- la cabeza se comia el 48% del dibujo y el busto leia como un globo
+   sobre una colina. Ahora la cabeza es el 42% y los hombros llegan de borde a
+   borde, que es lo que los hace leer como hombros. */
 var BSIL=[
   '<path d="M20 3Q32 3 35 13Q36.5 16.2 33.8 18.2L38 22.6L33.4 24.2L34.8 26.2'+
     'Q33.8 28.6 29.8 29.6Q28.8 32.6 24.4 33.2Q15 34 11 27Q6.4 21 7 14Q8 3 20 3Z"/>',
-  '<path d="M16.4 30H27.6V47H16.4Z"/>',
-  '<path d="M1.6 64Q5.2 51 15.4 47.6H30.6Q41.2 51 46.6 64Z"/>'
+  '<path d="M16.2 30H27.8V50.5H16.2Z"/>',
+  '<path d="M0.5 74Q3.6 57.5 15 50H29Q45.6 57.5 49.5 74Z"/>'
 ].join("");
 var BUSTO={
-  cervical_post: '<path d="M15 30H21.4V47.6H15Z"/>',
-  cervical_ant:  '<path d="M22.6 30H28.8V47.6H22.6Z"/>',
-  cervical_lat:  '<path d="M18.6 30H25.4V47.6H18.6Z"/>',
-  trapecio_sup:  '<path d="M1.6 64Q5.2 51 15.4 47.6H30.6Q41.2 51 46.6 64L37.6 64Q32.6 53.4 23 53Q12.4 53.4 9 64Z"/>',
-  elevador:      '<path d="M13 30H20V47Q12.4 50.6 7.6 60L2.8 57.6Q7.8 46 13 41.6Z"/>',
-  mandibula:     '<path d="M11 27Q15 34 24.4 33.2Q28.8 32.6 29.8 29.6L31.6 25.6Q27 30 21 29.4Q15.4 28.6 12.6 23.6Z"/>',
-  platisma:      '<path d="M18 30Q24 34.6 29.4 30.4L28.6 46Q22.4 48.6 18 46Z"/>',
+  /* las tres bandas del cuello van anchas (7 unidades) a proposito: con 6 se
+     quedaban en astillas de un pixel a 46 px */
+  cervical_post: '<path d="M15.4 29.5H22.4V51H15.4Z"/>',
+  cervical_ant:  '<path d="M22.6 29.5H28.6V51H22.6Z"/>',
+  cervical_lat:  '<path d="M18.2 29.5H25.8V51H18.2Z"/>',
+  /* el trapecio es una BANDA por el filo del hombro, no la mitad del busto:
+     antes era el hombro entero menos un arco interior y salia una cupula azul
+     que se comia el dibujo */
+  trapecio_sup:  '<path d="M0.5 74Q3.6 57.5 15 50H29Q45.6 57.5 49.5 74L41 74'+
+                 'Q37.4 63 27.4 56.6H16.6Q7.4 63 9 74Z"/>',
+  /* baja por dentro del hombro, no por su borde */
+  elevador:      '<path d="M13.6 33H20.4V50.6Q13.4 54.6 10 64.2L5.4 62.4'+
+                 'Q9 52.6 13.6 47.4Z"/>',
+  /* la mandibula se apoya en el filo real de la cara, no flota encima */
+  mandibula:     '<path d="M11 27Q15 34 24.4 33.2Q28.8 32.6 29.8 29.6L31.6 25.6'+
+                 'Q27 30 21 29.4Q15.4 28.6 12.6 23.6Z"/>',
+  platisma:      '<path d="M17.8 30Q24 34.6 29.4 30.4L28.6 49Q22.2 51.6 17.8 49Z"/>',
   lengua:        '<path d="M22.4 22.4Q27.6 20.6 32 22.6Q27.8 26.6 22.4 25.4Z"/>',
-  rostro:        '<path d="M27 8.4Q35.4 12 35 13.6Q36.5 16.2 33.8 18.2L38 22.6L33.4 24.2L34.8 26.2Q33.8 28.6 29.8 29.6L27 30Z"/>'
+  /* el rostro es la mitad delantera de la cara, dentro del perfil */
+  rostro:        '<path d="M25.6 8Q33.8 11.4 35 13Q36.5 16.2 33.8 18.2L38 22.6'+
+                 'L33.4 24.2L34.8 26.2Q33.8 28.6 29.8 29.6L25.6 30.2Z"/>'
 };
 
 var N=0;
@@ -1993,7 +2108,8 @@ return {dibuja:dibuja, ladoDe:ladoDe, FRENTE:FRENTE, ESPALDA:ESPALDA, BUSTO:BUST
 })();
 
 /* zonaSVG(id, tam) -> el SVG del mapa, sincrono y sin dependencias.
-   tam: "mini" (46 px) · "fila" (76 px) · "guiado" (172 px)
+   tam: "mini" (46 px) · "fila" (76 px) · "apoyo" (96 px, dentro del panel, al
+        lado de la figura) · "guiado" (el unico que saca las dos vistas)
    Si a un ejercicio le falta su registro devuelve la silueta apagada en vez de
    lanzar: la caja nunca se queda rota. */
 function zonaSVG(id,tam){
@@ -2025,26 +2141,58 @@ function figuraAnim(id){
   var quieta=(t==="hold"||t==="hold_side"), dur=(t==="cardio")?1.5:2.4;
   /* una sola caja para los tres fotogramas: recorta el aire del viewBox de 512
      sin que la figura cambie de tamaño a mitad de ciclo */
-  var c=(window.CAJAS||{})[FIGSLUG[id]]||[0,0,512,512];
-  return '<svg class="figmov'+(quieta?"":" corre")+'" style="--fdur:'+dur+'s"'+
+  var sl=FIGSLUG[id], c=(window.CAJAS||{})[sl]||[0,0,512,512];
+  /* cuanto adelgazar cada fotograma para que los tres pesen igual, y si este
+     ejercicio es de los que se animan con dos en vez de tres */
+  var gr=(window.GROSOR||{})[sl]||[0,0,0];
+  var dos=((window.DOSFOT||[]).indexOf(sl)>=0);
+  return '<svg class="figmov'+(dos?" dos":"")+(quieta?"":" corre")+'" style="--fdur:'+dur+'s"'+
     ' viewBox="'+c.join(" ")+'" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
-    f.map(function(d){return '<path fill-rule="evenodd" d="'+d+'"/>';}).join("")+
+    f.map(function(d,i){return '<path fill-rule="evenodd" stroke-width="'+(gr[i]||0)+'" d="'+d+'"/>';}).join("")+
     '</svg>';
 }
 
-/* El panel de 172 px: el texto manda a la izquierda -- que musculo, por que
-   lado y con que aparato --, y a la derecha la figura haciendo el ejercicio.
-   Donde no hay ilustracion (los 12 de cuello y cara, y diez drills propios) cae
-   al mapa corporal, que dice lo mismo aunque no se mueva. */
+/* Por que lado se esta mirando el cuerpo en el mapa de apoyo. Es lo UNICO que
+   ese mapa no puede decir solo, porque enseña una silueta y no dos -- y es lo
+   que justifica que enseñe una: la etiqueta cuesta 15 px de alto y la segunda
+   vista costaria 52 de ancho. Repite la deduccion de zonaSVG, no la inventa. */
+function vistaTexto(id){
+  var z=ZONAS[id]||{p:[]};
+  if(z.v==="busto") return "Perfil";
+  var v=(z.v==="espalda"||z.v==="frente")?z.v:((z.p&&z.p[0])?MAPA.ladoDe(z.p[0]):"frente");
+  return v==="espalda"?"Espalda":"Frente";
+}
+
+/* El panel de 196 px: a la izquierda que musculo, por que lado y con que
+   aparato; en el centro la figura HACIENDO el ejercicio; a la derecha, mas
+   pequeña y con su etiqueta, el mapa que dice DONDE se nota. Son dos dibujos
+   con dos trabajos distintos -- uno enseña el gesto, el otro el musculo -- y
+   por eso ninguno sustituye al otro.
+   Dos excepciones, las dos decididas con datos que ya estan, sin medir nada en
+   pantalla:
+   · solomapa: los 21 sin ilustracion. Ahi el mapa ES la figura y se queda el
+     hueco entero; ponerle ademas un mapa chico si seria repetirse.
+   · gancha: las cajas mas anchas que altas (tumbados, cuadrupedia, prensa).
+     Con el texto al lado, bird-dog se quedaba en 78 px de alto; con el texto
+     arriba sube a 121. El ratio sale de CAJAS, que es el mismo recorte con el
+     que se dibuja la figura. */
 function panelZona(id){
   var z=ZONAS[id]||{p:[],s:[]};
   var sec=(z.s||[]).map(function(k){return ZNAME[k]||k;}).join(" · ");
   var e=z.eq?EQ[z.eq]:null;
-  return '<div class="gdiag"><div class="ginfo">'+
-    '<div class="gz1">'+esc(zonaTexto(id))+'</div>'+
-    (sec?'<div class="gz2">También: '+esc(sec)+'</div>':'')+
-    (e?'<div class="gz3">'+ic(e[0],"sm")+' '+esc(e[1])+'</div>':'')+
-    '</div>'+(figuraAnim(id)||zonaSVG(id,"guiado"))+'</div>';
+  var fig=figuraAnim(id);
+  var c=fig?((window.CAJAS||{})[FIGSLUG[id]]||[0,0,512,512]):null;
+  var modo=fig?((c[2]/c[3]>=1)?" gancha":""):" solomapa";
+  return '<div class="gdiag'+modo+'">'+
+    '<div class="ginfo">'+
+      '<div class="gz1">'+esc(zonaTexto(id))+'</div>'+
+      (sec?'<div class="gz2">También: '+esc(sec)+'</div>':'')+
+      (e?'<div class="gz3">'+ic(e[0],"sm")+' '+esc(e[1])+'</div>':'')+
+    '</div>'+
+    '<div class="gfig">'+(fig||zonaSVG(id,"guiado"))+'</div>'+
+    (fig?'<div class="gmap">'+zonaSVG(id,"apoyo")+
+         '<div class="gmlab">'+vistaTexto(id)+'</div></div>':'')+
+  '</div>';
 }
 
 
@@ -2228,8 +2376,8 @@ function editNum(which){const isW=which==="w",el=$(isW?"lw":"lr");if(!el)return;
   const commit=()=>{if(done)return;done=true;const v=parseFloat(i.value);
     if(!isNaN(v)&&v>=0){if(isW)curW=Math.round(v*10)/10;else curReps=Math.max(1,Math.round(v));}
     const s=steps[stepi];
-    i.outerHTML=isW?`<b id="lw" onclick="editNum('w')" title="Toca para escribir el peso exacto">${fmtW(curW)}</b>`
-                   :`<b id="lr" onclick="editNum('r')" title="Toca para escribir las repeticiones">${curReps}</b>`;};
+    i.outerHTML=isW?`<b id="lw" onclick="editNum('w')" role="button" tabindex="0" aria-label="Escribir el peso exacto" title="Toca para escribir el peso exacto">${fmtW(curW)}</b>`
+                   :`<b id="lr" onclick="editNum('r')" role="button" tabindex="0" aria-label="Escribir las repeticiones" title="Toca para escribir las repeticiones">${curReps}</b>`;};
   i.addEventListener("blur",commit);
   i.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();commit();}});}
 function loadPlan(){return jget("rp_plan",[null,null,null,null,null,null,null]);}
@@ -2239,9 +2387,9 @@ function renderWeek(){const p=loadPlan();let h=`<div class="wkhead"><div class="
     h+=`<div class="${cls.join(' ')}" onclick="openPlan(${d})" role="button" tabindex="0" aria-label="Editar ${DOWLONG[d]}"><div class="d">${DOW[d]}</div><div class="tag">${esc(planShort(v))}</div></div>`;}
   h+=`</div>`;const el=$("weekCard");if(el)el.innerHTML=h;}
 function openPlan(d){pushHist({ov:"plan"});planDay=d;$("planTitle").textContent=DOWLONG[d].charAt(0).toUpperCase()+DOWLONG[d].slice(1);
-  let h=`<div class="planopt" onclick="setPlan('rest')"><div class="em rest">${ic("moon")}</div>Descanso</div>`;
-  GROUPS.forEach(g=>g.keys.forEach(k=>{const r=ROUTINES[k];h+=`<div class="planopt" onclick="setPlan('${k}')"><div class="em ${r.cls}">${ic(routIcon(k))}</div>${esc(r.name)}</div>`;}));
-  h+=`<div class="planopt" onclick="setPlan(null)"><div class="em none">${ic("close")}</div>Sin asignar</div>`;
+  let h=`<div class="planopt" onclick="setPlan('rest')" role="button" tabindex="0"><div class="em rest">${ic("moon")}</div>Descanso</div>`;
+  GROUPS.forEach(g=>g.keys.forEach(k=>{const r=ROUTINES[k];h+=`<div class="planopt" onclick="setPlan('${k}')" role="button" tabindex="0"><div class="em ${r.cls}">${ic(routIcon(k))}</div>${esc(r.name)}</div>`;}));
+  h+=`<div class="planopt" onclick="setPlan(null)" role="button" tabindex="0"><div class="em none">${ic("close")}</div>Sin asignar</div>`;
   $("planBody").innerHTML=h;$("planov").classList.add("show");}
 function closePlan(){history.back();}
 function setPlan(v){const p=loadPlan();p[planDay]=v;jset("rp_plan",p);closePlan();renderWeek();renderTodayCard(loadStreak());}
@@ -2289,15 +2437,15 @@ function exportData(){try{const keys=["rp_streak","rp_history","rp_rem","rp_them
   keys.forEach(k=>{const v=localStorage.getItem(k);if(v!=null)data.store[k]=v;});
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rutina-postura-"+today()+".json";
-  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},600);}catch(e){alert("No se pudo exportar.");}}
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},600);}catch(e){toast("No se pudo exportar la copia.");}}
 function importData(input){const f=input&&input.files&&input.files[0];if(!f)return;const r=new FileReader();
   r.onload=()=>{try{const d=JSON.parse(r.result);const store=(d&&d.store)?d.store:d;
     if(!store||typeof store!=="object")throw 0;
     const ks=Object.keys(store).filter(k=>k.indexOf("rp_")===0);if(!ks.length)throw 0;
     if(!confirm("Esto reemplazará tus datos actuales con los del archivo. ¿Continuar?")){input.value="";return;}
     ks.forEach(k=>localStorage.setItem(k,store[k]));
-    alert("Datos importados correctamente. La app se recargará.");location.reload();
-  }catch(e){alert("Ese archivo no es una copia válida.");input.value="";}};
+    toast("Datos importados. Recargando…");setTimeout(()=>location.reload(),1100);
+  }catch(e){toast("Ese archivo no es una copia válida.");input.value="";}};
   r.readAsText(f);}
 
 /* ---------- HOJA DE RESUMEN / FINALIZAR ---------- */
@@ -2400,7 +2548,7 @@ function fichaEjercicio(s){
     ${(EX[s.id]&&EX[s.id].coach)?`<div class="coachtip">${ic("bulb","xs")} ${esc(EX[s.id].coach)}</div>`:``}
     ${caveat}${opt}
     <ul class="glist">${s.steps.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>
-    ${vid?`<div class="vbtn" onclick="toggleGVid()">${ic("play","sm solid")} Ver video</div>
+    ${vid?`<div class="vbtn" onclick="toggleGVid()" role="button" tabindex="0">${ic("play","sm solid")} Ver video</div>
     <div id="gvid" class="videobox${vid.vert?" vert":""}"><div class="ratio"><iframe id="gvframe" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>
     <div><a class="ytlink" target="_blank" rel="noopener" href="${watch(vid)}">Abrir en YouTube ${ic("external","xs")}</a></div>`:``}
     </div></details>`;}
@@ -2444,7 +2592,7 @@ function reanclar(prev){const w=curW,r=curReps;
     if(r!=null){curReps=r;const lr=$("lr");if(lr)lr.textContent=curReps;}}}
 function frame(inner,opt){opt=opt||{};const s=steps[stepi],prog=Math.round(stepi/steps.length*100);
   const conFicha=(opt.info!==false);
-  return `<div class="gtop"><div class="icbtn" onclick="guidedBack()">${ic("left")}</div>
+  return `<div class="gtop"><div class="icbtn" onclick="guidedBack()" role="button" tabindex="0" aria-label="Paso anterior">${ic("left")}</div>
     <div class="pbar"><i style="width:${prog}%"></i></div>
     <div class="gcount">${s.exI}/${s.exN}</div><div class="icbtn" onclick="guidedExit()" role="button" tabindex="0" aria-label="Salir" title="Salir (se guarda solo)">${ic("close")}</div></div>
     <div class="stage${opt.rest?" isrest":""}">${opt.rest?"":`<div class="setlab">${s.label}</div><div class="exname">${s.name}</div>`}${(conFicha&&zonaTexto(s.id))?'<div class="zonatag">'+esc(zonaTexto(s.id))+'</div>':''}
@@ -2465,10 +2613,10 @@ function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){cu
       const lastTxt=ll?('La última vez: '+ll.sets.map(x=>cargado?(fmtW(x.w)+'×'+x.reps):(x.reps+' reps')).join(', '))
                      :(cargado?'Primera vez — registra tu peso':'Primera vez — registra tus repeticiones');
       const setsTxt=ds.map((x,i)=>`<div class="setline" id="sl_${s.id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${valor(x)}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">${ic("close","xs")}</span></div>`).join("");
-      const pesoStep=cargado?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-2.5)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" title="Toca para escribir el peso exacto">${fmtW(curW)}</b><button class="sq" onclick="adjW(2.5)" aria-label="Subir peso">+</button></div></div>`:'';
-      const repsStep=`<div class="stepper"${cargado?'':' style="max-width:220px;margin:0 auto"'}><div class="lab">${cargado?'Reps':'Repeticiones'}</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>`;
+      const pesoStep=cargado?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-2.5)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" role="button" tabindex="0" aria-label="Escribir el peso exacto" title="Toca para escribir el peso exacto">${fmtW(curW)}</b><button class="sq" onclick="adjW(2.5)" aria-label="Subir peso">+</button></div></div>`:'';
+      const repsStep=`<div class="stepper"${cargado?'':' style="max-width:220px;margin:0 auto"'}><div class="lab">${cargado?'Reps':'Repeticiones'}</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" role="button" tabindex="0" aria-label="Escribir las repeticiones" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>`;
       inner=`<div class="logrow">${pesoStep}${repsStep}</div>
-      <div class="last tap" onclick="toggleGChart('${s.id}')">${lastTxt}${spark(s.id)}</div>
+      <div class="last tap" onclick="toggleGChart('${s.id}')" role="button" tabindex="0" aria-label="Ver la curva de este ejercicio">${lastTxt}${spark(s.id)}</div>
       <div id="gchart" class="gchart"></div>
       ${sg.why?`<div class="qwhy">${ic("bulb","xs")} ${esc(sg.why)}</div>`:''}
       ${setsTxt?`<div class="sets">${setsTxt}</div>`:''}
@@ -2641,7 +2789,7 @@ function renderHistory(){const s=loadStreak(),idx=histIndex(),now=new Date();
     const sess=idx[key]||[],cls=["calcell"];if(sess.length)cls.push("has");if(key===today())cls.push("istoday");if(key===calSel)cls.push("sel");
     const cols=[];sess.forEach(x=>{const c=routColor(x.key);if(cols.indexOf(c)<0)cols.push(c);});
     const dots=cols.slice(0,3).map(c=>`<span class="cdot ${c}"></span>`).join("");
-    b+=`<div class="${cls.join(" ")}" onclick="calPick('${key}')"><span class="dnum">${d}</span><span class="dots">${dots}</span></div>`;}
+    b+=`<div class="${cls.join(" ")}" onclick="calPick('${key}')" role="button" tabindex="0" aria-label="Día ${d}"><span class="dnum">${d}</span><span class="dots">${dots}</span></div>`;}
   b+=`</div></div>`;
   b+=`<div class="callegend"><span><i class="cdot p"></i>Postura</span><span><i class="cdot n"></i>Cuello</span><span><i class="cdot g"></i>Fuerza</span></div>`;
   const sel=idx[calSel]||[],p=calSel.split("-"),futuro=calSel>today();
@@ -2673,7 +2821,7 @@ function openCalLog(){if(!calSel||calSel>today())return;
   $("planTitle").textContent=(calSel===today()?"Registrar hoy":"Registrar el "+p[2]+"/"+p[1]);
   let h="";
   GROUPS.forEach(g=>g.keys.forEach(k=>{const r=ROUTINES[k];
-    h+=`<div class="planopt" onclick="calLogPick('${k}')"><div class="em ${r.cls}">${ic(routIcon(k))}</div>${esc(r.name)}</div>`;}));
+    h+=`<div class="planopt" onclick="calLogPick('${k}')" role="button" tabindex="0"><div class="em ${r.cls}">${ic(routIcon(k))}</div>${esc(r.name)}</div>`;}));
   $("planBody").innerHTML=h;$("planov").classList.add("show");}
 function calLogPick(key){const r=ROUTINES[key];if(!r||!calSel){closePlan();return;}
   const p=calSel.split("-"),d=new Date(+p[0],+p[1]-1,+p[2],12,0,0),
@@ -2732,10 +2880,10 @@ function toggleKeepAwake(){const v=!keepAwakeOn();prefSet("keepAwake",v);
   if(v){if(inGuided())requestWake();}else releaseWake();}
 function toggleRestNotify(){const v=!restNotifyOn();
   if(!v){prefSet("restNotify",false);const t=$("restTog");if(t)t.classList.remove("on");return;}
-  if(typeof Notification==="undefined"){alert("Este navegador no soporta notificaciones.");return;}
+  if(typeof Notification==="undefined"){toast("Este navegador no admite notificaciones.");return;}
   Notification.requestPermission().then(p=>{const ok=(p==="granted");prefSet("restNotify",ok);
     const t=$("restTog");if(t)t.classList.toggle("on",ok);
-    if(!ok)alert("Permite las notificaciones para que pueda avisarte.");});}
+    if(!ok)toast("Permite las notificaciones para que pueda avisarte.");});}
 function renderSettings(){const r=loadRem();
   const perm=(typeof Notification!=="undefined")?Notification.permission:"unsupported";
   let b=`<div class="grouptitle" style="margin-top:2px">Apariencia</div>
@@ -2749,14 +2897,14 @@ function renderSettings(){const r=loadRem();
     <div class="grouptitle">Durante el entreno</div>
     <div class="field"><div class="switch"><div><div class="fl">Pantalla encendida al entrenar</div>
       <div class="fh">Mientras dure el modo guiado, el móvil no se bloquea. Se suelta al salir.</div></div>
-      <div class="toggle ${keepAwakeOn()?'on':''}" id="wakeTog" onclick="toggleKeepAwake()" role="button" tabindex="0" aria-label="Mantener la pantalla encendida"><i></i></div></div></div>
+      <div class="toggle ${keepAwakeOn()?'on':''}" id="wakeTog" onclick="toggleKeepAwake()" role="switch" tabindex="0" aria-checked="${keepAwakeOn()?'true':'false'}" aria-label="Mantener la pantalla encendida"><i></i></div></div></div>
     <div class="field"><div class="switch"><div><div class="fl">Avisar al terminar el descanso</div>
       <div class="fh">Notificación con vibración si tienes la app en segundo plano.</div></div>
-      <div class="toggle ${restNotifyOn()?'on':''}" id="restTog" onclick="toggleRestNotify()" role="button" tabindex="0" aria-label="Avisar al terminar el descanso"><i></i></div></div></div>
+      <div class="toggle ${restNotifyOn()?'on':''}" id="restTog" onclick="toggleRestNotify()" role="switch" tabindex="0" aria-checked="${restNotifyOn()?'true':'false'}" aria-label="Avisar al terminar el descanso"><i></i></div></div></div>
     <div class="grouptitle">Recordatorios</div>
     <div class="field"><div class="switch"><div><div class="fl">Recordatorios diarios</div>
       <div class="fh">Notificación a las horas que elijas.</div></div>
-      <div class="toggle ${r.enabled?'on':''}" id="remTog" onclick="toggleRem()"><i></i></div></div>
+      <div class="toggle ${r.enabled?'on':''}" id="remTog" onclick="toggleRem()" role="switch" tabindex="0" aria-checked="${r.enabled?'true':'false'}" aria-label="Recordatorios de entrenamiento"><i></i></div></div>
       <div class="timelist" id="timeList"></div>
       <div class="addrow"><input type="time" id="newTime" value="19:00"><button onclick="addTime()">Añadir</button></div>
       <button class="minibtn" onclick="testNotif()">${ic("bell","sm")} Probar notificación</button>
@@ -2782,16 +2930,16 @@ function renderSettings(){const r=loadRem();
   $("setBody").innerHTML=b;renderTimes();markThemeSeg();
   const s=loadStreak(),h=loadHist();$("dataInfo").textContent=`Guardado: ${s.total||0} sesiones · ${h.length} en historial · racha ${s.count||0}.`;}
 function renderTimes(){const r=loadRem();$("timeList").innerHTML=r.times.length?r.times.map((t,i)=>
-  `<div class="timepill">${t} <span class="x" onclick="delTime(${i})">${ic("close","xs")}</span></div>`).join(""):'<div class="fh">Sin horas aún.</div>';}
+  `<div class="timepill">${t} <span class="x" onclick="delTime(${i})" role="button" tabindex="0" aria-label="Quitar la hora ${t}">${ic("close","xs")}</span></div>`).join(""):'<div class="fh">Añade una hora y te avisaré ese día a esa hora.</div>';}
 function addTime(){const v=$("newTime").value;if(!v)return;const r=loadRem();if(!r.times.includes(v)){r.times.push(v);r.times.sort();jset("rp_rem",r);renderTimes();scheduleRem();}}
 function delTime(i){const r=loadRem();r.times.splice(i,1);jset("rp_rem",r);renderTimes();scheduleRem();}
 function toggleRem(){const r=loadRem();
-  if(!r.enabled){if(typeof Notification==="undefined"){alert("Este navegador no soporta notificaciones.");return;}
+  if(!r.enabled){if(typeof Notification==="undefined"){toast("Este navegador no admite notificaciones.");return;}
     Notification.requestPermission().then(p=>{r.enabled=(p==="granted");jset("rp_rem",r);$("remTog").classList.toggle("on",r.enabled);scheduleRem();
-      if(p!=="granted")alert("Debes permitir las notificaciones para activar los recordatorios.");});}
+      if(p!=="granted")toast("Hay que permitir las notificaciones para activar los recordatorios.");});}
   else{r.enabled=false;jset("rp_rem",r);$("remTog").classList.remove("on");scheduleRem();}}
-function testNotif(){if(typeof Notification==="undefined"){alert("Sin soporte de notificaciones.");return;}
-  Notification.requestPermission().then(p=>{if(p==="granted")showNotif("Recordatorio de prueba ✅","Así te avisaré para tu rutina.");else alert("Permite las notificaciones primero.");});}
+function testNotif(){if(typeof Notification==="undefined"){toast("Este navegador no admite notificaciones.");return;}
+  Notification.requestPermission().then(p=>{if(p==="granted")showNotif("Recordatorio de prueba ✅","Así te avisaré para tu rutina.");else toast("Permite las notificaciones primero.");});}
 function showNotif(title,body,opts){const o=Object.assign({body:body,icon:"icon-192-v25.png",badge:"icon-192-v25.png"},opts||{});
   try{navigator.serviceWorker?.ready.then(reg=>reg.showNotification(title,o)).catch(()=>new Notification(title,o));}
   catch(e){try{new Notification(title,o);}catch(_){}}}
@@ -2810,7 +2958,7 @@ function wipe(){
   if(!confirm("Última confirmación: no hay vuelta atrás."))return;
   Object.keys(localStorage).filter(k=>k.indexOf("rp_")===0).forEach(k=>localStorage.removeItem(k));
   sessionLog={};sessionLogKey=null;calSel=null;
-  renderSettings();renderHome();alert("Listo, este dispositivo quedó en blanco.");}
+  renderSettings();renderHome();toast("Listo, este dispositivo quedó en blanco.");}
 
 async function forceUpdate(b){if(b&&b.textContent!=null)b.textContent="Actualizando…";try{if("serviceWorker" in navigator){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.update().catch(()=>{})));}if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}}catch(e){}setTimeout(()=>location.reload(),300);}
 /* ---------- NAV / PWA ---------- */

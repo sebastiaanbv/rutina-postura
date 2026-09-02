@@ -1,4 +1,4 @@
-const CACHE = "mi-rutina-v32";
+const CACHE = "mi-rutina-v33";
 /* La app es index.html y nada mas, salvo figuras.js: los 201 fotogramas de las
    ilustraciones. Va aparte a proposito. index.html es codigo y cambia en cada
    version, asi que va network-first; figuras.js son datos que no cambian nunca,
