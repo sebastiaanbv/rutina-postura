@@ -547,13 +547,23 @@ Y una segunda auditoría de las rutinas de gimnasio, esta vez del programa y no 
 
 Son **dos sistemas, y cada uno hace el trabajo de su tamaño**:
 
-| Dónde | Qué se ve | Por qué |
+| Dónde | Qué se ve | Cómo |
 |---|---|---|
-| **46 y 76 px**, la lista | **Mapa corporal**: silueta plana con la zona trabajada encendida | Un cuerpo en postura a 46 px no se lee. Lo que sirve al escanear la rutina es *qué trabaja cada cosa* |
-| **172 px**, «Cómo se hace» | **Ilustración animada**: tres fotogramas de una persona haciendo el ejercicio, en corte seco | Ahí sí hay sitio, y ahí lo que hace falta es ver el movimiento |
+| **46 px**, filas de la lista | La ilustración, **quieta** | El mapa solo aparece en los 21 que no tienen ilustración |
+| **76 px**, fila «siguiente» | La ilustración, **animada** | Es la única fila que destaca en toda la pantalla, y la única que se mueve |
+| **196 px**, «Cómo se hace» | La ilustración animada **y** el mapa, más pequeño, con su etiqueta de lado | Por fuera y por dentro a la vez |
+
+En la lista se mueve **una sola figura**, la de la fila siguiente. No es tacañería de
+rendimiento —se midió: catorce figuras se pintan en 34 ms— sino que catorce muñecos moviéndose a
+la vez es justo el ruido que la app lleva evitando desde v26, cuando la fila dejó de desplegar
+nada. Y una figura quieta **no lleva el adelgazado**: ese existe solo para igualar los fotogramas
+de una animación, así que a 46 px la ilustración recupera su tinta entera, que es lo que la hace
+visible a ese tamaño.
 
 El mapa vive en la constante `MAPA` dentro de `index.html`, y lo montan `zonaSVG(id,tam)` y
-`panelZona(id)`; las ilustraciones, en `figuras.js`, y las monta `figuraAnim(id)`.
+`panelZona(id)`; las ilustraciones, en `figuras.js`, y las monta `figuraAnim(id,parada)`. En la
+lista decide `figuraFila(id,esSiguiente)`: manda el muñeco y el mapa solo entra donde no hay
+ilustración.
 
 ### Por qué las figuras no las dibujamos nosotros
 
@@ -568,9 +578,9 @@ CC BY-SA 4.0, con crédito en Ajustes y en `LICENSE`. Cubren 69 de los 91: los 1
 y diez drills propios de esta rutina no existen en ningún catálogo, y ahí el panel de 172 px cae
 al mapa. Cuestan 650 KB comprimidos, y el apartado del peso lo dice sin adornos.
 
-El mapa no sobra por eso: a 46 px una figura completa es una mancha, mientras que una zona
-encendida se distingue de otra de un vistazo. Y cubre los 91 sin excepción, porque es geometría
-plana: no tiene forma de quedar mal.
+El mapa cubre los 91 sin excepción, porque es geometría plana: no tiene forma de quedar mal. Por
+eso es el suplente en la lista y el acompañante en la ficha, y por eso los 21 sin ilustración no
+se quedan nunca con un hueco.
 
 ### Cómo está construido el mapa
 

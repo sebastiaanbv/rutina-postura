@@ -494,6 +494,11 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
      aparte: el recorte pilla tambien el trazo, asi que no se puede salir
      del cuerpo. */
   .diag .mborde{stroke-width:2}
+  /* Una figura QUIETA no tiene nada que igualar: el adelgazado existe solo para
+     que los tres fotogramas de una animacion pesen lo mismo. En la lista, donde
+     solo se mueve la fila "siguiente", el resto recupera su tinta entera -- que
+     a 46 px es justo lo que hace que se vea algo. */
+  .diag .figmov:not(.corre) path{stroke-width:0}
   .diag .mzona g{stroke:var(--diagram-hi);stroke-width:2}
   .diag.big .mzona g{stroke-width:1.4}
   .gdiag .mborde{stroke-width:2}
@@ -1829,7 +1834,7 @@ function routineExCard(k,ctx,id,origin,isExtra,isWarm,isAdded){const e=EX[id];if
       <div class="top">
         <div class="exck" onclick="event.stopPropagation();toggleCheck('${id}',${n})" role="checkbox" tabindex="0" aria-checked="${done?'true':'false'}" aria-label="Marcar como hecho">${ic("check")}</div>
         <div class="diag${(id===ctx.next)?' big':''}" onclick="startRoutine('${id}')">${
-          zonaSVG(id,(id===ctx.next)?"fila":"mini")}</div>
+          figuraFila(id,id===ctx.next)}</div>
         <div style="flex:1;min-width:0" onclick="startRoutine('${id}')" role="button" tabindex="0"><div class="nm">${esc(e.name)}</div><div class="meta">${metaOf(e,ctx.d=dose(k,id))}${ctx.d.custom?' <span class="chip tiny">ajustado</span>':''}${zonaTexto(id)?' · '+esc(zonaTexto(id)):''}</div>
           <div class="badges"><span class="badge ${tg[1]}">${tg[0]}</span>${(alts&&alts.length)?`<span class="chip" onclick="event.stopPropagation();openSwap('${k}','${origin}')" role="button" tabindex="0">${ic("swap","xs")} ${swapped?('Cambiado · original: '+shortName(origin)):(alts.length===1?('Cambiar por '+shortName(alts[0])):('Cambiar ('+alts.length+' opciones)'))}</span>`:''}${isAdded?`<span class="chip" onclick="event.stopPropagation();toggleExtra('${k}','${id}')" role="button" tabindex="0">${ic("close","xs")} Quitar</span>`:''}</div></div>
         ${isExtra?`<div class="exadd" onclick="event.stopPropagation();toggleExtra('${k}','${id}')" role="button" tabindex="0" aria-label="Agregar a la rutina">${ic("plus")}</div>`
@@ -2135,10 +2140,10 @@ function zonaTexto(id){
    mano, en corte seco. El ritmo sale del `type` que cada ejercicio ya tiene:
    un sosten no se mueve, y el cardio va mas rapido que una serie de fuerza.
    Devuelve "" si el ejercicio no tiene ilustracion, y entonces manda el mapa. */
-function figuraAnim(id){
+function figuraAnim(id,parada){
   var f=(window.FIGS||{})[FIGSLUG[id]]; if(!f) return "";
   var t=(EX[id]||{}).type||"reps";
-  var quieta=(t==="hold"||t==="hold_side"), dur=(t==="cardio")?1.5:2.4;
+  var quieta=parada||(t==="hold"||t==="hold_side"), dur=(t==="cardio")?1.5:2.4;
   /* una sola caja para los tres fotogramas: recorta el aire del viewBox de 512
      sin que la figura cambie de tamaño a mitad de ciclo */
   var sl=FIGSLUG[id], c=(window.CAJAS||{})[sl]||[0,0,512,512];
@@ -2150,6 +2155,16 @@ function figuraAnim(id){
     ' viewBox="'+c.join(" ")+'" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
     f.map(function(d,i){return '<path fill-rule="evenodd" stroke-width="'+(gr[i]||0)+'" d="'+d+'"/>';}).join("")+
     '</svg>';
+}
+
+/* La figura de la lista. Manda el muñeco haciendo el ejercicio; el mapa solo
+   sale en los 21 que no tienen ilustracion, que si no se quedarian en blanco.
+   Solo se anima la fila "siguiente", que es la unica que destaca en toda la
+   pantalla: en las demas la figura va quieta. No es tacañeria de rendimiento
+   --se midio y aguantaba-- sino que catorce muñecos moviendose a la vez en una
+   lista es justo el ruido que la app lleva evitando desde v26. */
+function figuraFila(id,esSiguiente){
+  return figuraAnim(id,!esSiguiente) || zonaSVG(id,esSiguiente?"fila":"mini");
 }
 
 /* Por que lado se esta mirando el cuerpo en el mapa de apoyo. Es lo UNICO que
