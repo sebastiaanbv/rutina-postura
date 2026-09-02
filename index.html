@@ -2410,7 +2410,12 @@ function planShort(v){if(v==="rest")return "Descanso";if(v&&ROUTINES[v]){let n=R
 function renderWeek(){const p=loadPlan();let h=`<div class="wkhead"><div class="t">Tu semana</div></div><div class="week">`;
   for(let d=0;d<7;d++){const v=p[d],cls=["day"];if(d===todayDow())cls.push("on");if(v==="rest")cls.push("rest");else if(v&&ROUTINES[v])cls.push("d-"+routColor(v));
     h+=`<div class="${cls.join(' ')}" onclick="openPlan(${d})" role="button" tabindex="0" aria-label="Editar ${DOWLONG[d]}"><div class="d">${DOW[d]}</div><div class="tag">${esc(planShort(v))}</div></div>`;}
-  h+=`</div>`;const el=$("weekCard");if(el)el.innerHTML=h;}
+  h+=`</div>`;
+  /* DISENO 9: un estado vacio explica que hacer. Sin plan, el riel eran siete
+     "+" sin decir para que servian, y de el dependen la meta semanal, la racha
+     y la adherencia. La frase solo sale mientras no haya ni un dia puesto. */
+  if(!p.some(v=>v)) h+=`<div class="hint" style="margin:var(--s2) 0 0">Toca un día para asignarle una rutina o marcarlo como descanso. De aquí salen tu racha y tu adherencia.</div>`;
+  const el=$("weekCard");if(el)el.innerHTML=h;}
 function openPlan(d){pushHist({ov:"plan"});planDay=d;$("planTitle").textContent=DOWLONG[d].charAt(0).toUpperCase()+DOWLONG[d].slice(1);
   let h=`<div class="planopt" onclick="setPlan('rest')" role="button" tabindex="0"><div class="em rest">${ic("moon")}</div>Descanso</div>`;
   GROUPS.forEach(g=>g.keys.forEach(k=>{const r=ROUTINES[k];h+=`<div class="planopt" onclick="setPlan('${k}')" role="button" tabindex="0"><div class="em ${r.cls}">${ic(routIcon(k))}</div>${esc(r.name)}</div>`;}));
