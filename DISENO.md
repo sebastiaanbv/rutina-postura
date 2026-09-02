@@ -304,7 +304,13 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
   worker sirviendo figuras congeladas— dejó de ser posible**, no por disciplina sino porque no hay
   archivo que congelar.
 - ~~GPL-3.0 por contagio.~~ La licencia solo existía porque mannequin.js lo es. Sin él, `LICENSE`
-  vuelve a ser MIT sobre código propio.
+  vuelve a ser MIT sobre código propio. Las ilustraciones sí son de otro y van con su crédito:
+  CC BY-SA 4.0, en `LICENSE` y en Ajustes.
+- ~~Las figuras no se movían.~~ 69 de los 91 muestran ahora una ilustración de tres fotogramas en
+  corte seco, con el ritmo sacado del `type`. Los 22 restantes —los 12 de cuello y cara, y diez
+  drills propios de esta rutina— no existen en ningún catálogo y se quedan con el mapa. Es el
+  único punto donde la app enseña dos cosas distintas según el ejercicio, y se asume: la
+  alternativa era volver a dibujar, que ya falló tres veces.
 
 ### Cerrado en v30
 
@@ -486,45 +492,49 @@ Y una segunda auditoría de las rutinas de gimnasio, esta vez del programa y no 
 - **Que el color primario cambie según la rutina abierta:** obligaría a re-verificar el contraste
   de todos los componentes en tres variantes por dos temas, y el azulejo de familia ya consigue
   la misma lectura.
-- **Volver a dibujar una persona haciendo el ejercicio.** Tres intentos, tres fracasos, y el
-  tercero con validador de diez comprobaciones y trece arquetipos. El error no fue la técnica: fue
-  el encargo. A 46 y 76 px un cuerpo en postura no se lee —es aritmética, no gusto—, y a 172 px el
-  vídeo específico que existe para los 91 desde v29 explica el movimiento mejor que cualquier
-  dibujo. Lo que faltaba por contar era *qué trabaja este ejercicio*, y eso lo dice el mapa. **Si
-  algún día parece que hace falta más, la respuesta es el vídeo, que ya está.** El mapa no gana una
-  postura, ni un latido, ni una tercera vista.
+- **Volver a DIBUJAR nosotros una persona haciendo el ejercicio.** Tres intentos, tres fracasos, y
+  el tercero con validador de diez comprobaciones y trece arquetipos. La salida no fue dibujar
+  mejor: fue licenciar figuras ya dibujadas (§15). Un cuarto motor propio de figuras está fuera de
+  alcance, sea 2D, 3D o paramétrico. Si a un ejercicio le falta ilustración, las opciones son
+  buscarla en un catálogo abierto o dejar el mapa — **no dibujarla**.
+- **Animar el mapa corporal.** El movimiento lo llevan las ilustraciones. El mapa es geometría
+  estática y ahí se queda: su valor es justamente que no tiene nada que pueda salir mal.
 - **Mecánicas de gamificación competitivas:** tablas de clasificación, comparación con otros,
   puntos canjeables e insignias por presentarse. Para un usuario único no tienen sentido, y los
   leaderboards son el elemento más asociado a efectos motivacionales negativos.
 
 ---
 
-## 15. El mapa corporal
+## 15. La figura
 
-La figura de la app **no es una persona haciendo el ejercicio**. Es una silueta plana con la zona
-trabajada encendida, más un glifo del aparato. Se dibuja en `MAPA` y lo montan `zonaSVG(id,tam)` y
-`panelZona(id)`, todo dentro de `index.html`.
+Son **dos sistemas, y cada uno hace el trabajo de su tamaño**:
 
-### Por qué no hay una figura en pose
+| Dónde | Qué se ve | Por qué |
+|---|---|---|
+| **46 y 76 px**, la lista | **Mapa corporal**: silueta plana con la zona trabajada encendida | Un cuerpo en postura a 46 px no se lee. Lo que sirve al escanear la rutina es *qué trabaja cada cosa* |
+| **172 px**, «Cómo se hace» | **Ilustración animada**: tres fotogramas de una persona haciendo el ejercicio, en corte seco | Ahí sí hay sitio, y ahí lo que hace falta es ver el movimiento |
+
+El mapa vive en la constante `MAPA` dentro de `index.html`, y lo montan `zonaSVG(id,tam)` y
+`panelZona(id)`; las ilustraciones, en `figuras.js`, y las monta `figuraAnim(id)`.
+
+### Por qué las figuras no las dibujamos nosotros
 
 Se intentó tres veces: SVG a mano con dos fotogramas fundidos (477 KB), redibujo paramétrico 2D, y
-un maniquí articulado sobre three.js con validador de diez comprobaciones. Las tres se retiraron.
+un maniquí articulado sobre three.js con validador de diez comprobaciones y trece arquetipos. Las
+tres se retiraron, y la tercera después de que el usuario mirara el resultado y dijera que no
+funcionaba.
 
-El motivo no es que faltara técnica, es que el encargo no se sostenía:
+**La cuarta no fue dibujar mejor: fue dejar de dibujar.** Las figuras son de
+[workout-guide](https://github.com/bryllim/workout-guide) (Bryl Lim, derivadas de Everkinetic),
+CC BY-SA 4.0, con crédito en Ajustes y en `LICENSE`. Cubren 69 de los 91: los 12 de cuello y cara
+y diez drills propios de esta rutina no existen en ningún catálogo, y ahí el panel de 172 px cae
+al mapa. Cuestan 650 KB comprimidos, y el apartado del peso lo dice sin adornos.
 
-| Sitio | Qué se necesita ahí | Qué daba la figura |
-|---|---|---|
-| **46 px**, filas de la lista | Reconocer la rutina de un vistazo | Un cuerpo en postura a 46 px no se lee. Es aritmética. |
-| **76 px**, fila «siguiente» | Lo mismo, algo más grande | Igual |
-| **172 px**, «Cómo se hace» | Entender el movimiento | Debajo ya hay pasos numerados y un botón «Ver video», con 91 vídeos específicos desde v29 |
+El mapa no sobra por eso: a 46 px una figura completa es una mancha, mientras que una zona
+encendida se distingue de otra de un vistazo. Y cubre los 91 sin excepción, porque es geometría
+plana: no tiene forma de quedar mal.
 
-El movimiento ya estaba resuelto por el vídeo. Lo que ninguna de las tres tentativas contaba, y sí
-hace falta de un vistazo, es **qué trabaja este ejercicio**. Eso es lo que dibuja el mapa, y lo
-hace para los 91 sin excepción, porque es geometría plana: no tiene forma de quedar mal.
-
-Decisión cerrada en §14.
-
-### Cómo está construido
+### Cómo está construido el mapa
 
 - **La silueta son primitivas sueltas** —elipses, rectángulos, dos rutas— que se funden solas al
   compartir relleno. Corregir la postura de un brazo es mover un rectángulo, no reescribir una
@@ -606,38 +616,79 @@ deja la figura en 32 px de alto. La vista se **deduce** del lado al que pertenec
 primaria; `ZONAS[id].v` solo aparece donde hay que forzarla (gemelo y trapecio se leen mejor por
 detrás).
 
-### El hueco de 172 px
+### El hueco de 172 px, y el movimiento
 
-Dos columnas: **el texto manda a la izquierda y la figura acompaña a la derecha**. Dice tres cosas
-que la figura en pose no dijo nunca —qué músculo, por qué lado y con qué aparato— y debajo van el
-consejo de entrenador, los pasos numerados y el vídeo.
+Dos columnas: **el texto manda a la izquierda y la figura se mueve a la derecha**. A la izquierda,
+qué músculo, qué secundarios y con qué aparato; debajo, el consejo de entrenador, los pasos
+numerados y el vídeo.
 
-**No se anima, y es deliberado.** §7 dice que nada dura más de medio segundo; un latido infinito
-en visión periférica mientras cuentas repeticiones es ruido durante cuarenta segundos por serie. Y
-los tres intentos que fracasaron fueron los tres de movimiento: meterle una animación al mapa
-sería empezar el cuarto el mismo día que se cierra el tercero. El presupuesto de movimiento ya
-está gastado, y bien: `.stage` entra con `stageIn`, 180 ms.
+**Corte seco entre tres fotogramas, nunca un fundido.** El fundido es exactamente lo que hundió el
+sistema viejo: a mitad de ciclo se veían dos cuerpos fantasma superpuestos. `steps(1,end)` no
+mezcla dos fotogramas jamás. Es CSS puro, sin temporizador en JS, como pide §7: tres `<path>`
+apilados y tres `@keyframes` que se turnan la opacidad.
 
-### El peso, medido
+El ciclo va **1-2-3-2**, porque una repetición va y vuelve. El ritmo sale del `type` que cada
+ejercicio ya tenía: 2,4 s en `reps`, 1,5 s en `cardio`, y **quieto en los `hold`** — un sostén no
+se mueve, y fingir que sí sería mentir sobre el ejercicio.
+
+**Una sola caja de recorte para los tres fotogramas** (`window.CAJAS`, calculada del `getBBox` real
+de cada ruta). El `viewBox` de 512 trae mucho aire y dejaba la figura pequeña; recortarlo la
+agranda. Que la caja sea **la misma** para los tres es lo que impide que cambie de tamaño a mitad
+de ciclo, que es el defecto que tenían 36 de las 90 figuras viejas.
+
+**Y el fotograma del medio es el estado de reposo.** Lleva `opacity:1` en el estilo base, así que
+cuando la regla global de `prefers-reduced-motion` mata la animación, la figura se queda en una
+postura legible en vez de desaparecer. El sistema viejo se congelaba a media opacidad con los dos
+cuerpos encima y necesitaba un parche dedicado en el CSS; este no necesita ninguno.
+
+### El peso, medido — y esta vez sube
 
 | | Bruto | Comprimido |
 |---|---|---|
-| v31 · `index.html` + three.js + mannequin.js + las cuatro `.js` | 1.125 KB | 304 KB |
-| v32 · `index.html`, y nada más | **249 KB** | **78 KB** |
-| Ahorro | 876 KB | **226 KB** |
+| v31 · `index.html` + three.js + mannequin.js + las cuatro `.js` | 1.115 KB | 300 KB |
+| v32 · `index.html` (mapa, `ZONAS`, iconos) | 255 KB | 80 KB |
+| v32 · `figuras.js` (201 fotogramas) | 2.063 KB | 651 KB |
+| **v32 · total** | **2.318 KB** | **730 KB** |
 
-`index.html` engordó unos 20 KB —el mapa, los 91 registros de `ZONAS` y siete iconos— y a cambio
-desaparecieron 875 KB de JavaScript externo. Cuatro veces más ligero comprimido que la v31, y por
-debajo también de los 477 KB de `figuras.js` que había antes de todo esto.
+**Es más pesado que la v31, no menos: 730 KB comprimidos frente a 300.** El motor 3D se fue y
+liberó 300, pero las ilustraciones cuestan 651. No hay forma honesta de contarlo como un ahorro.
+
+Lo que se compra con eso: 69 ejercicios con una figura dibujada a mano que se mueve de verdad, en
+lugar de un maniquí que no llegó a leerse nunca. Se descarga **una sola vez** y lo guarda el
+service worker; a partir de ahí la app abre sin red y sin volver a pedirlo.
+
+Dos decisiones que hacen que ese peso no muerda:
+
+- **`figuras.js` va aparte y cache-first.** Dentro de `index.html` —que va network-first— se
+  re-descargaría en cada arranque. Fuera, se pide una vez. El precio es que si algún día se tocan
+  las figuras hay que subir `CACHE`, o los teléfonos ya instalados se quedan con las viejas.
+- **Fuera de `ASSETS`, con su propio `catch`.** `addAll` es atómico: si esos 2 MB fallan dentro de
+  la lista, el service worker no se instala y la app pierde el modo sin conexión **entero**. Aparte,
+  el peor caso es quedarse sin figuras hasta la siguiente visita.
+
+Las coordenadas van redondeadas a entero: con `viewBox` de 512 pintado a 150 px, una unidad es
+0,3 px. Ahorra el 44 % y no se distingue del original.
 
 ### La comprobación
 
-No hay taller ni validador aparte: el mapa no tiene nada que validar postura a postura. Lo que sí
-se comprueba, y se hizo, son dos cosas objetivas:
+No hay taller ni validador aparte: no hay posturas que validar, porque no las escribimos nosotros.
+Lo que sí se comprueba, y se hizo:
 
-1. **Cobertura**, por consola: que los 91 ids de `EX` tengan registro en `ZONAS`, que toda región
-   citada exista, que toda región tenga nombre en `ZNAME`, que todo `eq` tenga icono, y que los
-   273 SVG (91 × tres tamaños) se generen sin lanzar. Salió 91/91.
+1. **Cobertura del mapa**, por consola: que los 91 ids de `EX` tengan registro en `ZONAS`, que toda
+   región citada exista, que toda región tenga nombre en `ZNAME`, que todo `eq` tenga icono, y que
+   los 273 SVG (91 × tres tamaños) se generen sin lanzar. Salió 91/91.
 2. **Que cada región pinte de verdad**, contando píxeles del render y comparando mitad izquierda
    con mitad derecha. Las 31 pintan; las 12 que van por pares salen simétricas al 100 %. Es la
    comprobación que cazó el fallo del `<clipPath>`, que ninguna inspección del DOM detectaba.
+3. **Cobertura de las figuras**: que cada ejercicio dé **una** de las dos cosas y nunca las dos ni
+   ninguna (69 ilustración + 22 mapa), que ninguna se quede con el `viewBox` sin recortar, y que
+   el ritmo salga del `type` correcto. Salió 91/91, cero errores.
+4. **Que la animación no solape dos fotogramas**: leyendo la opacidad calculada de los tres a lo
+   largo del ciclo. Sale `1/0/0 → 0/1/0 → 0/0/1 → 0/0/1 → 0/1/0`, siempre uno visible. Y con la
+   animación desactivada queda exactamente uno, que es la prueba de que el movimiento reducido no
+   deja la caja vacía.
+
+**Trampa que costó una tarde y que ninguna inspección del DOM detecta:** redondear las coordenadas
+con una expresión regular de números **rompe los paths**. En notación compacta `.5.5` son dos
+números y `2.5.5` es `2.5` y `0.5`; una regex los funde y el dibujo sale hecho trizas. Hace falta
+tokenizar de verdad. Está escrito en la cabecera de `figuras.js` para que no se repita.

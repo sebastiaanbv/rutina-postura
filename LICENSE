@@ -26,3 +26,20 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+ILUSTRACIONES DE LOS EJERCICIOS
+
+Las figuras que animan los ejercicios (figuras.js, 201 fotogramas) NO son obra
+propia y NO estan cubiertas por la licencia MIT de arriba. Son de:
+
+  workout-guide -- Bryl Lim -- https://github.com/bryllim/workout-guide
+  derivadas de Everkinetic (Greg Priday)
+  Licencia: CC BY-SA 4.0 -- https://creativecommons.org/licenses/by-sa/4.0/
+
+CC BY-SA obliga a dos cosas y las dos se cumplen: el credito aparece en la
+pantalla de Ajustes de la app, y cualquier obra derivada de ESAS ilustraciones
+--no del codigo-- tiene que compartirse bajo la misma licencia. Las unicas
+modificaciones hechas sobre ellas son tecnicas: extraer la ruta del SVG y
+redondear las coordenadas a entero para que pesen menos.
