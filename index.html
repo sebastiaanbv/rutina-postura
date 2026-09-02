@@ -494,11 +494,21 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
      aparte: el recorte pilla tambien el trazo, asi que no se puede salir
      del cuerpo. */
   .diag .mborde{stroke-width:2}
-  /* Una figura QUIETA no tiene nada que igualar: el adelgazado existe solo para
-     que los tres fotogramas de una animacion pesen lo mismo. En la lista, donde
-     solo se mueve la fila "siguiente", el resto recupera su tinta entera -- que
-     a 46 px es justo lo que hace que se vea algo. */
-  .diag .figmov:not(.corre) path{stroke-width:0}
+  /* A 46 px la caja util son 36, y una figura vertical --extension de triceps en
+     polea, encogimientos-- se queda en 13 px de ancho. No es que sea pequeña de
+     mas: es que a ese tamaño el trazo fino de la ilustracion se desvanece y
+     queda un garabato palido. Asi que en la lista se ENGORDA con un trazo del
+     color de la tinta.
+     Dos cosas lo hacen posible sin romper nada: una figura quieta no lleva el
+     adelgazado --ese existe solo para igualar los tres fotogramas de una
+     animacion, y aqui no hay animacion que igualar--, y el trazo no escala con
+     el viewBox, asi que 0,7 son 0,7 pixeles de pantalla y no dependen de lo
+     recortada que venga la caja de cada ejercicio.
+     Medido a ojo contra 1,2, que ya rellena el dibujo por dentro y lo convierte
+     en una mancha. La fila "siguiente" queda fuera: como se anima, necesita su
+     adelgazado, y a 76 px se lee sin ayuda. */
+  .diag .figmov:not(.corre) path{stroke:var(--diagram-ink);stroke-width:0.7;
+    vector-effect:non-scaling-stroke}
   .diag .mzona g{stroke:var(--diagram-hi);stroke-width:2}
   .diag.big .mzona g{stroke-width:1.4}
   .gdiag .mborde{stroke-width:2}

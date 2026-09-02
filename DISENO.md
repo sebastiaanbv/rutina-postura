@@ -553,6 +553,13 @@ Son **dos sistemas, y cada uno hace el trabajo de su tamaño**:
 | **76 px**, fila «siguiente» | La ilustración, **animada** | Es la única fila que destaca en toda la pantalla, y la única que se mueve |
 | **196 px**, «Cómo se hace» | La ilustración animada **y** el mapa, más pequeño, con su etiqueta de lado | Por fuera y por dentro a la vez |
 
+En la lista la figura va **engordada 0,7 px**. A 46 px la caja útil son 36, y una figura vertical
+—extensión de tríceps en polea, encogimientos— se queda en **13 px de ancho**: no es que sea
+pequeña de más, es que a ese tamaño el trazo fino se desvanece y queda un garabato pálido. Se
+puede engordar precisamente porque una figura quieta no lleva el adelgazado, y el trazo no escala
+con el `viewBox`, así que 0,7 son 0,7 píxeles de pantalla en todos los ejercicios. Medido contra
+1,2, que ya rellena el dibujo por dentro.
+
 En la lista se mueve **una sola figura**, la de la fila siguiente. No es tacañería de
 rendimiento —se midió: catorce figuras se pintan en 34 ms— sino que catorce muñecos moviéndose a
 la vez es justo el ruido que la app lleva evitando desde v26, cuando la fila dejó de desplegar
