@@ -305,9 +305,8 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
 
 **De la comparación con apps líderes (2026-09-23)** — Strong, Hevy, Alpha Progression, RP
 Hypertrophy, Boostcamp, JEFIT. Ordenado por valor para estos dos usuarios:
-1. **Pesos disponibles por aparato** (Alpha Progression). La doble progresión sugiere pesos que
-   no existen: con mancuernas de 1-3 kg no se sube 2,5 kg. Registrar los saltos reales y, si el
-   siguiente queda lejos, pedir más repeticiones antes de subir. S-M.
+1. ~~Pesos disponibles~~ → cerrado en v35 para mancuernas. Queda abierto para máquinas
+   (salto de placa real de cada máquina del gimnasio).
 2. **Aviso de molestia articular** (RP Hypertrophy). «¿Molestia? no / leve / sí» al cerrar el
    ejercicio; si se repite, no sugerir subir carga y ofrecer el cambio. Protege el manguito. S.
 3. **Series de aproximación automáticas** (Strong, Hevy, Boostcamp). Hoy van escritas en el
@@ -343,6 +342,10 @@ Fitbod (aporta poco con PPL 3×), insignias y logros.
   (`MUSCGOAL_SALUD`, ~⅓ del volumen). Resuelve las barras siempre bajas en el teléfono de la madre.
 - **Nota fija por ejercicio** (`rp_notes`) en el guiado: ajuste de máquina, agarre. Reaparece
   cada vez que sale ese ejercicio.
+- **Mancuernas que tienes** (Ajustes, `rp_prefs.pesosDB`). Con 1-2-3 kg cualquier salto pasa del
+  10 % y `loadStep` no dejaba subir nunca: estiraba el rango para siempre. Con lista, solo se
+  sugieren pesos reales: salto suave (≤10 %) se sube al llenar el rango; salto grande, al llenar
+  el rango estirado (+2 reps); con la más pesada, se estira. Sin lista, nada cambia (gimnasio).
 
 ### Cerrado en v34
 

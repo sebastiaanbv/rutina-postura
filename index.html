@@ -3149,6 +3149,9 @@ function renderSettings(){const r=loadRem();
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
         <button class="minibtn${goalPref()==="masa"?" on":""}" onclick="setGoalPref('masa')" aria-pressed="${goalPref()==="masa"}">Ganar músculo</button>
         <button class="minibtn${goalPref()==="salud"?" on":""}" onclick="setGoalPref('salud')" aria-pressed="${goalPref()==="salud"}">Salud y mantenimiento</button></div></div>
+    <div class="field"><div class="fl">Mancuernas que tienes</div>
+      <div class="fh">Si entrenas en casa, escribe sus pesos en kg (por ejemplo: 1 2 3) y la app solo te sugerirá esos. Déjalo vacío si usas las del gimnasio.</div>
+      <div class="bwrow"><input id="pesosDB" inputmode="decimal" placeholder="Ej. 1 2 3" value="${esc((loadPrefs().pesosDB||[]).map(fmtW).join(" "))}" aria-label="Pesos de tus mancuernas en kg"><button class="minibtn" onclick="savePesosDB()">Guardar</button></div></div>
     <div class="grouptitle">Datos</div>
     <div class="field"><div class="fl">Copia de seguridad</div>
       <div class="fh">Guarda un archivo con todo tu progreso (racha, historial, pesos y plan) y restáuralo cuando quieras. Hazlo de vez en cuando para no perder nada.
@@ -3317,18 +3320,41 @@ function repRange(id){const e=EX[id]||{},r=e.reps||10;
    repeticiones, que da la misma hipertrofia (Plotkin 2022). */
 function loadStep(w){const s=w<10?1:(w<20?2:2.5);
   return (w>0&&s/w>0.10)?0:s;}
+/* mancuernas que hay en casa (v35, rp_prefs.pesosDB), ordenadas; null si el
+   ejercicio no es de mancuerna o no se declararon (gimnasio: rack completo) */
+function availDB(id){const z=ZONAS[id];if(!z||z.eq!=="mancuerna")return null;
+  const l=loadPrefs().pesosDB;return (l&&l.length)?l:null;}
+/* "1 2 3", "1, 2, 3", "1,2,3" y "1,5 2 3": con espacios la coma es decimal;
+   sin espacios, la coma separa */
+function savePesosDB(){const raw=(($("pesosDB")||{}).value||"").trim(),
+    parts=/[\s;]/.test(raw)?raw.split(/[\s;]+/).map(x=>x.replace(",",".")):raw.split(",");
+  const l=[...new Set(parts.map(x=>parseFloat(x)).filter(x=>isFinite(x)&&x>0&&x<200))].sort((a,b)=>a-b);
+  const p=loadPrefs();if(l.length)p.pesosDB=l;else delete p.pesosDB;jset("rp_prefs",p);renderSettings();
+  toast(l.length?`${ic("check","sm")} Mancuernas: ${l.map(fmtW).join(", ")} kg`:"Sin lista: se usan los saltos normales de gimnasio");}
 /* Objetivo de hoy: una meta de proceso resoluble hoy, no un resultado lejano. */
 function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)return null;
   const rng=repRange(id),d=dose(k,id),ll=lastLog(id);
   if(!ll||!ll.sets.length)return {w:e.load===true?0:0,reps:rng[0],why:"Primera vez: busca "+rng[0]+" repeticiones limpias",nuevo:true};
   const trabajo=ll.sets,tope=trabajo.every(x=>(x.reps||0)>=rng[1]),
         completo=trabajo.length>=(d.sets||trabajo.length),first=trabajo[0];
+  /* Con mancuernas propias (Ajustes) manda la lista real, no un salto teorico.
+     Con 1-2-3 kg cualquier salto pasa del 10% y la regla general no dejaba
+     subir nunca: aqui se sube cuando el rango ESTIRADO tambien se llena. */
+  const disp=availDB(id);
+  if(e.load===true&&disp&&completo&&tope){const w0=first.w||0,next=disp.filter(x=>x>w0+1e-9)[0];
+    if(next==null)return {w:w0,reps:rng[1]+2,extiende:true,
+      why:"Ya usas tu mancuerna más pesada: estira a "+(rng[1]+2)+" reps"};
+    const suave=w0>0&&(next-w0)/w0<=0.10,lleno=trabajo.every(x=>(x.reps||0)>=rng[1]+2);
+    if(suave||lleno)return {w:next,reps:rng[0],subeCarga:true,
+      why:"Sube a tu mancuerna de "+fmtW(next)+" kg y vuelve a "+rng[0]+" reps"};
+    return {w:w0,reps:rng[1]+2,extiende:true,
+      why:"Tu siguiente mancuerna ("+fmtW(next)+" kg) es un salto grande: antes llega a "+(rng[1]+2)+" reps"};}
   if(e.load===true&&tope&&completo){const inc=loadStep(first.w||0);
     if(inc>0){const w=Math.round((first.w+inc)*10)/10;
       return {w:w,reps:rng[0],subeCarga:true,
         why:"Llenaste el rango entero: sube a "+fmtW(w)+" kg y vuelve a "+rng[0]};}
     return {w:first.w,reps:rng[1]+2,extiende:true,
-      why:"El salto de peso seria mas del 5%: estira el rango a "+(rng[1]+2)+" reps"};}
+      why:"El salto de peso sería más del 10%: estira el rango a "+(rng[1]+2)+" reps"};}
   const objetivo=Math.min(rng[1],Math.max(rng[0],(first.reps||rng[0])+1));
   return {w:first.w||0,reps:objetivo,
     why:"La vez pasada "+(first.reps||0)+": hoy "+objetivo+" con el mismo peso"};}
