@@ -299,6 +299,32 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
   sin tocar descansos: los tres días quedaron en 62-68 min tras la revisión de programa de v30. Necesita un flag de «par» entre dos
   ejercicios que alterne series y cuente el descanso solo al cerrar el par. El especialista que
   revisó las rutinas en v27 la señaló otra vez, y para el bloque secundario en concreto.
+- **Editar o borrar series y sesiones pasadas desde Historial.** Hoy es de solo lectura: un
+  «100» tecleado en vez de «10» infla para siempre récords, fuerza estimada e índice de fuerza.
+- **Fechas `AAAA-MM-DD` leídas como UTC.** `new Date("2026-09-23")` cae en el día anterior en
+  UTC−5: el pesaje de hoy no entra en la media de 7 días hasta mañana, y las series del domingo
+  se pierden en las semanas pasadas de «punto débil». Leerlas con `+"T00:00:00"`.
+- **Meta semanal medida con el plan de hoy.** Cambiar de 3 a 4 días reescribe las semanas
+  pasadas y rompe la racha semanal. Guardar la meta de cada semana al cerrarla.
+- **Aviso de copia de seguridad.** Guardar la fecha de la última exportación y avisar en Inicio
+  pasados 14 días.
+
+### Cerrado en v34
+
+- **Agregar ejercicios a cualquier rutina.** Botón «Agregar ejercicio» al pie de la rutina:
+  buscador sobre el catálogo completo y «Crear ejercicio propio» (nombre, cómo se cuenta,
+  series, repeticiones o segundos, descanso, si lleva peso, músculo principal, aparato y pasos).
+  Los propios viven en `rp_custom` con id `u_…` y al arrancar se funden en `EX`, `ZONAS` y
+  `MUSC`, así que dosis, registro de series, sugerencia de carga, series por músculo y mapa
+  corporal los tratan como uno más. Entran por `rp_extras`, el mismo camino que un opcional
+  agregado, con chips Quitar y Editar. Borrar es suave (`del:true`): el historial conserva el
+  nombre. Etiqueta `propio` → «Tuyo».
+- **La copia exporta por prefijo `rp_`**, igual que importar y borrar. La lista fija de 14
+  claves habría dejado fuera `rp_custom` sin avisar.
+- **Topes de historial**: `rp_history` de 200 a 2.000 sesiones (`HISTMAX`) y `rp_logs` de 150 a
+  1.000 registros por ejercicio (`LOGMAX`). Con 200 se borraba sin avisar lo de hace ~5 meses.
+- **`navigator.storage.persist()`** al arrancar, para que el navegador no vacíe los datos si
+  el teléfono se queda sin espacio.
 
 ### Cerrado en v33
 

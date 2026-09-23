@@ -933,6 +933,23 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .planopt .em.n{background:var(--accent-tint);color:var(--accent-ink)}
   .planopt .em.g{background:var(--load-tint);color:var(--load-ink)}
   .planopt .em.rest{background:var(--rest-tint);color:var(--rest-ink)}
+  /* agregar ejercicio (v34): boton al pie de la rutina, buscador y formulario */
+  .addexbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;
+    margin:0 0 var(--s3);border:1.5px dashed var(--line);border-radius:var(--r-lg);background:transparent;
+    color:var(--primary-ink);font:inherit;font-weight:var(--w-bold);font-size:var(--t-base);cursor:pointer}
+  .addsearch,.cxf input:not([type=checkbox]),.cxf select,.cxf textarea{width:100%;box-sizing:border-box;
+    background:var(--sunk);color:var(--tx);border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:11px 12px;font:inherit;font-size:16px;font-weight:var(--w-med)}
+  .planopt.addnew .em{background:var(--primary);color:#fff}
+  #addList .blockt{font-size:var(--t-sm);font-weight:var(--w-bold);color:var(--mut);margin:10px 2px 2px}
+  .cxf{display:flex;flex-direction:column;gap:var(--s3)}
+  .cxf label{display:flex;flex-direction:column;gap:5px;font-size:var(--t-sm);font-weight:var(--w-bold);color:var(--mut)}
+  .cxf label.ck{flex-direction:row;align-items:center;gap:10px;color:var(--tx);font-size:var(--t-base);font-weight:var(--w-med)}
+  .cxf label.ck input{width:22px;height:22px;accent-color:var(--primary)}
+  .cxf .row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s2)}
+  .cxf .row3 label{justify-content:flex-end}
+  .cxf textarea{min-height:76px;resize:vertical}
+  .cxf .minibtn{margin-top:0}
   .planopt .em.none{background:var(--sunk);color:var(--mut)}
   .planopt .optck{margin-left:auto;color:var(--primary-ink);display:flex;align-items:center}
   /* hoja de resumen */
@@ -1534,10 +1551,10 @@ const SECDOSE={
 "salud_fuerza_b": {"gato_camello": {"reps": 8}, "extension_toracica": {"sets": 1}, "peso_muerto_rumano_db": {"sets": 2, "rest": 45, "startKg": 3}, "remo_db": {"sets": 2, "reps": 12, "rest": 45, "startKg": 2}, "elevaciones_laterales": {"sets": 2, "rest": 40, "startKg": 1}, "trapecio_superior": {"sets": 1}, "extension_triceps_db": {"sets": 2, "rest": 40, "startKg": 1}},
 "salud_equilibrio": {"wall_angels": {"sets": 1}, "dead_bug": {"sets": 2, "rest": 25}}
 };
-const TAG={calent:["Calentamiento","b-calent"],diario:["Diario","b-diario"],carga:["Carga 3–4×/sem","b-carga"],opcional:["Opcional","b-opcional"]};
+const TAG={calent:["Calentamiento","b-calent"],diario:["Diario","b-diario"],carga:["Carga 3–4×/sem","b-carga"],opcional:["Opcional","b-opcional"],propio:["Tuyo","b-opcional"]};
 const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
-const VERSION="v33 · figuras parejas y app accesible";
+const VERSION="v34 · agregar ejercicios propios";
 /* ==== [S5] ICONOS =========================================================
    Solo el interior del <svg>; ic() lo envuelve. Rejilla 24x24, sin relleno
    salvo los marcados .solid. */
@@ -1674,6 +1691,10 @@ function markThemeSeg(){const p=loadTheme();document.querySelectorAll("#themeSeg
 try{matchMedia("(prefers-color-scheme:dark)").addEventListener("change",()=>{if(loadTheme()==="auto")applyTheme("auto");});}catch(e){}
 
 /* storage */
+/* Topes de historial. Eran 200 sesiones y 150 registros por ejercicio: con
+   postura diaria y tres dias de gimnasio, 200 sesiones son unos cinco meses,
+   y lo mas viejo se borraba sin avisar. Con estos caben años. */
+const HISTMAX=2000,LOGMAX=1000;
 function jget(k,d){try{return JSON.parse(localStorage.getItem(k))??d;}catch(e){return d;}}
 function jset(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}
 function ds(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
@@ -1725,7 +1746,7 @@ function recordSession(key,name,sum,when){const h=loadHist(),d=when?new Date(whe
     time:String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
   if(sum){e.sets=sum.sets;e.vol=sum.vol;e.exDone=sum.exDone;e.exTotal=sum.exTotal;e.dur=sum.dur;e.ids=sum.ids;
     if(sum.pr&&sum.pr.length)e.pr=sum.pr;}
-  h.unshift(e);jset("rp_history",h.slice(0,200));return e;}
+  h.unshift(e);jset("rp_history",h.slice(0,HISTMAX));return e;}
 
 /* ---------- HOME ---------- */
 function renderHome(){
@@ -1798,6 +1819,94 @@ function dose(k,id){const b=progDose(k,id),o=(k&&doseOv(k,id))||{},
     custom:o.sets!=null||o.reps!=null||o.holdSec!=null||o.rest!=null};}
 function toggleExtra(k,id){const all=loadExtras(),a=(all[k]||[]).slice(),i=a.indexOf(id);
   if(i<0)a.push(id);else a.splice(i,1);all[k]=a;jset("rp_extras",all);openRoutine(k,true);}
+/* ---- agregar ejercicios: del catalogo o creados por ti (v34) ----
+   Los propios viven en rp_custom con id "u_...". Al arrancar se funden en EX,
+   ZONAS y MUSC, asi que todo lo que ya indexa por id --dosis, series
+   registradas, sugerencia de carga, series por musculo-- los trata como uno
+   mas. Cualquier ejercicio agregado entra a la rutina por rp_extras, el mismo
+   camino que un opcional: al final del entrenamiento, con su chip de Quitar.
+   Borrar es suave (del:true): la definicion se queda para que su historial
+   siga teniendo nombre, y solo desaparece de las listas. */
+const CXZONAS=["pecho","espalda","delt_anterior","delt_lateral","delt_posterior","biceps","triceps",
+  "antebrazo","cuadriceps","isquios","gluteo","gemelo","aductores","core","lumbar","trapecio_cuello","cuello"];
+function loadCustom(){return jget("rp_custom",{});}
+function mergeCustom(){const all=loadCustom();Object.keys(all).forEach(id=>{const c=all[id]||{},
+    hold=c.type==="hold"||c.type==="hold_side";
+  EX[id]={name:c.name||"Ejercicio propio",tag:"propio",type:c.type||"reps",sets:c.sets||3,
+    reps:hold?undefined:(c.reps||10),holdSec:hold?(c.holdSec||30):undefined,
+    rest:c.rest!=null?c.rest:60,load:!!c.load,unit:"kg",custom:true,del:!!c.del,
+    steps:(c.steps&&c.steps.length)?c.steps:["Ejercicio creado por ti. Si quieres, edítalo y apunta aquí los pasos."]};
+  ZONAS[id]={p:c.zona?[c.zona]:[],s:[],eq:c.eq||""};
+  if(c.zona&&MUSCGOAL[c.zona]!=null)MUSC[id]={[c.zona]:1};else delete MUSC[id];});}
+function zonaLabel(z){return MUSCNAME[z]||ZNAME[z]||z;}
+function openAddEx(k){pushHist({ov:"swap"});$("swapTitle").textContent="Agregar ejercicio";
+  $("swapBody").innerHTML=`<input id="addq" class="addsearch" type="search" placeholder="Buscar en el catálogo…" oninput="addExList('${k}')" aria-label="Buscar ejercicio">
+    <div class="planopt addnew" onclick="openCustomForm('${k}')" role="button" tabindex="0"><div class="em">${ic("plus")}</div>
+      <div style="flex:1;min-width:0"><div>Crear ejercicio propio</div><div class="optsub">Uno que no esté en la lista: nombre, series y músculo</div></div></div>
+    <div id="addList" class="planbody" style="padding:0"></div>`;
+  addExList(k);$("swapov").classList.add("show");}
+function addExList(k){const on=effList(k),q=(($("addq")||{}).value||"").trim().toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g,""),
+  fit=id=>{const e=EX[id];if(!e||e.del||on.indexOf(id)>=0)return false;
+    return !q||(e.name+" "+zonaTexto(id)).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").indexOf(q)>=0;},
+  byName=(a,b)=>EX[a].name.localeCompare(EX[b].name,"es"),
+  mine=Object.keys(loadCustom()).filter(fit).sort(byName),
+  cat=Object.keys(EX).filter(id=>!EX[id].custom&&fit(id)).sort(byName),
+  row=id=>{const e=EX[id],z=ZONAS[id]||{},eq=EQ[z.eq];
+    return `<div class="planopt" onclick="addExTo('${k}','${id}')" role="button" tabindex="0">
+      <div class="em">${ic(eq?eq[0]:"dumbbell")}</div><div style="flex:1;min-width:0"><div>${esc(e.name)}</div>
+      <div class="optsub">${zonaTexto(id)?esc(zonaTexto(id))+' · ':''}${metaOf(e,dose(k,id))}</div></div>
+      ${e.custom?`<div class="chip" onclick="event.stopPropagation();openCustomForm('${k}','${id}')" role="button" tabindex="0">Editar</div>`:`<div class="optck">${ic("plus","sm")}</div>`}</div>`;};
+  $("addList").innerHTML=(mine.length?`<div class="blockt">Tus ejercicios</div>`+mine.map(row).join(""):"")
+    +(cat.length?`<div class="blockt">Del catálogo</div>`+cat.map(row).join("")
+      :(q?`<div class="optsub" style="padding:8px 4px">Nada con «${esc(q)}». Créalo con el botón de arriba.</div>`:""));}
+function addExTo(k,id){const all=loadExtras(),a=(all[k]||[]).slice();if(a.indexOf(id)<0)a.push(id);
+  all[k]=a;jset("rp_extras",all);history.back();setTimeout(()=>openRoutine(k,true),0);
+  toast(`${ic("check","sm")} ${esc(shortName(id))} agregado a la rutina`);}
+function openEditCustom(k,id){pushHist({ov:"swap"});openCustomForm(k,id);$("swapov").classList.add("show");}
+function openCustomForm(k,id){const c=id?(loadCustom()[id]||{}):{},t=c.type||"reps",
+    hold=t==="hold"||t==="hold_side",opt=(v,l,cur)=>`<option value="${v}"${v===cur?" selected":""}>${esc(l)}</option>`;
+  $("swapTitle").textContent=id?"Editar ejercicio":"Nuevo ejercicio";
+  $("swapBody").innerHTML=`<div class="cxf">
+    <label>Nombre<input id="cx_name" maxlength="60" value="${esc(c.name||"")}" placeholder="Ej. Remo en T" autocomplete="off"></label>
+    <label>Cómo se cuenta<select id="cx_type" onchange="cxType()">${opt("reps","Repeticiones",t)+opt("reps_side","Repeticiones por lado",t)
+      +opt("hold","Tiempo (segundos)",t)+opt("hold_side","Tiempo por lado",t)}</select></label>
+    <div class="row3"><label>Series<input id="cx_sets" type="number" inputmode="numeric" min="1" max="10" value="${c.sets||3}"></label>
+      <label id="cx_amtl"><span>${hold?"Segundos":"Repeticiones"}</span><input id="cx_amt" type="number" inputmode="numeric" min="1" value="${hold?(c.holdSec||30):(c.reps||10)}"></label>
+      <label>Descanso (s)<input id="cx_rest" type="number" inputmode="numeric" min="0" step="15" value="${c.rest!=null?c.rest:60}"></label></div>
+    <label class="ck" id="cx_loadl"${hold?' style="display:none"':''}><input id="cx_load" type="checkbox"${(id?c.load:true)?" checked":""}> Lleva peso (registrar kg)</label>
+    <label>Músculo principal<select id="cx_zona">${opt("","Sin especificar",c.zona||"")+CXZONAS.map(z=>opt(z,zonaLabel(z),c.zona||"")).join("")}</select></label>
+    <label>Aparato<select id="cx_eq">${opt("","Ninguno / peso corporal",c.eq||"")+Object.keys(EQ).map(q=>opt(q,EQ[q][1],c.eq||"")).join("")}</select></label>
+    <label>Pasos o notas <span class="optsub">(uno por línea, opcional)</span><textarea id="cx_steps" rows="3" maxlength="600">${esc((c.steps||[]).join("\n"))}</textarea></label>
+    <button class="btn" onclick="saveCustom('${k}'${id?`,'${id}'`:""})">${ic("check","sm")} ${id?"Guardar cambios":"Crear y agregar a la rutina"}</button>
+    ${id?`<button class="minibtn danger" onclick="delCustom('${k}','${id}')">Borrar este ejercicio</button>`:""}
+  </div>`;
+  if(!id)setTimeout(()=>{const n=$("cx_name");if(n)n.focus();},60);}
+function cxType(){const t=$("cx_type").value,hold=t==="hold"||t==="hold_side",a=$("cx_amt");
+  $("cx_amtl").querySelector("span").textContent=hold?"Segundos":"Repeticiones";
+  $("cx_loadl").style.display=hold?"none":"";a.value=hold?30:10;}
+function saveCustom(k,id){const name=$("cx_name").value.trim().replace(/\s+/g," ");
+  if(!name){toast("Ponle un nombre al ejercicio.");$("cx_name").focus();return;}
+  const num=(x,d,lo,hi)=>{const n=Math.round(parseFloat($(x).value));return isFinite(n)?Math.min(hi,Math.max(lo,n)):d;},
+    type=$("cx_type").value,hold=type==="hold"||type==="hold_side",
+    c={name:name,type:type,sets:num("cx_sets",3,1,10),rest:num("cx_rest",60,0,600),load:!hold&&$("cx_load").checked,
+      zona:$("cx_zona").value,eq:$("cx_eq").value,
+      steps:$("cx_steps").value.split("\n").map(s=>s.trim()).filter(Boolean).slice(0,8)};
+  if(hold)c.holdSec=num("cx_amt",30,5,600);else c.reps=num("cx_amt",10,1,100);
+  const all=loadCustom(),isNew=!id;if(isNew)id="u_"+Date.now().toString(36);
+  all[id]=c;if(!jset("rp_custom",all)){toast("No se pudo guardar: el almacenamiento está lleno.");return;}
+  /* lo que dice el formulario es el programa de este ejercicio: si antes lo
+     ajustaste dentro de la rutina, ese ajuste taparia lo que acabas de escribir */
+  if(!isNew){const ds=loadDoses();Object.keys(ds).forEach(r=>{if(ds[r]&&ds[r][id]){delete ds[r][id];if(!Object.keys(ds[r]).length)delete ds[r];}});jset("rp_doses",ds);}
+  mergeCustom();
+  if(isNew){const ex=loadExtras(),a=(ex[k]||[]).slice();a.push(id);ex[k]=a;jset("rp_extras",ex);}
+  history.back();setTimeout(()=>openRoutine(k,true),0);
+  toast(`${ic("check","sm")} ${esc(name)} ${isNew?"creado y agregado":"actualizado"}`);}
+function delCustom(k,id){const all=loadCustom();if(!all[id])return;
+  if(!confirm("¿Borrar «"+all[id].name+"»? Sale de todas las rutinas; las series que ya registraste se conservan."))return;
+  all[id].del=true;jset("rp_custom",all);
+  const ex=loadExtras();Object.keys(ex).forEach(r=>{ex[r]=(ex[r]||[]).filter(x=>x!==id);});jset("rp_extras",ex);
+  mergeCustom();history.back();setTimeout(()=>openRoutine(k,true),0);toast("Ejercicio borrado.");}
 /* El orden de la pantalla y el de la ejecucion tienen que salir del mismo
    sitio, o el ejercicio resaltado como "siguiente" no es el que arranca al
    darle a empezar. Un opcional que ya agregaste deja de ser opcional: entra al
@@ -1846,7 +1955,7 @@ function routineExCard(k,ctx,id,origin,isExtra,isWarm,isAdded){const e=EX[id];if
         <div class="diag${(id===ctx.next)?' big':''}" onclick="startRoutine('${id}')">${
           figuraFila(id,id===ctx.next)}</div>
         <div style="flex:1;min-width:0" onclick="startRoutine('${id}')" role="button" tabindex="0"><div class="nm">${esc(e.name)}</div><div class="meta">${metaOf(e,ctx.d=dose(k,id))}${ctx.d.custom?' <span class="chip tiny">ajustado</span>':''}${zonaTexto(id)?' · '+esc(zonaTexto(id)):''}</div>
-          <div class="badges"><span class="badge ${tg[1]}">${tg[0]}</span>${(alts&&alts.length)?`<span class="chip" onclick="event.stopPropagation();openSwap('${k}','${origin}')" role="button" tabindex="0">${ic("swap","xs")} ${swapped?('Cambiado · original: '+shortName(origin)):(alts.length===1?('Cambiar por '+shortName(alts[0])):('Cambiar ('+alts.length+' opciones)'))}</span>`:''}${isAdded?`<span class="chip" onclick="event.stopPropagation();toggleExtra('${k}','${id}')" role="button" tabindex="0">${ic("close","xs")} Quitar</span>`:''}</div></div>
+          <div class="badges"><span class="badge ${tg[1]}">${tg[0]}</span>${(alts&&alts.length)?`<span class="chip" onclick="event.stopPropagation();openSwap('${k}','${origin}')" role="button" tabindex="0">${ic("swap","xs")} ${swapped?('Cambiado · original: '+shortName(origin)):(alts.length===1?('Cambiar por '+shortName(alts[0])):('Cambiar ('+alts.length+' opciones)'))}</span>`:''}${isAdded?`<span class="chip" onclick="event.stopPropagation();toggleExtra('${k}','${id}')" role="button" tabindex="0">${ic("close","xs")} Quitar</span>`:''}${(isAdded&&e.custom)?`<span class="chip" onclick="event.stopPropagation();openEditCustom('${k}','${id}')" role="button" tabindex="0">Editar</span>`:''}</div></div>
         ${isExtra?`<div class="exadd" onclick="event.stopPropagation();toggleExtra('${k}','${id}')" role="button" tabindex="0" aria-label="Agregar a la rutina">${ic("plus")}</div>`
                  :`<div class="exstart" onclick="event.stopPropagation();startRoutine('${id}')" role="button" tabindex="0" aria-label="Empezar por este ejercicio" title="Empezar aquí">${ic("play","sm solid")}</div>`}
       </div></div>`;}
@@ -1865,7 +1974,8 @@ function routineList(k,r,ctx){const b=routineBuckets(k),cal=b.cal,ent=b.ent,se=b
     +bloque("Bloque secundario","refresh",se,false,false,
       "Un músculo de otro día. Sube su frecuencia a dos veces por semana sin alargar la rutina.")
     +bloque("Opcionales · si tienes tiempo","plus",sueltos.map(id=>({id:id,origin:null})),false,true,
-      "Toca + y el ejercicio sube al bloque de entrenamiento, como uno más.");}
+      "Toca + y el ejercicio sube al bloque de entrenamiento, como uno más.")
+    +`<button class="addexbtn" onclick="openAddEx('${k}')">${ic("plus","sm")} Agregar ejercicio</button>`;}
 function openRoutine(k,noPush){curRoutine=k;if(!noPush)pushHist({v:"routine",k:k});
   const r=ROUTINES[k];
   if(sessActive(k)){const sv=loadSess();sessionLog=(sv&&sv.log)||{};sessionLogKey=k;}
@@ -2360,7 +2470,7 @@ function persistSession(k,dateOverride,startedAt){
   const logs=loadLogs(),t=dateOverride||today(),merged=sessLog(k),list=effList(k);
   const ck=checksOn(t,k),done=loggedOn(t,k),stamp=startedAt||Date.now();
   let sets=0,vol=0;const ids={},push=(id,rec)=>{logs[id]=logs[id]||[];logs[id].push(rec);
-    if(logs[id].length>150)logs[id]=logs[id].slice(-150);};
+    if(logs[id].length>LOGMAX)logs[id]=logs[id].slice(-LOGMAX);};
   Object.keys(merged).forEach(id=>{const st=merged[id];if(st&&st.length){
     push(id,{date:t,sets:st,k:k,t:stamp});
     sets+=st.length;st.forEach(x=>{vol+=(x.w||0)*(x.reps||0);});ids[id]=1;}});
@@ -2462,7 +2572,9 @@ function volumeByDate(){const logs=loadLogs(),m={};
 /* la pantalla Progreso se dibuja en renderProgress() del panel v19, mas
    abajo; aqui vivia una version anterior que quedaba tapada por hoisting */
 /* ===== copia de seguridad (exportar / importar) ===== */
-function exportData(){try{const keys=["rp_streak","rp_history","rp_rem","rp_theme","rp_checks","rp_logs","rp_plan","rp_bw","rp_swaps","rp_extras","rp_doses","rp_session","rp_logged","rp_prefs"];
+/* Por prefijo, igual que importar y borrar: una lista fija dejaba fuera
+   cualquier clave nueva sin avisar, y lo primero es no perder datos nunca. */
+function exportData(){try{const keys=Object.keys(localStorage).filter(k=>k.indexOf("rp_")===0);
   const data={_app:"rutina-postura",_v:VERSION,_date:new Date().toISOString(),store:{}};
   keys.forEach(k=>{const v=localStorage.getItem(k);if(v!=null)data.store[k]=v;});
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
@@ -2859,7 +2971,7 @@ function calLogPick(key){const r=ROUTINES[key];if(!r||!calSel){closePlan();retur
        date:p[2]+"/"+p[1]+"/"+p[0],time:"",manual:true,mid:Date.now()},
     h=loadHist(),st=histStamp(e);
   let i=0;while(i<h.length&&histStamp(h[i])>=st)i++;
-  h.splice(i,0,e);jset("rp_history",h.slice(0,200));
+  h.splice(i,0,e);jset("rp_history",h.slice(0,HISTMAX));
   recalcStreak();closePlan();renderHistory();}
 function calLogDel(mid){if(!mid)return;
   if(!confirm("¿Quitar esta rutina del calendario?"))return;
@@ -3329,7 +3441,10 @@ function renderProgress(){
 
   $("progBody").innerHTML=b;}
 
-applyTheme(loadTheme());renderHome();
+/* pedir almacenamiento persistente: sin esto el navegador puede vaciar
+   localStorage si el telefono se queda sin espacio */
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});}catch(e){}
+mergeCustom();applyTheme(loadTheme());renderHome();
 (function(){var st=history.state;
   if(st&&st.v==="routine"&&st.k&&ROUTINES[st.k]){openRoutine(st.k,true);}
   else if(st&&st.v==="guided"&&st.k&&ROUTINES[st.k]){resumeGuided(st.k);}
