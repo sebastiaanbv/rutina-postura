@@ -963,6 +963,11 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     border:1px solid var(--line);cursor:pointer;text-align:left}
   .exnote u{color:var(--primary-ink);font-weight:var(--w-bold);text-decoration:none;font-size:var(--t-xs)}
   .exnote.add{color:var(--mut);border-style:dashed;background:transparent}
+  .rirrow{display:flex;align-items:center;gap:6px;margin:10px 0 2px;font-size:var(--t-sm);color:var(--mut);font-weight:var(--w-semi)}
+  .rirrow span{flex:1}
+  .rirb{min-width:44px;height:36px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card2);
+    color:var(--tx);font:inherit;font-weight:var(--w-bold);cursor:pointer}
+  .rirb.on{background:var(--primary);border-color:var(--primary);color:#fff}
   .medrow{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:var(--t-sm)}
   .medrow>span:first-child{flex:1;font-weight:var(--w-semi)}
   .medrow b{font-variant-numeric:tabular-nums}
@@ -2542,7 +2547,8 @@ function adjW(d){const s=steps[stepi],l=availDB(s.id);
 function adjR(d){curReps=Math.max(1,curReps+d);const el=$("lr");if(el)el.textContent=curReps;}
 function logSet(){const s=steps[stepi];useSessionLog(curRoutine);
   const w=(s.load===true?curW:0),pr=isPR(s.id,w,curReps);
-  (sessionLog[s.id]=sessionLog[s.id]||[]).push({w:w,reps:curReps,t:Date.now()});
+  const rec={w:w,reps:curReps,t:Date.now()};if(curRir!=null)rec.rir=curRir;curRir=null;
+  (sessionLog[s.id]=sessionLog[s.id]||[]).push(rec);
   touchSess(stepi);
   try{if(navigator.vibrate)navigator.vibrate(18);}catch(x){}
   if(pr)markPR(s.id,w,curReps);
@@ -2809,7 +2815,7 @@ function frame(inner,opt){opt=opt||{};const s=steps[stepi],prog=Math.round(stepi
     ${conFicha?fichaEjercicio(s):""}
     ${conFicha?`<button class="skip" onclick="guidedSkipExercise()">Saltar ejercicio ${ic("skip","xs")}</button>`:""}</div>`;}
 
-function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){curW=null;curReps=null;}
+function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){curW=null;curReps=null;curRir=null;}
   if(s.kind==="count"){
     if(s.load===true||s.load===false){
       /* una sola rama para con carga y sin carga: antes eran dos casi
@@ -2817,13 +2823,13 @@ function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){cu
       const cargado=(s.load===true),ll=lastLog(s.id),ds=sessionLog[s.id]||[],sg=suggestLoad(s.id);
       if(cargado&&curW==null)curW=sg.w;
       if(curReps==null)curReps=sg.reps;
-      const valor=x=>cargado?(fmtW(x.w)+' '+s.unit+' × '+x.reps):(x.reps+' reps');
+      const valor=x=>(cargado?(fmtW(x.w)+' '+s.unit+' × '+x.reps):(x.reps+' reps'))+(x.rir!=null?' <small>· reserva '+(x.rir>=3?'3+':x.rir)+'</small>':'');
       const lastTxt=ll?('La última vez: '+ll.sets.map(x=>cargado?(fmtW(x.w)+'×'+x.reps):(x.reps+' reps')).join(', '))
                      :(cargado?'Primera vez — registra tu peso':'Primera vez — registra tus repeticiones');
       const setsTxt=ds.map((x,i)=>`<div class="setline" id="sl_${s.id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${valor(x)}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">${ic("close","xs")}</span></div>`).join("");
       const pesoStep=cargado?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-2.5)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" role="button" tabindex="0" aria-label="Escribir el peso exacto" title="Toca para escribir el peso exacto">${fmtW(curW)}</b><button class="sq" onclick="adjW(2.5)" aria-label="Subir peso">+</button></div></div>`:'';
       const repsStep=`<div class="stepper"${cargado?'':' style="max-width:220px;margin:0 auto"'}><div class="lab">${cargado?'Reps':'Repeticiones'}</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" role="button" tabindex="0" aria-label="Escribir las repeticiones" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>`;
-      inner=`<div class="logrow">${pesoStep}${repsStep}</div>
+      inner=`<div class="logrow">${pesoStep}${repsStep}</div>${cargado?rirHTML():""}
       <div class="last tap" onclick="toggleGChart('${s.id}')" role="button" tabindex="0" aria-label="Ver la curva de este ejercicio">${lastTxt}${spark(s.id)}</div>
       <div id="gchart" class="gchart"></div>
       ${sg.why?`<div class="qwhy">${ic("bulb","xs")} ${esc(sg.why)}</div>`:''}
@@ -3089,6 +3095,15 @@ function loadNotes(){return jget("rp_notes",{});}
 function exNoteHTML(id){const n=loadNotes()[id];
   return n?`<div class="exnote" onclick="editExNote('${id}')" role="button" tabindex="0">${ic("flag","xs")} <span style="flex:1">${esc(n)}</span><u>Editar</u></div>`
     :`<button type="button" class="exnote add" onclick="editExNote('${id}')">${ic("plus","xs")} Nota fija: ajuste de máquina, agarre…</button>`;}
+/* ---- repeticiones en reserva (v35) ----
+   Opcional y de un toque: cuantas mas podias hacer al terminar la serie. Se
+   guarda como s.rir dentro de la serie, que persistSession copia entera a
+   rp_logs. De momento solo se registra y se muestra; no mueve la progresion. */
+let curRir=null;
+function rirHTML(){return `<div class="rirrow" role="group" aria-label="Repeticiones en reserva"><span>¿Cuántas más podías?</span>`
+  +[0,1,2,3].map(n=>`<button type="button" class="rirb${curRir===n?" on":""}" onclick="setRir(${n})" aria-pressed="${curRir===n}">${n===3?"3+":n}</button>`).join("")+`</div>`;}
+function setRir(n){curRir=curRir===n?null:n;
+  document.querySelectorAll("#guided .rirb").forEach((b,i)=>{const on=curRir===i;b.classList.toggle("on",on);b.setAttribute("aria-pressed",String(on));});}
 /* ---- molestia articular (v35) ----
    RP Hypertrophy pregunta por dolor articular tras cada ejercicio. Aqui es un
    toque: se guarda la fecha en rp_pain y la sugerencia de la proxima vez no

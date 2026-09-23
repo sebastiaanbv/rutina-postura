@@ -300,8 +300,8 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
   ejercicios que alterne series y cuente el descanso solo al cerrar el par. El especialista que
   revisó las rutinas en v27 la señaló otra vez, y para el bloque secundario en concreto.
 - ~~Superseries~~: **descartadas por el usuario** (2026-09-23). No volver a proponerlas.
-- **RPE / reps en reserva por serie.** Sigue abierto; la nota fija por ejercicio (v35) cubría la
-  parte de «releer qué ajuste usé».
+- **Usar las reps en reserva en la progresión.** v35 ya las registra (`s.rir`); falta que
+  `todayTarget` las lea (p. ej. reserva 0 en todas las series → no subir aunque se llene el rango).
 
 **De la comparación con apps líderes (2026-09-23)** — Strong, Hevy, Alpha Progression, RP
 Hypertrophy, Boostcamp, JEFIT. Ordenado por valor para estos dos usuarios:
@@ -350,6 +350,8 @@ Fitbod (aporta poco con PPL 3×), insignias y logros.
   sugiere cambiar el ejercicio. Pensado para el manguito rotador.
 - **Series de aproximación** en el primer ejercicio con carga de la rutina, antes de la primera
   serie: 1×10 al 50 % y 1×5 al 70 % del peso de hoy, redondeado a pesos reales. No se registran.
+- **Repeticiones en reserva por serie**, opcional, en el guiado: «¿Cuántas más podías?» 0/1/2/3+.
+  Se guarda como `rir` dentro de la serie y se ve en la línea de la serie. Aún no mueve la progresión.
 - **Medidas corporales** en Progreso (`rp_medidas`): cintura, brazo, pecho, muslo, cadera, con el
   cambio desde la primera. El texto de ayuda cambia con el objetivo.
 - **El ritmo de peso respeta el objetivo:** con «Salud y mantenimiento», peso estable es el éxito;
