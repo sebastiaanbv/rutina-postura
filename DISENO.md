@@ -334,6 +334,8 @@ Fitbod (aporta poco con PPL 3×), insignias y logros.
 - **Service worker:** no guarda respuestas de error encima de la copia buena, y `figuras.js` se
   guarda en la primera descarga buena si falló en la instalación. `CACHE` sigue en v33 a
   propósito: subirla obligaría a todos a bajar otra vez los 2 MB de figuras.
+- **Exportar en el teléfono abre el menú de compartir** (Drive, chat, Archivos) si el navegador
+  lo permite; en escritorio sigue la descarga. Cancelar no cuenta como copia hecha.
 - **Aviso de copia de seguridad** en Inicio (≥5 sesiones y 14 días sin exportar) y «Última
   copia: hace N días» en Ajustes. `rp_lastexport`.
 - **Objetivo por teléfono** en Ajustes: «Ganar músculo» (`MUSCGOAL`) o «Salud y mantenimiento»

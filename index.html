@@ -2635,12 +2635,20 @@ function volumeByDate(){const logs=loadLogs(),m={};
 function exportData(){try{const keys=Object.keys(localStorage).filter(k=>k.indexOf("rp_")===0);
   const data={_app:"rutina-postura",_v:VERSION,_date:new Date().toISOString(),store:{}};
   keys.forEach(k=>{const v=localStorage.getItem(k);if(v!=null)data.store[k]=v;});
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rutina-postura-"+today()+".json";
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),name="rutina-postura-"+today()+".json";
+  const hecho=()=>{jset("rp_lastexport",today());
+    if($("home").classList.contains("active"))renderHome();
+    if($("settings").classList.contains("active"))renderSettings();};
+  /* En el telefono, el menu de compartir: la descarga por enlace falla a veces
+     en la app instalada en iPhone, y desde el menu la copia puede ir directo a
+     Drive o a un chat, fuera del telefono, que es donde sirve. Si se cancela,
+     no cuenta como copia hecha. */
+  let file=null;try{file=new File([blob],name,{type:"application/json"});}catch(e){}
+  if(file&&matchMedia("(pointer:coarse)").matches&&navigator.canShare&&navigator.canShare({files:[file]})){
+    navigator.share({files:[file],title:"Copia de Mi Rutina"}).then(hecho).catch(()=>{});return;}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;
   document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},600);
-  jset("rp_lastexport",today());
-  if($("home").classList.contains("active"))renderHome();
-  if($("settings").classList.contains("active"))renderSettings();}catch(e){toast("No se pudo exportar la copia.");}}
+  hecho();}catch(e){toast("No se pudo exportar la copia.");}}
 function importData(input){const f=input&&input.files&&input.files[0];if(!f)return;const r=new FileReader();
   r.onload=()=>{try{const d=JSON.parse(r.result);const store=(d&&d.store)?d.store:d;
     if(!store||typeof store!=="object")throw 0;
