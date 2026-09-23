@@ -3500,6 +3500,12 @@ function medidasHTML(){const a=loadMed(),salud=goalPref()==="salud";
     const u=v[v.length-1],p=v[0],d=Math.round((u[k]-p[k])*10)/10,f=p.date.split("-");
     b+='<div class="medrow"><span>'+n+'</span><b>'+fmtW(u[k])+' cm</b><span class="cs">'
       +(v.length>1?((d>=0?"+":"")+fmtW(d)+" cm desde el "+f[2]+"/"+f[1]):"primera medida")+'</span></div>';});
+  /* una sola curva, la que importa para el objetivo: cintura en salud, brazo en
+     masa. Con cinco a la vez la tarjeta se volveria ilegible */
+  const pri=[salud?"cintura":"brazo",salud?"brazo":"cintura"].concat(MEDIDAS.map(m=>m[0]))
+    .find(k=>a.filter(x=>x[k]>0).length>=3);
+  if(pri){b+='<div class="cs" style="margin-top:10px">'+MEDIDAS.find(m=>m[0]===pri)[1]+' (cm)</div>'
+    +chart(a.filter(x=>x[pri]>0).map(x=>x[pri]),"cm");}
   b+='<div class="medgrid">'+MEDIDAS.map(([k,n])=>'<label>'+n+'<input id="med_'+k+'" type="number" inputmode="decimal" step="0.5" min="0" placeholder="cm"></label>').join("")
     +'</div><button class="minibtn" onclick="addMed()">Guardar medidas de hoy</button></div>';
   return b;}

@@ -309,8 +309,8 @@ Hypertrophy, Boostcamp, JEFIT. Ordenado por valor para estos dos usuarios:
    (salto de placa real de cada máquina del gimnasio).
 2. ~~Aviso de molestia articular~~ → cerrado en v35.
 3. ~~Series de aproximación~~ → cerrado en v35.
-4. ~~Medidas corporales~~ → cerrado en v35 (sin gráfica todavía: último valor y cambio desde la
-   primera medida; la gráfica con `chart()` es el siguiente paso cuando haya 3+ medidas).
+4. ~~Medidas corporales~~ → cerrado en v35, con curva de la medida principal (cintura en salud,
+   brazo en masa) desde 3 medidas.
 5. **Descarga de una semana** (Alpha Progression, RP, Boostcamp): salida al radar de estancamiento. M.
 6. ~~Resumen mensual~~ → cerrado en v35 (sin desglose por músculo todavía).
 7. **Fotos de progreso** (Hevy, JEFIT). M: van en IndexedDB, no en localStorage ni en el JSON.
