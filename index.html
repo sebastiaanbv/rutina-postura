@@ -963,6 +963,8 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     border:1px solid var(--line);cursor:pointer;text-align:left}
   .exnote u{color:var(--primary-ink);font-weight:var(--w-bold);text-decoration:none;font-size:var(--t-xs)}
   .exnote.add{color:var(--mut);border-style:dashed;background:transparent}
+  .exnote.pain{background:var(--danger-tint);color:var(--danger-ink);border-color:var(--danger)}
+  .exnote.pain u{color:inherit;text-decoration:underline}
   .ddfix{border:1px solid var(--line);background:var(--card);color:var(--primary-ink);border-radius:var(--r-sm);
     font:inherit;font-size:var(--t-xs);font-weight:var(--w-bold);padding:4px 9px;cursor:pointer;flex:0 0 auto}
 
@@ -2526,7 +2528,10 @@ function persistSession(k,dateOverride,startedAt){
 function durSince(t){if(!t)return 0;const m=Math.round((Date.now()-t)/60000);return (m>0&&m<=240)?m:0;}
 function fmtW(w){return (Math.round(w*10)%10===0)?String(Math.round(w)):Number(w).toFixed(1);}
 function plural(n,sing,pl){return (Math.abs(n)===1)?sing:pl;}
-function adjW(d){const s=steps[stepi];curW=Math.max(0,Math.round((curW+d)*10)/10);const el=$("lw");if(el)el.innerHTML=fmtW(curW)+' <small>'+(s.unit||'kg')+'</small>';}
+function adjW(d){const s=steps[stepi],l=availDB(s.id);
+  /* con mancuernas declaradas, los botones saltan a la siguiente que existe */
+  if(l){const c=curW||0,n=d>0?l.filter(x=>x>c+1e-9)[0]:l.filter(x=>x<c-1e-9).pop();curW=n!=null?n:c;}
+  else curW=Math.max(0,Math.round((curW+d)*10)/10);const el=$("lw");if(el)el.innerHTML=fmtW(curW)+' <small>'+(s.unit||'kg')+'</small>';}
 function adjR(d){curReps=Math.max(1,curReps+d);const el=$("lr");if(el)el.textContent=curReps;}
 function logSet(){const s=steps[stepi];useSessionLog(curRoutine);
   const w=(s.load===true?curW:0),pr=isPR(s.id,w,curReps);
@@ -2741,7 +2746,6 @@ function fichaEjercicio(s){
     <div class="exinfo-b">
     ${panelZona(s.id)}
     ${(EX[s.id]&&EX[s.id].coach)?`<div class="coachtip">${ic("bulb","xs")} ${esc(EX[s.id].coach)}</div>`:``}
-    ${exNoteHTML(s.id)}
     ${caveat}${opt}
     <ul class="glist">${s.steps.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>
     ${vid?`<div class="vbtn" onclick="toggleGVid()" role="button" tabindex="0">${ic("play","sm solid")} Ver video</div>
@@ -2793,6 +2797,7 @@ function frame(inner,opt){opt=opt||{};const s=steps[stepi],prog=Math.round(stepi
     <div class="gcount">${s.exI}/${s.exN}</div><div class="icbtn" onclick="guidedExit()" role="button" tabindex="0" aria-label="Salir" title="Salir (se guarda solo)">${ic("close")}</div></div>
     <div class="stage${opt.rest?" isrest":""}">${opt.rest?"":`<div class="setlab">${s.label}</div><div class="exname">${s.name}</div>`}${(conFicha&&zonaTexto(s.id))?'<div class="zonatag">'+esc(zonaTexto(s.id))+'</div>':''}
     ${inner}
+    ${conFicha?exNoteHTML(s.id)+painHTML(s.id):""}
     ${conFicha?seriesBox(s):""}
     ${conFicha?fichaEjercicio(s):""}
     ${conFicha?`<button class="skip" onclick="guidedSkipExercise()">Saltar ejercicio ${ic("skip","xs")}</button>`:""}</div>`;}
@@ -2815,6 +2820,7 @@ function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){cu
       <div class="last tap" onclick="toggleGChart('${s.id}')" role="button" tabindex="0" aria-label="Ver la curva de este ejercicio">${lastTxt}${spark(s.id)}</div>
       <div id="gchart" class="gchart"></div>
       ${sg.why?`<div class="qwhy">${ic("bulb","xs")} ${esc(sg.why)}</div>`:''}
+      ${ds.length?'':warmupHTML(s.id,curW)}
       ${setsTxt?`<div class="sets">${setsTxt}</div>`:''}
       <button class="gbtn go" onclick="logSet()">${ic("check","sm")} Registrar serie</button>`;
     }else{inner=`<div class="target">Haz ${s.reps} repeticiones${s.perSide?' <small>por cada lado</small>':''}</div>
@@ -3076,6 +3082,26 @@ function loadNotes(){return jget("rp_notes",{});}
 function exNoteHTML(id){const n=loadNotes()[id];
   return n?`<div class="exnote" onclick="editExNote('${id}')" role="button" tabindex="0">${ic("flag","xs")} <span style="flex:1">${esc(n)}</span><u>Editar</u></div>`
     :`<button type="button" class="exnote add" onclick="editExNote('${id}')">${ic("plus","xs")} Nota fija: ajuste de máquina, agarre…</button>`;}
+/* ---- molestia articular (v35) ----
+   RP Hypertrophy pregunta por dolor articular tras cada ejercicio. Aqui es un
+   toque: se guarda la fecha en rp_pain y la sugerencia de la proxima vez no
+   sube carga. Pensado para el manguito rotador. */
+function loadPain(){return jget("rp_pain",{});}
+function painHTML(id){if(!(EX[id]||{}).load)return "";const on=(loadPain()[id]||[]).indexOf(today())>=0;
+  return `<button type="button" class="exnote${on?" pain":" add"}" onclick="togglePain('${id}')" aria-pressed="${on}">${ic("alert","xs")} ${on?"Molestia anotada hoy: la próxima vez no subirá el peso · <u>quitar</u>":"¿Molestia en alguna articulación? Anótala"}</button>`;}
+function togglePain(id){const all=loadPain(),a=(all[id]||[]).slice(),i=a.indexOf(today());
+  if(i<0)a.push(today());else a.splice(i,1);if(a.length)all[id]=a.slice(-30);else delete all[id];
+  jset("rp_pain",all);renderStep();}
+/* ---- series de aproximacion (v35) ----
+   Solo en el primer ejercicio con carga de la rutina, que es el pesado y el
+   que calienta la articulacion. 50 % × 10 y 70 % × 5, redondeado a pesos
+   reales. No se registran: son preparacion, no trabajo. */
+function warmupHTML(id,w){const e=EX[id]||{};if(e.load!==true||!(w>=8))return "";
+  const r=ROUTINES[curRoutine]||{},warm=r.warm||[],
+    first=effList(curRoutine).find(x=>EX[x]&&EX[x].load===true&&warm.indexOf(x)<0&&EX[x].tag!=="calent");
+  if(first!==id)return "";
+  const l=availDB(id),st=w>=20?2.5:1,rd=x=>l?(l.filter(v=>v<=x+1e-9).pop()||l[0]):Math.max(st,Math.round(x/st)*st);
+  return `<div class="qwhy warmup">${ic("flame","xs")} Antes de la primera serie, aproximación (no se registra): 1×10 con ${fmtW(rd(w*.5))} kg · 1×5 con ${fmtW(rd(w*.7))} kg</div>`;}
 function editExNote(id){const all=loadNotes(),v=prompt("Nota para "+shortName(id)+" (se verá cada vez que hagas este ejercicio). Déjala vacía para borrarla.",all[id]||"");
   if(v==null)return;const t=v.trim().slice(0,200);if(t)all[id]=t;else delete all[id];jset("rp_notes",all);
   if($("guided").classList.contains("active"))renderStep();}
@@ -3335,6 +3361,13 @@ function savePesosDB(){const raw=(($("pesosDB")||{}).value||"").trim(),
 function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)return null;
   const rng=repRange(id),d=dose(k,id),ll=lastLog(id);
   if(!ll||!ll.sets.length)return {w:e.load===true?0:0,reps:rng[0],why:"Primera vez: busca "+rng[0]+" repeticiones limpias",nuevo:true};
+  /* molestia anotada la ultima vez: la progresion se congela. Subir carga
+     sobre una articulacion que avisa es justo lo que no hay que hacer */
+  const pain=loadPain()[id]||[];
+  if(pain.indexOf(ll.date)>=0){const f0=ll.sets[0]||{},rep=pain.filter(d=>d>=dOffset(28)).length>=2;
+    return {w:f0.w||0,reps:f0.reps||rng[0],dolor:true,
+      why:rep?"Molestia repetida en este ejercicio: no subas y plantéate cambiarlo por otro"
+             :"La vez pasada anotaste molestia: mismo peso y sin forzar"};}
   const trabajo=ll.sets,tope=trabajo.every(x=>(x.reps||0)>=rng[1]),
         completo=trabajo.length>=(d.sets||trabajo.length),first=trabajo[0];
   /* Con mancuernas propias (Ajustes) manda la lista real, no un salto teorico.

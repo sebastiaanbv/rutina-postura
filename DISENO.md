@@ -307,10 +307,8 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
 Hypertrophy, Boostcamp, JEFIT. Ordenado por valor para estos dos usuarios:
 1. ~~Pesos disponibles~~ → cerrado en v35 para mancuernas. Queda abierto para máquinas
    (salto de placa real de cada máquina del gimnasio).
-2. **Aviso de molestia articular** (RP Hypertrophy). «¿Molestia? no / leve / sí» al cerrar el
-   ejercicio; si se repite, no sugerir subir carga y ofrecer el cambio. Protege el manguito. S.
-3. **Series de aproximación automáticas** (Strong, Hevy, Boostcamp). Hoy van escritas en el
-   `coach` del press; generarlas del peso sugerido (50 % × 10, 70 % × 5). S.
+2. ~~Aviso de molestia articular~~ → cerrado en v35.
+3. ~~Series de aproximación~~ → cerrado en v35.
 4. **Medidas corporales** (Hevy, Strong, JEFIT): cintura, brazo, pecho, muslo con gráfica. La
    cintura es el marcador de salud para la madre; el brazo cuenta la hipertrofia mejor que el peso. S.
 5. **Descarga de una semana** (Alpha Progression, RP, Boostcamp): salida al radar de estancamiento. M.
@@ -346,6 +344,14 @@ Fitbod (aporta poco con PPL 3×), insignias y logros.
   10 % y `loadStep` no dejaba subir nunca: estiraba el rango para siempre. Con lista, solo se
   sugieren pesos reales: salto suave (≤10 %) se sube al llenar el rango; salto grande, al llenar
   el rango estirado (+2 reps); con la más pesada, se estira. Sin lista, nada cambia (gimnasio).
+  Los botones −/+ del peso saltan a la mancuerna anterior/siguiente que existe.
+- **Molestia articular** (`rp_pain`, idea de RP Hypertrophy): un toque en el guiado anota la
+  fecha. Si la última sesión la tiene, `todayTarget` congela peso y reps; dos en 28 días →
+  sugiere cambiar el ejercicio. Pensado para el manguito rotador.
+- **Series de aproximación** en el primer ejercicio con carga de la rutina, antes de la primera
+  serie: 1×10 al 50 % y 1×5 al 70 % del peso de hoy, redondeado a pesos reales. No se registran.
+- La **nota fija y la molestia van fuera de «Cómo se hace»**: ese bloque se pliega tras tres
+  sesiones y habría escondido la nota justo cuando más sirve.
 
 ### Cerrado en v34
 
