@@ -963,6 +963,13 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     border:1px solid var(--line);cursor:pointer;text-align:left}
   .exnote u{color:var(--primary-ink);font-weight:var(--w-bold);text-decoration:none;font-size:var(--t-xs)}
   .exnote.add{color:var(--mut);border-style:dashed;background:transparent}
+  .medrow{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:var(--t-sm)}
+  .medrow>span:first-child{flex:1;font-weight:var(--w-semi)}
+  .medrow b{font-variant-numeric:tabular-nums}
+  .medgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-top:12px}
+  .medgrid label{display:flex;flex-direction:column;gap:4px;font-size:var(--t-xs);font-weight:var(--w-bold);color:var(--mut)}
+  .medgrid input{width:100%;box-sizing:border-box;background:var(--sunk);color:var(--tx);border:1px solid var(--line);
+    border-radius:var(--r-sm);padding:10px;font:inherit;font-size:16px;font-weight:var(--w-med)}
   .exnote.pain{background:var(--danger-tint);color:var(--danger-ink);border-color:var(--danger)}
   .exnote.pain u{color:inherit;text-decoration:underline}
   .ddfix{border:1px solid var(--line);background:var(--card);color:var(--primary-ink);border-radius:var(--r-sm);
@@ -3436,6 +3443,29 @@ function strengthSpark(){const out=[];for(let w=11;w>=0;w--){const r=strengthIdx
 
 /* --- peso corporal --- */
 function loadBW(){return jget("rp_bw",[]).slice().sort((a,b)=>a.date<b.date?-1:1);}
+/* ---- medidas corporales (v35, rp_medidas) ----
+   Hevy, Strong y JEFIT las tienen. La bascula no distingue musculo de grasa:
+   el brazo y el pecho cuentan la hipertrofia, y la cintura es el marcador de
+   salud (y el aviso de que el superavit se esta yendo a grasa). */
+const MEDIDAS=[["cintura","Cintura"],["brazo","Brazo"],["pecho","Pecho"],["muslo","Muslo"],["cadera","Cadera"]];
+function loadMed(){return jget("rp_medidas",[]).slice().sort((a,b)=>a.date<b.date?-1:1);}
+function medidasHTML(){const a=loadMed(),salud=goalPref()==="salud";
+  let b='<div class="grouptitle">Medidas</div><div class="chartcard">';
+  if(!a.length)b+='<div class="cs">Mídete cada 2-4 semanas, por la mañana y con la cinta sin apretar. '
+    +(salud?'La cintura es el mejor indicador de salud: mejor si baja o se mantiene.'
+           :'El brazo y el pecho cuentan el músculo mejor que la báscula; la cintura avisa si sobra grasa.')+'</div>';
+  else MEDIDAS.forEach(([k,n])=>{const v=a.filter(x=>x[k]>0);if(!v.length)return;
+    const u=v[v.length-1],p=v[0],d=Math.round((u[k]-p[k])*10)/10,f=p.date.split("-");
+    b+='<div class="medrow"><span>'+n+'</span><b>'+fmtW(u[k])+' cm</b><span class="cs">'
+      +(v.length>1?((d>=0?"+":"")+fmtW(d)+" cm desde el "+f[2]+"/"+f[1]):"primera medida")+'</span></div>';});
+  b+='<div class="medgrid">'+MEDIDAS.map(([k,n])=>'<label>'+n+'<input id="med_'+k+'" type="number" inputmode="decimal" step="0.5" min="0" placeholder="cm"></label>').join("")
+    +'</div><button class="minibtn" onclick="addMed()">Guardar medidas de hoy</button></div>';
+  return b;}
+function addMed(){const e={};MEDIDAS.forEach(([k])=>{const v=parseFloat(($("med_"+k)||{}).value);if(v>0&&v<300)e[k]=Math.round(v*10)/10;});
+  if(!Object.keys(e).length){toast("Escribe al menos una medida en cm.");return;}
+  const arr=jget("rp_medidas",[]),t=today(),i=arr.findIndex(x=>x.date===t);
+  if(i>=0)Object.assign(arr[i],e);else arr.push(Object.assign({date:t},e));
+  jset("rp_medidas",arr);renderProgress();toast(`${ic("check","sm")} Medidas guardadas`);}
 function addBW(){const el=$("bwin");if(!el)return;const v=parseFloat(el.value);if(isNaN(v)||v<=0||v>400)return;
   const arr=loadBW(),t=today(),i=arr.findIndex(x=>x.date===t);
   if(i>=0)arr[i].kg=v;else arr.push({date:t,kg:Math.round(v*10)/10});
@@ -3560,7 +3590,14 @@ function renderProgress(){
   /* 2 · peso corporal */
   b+='<div class="grouptitle">Peso corporal</div><div class="chartcard">';
   const rate=bw.length?bwRate(bw):null;
-  if(rate){const cls=(rate.pct>=0.25&&rate.pct<=0.5)?"up":((rate.pct<0||rate.pct>0.75)?"down":"");
+  /* con objetivo de salud el peso estable es el exito, no "vas lento para ganar masa" */
+  if(rate&&goalPref()==="salud"){const est=Math.abs(rate.pct)<=0.25;
+    b+='<div class="cthead"><div class="ct">'+fmtW(Math.round(rate.cur*10)/10)+' kg</div><span class="delta '+(est?"up":"down")+'">'
+      +(rate.kgw>=0?"+":"")+fmtW(Math.round(rate.kgw*100)/100)+' kg/sem</span></div>';
+    b+='<div class="cs">'+(est?"Peso estable: justo lo que busca el mantenimiento.":(rate.pct>0?"Estás subiendo de peso.":"Estás bajando de peso."))+'</div>';
+    const serie=[];for(let i=55;i>=0;i-=1){const m=ma7(bw,dOffset(i));if(m!=null)serie.push(Math.round(m*10)/10);}
+    if(serie.length>2)b+=chart(serie,"kg");
+  }else if(rate){const cls=(rate.pct>=0.25&&rate.pct<=0.5)?"up":((rate.pct<0||rate.pct>0.75)?"down":"");
     b+='<div class="cthead"><div class="ct">'+fmtW(Math.round(rate.cur*10)/10)+' kg</div><span class="delta '+(cls||"up")+'">'
       +(rate.kgw>=0?"+":"")+fmtW(Math.round(rate.kgw*100)/100)+' kg/sem</span></div>';
     b+='<div class="cs">'+(rate.pct>=0.25&&rate.pct<=0.5?"Ritmo ideal para ganar masa limpia.":
@@ -3571,6 +3608,7 @@ function renderProgress(){
   b+='<div class="bwrow"><input id="bwin" type="number" inputmode="decimal" step="0.1" placeholder="Peso de hoy (kg)"><button class="minibtn" onclick="addBW()">Guardar</button></div>';
   if(bw.length)b+='<div class="cs" style="margin-top:6px">'+bw.length+' pesajes registrados · último '+bw[bw.length-1].kg+' kg</div>';
   b+='</div>';
+  b+=medidasHTML();
 
   /* 3 · por musculo */
   const wk=muscleSets(weekStart(0),today());

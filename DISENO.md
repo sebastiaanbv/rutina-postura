@@ -309,8 +309,8 @@ Hypertrophy, Boostcamp, JEFIT. Ordenado por valor para estos dos usuarios:
    (salto de placa real de cada máquina del gimnasio).
 2. ~~Aviso de molestia articular~~ → cerrado en v35.
 3. ~~Series de aproximación~~ → cerrado en v35.
-4. **Medidas corporales** (Hevy, Strong, JEFIT): cintura, brazo, pecho, muslo con gráfica. La
-   cintura es el marcador de salud para la madre; el brazo cuenta la hipertrofia mejor que el peso. S.
+4. ~~Medidas corporales~~ → cerrado en v35 (sin gráfica todavía: último valor y cambio desde la
+   primera medida; la gráfica con `chart()` es el siguiente paso cuando haya 3+ medidas).
 5. **Descarga de una semana** (Alpha Progression, RP, Boostcamp): salida al radar de estancamiento. M.
 6. **Resumen mensual** (Hevy, Boostcamp): sesiones, series, músculo, récords vs. mes anterior. M.
 7. **Fotos de progreso** (Hevy, JEFIT). M: van en IndexedDB, no en localStorage ni en el JSON.
@@ -350,6 +350,10 @@ Fitbod (aporta poco con PPL 3×), insignias y logros.
   sugiere cambiar el ejercicio. Pensado para el manguito rotador.
 - **Series de aproximación** en el primer ejercicio con carga de la rutina, antes de la primera
   serie: 1×10 al 50 % y 1×5 al 70 % del peso de hoy, redondeado a pesos reales. No se registran.
+- **Medidas corporales** en Progreso (`rp_medidas`): cintura, brazo, pecho, muslo, cadera, con el
+  cambio desde la primera. El texto de ayuda cambia con el objetivo.
+- **El ritmo de peso respeta el objetivo:** con «Salud y mantenimiento», peso estable es el éxito;
+  antes le decía a la madre «vas lento para ganar masa».
 - La **nota fija y la molestia van fuera de «Cómo se hace»**: ese bloque se pliega tras tres
   sesiones y habría escondido la nota justo cuando más sirve.
 
