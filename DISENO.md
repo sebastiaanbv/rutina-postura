@@ -312,7 +312,7 @@ Hypertrophy, Boostcamp, JEFIT. Ordenado por valor para estos dos usuarios:
 4. ~~Medidas corporales~~ → cerrado en v35 (sin gráfica todavía: último valor y cambio desde la
    primera medida; la gráfica con `chart()` es el siguiente paso cuando haya 3+ medidas).
 5. **Descarga de una semana** (Alpha Progression, RP, Boostcamp): salida al radar de estancamiento. M.
-6. **Resumen mensual** (Hevy, Boostcamp): sesiones, series, músculo, récords vs. mes anterior. M.
+6. ~~Resumen mensual~~ → cerrado en v35 (sin desglose por músculo todavía).
 7. **Fotos de progreso** (Hevy, JEFIT). M: van en IndexedDB, no en localStorage ni en el JSON.
 
 Descartado tras la comparación: calculadora de discos (no usan barra), mapa de recuperación de
@@ -354,6 +354,10 @@ Fitbod (aporta poco con PPL 3×), insignias y logros.
   serie: 1×10 al 50 % y 1×5 al 70 % del peso de hoy, redondeado a pesos reales. No se registran.
 - **Repeticiones en reserva por serie**, opcional, en el guiado: «¿Cuántas más podías?» 0/1/2/3+.
   Se guarda como `rir` dentro de la serie y se ve en la línea de la serie. Aún no mueve la progresión.
+- **Resumen del mes** arriba en Progreso: sesiones, series, kg levantados y récords, contra los
+  MISMOS días del mes anterior (1-23 contra 1-23; un mes a medias contra uno entero siempre sale en rojo).
+- **Borrar una sesión entera** desde Historial: la entrada y sus series de ese día (casadas por el
+  sello de inicio `r.t`, o por rutina y fecha si no lo hay). Recalcula la racha.
 - **Quitar pesajes** desde Progreso («Ver y corregir pesajes», los últimos 10): un 800 en vez de
   80 descuadraba la media de 7 días.
 - **Medidas corporales** en Progreso (`rp_medidas`): cintura, brazo, pecho, muslo, cadera, con el

@@ -968,6 +968,11 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .rirb{min-width:44px;height:36px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card2);
     color:var(--tx);font:inherit;font-weight:var(--w-bold);cursor:pointer}
   .rirb.on{background:var(--primary);border-color:var(--primary);color:#fff}
+  .msum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .mscell{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:var(--r-sm);background:var(--sunk)}
+  .mscell b{font-size:var(--t-lg);font-variant-numeric:tabular-nums}
+  .mscell span{font-size:var(--t-xs);color:var(--mut);font-weight:var(--w-semi)}
+  .mscell .delta{align-self:flex-start;font-style:normal}
   .bwlist{margin-top:8px;font-size:var(--t-sm)}
   .bwlist summary{cursor:pointer;color:var(--primary-ink);font-weight:var(--w-bold);padding:6px 0}
   .medrow{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:var(--t-sm)}
@@ -3029,7 +3034,8 @@ function renderHistory(){const s=loadStreak(),idx=histIndex(),now=new Date();
       ${tot?`<div class="dt2">${tot}</div>`:""}</div>
       <div class="go">${rows.length?ic("right","sm"):""}</div></div>
       <div class="daydet" id="dd_${i}">${rows.length?rows.map(r=>`<div class="ddrow"><span class="dn">${esc(shortName(r.id))}</span><span class="dv">${r.txt}</span>${r.sets.length?`<button type="button" class="ddfix" onclick="openSetEdit('${r.id}',${r.ri})" aria-label="Corregir series de ${esc(shortName(r.id))}">Corregir</button>`:""}</div>`).join(""):`<div class="ddrow"><span class="dn">Sin series anotadas ese día.</span></div>`}</div>
-      ${x.manual?`<div class="mrow"><span class="mtag">Añadida a mano</span><button type="button" class="mdel" onclick="calLogDel(${x.mid||0})">Quitar</button></div>`:""}</div>`;}).join("");
+      ${x.manual?`<div class="mrow"><span class="mtag">Añadida a mano</span><button type="button" class="mdel" onclick="calLogDel(${x.mid||0})">Quitar</button></div>`
+        :(x.iso?`<div class="mrow"><span class="mtag"></span><button type="button" class="mdel" onclick="calSessDel('${x.iso}','${x.key}')">Borrar sesión</button></div>`:"")}</div>`;}).join("");
   $("histBody").innerHTML=b;}
 
 /* ---- registrar a mano una rutina que no se anoto ese dia ---- */
@@ -3056,6 +3062,17 @@ function calLogPick(key){const r=ROUTINES[key];if(!r||!calSel){closePlan();retur
   let i=0;while(i<h.length&&histStamp(h[i])>=st)i++;
   h.splice(i,0,e);jset("rp_history",h.slice(0,HISTMAX));
   recalcStreak();closePlan();renderHistory();}
+/* borrar una sesion registrada entera (v35): la entrada del historial y sus
+   series de ese dia. Las series se casan por el sello de inicio (r.t), el mismo
+   que usa dayRows; si no hay sello, por rutina y fecha. */
+function calSessDel(iso,key){const h=loadHist(),x=h.find(e=>e.iso===iso&&e.key===key);if(!x)return;
+  const stamp=Date.parse(iso),day=ds(new Date(iso)),logs=loadLogs();
+  let porSello=0;Object.keys(logs).forEach(id=>(logs[id]||[]).forEach(r=>{if(r.date===day&&r.t===stamp)porSello++;}));
+  const suya=r=>r.date===day&&(porSello?r.t===stamp:r.k===key);
+  let n=0;Object.keys(logs).forEach(id=>(logs[id]||[]).forEach(r=>{if(suya(r))n+=(r.sets||[]).length;}));
+  if(!confirm("¿Borrar esta sesión de "+x.name+(n?" y sus "+n+" "+plural(n,"serie","series"):"")+"? No se puede deshacer."))return;
+  Object.keys(logs).forEach(id=>{logs[id]=(logs[id]||[]).filter(r=>!suya(r));if(!logs[id].length)delete logs[id];});
+  jset("rp_logs",logs);jset("rp_history",h.filter(e=>e!==x));recalcStreak();renderHistory();toast("Sesión borrada.");}
 function calLogDel(mid){if(!mid)return;
   if(!confirm("¿Quitar esta rutina del calendario?"))return;
   const h=loadHist().filter(x=>!(x.manual&&x.mid===mid));
@@ -3551,9 +3568,29 @@ function bars(items){let h='<div class="mbars">';
       +'<i class="mfill '+it.cls+'" style="width:'+pct+'%"></i></span><span class="mv">'+(Math.round(it.v*10)/10)+'</span></div>';});
   return h+'</div>';}
 
+/* ---- resumen del mes (v35, idea de Hevy y Boostcamp) ----
+   El mes en curso contra los MISMOS dias del mes anterior (1-23 contra 1-23):
+   comparar un mes a medias con uno entero siempre saldria en rojo. */
+const MESES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+function monthSummary(rows,logs){const t=new Date(),dia=t.getDate(),
+    cur=ds(t).slice(0,7),pd=new Date(t.getFullYear(),t.getMonth()-1,1),prev=ds(pd).slice(0,7),
+    inM=(d,m)=>d&&d.slice(0,7)===m&&+d.slice(8,10)<=dia;
+  const calc=m=>{let ses=0,fz=0,sets=0,vol=0;
+    rows.forEach(r=>{if(inM(r.date,m)){ses++;if(GYMKEYS.indexOf(r.key)>=0)fz++;}});
+    Object.keys(logs).forEach(id=>(logs[id]||[]).forEach(r=>{if(!inM(r.date,m))return;
+      (r.sets||[]).forEach(s=>{sets++;vol+=(s.w||0)*(s.reps||0);});}));
+    const prs=prFeed(70).filter(p=>inM(p.date,m)).length;
+    return {ses:ses,fz:fz,sets:sets,vol:vol,prs:prs};};
+  const a=calc(cur),p=calc(prev);if(!a.ses&&!p.ses)return "";
+  const cell=(v,pv,lab,fmt)=>{const d=v-pv,f=fmt||(x=>String(x));
+    return `<div class="mscell"><b>${f(v)}</b><span>${lab}</span>${pv||v?`<i class="delta ${d>=0?"up":"down"}">${d>=0?"+":"−"}${f(Math.abs(d))}</i>`:""}</div>`;};
+  const ton=x=>x>=1000?fmtW(Math.round(x/100)/10)+" t":Math.round(x)+" kg";
+  return `<div class="grouptitle">${MESES[t.getMonth()][0].toUpperCase()+MESES[t.getMonth()].slice(1)} hasta hoy</div><div class="chartcard">
+    <div class="msum">${cell(a.ses,p.ses,plural(a.ses,"sesión","sesiones"))}${cell(a.sets,p.sets,plural(a.sets,"serie","series"))}${cell(a.vol,p.vol,"levantado",ton)}${cell(a.prs,p.prs,plural(a.prs,"récord","récords"))}</div>
+    <div class="cs" style="margin-top:8px">Comparado con el 1-${dia} de ${MESES[pd.getMonth()]}${a.fz?" · "+a.fz+" "+plural(a.fz,"sesión","sesiones")+" de fuerza":""}.</div></div>`;}
 function renderProgress(){
   const s=loadStreak(),logs=loadLogs(),rows=histRows(),bw=loadBW();
-  let b="";
+  let b=monthSummary(rows,logs);
 
   /* 1 · indice de fuerza */
   const now=strengthIdx(null),prev=strengthIdx(dOffset(28)),spark=strengthSpark();
