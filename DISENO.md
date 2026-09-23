@@ -299,15 +299,50 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
   sin tocar descansos: los tres días quedaron en 62-68 min tras la revisión de programa de v30. Necesita un flag de «par» entre dos
   ejercicios que alterne series y cuente el descanso solo al cerrar el par. El especialista que
   revisó las rutinas en v27 la señaló otra vez, y para el bloque secundario en concreto.
-- **Editar o borrar series y sesiones pasadas desde Historial.** Hoy es de solo lectura: un
-  «100» tecleado en vez de «10» infla para siempre récords, fuerza estimada e índice de fuerza.
-- **Fechas `AAAA-MM-DD` leídas como UTC.** `new Date("2026-09-23")` cae en el día anterior en
-  UTC−5: el pesaje de hoy no entra en la media de 7 días hasta mañana, y las series del domingo
-  se pierden en las semanas pasadas de «punto débil». Leerlas con `+"T00:00:00"`.
-- **Meta semanal medida con el plan de hoy.** Cambiar de 3 a 4 días reescribe las semanas
-  pasadas y rompe la racha semanal. Guardar la meta de cada semana al cerrarla.
-- **Aviso de copia de seguridad.** Guardar la fecha de la última exportación y avisar en Inicio
-  pasados 14 días.
+- ~~Superseries~~: **descartadas por el usuario** (2026-09-23). No volver a proponerlas.
+- **RPE / reps en reserva por serie.** Sigue abierto; la nota fija por ejercicio (v35) cubría la
+  parte de «releer qué ajuste usé».
+
+**De la comparación con apps líderes (2026-09-23)** — Strong, Hevy, Alpha Progression, RP
+Hypertrophy, Boostcamp, JEFIT. Ordenado por valor para estos dos usuarios:
+1. **Pesos disponibles por aparato** (Alpha Progression). La doble progresión sugiere pesos que
+   no existen: con mancuernas de 1-3 kg no se sube 2,5 kg. Registrar los saltos reales y, si el
+   siguiente queda lejos, pedir más repeticiones antes de subir. S-M.
+2. **Aviso de molestia articular** (RP Hypertrophy). «¿Molestia? no / leve / sí» al cerrar el
+   ejercicio; si se repite, no sugerir subir carga y ofrecer el cambio. Protege el manguito. S.
+3. **Series de aproximación automáticas** (Strong, Hevy, Boostcamp). Hoy van escritas en el
+   `coach` del press; generarlas del peso sugerido (50 % × 10, 70 % × 5). S.
+4. **Medidas corporales** (Hevy, Strong, JEFIT): cintura, brazo, pecho, muslo con gráfica. La
+   cintura es el marcador de salud para la madre; el brazo cuenta la hipertrofia mejor que el peso. S.
+5. **Descarga de una semana** (Alpha Progression, RP, Boostcamp): salida al radar de estancamiento. M.
+6. **Resumen mensual** (Hevy, Boostcamp): sesiones, series, músculo, récords vs. mes anterior. M.
+7. **Fotos de progreso** (Hevy, JEFIT). M: van en IndexedDB, no en localStorage ni en el JSON.
+
+Descartado tras la comparación: calculadora de discos (no usan barra), mapa de recuperación de
+Fitbod (aporta poco con PPL 3×), insignias y logros.
+
+### Cerrado en v35
+
+- **Corregir series pasadas desde Historial.** Botón «Corregir» en cada ejercicio del día:
+  cambiar kg y repeticiones, quitar una serie o borrar el registro entero. Se edita `rp_logs` en
+  su sitio, así que récords, 1RM e índice de fuerza se recalculan solos.
+- **Fechas `AAAA-MM-DD` a medianoche local** (`dlocal`). En UTC−5 el pesaje de hoy no entraba en
+  la media de 7 días y las series del domingo se salían de su semana en «punto débil».
+- **La meta de cada semana se congela** en `rp_weekgoal` mientras la semana está viva. Cambiar de
+  3 a 4 días ya no vuelve incumplidas las semanas viejas.
+- **Racha al cerrar una sesión de ayer:** se recalcula (`recalcStreak`) en vez de quedarse corta.
+- **Descartar un rescate** lee la sesión antes de borrarla: ya no limpia los vistos de hoy.
+- **Importar valida y deshace:** cada valor tiene que ser JSON válido, y si el teléfono se queda
+  sin espacio a mitad, vuelve a los datos anteriores enteros.
+- **Service worker:** no guarda respuestas de error encima de la copia buena, y `figuras.js` se
+  guarda en la primera descarga buena si falló en la instalación. `CACHE` sigue en v33 a
+  propósito: subirla obligaría a todos a bajar otra vez los 2 MB de figuras.
+- **Aviso de copia de seguridad** en Inicio (≥5 sesiones y 14 días sin exportar) y «Última
+  copia: hace N días» en Ajustes. `rp_lastexport`.
+- **Objetivo por teléfono** en Ajustes: «Ganar músculo» (`MUSCGOAL`) o «Salud y mantenimiento»
+  (`MUSCGOAL_SALUD`, ~⅓ del volumen). Resuelve las barras siempre bajas en el teléfono de la madre.
+- **Nota fija por ejercicio** (`rp_notes`) en el guiado: ajuste de máquina, agarre. Reaparece
+  cada vez que sale ese ejercicio.
 
 ### Cerrado en v34
 

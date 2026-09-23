@@ -950,6 +950,22 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .cxf .row3 label{justify-content:flex-end}
   .cxf textarea{min-height:76px;resize:vertical}
   .cxf .minibtn{margin-top:0}
+  .sefrow{display:grid;grid-template-columns:22px 1fr 1fr 44px;gap:var(--s2);align-items:end}
+  #sefix[data-w="0"] .sefrow{grid-template-columns:22px 1fr 44px}
+  .sefrow b{padding-bottom:13px;color:var(--mut)}
+  .sefrow .minibtn{height:46px;display:flex;align-items:center;justify-content:center;padding:0}
+  .bknag{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 var(--s3);padding:12px 14px;
+    border-radius:var(--r-lg);background:var(--danger-tint);color:var(--danger-ink);font-size:var(--t-sm);line-height:1.45}
+  .bknag .minibtn{margin-top:0}
+  .minibtn.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .exnote{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;margin:8px 0 0;padding:9px 12px;
+    border-radius:var(--r-sm);background:var(--sunk);color:var(--tx);font:inherit;font-size:var(--t-sm);
+    border:1px solid var(--line);cursor:pointer;text-align:left}
+  .exnote u{color:var(--primary-ink);font-weight:var(--w-bold);text-decoration:none;font-size:var(--t-xs)}
+  .exnote.add{color:var(--mut);border-style:dashed;background:transparent}
+  .ddfix{border:1px solid var(--line);background:var(--card);color:var(--primary-ink);border-radius:var(--r-sm);
+    font:inherit;font-size:var(--t-xs);font-weight:var(--w-bold);padding:4px 9px;cursor:pointer;flex:0 0 auto}
+
   .planopt .em.none{background:var(--sunk);color:var(--mut)}
   .planopt .optck{margin-left:auto;color:var(--primary-ink);display:flex;align-items:center}
   /* hoja de resumen */
@@ -1554,7 +1570,7 @@ const SECDOSE={
 const TAG={calent:["Calentamiento","b-calent"],diario:["Diario","b-diario"],carga:["Carga 3–4×/sem","b-carga"],opcional:["Opcional","b-opcional"],propio:["Tuyo","b-opcional"]};
 const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
-const VERSION="v34 · agregar ejercicios propios";
+const VERSION="v35 · corregir series, notas y avisos de copia";
 /* ==== [S5] ICONOS =========================================================
    Solo el interior del <svg>; ic() lo envuelve. Rejilla 24x24, sin relleno
    salvo los marcados .solid. */
@@ -1699,6 +1715,10 @@ function jget(k,d){try{return JSON.parse(localStorage.getItem(k))??d;}catch(e){r
 function jset(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}
 function ds(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function today(){return ds(new Date());}
+/* "AAAA-MM-DD" a medianoche LOCAL. new Date("2026-09-23") la lee como UTC, y
+   en UTC-5 eso cae el dia anterior a las 19:00: el pesaje de hoy no entraba
+   en la media y el domingo se salia de su semana. */
+function dlocal(s){return new Date(s+"T00:00:00");}
 function yesterday(){const d=new Date();d.setDate(d.getDate()-1);return ds(d);}
 function loadStreak(){return jget("rp_streak",{count:0,best:0,last:null,total:0});}
 function completeDay(){const s=loadStreak(),t=today();if(s.last!==t){s.count=(s.last===yesterday())?s.count+1:1;s.last=t;s.total=(s.total||0)+1;}s.best=Math.max(s.best||0,s.count);jset("rp_streak",s);return s;}
@@ -1724,18 +1744,24 @@ function gymSessionsByWeek(){const m={};
 function weekGoal(){const p=loadPlan();
   const n=p.filter(v=>v&&GYMKEYS.indexOf(v)>=0).length;
   return n||3;}
+/* La meta de cada semana se congela en rp_weekgoal mientras la semana esta
+   viva. Antes todas las semanas se median con el plan de HOY: pasar de 3 a 4
+   dias volvia incumplidas las semanas viejas y la racha caia a 0. Las
+   semanas anteriores a v35 no tienen foto y siguen con la meta actual. */
 function weekStats(){const m=gymSessionsByWeek(),goal=weekGoal(),hoy=new Date();
-  const actual=wkKey(hoy),hechas=m[actual]||0;
+  const actual=wkKey(hoy),hechas=m[actual]||0,gs=jget("rp_weekgoal",{});
+  if(gs[actual]!==goal){gs[actual]=goal;jset("rp_weekgoal",gs);}
+  const gOf=k=>gs[k]!=null?gs[k]:goal;
   let racha=0,cur=wkMonday(hoy);
   for(;;){cur.setDate(cur.getDate()-7);const k=ds(cur);
-    if((m[k]||0)>=goal)racha++;else break;
+    if((m[k]||0)>=gOf(k))racha++;else break;
     if(racha>200)break;}
   let mejor=racha;const keys=Object.keys(m).sort();
   if(keys.length){let run=0,prev=null;
-    keys.forEach(k=>{if(m[k]<goal){run=0;prev=k;return;}
+    keys.forEach(k=>{if(m[k]<gOf(k)){run=0;prev=k;return;}
       const d=new Date(k+"T00:00:00");
       if(prev){const pd=new Date(prev+"T00:00:00");
-        run=((d-pd)/86400000===7&&m[prev]>=goal)?run+1:1;}else run=1;
+        run=((d-pd)/86400000===7&&m[prev]>=gOf(prev))?run+1:1;}else run=1;
       prev=k;mejor=Math.max(mejor,run);});}
   return {goal:goal,hechas:hechas,racha:racha,mejor:mejor,
     semanaOK:hechas>=goal,total:Object.keys(m).length};}
@@ -1758,7 +1784,7 @@ function renderHome(){
   $("stWeek").innerHTML=`<span class="wkring">${ringSVG(w.goal?w.hechas/w.goal:0,26,3.5)}</span>`
     +`<b>${w.hechas} de ${w.goal}</b> esta semana`;
   renderTodayCard(s);renderWeek();
-  let h="";
+  let h=backupNag();
   GROUPS.forEach(g=>{
     h+=`<div class="grouptitle">${g.title}</div><div class="rlist">`;
     g.keys.forEach(k=>{const r=ROUTINES[k];
@@ -1770,6 +1796,17 @@ function renderHome(){
     h+=`</div>`;});
   $("routines").innerHTML=h;
 }
+
+/* Aviso de copia (v35): sin servidor, la copia es lo unico que salva el
+   progreso si el telefono se pierde. Sale en Inicio cuando ya hay algo que
+   perder (5 sesiones) y la ultima exportacion tiene 14 dias o no existe. */
+function daysSinceExport(){const l=jget("rp_lastexport",null);
+  return l?Math.round((dlocal(today())-dlocal(l))/86400000):null;}
+function backupNag(){if(loadHist().length<5)return "";const d=daysSinceExport();
+  if(d!=null&&d<14)return "";
+  return `<div class="bknag">${ic("alert","sm")}<div style="flex:1">${d==null?"Aún no tienes copia de seguridad.":"Tu última copia es de hace "+d+" días."}
+    Si pierdes o cambias el teléfono, sin ella se pierde tu progreso.</div>
+    <button class="minibtn" onclick="exportData()">${ic("down","sm")} Hacer copia</button></div>`;}
 
 /* ---------- ROUTINE DETAIL ---------- */
 /* d es la dosificacion efectiva; si no se pasa, se cae a la del programa para
@@ -2394,8 +2431,11 @@ function finishSession(k,from){
   clearTimer();
   const sum=persistSession(k,dOver,startedAt);
   sum.pr=(mine&&mine.pr)?mine.pr:[];
-  const streak=dOver?loadStreak():completeDay();
+  let streak=dOver?null:completeDay();
   recordSession(k,ROUTINES[k].name,sum,startedAt||null);
+  /* una sesion de ayer cerrada hoy entra al historial con su fecha: la racha
+     se recalcula desde ahi, o se quedaba corta hasta tocar el calendario */
+  if(dOver)streak=recalcStreak();
   sessCommitted=startedAt||Date.now();
   clearSess();
   return {streak:streak,summary:sum,rescued:!!dOver};}
@@ -2579,13 +2619,25 @@ function exportData(){try{const keys=Object.keys(localStorage).filter(k=>k.index
   keys.forEach(k=>{const v=localStorage.getItem(k);if(v!=null)data.store[k]=v;});
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rutina-postura-"+today()+".json";
-  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},600);}catch(e){toast("No se pudo exportar la copia.");}}
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},600);
+  jset("rp_lastexport",today());
+  if($("home").classList.contains("active"))renderHome();
+  if($("settings").classList.contains("active"))renderSettings();}catch(e){toast("No se pudo exportar la copia.");}}
 function importData(input){const f=input&&input.files&&input.files[0];if(!f)return;const r=new FileReader();
   r.onload=()=>{try{const d=JSON.parse(r.result);const store=(d&&d.store)?d.store:d;
     if(!store||typeof store!=="object")throw 0;
     const ks=Object.keys(store).filter(k=>k.indexOf("rp_")===0);if(!ks.length)throw 0;
     if(!confirm("Esto reemplazará tus datos actuales con los del archivo. ¿Continuar?")){input.value="";return;}
-    ks.forEach(k=>localStorage.setItem(k,store[k]));
+    /* cada valor tiene que ser texto JSON valido: un objeto crudo se guardaba
+       como "[object Object]" y esa clave quedaba en blanco */
+    const vals={};ks.forEach(k=>{let v=store[k];if(typeof v!=="string")v=JSON.stringify(v);JSON.parse(v);vals[k]=v;});
+    /* foto de lo que hay: si el telefono se queda sin espacio a mitad, se
+       vuelve atras entero en vez de dejar datos a medias */
+    const prev={};Object.keys(localStorage).filter(k=>k.indexOf("rp_")===0).forEach(k=>prev[k]=localStorage.getItem(k));
+    try{ks.forEach(k=>localStorage.setItem(k,vals[k]));}
+    catch(err){Object.keys(localStorage).filter(k=>k.indexOf("rp_")===0).forEach(k=>localStorage.removeItem(k));
+      Object.keys(prev).forEach(k=>{try{localStorage.setItem(k,prev[k]);}catch(e){}});
+      toast("No cupo en el teléfono: tus datos quedaron como estaban.");input.value="";return;}
     toast("Datos importados. Recargando…");setTimeout(()=>location.reload(),1100);
   }catch(e){toast("Ese archivo no es una copia válida.");input.value="";}};
   r.readAsText(f);}
@@ -2625,8 +2677,9 @@ function confirmFinish(){const k=curRoutine,res=finishSession(k,"sheet");finResc
   $("finov").classList.remove("show");history.back();
   if(res){renderHome();if($("routine").classList.contains("active"))openRoutine(k,true);}}
 function discardSession(){if(!confirm("Se borrará lo registrado en esta sesión sin guardarlo. ¿Seguro?"))return;
-  const k=curRoutine;sessionLog={};sessionLogKey=null;clearSess();
-  const all=loadChecks(),s=loadSess();const t=(finRescue&&s)?s.date:today();
+  /* la sesion se lee ANTES de borrarla: si no, un rescate de ayer limpiaba los vistos de hoy */
+  const k=curRoutine,s=loadSess();sessionLog={};sessionLogKey=null;clearSess();
+  const all=loadChecks();const t=(finRescue&&s&&s.date)?s.date:today();
   if(all[t]&&all[t][k]){delete all[t][k];jset("rp_checks",all);}
   finRescue=null;$("finov").classList.remove("show");history.back();
   if($("routine").classList.contains("active"))openRoutine(k,true);}
@@ -2688,6 +2741,7 @@ function fichaEjercicio(s){
     <div class="exinfo-b">
     ${panelZona(s.id)}
     ${(EX[s.id]&&EX[s.id].coach)?`<div class="coachtip">${ic("bulb","xs")} ${esc(EX[s.id].coach)}</div>`:``}
+    ${exNoteHTML(s.id)}
     ${caveat}${opt}
     <ul class="glist">${s.steps.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>
     ${vid?`<div class="vbtn" onclick="toggleGVid()" role="button" tabindex="0">${ic("play","sm solid")} Ver video</div>
@@ -2945,7 +2999,7 @@ function renderHistory(){const s=loadStreak(),idx=histIndex(),now=new Date();
       <div style="flex:1"><div class="nm">${esc(x.name)}</div><div class="dt">${meta}</div>
       ${tot?`<div class="dt2">${tot}</div>`:""}</div>
       <div class="go">${rows.length?ic("right","sm"):""}</div></div>
-      <div class="daydet" id="dd_${i}">${rows.length?rows.map(r=>`<div class="ddrow"><span class="dn">${esc(shortName(r.id))}</span><span class="dv">${r.txt}</span></div>`).join(""):`<div class="ddrow"><span class="dn">Sin series anotadas ese día.</span></div>`}</div>
+      <div class="daydet" id="dd_${i}">${rows.length?rows.map(r=>`<div class="ddrow"><span class="dn">${esc(shortName(r.id))}</span><span class="dv">${r.txt}</span>${r.sets.length?`<button type="button" class="ddfix" onclick="openSetEdit('${r.id}',${r.ri})" aria-label="Corregir series de ${esc(shortName(r.id))}">Corregir</button>`:""}</div>`).join(""):`<div class="ddrow"><span class="dn">Sin series anotadas ese día.</span></div>`}</div>
       ${x.manual?`<div class="mrow"><span class="mtag">Añadida a mano</span><button type="button" class="mdel" onclick="calLogDel(${x.mid||0})">Quitar</button></div>`:""}</div>`;}).join("");
   $("histBody").innerHTML=b;}
 
@@ -2995,12 +3049,12 @@ function recalcStreak(){const s=loadStreak(),idx=histIndex(),keys=Object.keys(id
    de la misma rutina el mismo dia */
 function dayRows(dateKey,routineKey,stamp){const logs=loadLogs(),order=effList(routineKey);
   const pick=(useStamp)=>{const out=[];
-    Object.keys(logs).forEach(id=>{(logs[id]||[]).forEach(r=>{
+    Object.keys(logs).forEach(id=>{(logs[id]||[]).forEach((r,ri)=>{
       if(r.date!==dateKey)return;
       if(useStamp){if(r.t!==stamp)return;}
       else{if(r.k){if(r.k!==routineKey)return;}else if(order.indexOf(id)<0)return;}
       const sets=r.sets||[];
-      out.push({id:id,sets:sets,pos:order.indexOf(id),
+      out.push({id:id,ri:ri,sets:sets,pos:order.indexOf(id),
         txt:sets.length?sets.map(s=>((s.w||0)>0?fmtW(s.w)+"×":"")+s.reps).join("  ·  "):`${ic("check","xs")} hecho`});});});
     return out;};
   let rows=stamp?pick(true):[];
@@ -3014,6 +3068,43 @@ function dayTotals(x,rows){if(x.sets!=null){const ne=x.exDone||rows.length;
   let ns=0,vol=0;rows.forEach(r=>{ns+=r.sets.length;r.sets.forEach(s=>{vol+=(s.w||0)*(s.reps||0);});});
   return `${rows.length} ${plural(rows.length,"ejercicio","ejercicios")}`+(ns?` · ${ns} ${plural(ns,"serie","series")}`:"")+((vol>0)?" · "+fmtW(Math.round(vol))+" kg":"");}
 function toggleDay(i){const el=$("dd_"+i);if(el)el.classList.toggle("open");}
+/* ---- nota fija por ejercicio (v35) ----
+   Altura del asiento, agarre, "codos a 45°": lo que se olvida de una semana a
+   otra en las maquinas. Una por ejercicio, no por rutina, y reaparece cada
+   vez que ese ejercicio sale en el guiado (Strong y Hevy la llaman nota fijada). */
+function loadNotes(){return jget("rp_notes",{});}
+function exNoteHTML(id){const n=loadNotes()[id];
+  return n?`<div class="exnote" onclick="editExNote('${id}')" role="button" tabindex="0">${ic("flag","xs")} <span style="flex:1">${esc(n)}</span><u>Editar</u></div>`
+    :`<button type="button" class="exnote add" onclick="editExNote('${id}')">${ic("plus","xs")} Nota fija: ajuste de máquina, agarre…</button>`;}
+function editExNote(id){const all=loadNotes(),v=prompt("Nota para "+shortName(id)+" (se verá cada vez que hagas este ejercicio). Déjala vacía para borrarla.",all[id]||"");
+  if(v==null)return;const t=v.trim().slice(0,200);if(t)all[id]=t;else delete all[id];jset("rp_notes",all);
+  if($("guided").classList.contains("active"))renderStep();}
+/* ---- corregir series pasadas (v35) ----
+   Un "100" tecleado en vez de "10" inflaba para siempre records, fuerza
+   estimada e indice de fuerza, porque todo eso se calcula de rp_logs. Se
+   corrige el registro en su sitio; todo lo derivado se recalcula solo. */
+function openSetEdit(id,ri){const r=(loadLogs()[id]||[])[ri];if(!r)return;
+  pushHist({ov:"plan"});const e=EX[id]||{},p=r.date.split("-"),conPeso=e.load||(r.sets||[]).some(s=>(s.w||0)>0);
+  $("planTitle").textContent=shortName(id)+" · "+p[2]+"/"+p[1];
+  $("planBody").innerHTML=`<div class="cxf" id="sefix" data-w="${conPeso?1:0}">
+    ${(r.sets||[]).map((s,i)=>`<div class="sefrow"><b>${i+1}</b>
+      ${conPeso?`<label>kg<input type="number" inputmode="decimal" step="0.5" min="0" value="${fmtW(s.w||0)}"></label>`:""}
+      <label>${e.type&&e.type.indexOf("hold")===0?"seg":"reps"}<input type="number" inputmode="numeric" step="1" min="0" value="${s.reps||0}"></label>
+      <button type="button" class="minibtn danger" onclick="this.parentNode.remove()" aria-label="Quitar serie ${i+1}">${ic("close","sm")}</button></div>`).join("")}
+    <button class="btn" onclick="saveSetEdit('${id}',${ri})">${ic("check","sm")} Guardar corrección</button>
+    <button class="minibtn danger" onclick="saveSetEdit('${id}',${ri},true)">Borrar todo este registro</button></div>`;
+  $("planov").classList.add("show");}
+function saveSetEdit(id,ri,all){const logs=loadLogs(),arr=logs[id]||[],r=arr[ri];if(!r){closePlan();return;}
+  if(all){if(!confirm("¿Borrar todas las series de este ejercicio ese día?"))return;}
+  const wOn=$("sefix").dataset.w==="1",sets=all?[]:[...document.querySelectorAll("#sefix .sefrow")].map((row,i)=>{
+    const ins=row.querySelectorAll("input"),old=(r.sets||[])[+row.querySelector("b").textContent-1]||{},
+      w=wOn?Math.max(0,Math.round(parseFloat(ins[0].value)*100)/100||0):(old.w||0),
+      reps=Math.max(0,Math.round(parseFloat(ins[wOn?1:0].value))||0);
+    return Object.assign({},old,{w:w,reps:reps});}).filter(s=>s.reps>0);
+  if(sets.length)r.sets=sets;else arr.splice(ri,1);
+  if(!arr.length)delete logs[id];
+  jset("rp_logs",logs);closePlan();setTimeout(renderHistory,0);
+  toast(sets.length?`${ic("check","sm")} Series corregidas`:"Registro borrado");}
 
 /* ---------- SETTINGS / REMINDERS ---------- */
 function loadRem(){return jget("rp_rem",{enabled:false,times:["07:00"]});}
@@ -3052,9 +3143,16 @@ function renderSettings(){const r=loadRem();
       <button class="minibtn" onclick="testNotif()">${ic("bell","sm")} Probar notificación</button>
       <div class="fh" style="margin-top:10px">${perm==="denied"?ic("alert","xs")+' Las notificaciones están bloqueadas en el navegador; actívalas en los ajustes del sitio.':'Funcionan con la app abierta o instalada. En segundo plano dependen de tu teléfono.'}</div>
     </div>
+    <div class="grouptitle">Entrenamiento</div>
+    <div class="field"><div class="fl">Tu objetivo</div>
+      <div class="fh">Cambia cuántas series por semana pide cada músculo en Progreso. Cada teléfono guarda el suyo.</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button class="minibtn${goalPref()==="masa"?" on":""}" onclick="setGoalPref('masa')" aria-pressed="${goalPref()==="masa"}">Ganar músculo</button>
+        <button class="minibtn${goalPref()==="salud"?" on":""}" onclick="setGoalPref('salud')" aria-pressed="${goalPref()==="salud"}">Salud y mantenimiento</button></div></div>
     <div class="grouptitle">Datos</div>
     <div class="field"><div class="fl">Copia de seguridad</div>
-      <div class="fh">Guarda un archivo con todo tu progreso (racha, historial, pesos y plan) y restáuralo cuando quieras. Hazlo de vez en cuando para no perder nada.</div>
+      <div class="fh">Guarda un archivo con todo tu progreso (racha, historial, pesos y plan) y restáuralo cuando quieras. Hazlo de vez en cuando para no perder nada.
+        <br><b>${(d=>d==null?"Todavía no has hecho ninguna copia.":d===0?"Última copia: hoy.":"Última copia: hace "+d+" "+plural(d,"día","días")+".")(daysSinceExport())}</b></div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
         <button class="minibtn" onclick="exportData()">${ic("down","sm")} Exportar datos</button>
         <button class="minibtn" onclick="document.getElementById('impFile').click()">${ic("up","sm")} Importar datos</button></div>
@@ -3183,6 +3281,16 @@ const MUSCNAME={pecho:"Pecho",espalda:"Espalda",delt_lateral:"Hombro lateral",de
    grupo una vez. El objetivo refleja lo alcanzable, no lo ideal. */
 const MUSCGOAL={pecho:14,espalda:16,cuadriceps:12,delt_lateral:12,delt_posterior:10,
  delt_anterior:4,biceps:12,triceps:12,gluteo:8,isquios:8,gemelo:6,aductores:3,trapecio_cuello:6};
+/* Salud y mantenimiento (v35), para la instalacion de la madre: mantener
+   musculo pide mucho menos volumen que ganarlo (del orden de un tercio), y la
+   pauta de salud es cada grupo grande dos veces por semana. Con la tabla de
+   hipertrofia sus barras se leian siempre en rojo. Mismas claves. */
+const MUSCGOAL_SALUD={pecho:6,espalda:8,cuadriceps:6,delt_lateral:4,delt_posterior:4,
+ delt_anterior:2,biceps:4,triceps:4,gluteo:6,isquios:4,gemelo:3,aductores:2,trapecio_cuello:2};
+function goalPref(){return loadPrefs().goal==="salud"?"salud":"masa";}
+function muscGoal(){return goalPref()==="salud"?MUSCGOAL_SALUD:MUSCGOAL;}
+function setGoalPref(v){const p=loadPrefs();p.goal=v;jset("rp_prefs",p);renderSettings();
+  toast(`${ic("check","sm")} Objetivo: ${v==="salud"?"salud y mantenimiento":"ganar músculo"}`);}
 
 function dOffset(n){const d=new Date();d.setDate(d.getDate()-n);return ds(d);}
 function warmIds(){const s={};GYMKEYS.forEach(k=>{((ROUTINES[k]||{}).warm||[]).forEach(id=>s[id]=1);});return s;}
@@ -3261,7 +3369,7 @@ function strengthIdx(cut){const logs=loadLogs(),warm=warmIds(),vals=[];
     if(pts.length<3)return;
     const base=median(pts.slice(0,3).map(p=>p.v));if(!base)return;
     const last=pts[pts.length-1];
-    const lim=cut||today();const d21=new Date(lim);d21.setDate(d21.getDate()-21);
+    const lim=cut||today();const d21=dlocal(lim);d21.setDate(d21.getDate()-21);
     if(last.date<ds(d21))return;
     vals.push(100*last.v/base);});
   return vals.length?{idx:vals.reduce((a,b)=>a+b,0)/vals.length,n:vals.length}:null;}
@@ -3273,7 +3381,7 @@ function addBW(){const el=$("bwin");if(!el)return;const v=parseFloat(el.value);i
   const arr=loadBW(),t=today(),i=arr.findIndex(x=>x.date===t);
   if(i>=0)arr[i].kg=v;else arr.push({date:t,kg:Math.round(v*10)/10});
   jset("rp_bw",arr);renderProgress();}
-function ma7(arr,day){const end=new Date(day),st=new Date(day);st.setDate(st.getDate()-6);
+function ma7(arr,day){const end=dlocal(day),st=dlocal(day);st.setDate(st.getDate()-6);
   const w=arr.filter(x=>x.date>=ds(st)&&x.date<=ds(end));
   return w.length>=3?w.reduce((a,b)=>a+b.kg,0)/w.length:null;}
 function bwRate(arr){const pts=[];for(let i=27;i>=0;i--){const d=dOffset(i),m=ma7(arr,d);if(m!=null)pts.push({x:27-i,y:m});}
@@ -3407,13 +3515,13 @@ function renderProgress(){
 
   /* 3 · por musculo */
   const wk=muscleSets(weekStart(0),today());
-  const m4={};for(let w=0;w<4;w++){const st=weekStart(w),en=w===0?today():ds(new Date(new Date(weekStart(w-1)).getTime()-86400000));
+  const m4={};for(let w=0;w<4;w++){const st=weekStart(w),en=w===0?today():(d=>{d.setDate(d.getDate()-1);return ds(d);})(dlocal(weekStart(w-1)));
     const mm=muscleSets(st,en);Object.keys(mm).forEach(k=>{m4[k]=(m4[k]||0)+mm[k];});}
-  const muscles=Object.keys(MUSCGOAL).filter(k=>(m4[k]||0)>0||(wk[k]||0)>0);
+  const MG=muscGoal(),muscles=Object.keys(MG).filter(k=>(m4[k]||0)>0||(wk[k]||0)>0);
   b+='<div class="grouptitle">Series por músculo · esta semana</div>';
   if(!muscles.length){b+='<div class="empty" style="padding:18px 12px">Registra tus series de fuerza y aquí verás si cada músculo recibe suficiente trabajo.</div>';}
   else{
-    const items=muscles.map(k=>{const v=wk[k]||0,g=MUSCGOAL[k],avg=(m4[k]||0)/4;
+    const items=muscles.map(k=>{const v=wk[k]||0,g=MG[k],avg=(m4[k]||0)/4;
       return {key:k,name:MUSCNAME[k]||k,v:v,goal:g,avg:avg,def:g-avg,cls:avg>=g?"ok":(avg>=g*0.6?"mid":"low")};})
       .sort((a,c)=>c.def-a.def);
     const worst=items[0];

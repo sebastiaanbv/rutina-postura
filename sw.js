@@ -38,10 +38,17 @@ self.addEventListener("fetch", e => {
   if (req.mode === "navigate" || url.pathname.endsWith("/") ||
       url.pathname.endsWith("index.html") || url.pathname.endsWith(".webmanifest")) {
     e.respondWith(
-      fetch(req).then(r => { const cp = r.clone(); caches.open(CACHE).then(c => c.put(req, cp)); return r; })
+      /* solo se guarda una respuesta buena: un 404 o 500 de GitHub Pages no
+         puede pisar la copia sana que sostiene el modo sin conexion */
+      fetch(req).then(r => { if (r.ok) { const cp = r.clone(); caches.open(CACHE).then(c => c.put(req, cp)); } return r; })
         .catch(() => caches.match(req).then(r => r || caches.match("index.html")))
     );
   } else {
-    e.respondWith(caches.match(req).then(r => r || fetch(req)));
+    /* si figuras.js fallo en install, se guarda en la primera descarga buena;
+       antes se bajaban 2 MB en cada visita hasta la siguiente version */
+    e.respondWith(caches.match(req).then(r => r || fetch(req).then(res => {
+      if (res.ok && url.pathname.endsWith("figuras.js")) { const cp = res.clone(); caches.open(CACHE).then(c => c.put(req, cp)); }
+      return res;
+    })));
   }
 });
