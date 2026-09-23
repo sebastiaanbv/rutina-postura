@@ -968,6 +968,8 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .rirb{min-width:44px;height:36px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card2);
     color:var(--tx);font:inherit;font-weight:var(--w-bold);cursor:pointer}
   .rirb.on{background:var(--primary);border-color:var(--primary);color:#fff}
+  .bwlist{margin-top:8px;font-size:var(--t-sm)}
+  .bwlist summary{cursor:pointer;color:var(--primary-ink);font-weight:var(--w-bold);padding:6px 0}
   .medrow{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:var(--t-sm)}
   .medrow>span:first-child{flex:1;font-weight:var(--w-semi)}
   .medrow b{font-variant-numeric:tabular-nums}
@@ -3489,6 +3491,8 @@ function addMed(){const e={};MEDIDAS.forEach(([k])=>{const v=parseFloat(($("med_
   const arr=jget("rp_medidas",[]),t=today(),i=arr.findIndex(x=>x.date===t);
   if(i>=0)Object.assign(arr[i],e);else arr.push(Object.assign({date:t},e));
   jset("rp_medidas",arr);renderProgress();toast(`${ic("check","sm")} Medidas guardadas`);}
+function delBW(d){const f=d.split("-");if(!confirm("¿Quitar el pesaje del "+f[2]+"/"+f[1]+"?"))return;
+  jset("rp_bw",jget("rp_bw",[]).filter(x=>x.date!==d));renderProgress();}
 function addBW(){const el=$("bwin");if(!el)return;const v=parseFloat(el.value);if(isNaN(v)||v<=0||v>400)return;
   const arr=loadBW(),t=today(),i=arr.findIndex(x=>x.date===t);
   if(i>=0)arr[i].kg=v;else arr.push({date:t,kg:Math.round(v*10)/10});
@@ -3630,6 +3634,10 @@ function renderProgress(){
   }else{b+='<div class="cs">Pésate en ayunas casi todos los días. Con 2 semanas te digo tu ritmo real (el día a día oscila ±1 kg por agua y sal).</div>';}
   b+='<div class="bwrow"><input id="bwin" type="number" inputmode="decimal" step="0.1" placeholder="Peso de hoy (kg)"><button class="minibtn" onclick="addBW()">Guardar</button></div>';
   if(bw.length)b+='<div class="cs" style="margin-top:6px">'+bw.length+' pesajes registrados · último '+bw[bw.length-1].kg+' kg</div>';
+  /* un 800 tecleado en vez de 80 descuadra la media de 7 dias: se puede quitar */
+  if(bw.length)b+='<details class="bwlist"><summary>Ver y corregir pesajes</summary>'
+    +bw.slice(-10).reverse().map(x=>{const f=x.date.split("-");return '<div class="medrow"><span>'+f[2]+'/'+f[1]+'</span><b>'+fmtW(x.kg)+' kg</b>'
+      +'<button type="button" class="ddfix" onclick="delBW(\''+x.date+'\')" aria-label="Quitar el pesaje del '+f[2]+'/'+f[1]+'">Quitar</button></div>';}).join("")+'</details>';
   b+='</div>';
   b+=medidasHTML();
 

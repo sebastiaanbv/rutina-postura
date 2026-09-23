@@ -354,6 +354,8 @@ Fitbod (aporta poco con PPL 3×), insignias y logros.
   serie: 1×10 al 50 % y 1×5 al 70 % del peso de hoy, redondeado a pesos reales. No se registran.
 - **Repeticiones en reserva por serie**, opcional, en el guiado: «¿Cuántas más podías?» 0/1/2/3+.
   Se guarda como `rir` dentro de la serie y se ve en la línea de la serie. Aún no mueve la progresión.
+- **Quitar pesajes** desde Progreso («Ver y corregir pesajes», los últimos 10): un 800 en vez de
+  80 descuadraba la media de 7 días.
 - **Medidas corporales** en Progreso (`rp_medidas`): cintura, brazo, pecho, muslo, cadera, con el
   cambio desde la primera. El texto de ayuda cambia con el objetivo.
 - **El ritmo de peso respeta el objetivo:** con «Salud y mantenimiento», peso estable es el éxito;
