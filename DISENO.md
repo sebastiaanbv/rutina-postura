@@ -318,6 +318,53 @@ Hypertrophy, Boostcamp, JEFIT. Ordenado por valor para estos dos usuarios:
 Descartado tras la comparación: calculadora de discos (no usan barra), mapa de recuperación de
 Fitbod (aporta poco con PPL 3×), insignias y logros.
 
+### Cerrado en v36
+
+Red de seguridad de los datos. La prioridad del dueño es no perder datos nunca, y hasta v35 eso
+dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma de una clave.
+
+- **Versión de esquema** (`rp_schema`). Los datos no decían en qué forma estaban guardados, así
+  que cambiar una clave obligaba a adivinar al leerla. Ahora un bloque en `<head>` corre antes que
+  cualquier lectura —incluida la del tema— y aplica en orden las migraciones de `MIGRACIONES` que
+  falten; `SCHEMA` es su largo. Es idempotente: con los datos al día no escribe nada. La
+  migración 1 solo declara el esquema que ya existía. Datos de una versión más nueva (una vuelta
+  atrás de la caché) no se tocan, y una migración que falla deja `rp_schema` en la última que
+  terminó y se reintenta en el siguiente arranque. Las reglas para escribir la siguiente están en
+  el comentario del bloque.
+- **Importar migra las copias viejas.** Una copia sin `rp_schema` (de v35 o anterior) vuelve el
+  esquema a 0 y se migra en el acto, dentro de la misma vuelta atrás. Una copia de una versión más
+  nueva no entra: lo dice y pide actualizar desde Ajustes. Exportar no cambia: va por prefijo, así
+  que `rp_schema` viaja en la copia.
+- **Importar valida la forma, no solo que sea JSON**, y lo hace antes de preguntar, no después de
+  aceptar. Una copia con `rp_history` como objeto pasaba el filtro y al recargar Inicio la app
+  quedaba en blanco hasta borrar los datos. Por si algo así ya está guardado, `jget` devuelve el
+  valor por defecto cuando lo guardado no tiene su forma (lista, objeto o texto). Lo guardado no se
+  toca: la copia lo exporta tal cual.
+- **Teléfono lleno sin perder nada.** `jset` ya devolvía `false`, pero nadie lo miraba:
+  - Anotar una serie o marcar un visto sin espacio avisa: «No cupo en el teléfono: lo de esta
+    sesión sigue en pantalla, pero no quedó guardado». La serie sigue en memoria.
+  - Salir del guiado y volver a entrar (la rutina, «Continuar», adelante en el historial) junta
+    lo guardado con la memoria, y la memoria manda. Antes tomaba la copia de `rp_session`, o nada
+    si la sesión no había llegado a guardarse, y la serie que no cupo se perdía sin aviso.
+  - **Finalizar es todo o nada**: series, vistos volcados, racha e historial entran juntos, y si
+    uno no cabe se deshace lo escrito. Antes `rp_session` se borraba igual y las series se perdían
+    sin aviso. En el guiado sale «No cupo en el teléfono» con «Intentar de nuevo» en vez de
+    «Completada»; la hoja de finalizar se queda abierta.
+  - Empezar otra rutina cerraba sola la anterior y la borraba aunque no hubiera cabido. Ahora la
+    deja abierta y avisa.
+  - Importar ya volvía atrás entero; ahora distingue «No cupo» de cualquier otro fallo.
+- **Borrar todo deja el teléfono en el esquema actual**: lo que se anote antes de recargar no
+  pasa por las migraciones como si fuera de v35.
+- **Lo que la auditoría dejó abierto**, todo de riesgo bajo: ajustes, plan, notas, pesajes y
+  correcciones del historial siguen sin aviso si no caben (las correcciones encogen y caben);
+  `rp_checks` y `rp_weekgoal` crecen sin tope, unos bytes por día y por semana; importar mezcla, y
+  las claves que no vienen en el archivo se quedan; con dos pestañas abiertas gana la última
+  escritura.
+- **Pruebas** en `tests/pruebas_datos.js`: migración idempotente y en orden, copia vieja que se
+  migra al importar, copia más nueva rechazada, forma cambiada, ida y vuelta con la sesión en
+  curso, y teléfono lleno simulado (`setItem` que lanza `QuotaExceededError`) al anotar, al
+  finalizar, al empezar otra rutina y al importar.
+
 ### Cerrado en v35
 
 - **Corregir series pasadas desde Historial.** Botón «Corregir» en cada ejercicio del día:
