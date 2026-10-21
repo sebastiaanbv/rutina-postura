@@ -1202,7 +1202,7 @@ ejercicio es **no verificado**.
 
 - Campo estático `ROUTINES[k].why = {exId: 'una frase'}`, unas 40 frases. Las de casa se escriben
   desde cero.
-- Contenido: funcional para la madre («levantarte sola de la silla») y ligado a las restricciones
+- Contenido: funcional para el teléfono con objetivo salud («fuerza para el día a día») y ligado a las restricciones
   del perfil para el dueño, sin detallar motivos de salud.
 - Datos: vive en el código.
 
