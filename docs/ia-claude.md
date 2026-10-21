@@ -30,11 +30,14 @@ no hay red.
    modelos es de céntimos a pocos dólares al mes. En Ajustes queda un selector para cambiar a
    Sonnet 5.5 o Haiku 5.5 si el dueño lo prefiere (por ejemplo, para respuestas más rápidas).
 
-Tres reglas que no se negocian en ninguna fase:
+Cuatro reglas que no se negocian en ninguna fase:
 
 - **La IA propone y la persona confirma.** El asistente nunca escribe datos por su cuenta.
 - **Solo ejercicios del catálogo y del perfil.** La app comprueba en su propio código que cada
   ejercicio propuesto existe y está permitido para esa persona; no basta con pedírselo al modelo.
+- **Con dolor, la IA no busca con qué seguir.** Si la persona cuenta que algo le duele, el
+  asistente solo puede quitar ejercicios o bajar series, nunca cambiar uno por otro, y la app
+  recomienda consultar antes de mostrar nada más. También lo impone el código, no el modelo.
 - **La app no depende de la IA.** Registrar, guardar, ver el progreso y entrenar sin conexión
   funcionan exactamente igual con el asistente apagado.
 
@@ -46,7 +49,7 @@ Tres reglas que no se negocian en ninguna fase:
 |---|---|---|---|---|
 | **Comentario al terminar la sesión** | Los dos | Un resumen en palabras de lo que hiciste y qué mirar la próxima vez | No | Sí, primera |
 | **Revisión semanal de series por músculo** | Dueño | Propone subir o bajar una serie en ejercicios concretos según el volumen de la semana, el estancamiento, las molestias y las repeticiones en reserva | Solo si aceptas cada propuesta | Sí |
-| **Adaptar la sesión de hoy** | Los dos | "Tengo 30 minutos", "hoy me molesta la rodilla", "no está libre la polea": la sesión ajustada solo con ejercicios tuyos | Solo para hoy, y si aceptas | Sí |
+| **Adaptar la sesión de hoy** | Los dos | "Tengo 30 minutos", "no está libre la polea", "hoy no hay banco": la sesión ajustada solo con ejercicios tuyos. Si cuentas un dolor, solo quita o acorta y te recomienda consultar | Solo para hoy, y si aceptas | Sí |
 | **Preguntas de técnica** | Los dos (sobre todo la madre) | Dudas sobre un ejercicio, con sus pasos y su consejo como contexto | No | Sí, al final |
 | Mensajes de motivación sueltos | Madre | — | — | **Descartada** |
 | Que la IA decida los pesos | — | — | — | **Descartada** |
@@ -230,7 +233,13 @@ ejercicios **permitidos**, de modo que las restricciones nunca salen en claro).
 - **Ante dolor, recomendar consultar.** Si la persona escribe que algo le duele o le molesta, o si
   hay una molestia anotada en el ejercicio, la app añade **siempre** una línea fija, escrita en el
   código y no por el modelo: "Si el dolor sigue o va a más, consulta con un profesional de la salud".
-  Además, ninguna propuesta puede subir series en un ejercicio con molestia reciente.
+  Va arriba, antes de lo que diga o proponga el asistente. Además, ninguna propuesta puede subir
+  series en un ejercicio con molestia reciente.
+- **Con dolor, ningún ejercicio nuevo.** La app no puede saber por un texto libre qué ejercicios
+  cargan la zona que duele (una rodilla afecta a sentadillas, zancadas, prensa y extensiones). Por
+  eso, cuando la persona cuenta un dolor, "Adaptar la sesión" solo puede quitar ejercicios o bajar
+  series: el código descarta cualquier cambio por otro ejercicio, diga lo que diga el modelo
+  (sección 9.3).
 - **Nada de pesos ni superseries.** El modelo no puede proponer pesos (los calcula la app) ni
   emparejar ejercicios: el formato de respuesta ni siquiera tiene forma de expresarlo.
 - **Voz de la app (DISENO §11).** Mayúscula solo al principio; sin signos de exclamación salvo en el
@@ -454,11 +463,17 @@ Todo id que devuelva el modelo pasa por: existe en `EX` · está en `permitidos(
 `evitar`. Además, en los esquemas la lista va como `enum`, de modo que el propio formato de salida
 impide inventar ids; la comprobación en código es la segunda barrera, no la única.
 
+**Detección de dolor (`detectarDolor(texto)`).** En código, sin IA: pasa el texto a minúsculas y
+sin tildes y busca raíces como "dolor", "duel", "molest", "lesion", "pinchazo", "tiron",
+"esguince", "inflam", "hinch", "crujid". Prefiere equivocarse por exceso: un falso positivo solo
+añade la línea de consulta y limita la propuesta; un falso negativo lo cubre el campo
+`consultar_profesional` del modelo, que activa las mismas reglas. La usan 9.3 y 9.4.
+
 **Sistema común (fijo, resumido).** Eres el asistente de entrenamiento de la app Mi Rutina. Solo
 puedes nombrar ejercicios por su id, y solo de la lista que se te da. No propongas pesos: los decide
 la app. No propongas superseries ni emparejar ejercicios. No eres profesional de la salud: no
-diagnostiques; ante dolor o molestia, recomienda parar ese ejercicio y consultar, y marca
-`consultar_profesional`. Escribe en español: mayúscula solo al principio, sin signos de
+diagnostiques; ante dolor o molestia, recomienda parar ese ejercicio y consultar, no propongas con
+qué sustituirlo, y marca `consultar_profesional`. Escribe en español: mayúscula solo al principio, sin signos de
 exclamación, número primero y unidad después, explica el porqué. Si el objetivo es salud, frases
 cortas y sin jerga.
 
@@ -552,8 +567,8 @@ funciones que cambian algo muestran cada cambio con "Aplicar" y "Ahora no".
 
 ### 9.3 Adaptar la sesión de hoy (HU-06e)
 
-- **Qué resuelve:** los imprevistos reales: poco tiempo, una molestia, una máquina ocupada o que no
-  existe, en palabras de la persona.
+- **Qué resuelve:** los imprevistos reales: poco tiempo, una máquina ocupada o que no existe, en
+  palabras de la persona. No sirve para entrenar alrededor de un dolor (ver "Modo dolor").
 - **Para quién:** los dos.
 - **Cuándo:** en el detalle de rutina, antes de empezar o con la sesión en curso: "Adaptar la
   sesión de hoy" con un campo de texto (300 caracteres como mucho).
@@ -589,19 +604,33 @@ funciones que cambian algo muestran cada cambio con "Aplicar" y "Ahora no".
 }
 ```
 
+- **Modo dolor.** Se activa si `detectarDolor(texto)` es verdadero (antes de llamar) o si el
+  modelo marca `consultar_profesional` (al validar). En ese modo:
+  - Solo se aceptan `quitar` y `series` (bajar). **Toda acción `cambiar` se descarta**, también la
+    que sustituye por un ejercicio del mismo músculo o por un cambio declarado: es justo la que
+    volvería a cargar la zona que duele.
+  - La línea fija de consulta sale arriba, **antes** de las propuestas. Si tras descartar no queda
+    ningún cambio, se muestran solo la línea y la nota.
+  - Primera barrera: si la detección salta antes de llamar, el esquema de esa llamada deja
+    `accion` en `["quitar", "series"]` y `por_id` solo en `null`, y el bloque variable lo dice (el
+    sistema fijo no cambia). Segunda barrera, la que garantiza: el validador descarta `cambiar`
+    aunque el esquema lo hubiera permitido.
+  - Se descartó aceptar sustitutos que no compartan ningún músculo (ni `ZONAS[id].p` ni
+    `ZONAS[id].s`) con el ejercicio que se quita: lo que duele suele ser una articulación (rodilla,
+    hombro, lumbar), que no está en `ZONAS`, y un sustituto sin relación ya no adapta la sesión,
+    la cambia.
 - **Validación en código:**
   - `ejercicio_id` está en la rutina de hoy.
-  - `cambiar`: `por_id` está en `permitidos()`, no está ya en la rutina de hoy, comparte músculo
-    principal con el original **o** es un cambio declarado en `ROUTINES[k].swaps`, y su equipo no
-    está en `equipo_no_disponible`.
+  - `cambiar` (solo fuera del modo dolor): `por_id` está en `permitidos()`, no está ya en la rutina
+    de hoy, no tiene molestias anotadas en los últimos 28 días, comparte músculo principal con el
+    original **o** es un cambio declarado en `ROUTINES[k].swaps`, y su equipo no está en
+    `equipo_no_disponible`.
   - `series`: entre 1 y las del programa menos una. Adaptar **solo baja**, nunca sube.
   - Queda al menos un ejercicio de calentamiento.
   - No hay acción para emparejar ejercicios: las superseries no se pueden expresar.
   - La app recalcula la duración con los cambios (`estMinutes`); si `minutos_objetivo` existe y no
     se alcanza, lo dice ("Así queda en 38 min, no en 30").
-  - Si el texto de la persona menciona dolor (detección en código: "dolor", "duele", "molest",
-    "lesión", "pinchazo"…) o el modelo marca `consultar_profesional`, aparece la línea fija de
-    consulta.
+  - En modo dolor, lo de arriba: solo `quitar` y `series`, y la línea de consulta primero.
 - **Escribe datos:** al aceptar (todo o fila a fila), los cambios se guardan **solo para la sesión
   de hoy** en `rp_session.adapt`. `effList` y `dose` los leen mientras dura esa sesión, y
   `clearSess()` los borra al finalizar o descartar. No toca `rp_swaps`, `rp_doses` ni `rp_logs`.
@@ -633,7 +662,8 @@ funciones que cambian algo muestran cada cambio con "Aplicar" y "Ahora no".
 ```
 
 - **Validación en código:** 700 caracteres como mucho en la respuesta y 3 puntos clave; sin
-  exclamaciones; línea fija de consulta si la pregunta menciona dolor o el modelo lo marca.
+  exclamaciones; línea fija de consulta, antes de la respuesta, si `detectarDolor(pregunta)` o el
+  modelo lo marca.
 - **Escribe datos:** no.
 
 ---
@@ -725,7 +755,9 @@ real. Cuesta dinero y en el repositorio no hay clave, ni debe haberla.
 - **Respuestas de prueba** (datos inventados): normal; `stop_reason: "refusal"` con `stop_details`;
   `max_tokens`; JSON roto; id inexistente en `EX`; id fuera de `permitidos()`; id en "No proponer";
   series fuera de rango; subida en un ejercicio con molestia; `series_actuales` que no cuadra; un
-  bloque de respaldo (`fallback`) antes del texto; `usage` con caché para el contador.
+  `cambiar` a otro ejercicio del mismo músculo con un texto que cuenta dolor, y otro con
+  `consultar_profesional` sin palabras de dolor en el texto; un bloque de respaldo (`fallback`)
+  antes del texto; `usage` con caché para el contador.
 - **Qué se comprueba** (además de los criterios de cada historia): sin clave, sin consentimiento,
   sin conexión (`navigator.onLine` simulado) o con el tope alcanzado no aparece ningún botón del
   asistente; `exportData()` no incluye `ia_*`; `importData()` no los toca, ni siquiera cuando
@@ -742,7 +774,7 @@ real. Cuesta dinero y en el repositorio no hay clave, ni debe haberla.
 ## 12. Plan: historias de usuario
 
 Orden de implementación: **06a → 06b → 06c → 06g → 06d → 06e → 06f**, y **06h** solo si se cumple
-alguno de los motivos de 4.1. Total estimado sin 06h: unas 83 h.
+alguno de los motivos de 4.1. Total estimado sin 06h: unas 84 h.
 
 ### HU-06a · Base del asistente: clave, consentimiento, modelo y gasto
 
@@ -894,9 +926,9 @@ Tareas:
 
 ### HU-06e · Adaptar la sesión de hoy
 
-*Prioridad media · para los dos · 21 h*
+*Prioridad media · para los dos · 22 h*
 
-Como persona que va a entrenar con un imprevisto (poco tiempo, una molestia, una máquina ocupada),
+Como persona que va a entrenar con un imprevisto (poco tiempo, una máquina ocupada o que no hay),
 quiero contarlo con mis palabras y recibir la sesión ajustada solo con mis ejercicios, para
 entrenar igual sin improvisar.
 
@@ -905,12 +937,19 @@ Criterios de aceptación:
 - Texto libre de 300 caracteres como mucho; la propuesta muestra qué se quita, qué se cambia y por
   qué, con la duración recalculada por la app.
 - Solo cambia a ejercicios permitidos que comparten músculo principal o son un cambio declarado de
-  la rutina, sin equipo marcado como no disponible; las series solo bajan; nunca empareja
-  ejercicios.
+  la rutina, sin equipo marcado como no disponible y sin molestias anotadas en 28 días; las series
+  solo bajan; nunca empareja ejercicios.
 - Aceptar aplica los cambios solo a la sesión de hoy; al finalizar o descartar, la rutina vuelve a
   ser la de siempre y `rp_swaps`, `rp_doses` y `rp_logs` no cambiaron.
-- Si el texto menciona dolor, aparece la línea fija de consulta y no se proponen ejercicios con
-  molestia anotada.
+- Modo dolor: si `detectarDolor(texto)` es verdadero o el modelo marca `consultar_profesional`, la
+  línea fija de consulta aparece arriba, antes de las propuestas, y solo se aceptan `quitar` y
+  bajar series; toda acción `cambiar` se descarta. Si la detección salta antes de llamar, el
+  esquema de esa llamada ni siquiera ofrece `cambiar`.
+- Prueba simulada: texto "me duele la rodilla" y respuesta con `cambiar` de `hack_squat` a
+  `prensa_inclinada` (los dos de cuádriceps, en la misma rutina): el cambio se descarta, la línea
+  de consulta sale primero y un `quitar` de la misma respuesta sí se muestra.
+- Prueba simulada: texto sin palabras de dolor ("no está libre la polea") y respuesta con
+  `consultar_profesional: true` y un `cambiar`: el cambio también se descarta.
 - "Otra opción" se puede pedir una vez por sesión.
 
 Tareas:
@@ -922,8 +961,8 @@ Tareas:
 | Prompt y esquema, con caché del bloque estable | 2 |
 | Validadores y recálculo de duración | 3 |
 | Interfaz: texto, propuesta con diferencias, aceptar todo o por fila, otra opción | 4 |
-| Detección de dolor en el texto y línea de consulta | 1 |
-| Pruebas, incluida una sesión en curso que no pierde series al aplicar | 4 |
+| Modo dolor: `detectarDolor()`, esquema sin `cambiar`, descarte en el validador, línea de consulta primero | 2 |
+| Pruebas, incluidas una sesión en curso que no pierde series al aplicar y las del modo dolor | 4 |
 
 ### HU-06f · Preguntas de técnica sobre un ejercicio
 
@@ -979,7 +1018,8 @@ Tareas:
 |---|---|
 | La clave sale del teléfono (pérdida, otra página en el mismo `github.io`, texto inyectado) | Un espacio de trabajo con límite por persona, revocación inmediata, `esc()` siempre, no publicar otras páginas en ese origen; si no se puede, HU-06h |
 | Gasto descontrolado (un error que repite llamadas, uso excesivo) | `max_tokens` por función, tope mensual en la app, límite en la Consola |
-| Un consejo inadecuado para la salud | Validación en código, línea fija de consulta, nada de pesos, la IA solo propone |
+| Un consejo inadecuado para la salud | Validación en código, línea fija de consulta antes de todo, con dolor solo quitar o bajar series (nunca cambiar de ejercicio), nada de pesos, la IA solo propone |
+| La IA propone seguir entrenando la zona que duele | Modo dolor en código (9.3): `cambiar` se descarta aunque el modelo lo proponga; prueba simulada en HU-06e |
 | Ejercicios fuera del catálogo o vetados por el perfil | `enum` en el esquema y validación en código contra `permitidos()` |
 | Espera larga en el gimnasio (Opus 5.5 a `medium`: 20 a 60 s) | Cancelar, esfuerzo por función, selector de modelo |
 | La API cambia (cabeceras beta, modelos) | Todo en `iaPedir()`; selector de modelo; anotar fecha de la referencia |
