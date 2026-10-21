@@ -12,6 +12,33 @@
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" type="image/png" href="icon-192-v25.png" sizes="192x192">
 <title>Mi Rutina</title>
+<script>/* ==== ESQUEMA DE DATOS (v36) ==============================================
+   rp_schema dice en que forma estan guardadas las claves rp_*. Este bloque
+   corre ANTES que cualquier lectura, incluida la del tema de aqui abajo, y
+   lleva los datos hasta el esquema de esta version aplicando en orden las
+   migraciones que falten. Sin rp_schema = datos de v35 o anteriores, o un
+   telefono nuevo: esquema 0.
+   Para la siguiente migracion:
+   - va al FINAL de MIGRACIONES; SCHEMA es su largo y sube solo;
+   - solo toca localStorage con valores escritos en ella: corre antes de que
+     existan EX, ROUTINES o jget, y no debe cambiar si cambian ellos;
+   - tolera datos que ya estan en la forma nueva: una copia vieja importada
+     se mezcla con claves actuales del telefono;
+   - nunca borra lo que no sabe rehacer. Si lanza, rp_schema se queda en la
+     ultima que termino y se reintenta en el proximo arranque. */
+var MIGRACIONES=[
+  /* 1 · v36: declara el esquema que ya existia. No toca datos. */
+  function(){}
+];
+var SCHEMA=MIGRACIONES.length;
+function schemaGuardado(){var v;try{v=JSON.parse(localStorage.getItem("rp_schema"));}catch(e){v=0;}
+  return (typeof v==="number"&&v>=0&&v%1===0)?v:0;}
+/* idempotente: con los datos ya al dia no escribe nada. Datos de una version
+   MAS nueva (una vuelta atras de la cache) no se tocan. */
+function migrarDatos(){var n=schemaGuardado();
+  for(;n<MIGRACIONES.length;n++){MIGRACIONES[n]();localStorage.setItem("rp_schema",JSON.stringify(n+1));}
+  return n;}
+try{migrarDatos();}catch(e){}</script>
 <script>/* resuelve el tema antes de pintar: asi el CSS solo necesita UN bloque oscuro */
 try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   var _d=(_t==="dark")||(_t!=="light"&&matchMedia("(prefers-color-scheme:dark)").matches);
@@ -1732,8 +1759,32 @@ try{matchMedia("(prefers-color-scheme:dark)").addEventListener("change",()=>{if(
    postura diaria y tres dias de gimnasio, 200 sesiones son unos cinco meses,
    y lo mas viejo se borraba sin avisar. Con estos caben años. */
 const HISTMAX=2000,LOGMAX=1000;
-function jget(k,d){try{return JSON.parse(localStorage.getItem(k))??d;}catch(e){return d;}}
+/* lo guardado tiene que tener la forma del valor por defecto (lista, objeto,
+   texto): un rp_history que fuera un objeto dejaba la app en blanco con
+   loadHist().forEach. Solo se lee distinto; lo guardado sigue ahi, y la copia
+   lo exporta tal cual, hasta que algo se escribe encima. */
+function jget(k,d){try{const v=JSON.parse(localStorage.getItem(k));if(v==null)return d;
+  if(d!=null&&(typeof v!==typeof d||Array.isArray(v)!==Array.isArray(d)))return d;
+  return v;}catch(e){return d;}}
 function jset(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}
+/* foto cruda de unas claves y vuelta atras, para escrituras que van juntas:
+   o entran todas o el almacenamiento queda como estaba */
+function fotoClaves(ks){const o={};ks.forEach(k=>{try{o[k]=localStorage.getItem(k);}catch(e){o[k]=null;}});return o;}
+function volverA(foto){Object.keys(foto).forEach(k=>{try{if(localStorage.getItem(k)===foto[k])return;
+  if(foto[k]==null)localStorage.removeItem(k);else localStorage.setItem(k,foto[k]);}catch(e){}});}
+/* jset ya devolvia false con el telefono lleno, pero nadie lo miraba: la
+   serie se veia anotada y al cerrar la app desaparecia */
+function avisoLleno(){toast("No cupo en el teléfono: lo de esta sesión sigue en pantalla, pero no quedó guardado. Libera espacio antes de cerrar la app.",7000);}
+/* forma de cada clave conocida, para validar una copia antes de importarla */
+const FORMAS={rp_history:"lista",rp_plan:"lista",rp_bw:"lista",rp_medidas:"lista",
+  rp_logs:"obj",rp_custom:"obj",rp_extras:"obj",rp_swaps:"obj",rp_doses:"obj",rp_checks:"obj",rp_logged:"obj",
+  rp_pain:"obj",rp_notes:"obj",rp_prefs:"obj",rp_streak:"obj",rp_weekgoal:"obj",rp_rem:"obj",rp_session:"obj",
+  rp_theme:"texto",rp_lastexport:"texto",rp_schema:"num"};
+function formaOK(k,v){const f=FORMAS[k];if(!f||v==null)return true;
+  if(f==="lista")return Array.isArray(v);
+  if(f==="obj")return typeof v==="object"&&!Array.isArray(v);
+  if(f==="num")return typeof v==="number"&&v>=0&&v%1===0;
+  return typeof v==="string";}
 function ds(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function today(){return ds(new Date());}
 /* "AAAA-MM-DD" a medianoche LOCAL. new Date("2026-09-23") la lee como UTC, y
@@ -1793,7 +1844,7 @@ function recordSession(key,name,sum,when){const h=loadHist(),d=when?new Date(whe
     time:String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
   if(sum){e.sets=sum.sets;e.vol=sum.vol;e.exDone=sum.exDone;e.exTotal=sum.exTotal;e.dur=sum.dur;e.ids=sum.ids;
     if(sum.pr&&sum.pr.length)e.pr=sum.pr;}
-  h.unshift(e);jset("rp_history",h.slice(0,HISTMAX));return e;}
+  h.unshift(e);return jset("rp_history",h.slice(0,HISTMAX))?e:null;}
 
 /* ---------- HOME ---------- */
 function renderHome(){
@@ -2036,7 +2087,7 @@ function routineList(k,r,ctx){const b=routineBuckets(k),cal=b.cal,ent=b.ent,se=b
     +`<button class="addexbtn" onclick="openAddEx('${k}')">${ic("plus","sm")} Agregar ejercicio</button>`;}
 function openRoutine(k,noPush){curRoutine=k;if(!noPush)pushHist({v:"routine",k:k});
   const r=ROUTINES[k];
-  if(sessActive(k)){const sv=loadSess();sessionLog=(sv&&sv.log)||{};sessionLogKey=k;}
+  if(sessActive(k))joinSessionLog(k,loadSess());
   const ctx={chk:checksFor(k),swaps:r.swaps||{},extras:r.extras||[],on:extrasOn(k),LOGS:loadLogs(),i:0};
   $("routine").innerHTML=routineHead(k,r)+routineList(k,r,ctx)+`</div>`+routineCTA(k);
   show("routine");
@@ -2061,7 +2112,7 @@ function checksOn(t,rk){const d=loadChecks()[t]||{};return d[rk]||{};}
 function checksFor(rk){return checksOn(today(),rk);}
 function isChecked(rk,id){return !!checksFor(rk)[id];}
 function markCheck(rk,id,val){const all=loadChecks(),t=today();all[t]=all[t]||{};all[t][rk]=all[t][rk]||{};
-  if(val===false)delete all[t][rk][id];else all[t][rk][id]=true;jset("rp_checks",all);
+  if(val===false)delete all[t][rk][id];else all[t][rk][id]=true;if(!jset("rp_checks",all))avisoLleno();
   if(curRoutine===rk)updateRoutineProgress();}
 function toggleCheck(id,i){const cur=isChecked(curRoutine,id);
   if(!cur)startSess(curRoutine,"check");
@@ -2401,16 +2452,27 @@ let sessCommitted=0, sessionLogKey=null;
 /* sessionLog vive en memoria; sessionLogKey dice de que rutina es, para que
    cambiar de rutina no arrastre series de la anterior */
 function useSessionLog(k){if(sessionLogKey!==k){sessionLog={};sessionLogKey=k;}return sessionLog;}
+/* volver a la rutina o al guiado: disco + memoria, y la memoria manda (la
+   misma regla que sessLog). Con el telefono lleno la serie solo vive en
+   memoria; pisarla con la copia de rp_session, o con {}, la perdia. */
+function joinSessionLog(k,s){const mem=(sessionLogKey===k)?sessionLog:{};
+  sessionLog=Object.assign({},(s&&s.key===k&&s.log)||{},mem);sessionLogKey=k;return sessionLog;}
 function loadSess(){try{const s=jget("rp_session",null);
   if(!s||typeof s!=="object"||s.v!==1||!s.key||!ROUTINES[s.key]||!s.date)return null;
   if(!s.log||typeof s.log!=="object")s.log={};
   return s;}catch(e){return null;}}
-function saveSess(s){if(!s)return null;s.lastAt=Date.now();jset("rp_session",s);return s;}
+/* si no cabe, la serie sigue en memoria (sessionLog) y en pantalla: se avisa
+   para que no cierre la app creyendo que quedo guardada */
+function saveSess(s){if(!s)return null;s.lastAt=Date.now();if(!jset("rp_session",s))avisoLleno();return s;}
 function clearSess(){try{localStorage.removeItem("rp_session");}catch(e){}}
 function sessActive(k){const s=loadSess();return !!(s&&s.key===k&&s.date===today());}
 function startSess(key,src){let s=loadSess();
   if(s&&s.key===key&&s.date===today())return s;
-  if(s){try{if(sessStats(s.key,s.date).exDone)finishSession(s.key,"auto");}catch(e){}clearSess();}
+  /* la anterior se cierra sola; si no cupo, se queda donde esta: borrarla
+     perderia sus series. Sin sesion nueva, lo de ahora vive en memoria. */
+  if(s){let r=null;try{if(sessStats(s.key,s.date).exDone)r=finishSession(s.key,"auto");}catch(e){}
+    if(r&&r.lleno){toast("No cupo en el teléfono: la sesión de "+esc(ROUTINES[s.key].name)+" sigue abierta sin guardar. Libera espacio y finalízala.",7000);return null;}
+    clearSess();}
   s={v:1,key:key,date:today(),startedAt:Date.now(),lastAt:Date.now(),stepi:0,src:src||"check",log:{}};
   jset("rp_session",s);return s;}
 function touchSess(st){if(!curRoutine||!ROUTINES[curRoutine])return null;
@@ -2430,7 +2492,7 @@ function loggedOn(t,k){const d=loadLogged()[t]||{};return d[k]||{};}
 function markLogged(t,k,ids){const all=loadLogged();all[t]=all[t]||{};all[t][k]=all[t][k]||{};
   ids.forEach(id=>{all[t][k][id]=1;});
   const keep={};Object.keys(all).sort().slice(-14).forEach(d=>{keep[d]=all[d];});
-  jset("rp_logged",keep);}
+  return jset("rp_logged",keep);}
 /* resumen de lo que hay SIN registrar todavia */
 function sessStats(k,date){const t=date||today(),s=loadSess();
   const log=sessLog(k),ck=checksOn(t,k),done=loggedOn(t,k),list=effList(k);
@@ -2450,15 +2512,24 @@ function finishSession(k,from){
   const st=sessStats(k,dOver||today());
   if(!st.exDone)return null;
   clearTimer();
+  /* todo o nada (v36): series, vistos volcados, racha e historial entran
+     juntos. Si alguno no cabe en el telefono se deshace lo escrito y la
+     sesion sigue entera, en rp_session y en memoria, para volver a
+     finalizar. Antes rp_session se borraba igual y las series se perdian. */
+  const foto=fotoClaves(["rp_logs","rp_logged","rp_streak","rp_history"]);
   const sum=persistSession(k,dOver,startedAt);
+  if(!sum){volverA(foto);return {lleno:true};}
   sum.pr=(mine&&mine.pr)?mine.pr:[];
   let streak=dOver?null:completeDay();
-  recordSession(k,ROUTINES[k].name,sum,startedAt||null);
+  if(!recordSession(k,ROUTINES[k].name,sum,startedAt||null)){volverA(foto);return {lleno:true};}
   /* una sesion de ayer cerrada hoy entra al historial con su fecha: la racha
      se recalcula desde ahi, o se quedaba corta hasta tocar el calendario */
   if(dOver)streak=recalcStreak();
+  if(sessionLogKey===k){sessionLog={};sessionLogKey=null;}
   sessCommitted=startedAt||Date.now();
-  clearSess();
+  /* solo la propia: la de otra rutina que no cupo al empezar esta sigue
+     en rp_session con sus series; borrarla aqui la perdia sin avisar */
+  if(mine)clearSess();
   return {streak:streak,summary:sum,rescued:!!dOver};}
 /* ==== fin [S1] ============================================================ */
 const DOW=["L","M","X","J","V","S","D"], DOWLONG=["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
@@ -2539,8 +2610,8 @@ function persistSession(k,dateOverride,startedAt){
      evolucion nunca tendria datos para quien entrena marcando la lista */
   list.forEach(id=>{if(ck[id]&&!ids[id]&&!done[id]){push(id,{date:t,sets:[],k:k,t:stamp,checked:true});ids[id]=1;}});
   const all=Object.keys(ids);
-  if(all.length){jset("rp_logs",logs);markLogged(t,k,all);}
-  if(sessionLogKey===k){sessionLog={};sessionLogKey=null;}
+  /* null = no cupo: finishSession deshace y la memoria (sessionLog) no se toca */
+  if(all.length&&!(jset("rp_logs",logs)&&markLogged(t,k,all)))return null;
   return {sets:sets,vol:Math.round(vol),exDone:all.length,exTotal:list.length,
     dur:dateOverride?0:durSince(startedAt),ids:all};}
 /* una sesion de mas de 4 h es una que se quedó abierta: mejor no dar duracion */
@@ -2660,17 +2731,28 @@ function importData(input){const f=input&&input.files&&input.files[0];if(!f)retu
   r.onload=()=>{try{const d=JSON.parse(r.result);const store=(d&&d.store)?d.store:d;
     if(!store||typeof store!=="object")throw 0;
     const ks=Object.keys(store).filter(k=>k.indexOf("rp_")===0);if(!ks.length)throw 0;
-    if(!confirm("Esto reemplazará tus datos actuales con los del archivo. ¿Continuar?")){input.value="";return;}
     /* cada valor tiene que ser texto JSON valido: un objeto crudo se guardaba
-       como "[object Object]" y esa clave quedaba en blanco */
-    const vals={};ks.forEach(k=>{let v=store[k];if(typeof v!=="string")v=JSON.stringify(v);JSON.parse(v);vals[k]=v;});
+       como "[object Object]" y esa clave quedaba en blanco. Y con la forma
+       de siempre (v36): un rp_history que fuera un objeto entraba y la app ya
+       no abria. Se valida ANTES de preguntar, no despues de aceptar. */
+    const vals={};ks.forEach(k=>{let v=store[k];if(typeof v!=="string")v=JSON.stringify(v);
+      if(!formaOK(k,JSON.parse(v)))throw 0;vals[k]=v;});
+    /* esta version no sabe leer datos de una mas nueva */
+    if(vals.rp_schema!=null&&JSON.parse(vals.rp_schema)>SCHEMA){
+      toast("Esta copia es de una versión más nueva de la app. Actualízala en Ajustes y vuelve a importarla.",7000);input.value="";return;}
+    if(!confirm("Esto reemplazará tus datos actuales con los del archivo. ¿Continuar?")){input.value="";return;}
     /* foto de lo que hay: si el telefono se queda sin espacio a mitad, se
        vuelve atras entero en vez de dejar datos a medias */
     const prev={};Object.keys(localStorage).filter(k=>k.indexOf("rp_")===0).forEach(k=>prev[k]=localStorage.getItem(k));
-    try{ks.forEach(k=>localStorage.setItem(k,vals[k]));}
+    try{ks.forEach(k=>localStorage.setItem(k,vals[k]));
+      /* sin rp_schema la copia es de v35 o anterior: el esquema vuelve a 0 y
+         se migra aqui mismo, dentro de la vuelta atras */
+      if(vals.rp_schema==null)localStorage.removeItem("rp_schema");
+      migrarDatos();}
     catch(err){Object.keys(localStorage).filter(k=>k.indexOf("rp_")===0).forEach(k=>localStorage.removeItem(k));
       Object.keys(prev).forEach(k=>{try{localStorage.setItem(k,prev[k]);}catch(e){}});
-      toast("No cupo en el teléfono: tus datos quedaron como estaban.");input.value="";return;}
+      toast(err&&err.name==="QuotaExceededError"?"No cupo en el teléfono: tus datos quedaron como estaban."
+        :"No se pudo importar la copia: tus datos quedaron como estaban.");input.value="";return;}
     toast("Datos importados. Recargando…");setTimeout(()=>location.reload(),1100);
   }catch(e){toast("Ese archivo no es una copia válida.");input.value="";}};
   r.readAsText(f);}
@@ -2706,12 +2788,19 @@ function renderFinish(){const k=curRoutine,r=ROUTINES[k];if(!r)return;
     <button class="btn sec" onclick="closeFinish()">${finRescue?"Ahora no":"Seguir entrenando"}</button>
     <button class="gbtn fin" onclick="discardSession()">Descartar sin guardar</button>`;
   $("finBody").innerHTML=h;}
-function confirmFinish(){const k=curRoutine,res=finishSession(k,"sheet");finRescue=null;
+function confirmFinish(){const k=curRoutine,res=finishSession(k,"sheet");
+  /* no cupo: la hoja se queda abierta con la sesion intacta para reintentar */
+  if(res&&res.lleno){toast("No cupo en el teléfono: la sesión sigue abierta con tus series. Libera espacio y vuelve a finalizar.",7000);return;}
+  finRescue=null;
   $("finov").classList.remove("show");history.back();
   if(res){renderHome();if($("routine").classList.contains("active"))openRoutine(k,true);}}
 function discardSession(){if(!confirm("Se borrará lo registrado en esta sesión sin guardarlo. ¿Seguro?"))return;
   /* la sesion se lee ANTES de borrarla: si no, un rescate de ayer limpiaba los vistos de hoy */
-  const k=curRoutine,s=loadSess();sessionLog={};sessionLogKey=null;clearSess();
+  const k=curRoutine,s=loadSess();
+  /* solo lo de esta rutina: la sesion abierta de otra (la que no cupo al
+     empezar esta) no se toca */
+  if(sessionLogKey===k){sessionLog={};sessionLogKey=null;}
+  if(s&&s.key===k)clearSess();
   const all=loadChecks();const t=(finRescue&&s&&s.date)?s.date:today();
   if(all[t]&&all[t][k]){delete all[t][k];jset("rp_checks",all);}
   finRescue=null;$("finov").classList.remove("show");history.back();
@@ -2742,7 +2831,7 @@ function buildSteps(k){const out=[],list=effList(k),total=list.length;
 /* ---------- GUIDED ---------- */
 function startRoutine(from){prime();pushHist({v:"guided",k:curRoutine});
   const s=startSess(curRoutine,"guided");
-  sessionLog=(s&&s.log)?s.log:{};sessionLogKey=curRoutine;
+  joinSessionLog(curRoutine,s);
   curW=null;curReps=null;steps=buildSteps(curRoutine);stepi=0;
   if(from){const i=steps.findIndex(x=>x.id===from);if(i>=0)stepi=i;}
   else if(s&&s.stepi>0&&s.stepi<steps.length)stepi=s.stepi;
@@ -2952,6 +3041,11 @@ function doneHero(){const r=44,C=(2*Math.PI*r).toFixed(1);
     <path d="M34 53l12 12 24-26" fill="none" stroke="var(--primary)" stroke-width="7"
       stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
 function finish(){clearTimer();const res=finishSession(curRoutine,"guided");
+  /* no cupo: nada de "Completada". Las series siguen en memoria y en
+     rp_session hasta que se pueda guardar */
+  if(res&&res.lleno){$("guided").innerHTML=`<div class="done"><h2>No cupo en el teléfono</h2>
+    <p class="mut">Tus series siguen aquí, sin guardar. Libera espacio en el teléfono y vuelve a intentarlo; no cierres la app mientras tanto.</p>
+    <button class="gbtn go" style="margin-top:22px" onclick="finish()">Intentar de nuevo</button></div>`;return;}
   const s=(res&&res.streak)||loadStreak(),sum=res&&res.summary,nom=ROUTINES[curRoutine].name;
   const prs=(sum&&sum.pr)||[];
   const prHTML=prs.length?`<div class="doneprs"><div class="h">${ic("trophy","xs")} ${prs.length===1?"Récord personal":prs.length+" récords personales"}</div>`
@@ -3275,6 +3369,9 @@ function wipe(){
   if(!confirm("Esto borra TODO de este dispositivo: racha, historial, pesos registrados, vistos, plan semanal, peso corporal y recordatorios.\n\n¿Seguro? Exporta antes tu copia de seguridad si no quieres perderlo."))return;
   if(!confirm("Última confirmación: no hay vuelta atrás."))return;
   Object.keys(localStorage).filter(k=>k.indexOf("rp_")===0).forEach(k=>localStorage.removeItem(k));
+  /* en blanco pero en el esquema de hoy: sin esto, lo que se anote antes de
+     recargar pasaria por las migraciones como si fuera de v35 */
+  try{migrarDatos();}catch(e){}
   sessionLog={};sessionLogKey=null;calSel=null;
   renderSettings();renderHome();toast("Listo, este dispositivo quedó en blanco.");}
 
@@ -3288,7 +3385,7 @@ function renderState(s){clearTimer();s=s||{v:"home"};
   else{var v=s.v||"home";show(v);if(v==="home")renderHome();if(v==="history")renderHistory();if(v==="progress")renderProgress();if(v==="settings")renderSettings();}}
 /* volver al guiado sin perder la sesion (recarga o avance del historial) */
 function resumeGuided(k){curRoutine=k;const sess=loadSess();
-  sessionLog=(sess&&sess.key===k&&sess.log)?sess.log:{};sessionLogKey=k;
+  joinSessionLog(k,sess);
   steps=buildSteps(k);if(!steps.length){openRoutine(k,true);return;}
   stepi=(sess&&sess.stepi>0&&sess.stepi<steps.length)?sess.stepi:0;
   curW=null;curReps=null;show("guided");renderStep();}
