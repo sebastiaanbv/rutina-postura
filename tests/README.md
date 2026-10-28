@@ -66,3 +66,12 @@ escenario("Pantallas · usuario nuevo con plan", () => ({rp_plan: ["gym_empuje",
 La app arranca de cero con esos datos antes de su primera prueba. Si arranca con errores, el escenario falla en «(arranque de la app)».
 
 3. Si creas un archivo nuevo de pruebas, añádelo con un `<script>` en `harness.html`, antes de `Pruebas.correr()`.
+
+## Integración continua
+
+Las mismas pruebas corren solas en GitHub (`.github/workflows/pruebas.yml`) en cada
+pull request y en cada push a `desarrollo` o `main`, con Chrome sin interfaz en
+Linux. `run.py` busca primero Edge y Chrome en las rutas de Windows y después
+`google-chrome`, `chromium` o `microsoft-edge` en el PATH; en CI (variable `CI`
+en Linux) añade `--no-sandbox`, porque los contenedores no traen el sandbox de
+Chrome. Un PR con las pruebas en rojo no se integra.
