@@ -225,7 +225,7 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
 | Siguiente | Filo verde en la fila + botón de empezar en verde sólido |
 | Hecho | Círculo relleno verde con visto blanco; la fila encoge |
 | Sesión en curso | Manda en la tarjeta de hoy; el CTA de la rutina dice "Continuar" |
-| Récord | Aviso flotante en ámbar al conseguirlo, y listado en la pantalla de fin |
+| Récord | La serie se tiñe de ámbar y lleva debajo el trofeo y qué se superó; aviso flotante solo si es nuevo máximo de 1RM estimado; listado con su tipo en la pantalla de fin |
 | Vacío | Explica qué hacer para llenarlo, nunca "sin datos" a secas |
 
 ---
@@ -277,10 +277,12 @@ Lo que se celebra, y cuánto dura. Nada pasa de medio segundo.
 |---|---|
 | Registras una serie | La línea entra con un gesto de 240 ms y avanza el contador |
 | Completas un ejercicio | El visto rebota, la fila destella medio segundo, encoge, y el anillo avanza |
-| Bates un récord | Aviso flotante en ámbar con el ejercicio y la marca |
-| Terminas la rutina | Ilustración que se dibuja sola, tres cifras, los récords conseguidos y la racha |
+| Bates un récord | La propia serie se pinta en ámbar con el trofeo y qué superaste. Si además es nuevo máximo de 1RM estimado, aviso flotante con el ejercicio y la marca |
+| Terminas la rutina | Ilustración que se dibuja sola, tres cifras, los récords conseguidos con su tipo y la racha |
 
-Un récord es una serie que **ninguna anterior domina en peso y repeticiones a la vez**. Es la misma regla del panel de progreso, así que las dos cuentan lo mismo.
+Un récord es una serie que **ninguna anterior domina en peso y repeticiones a la vez**. Es la misma regla del panel de progreso, con sus mismas excepciones —el calentamiento no cuenta, y la primera vez que se registra un ejercicio solo marca el punto de partida—, así que las dos cuentan lo mismo.
+
+Qué se superó, en este orden: **Peso máximo** (más kilos que nunca en ese ejercicio), **Mejor 1RM est.** (el 1RM estimado sube más de un 0,5 %, sin bajar del mínimo de reps del rango) o **Más reps con X kg**; sin carga, **Más reps**. Va en la serie y en la pantalla de fin, con el mismo rótulo. El aviso flotante sigue reservado al nivel 2 (nuevo máximo de 1RM estimado): celebrar igual cada récord devalúa la señal.
 
 ## 13. Qué falta
 
@@ -364,6 +366,33 @@ dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma d
   migra al importar, copia más nueva rechazada, forma cambiada, ida y vuelta con la sesión en
   curso, y teléfono lleno simulado (`setItem` que lanza `QuotaExceededError`) al anotar, al
   finalizar, al empezar otra rutina y al importar.
+
+El récord, en la propia serie (HU-10). El comentario de `markPR` decía desde v24 que un récord de
+nivel 1 «se ve en la propia serie», pero la serie no lo enseñaba: `.setline.pr` y `.prtag` estaban
+en el CSS sin que nada los pintara, así que la mayoría de los récords no se veían hasta la pantalla
+de fin, y ninguno decía qué se había superado.
+
+- **La serie récord se pinta en ámbar** en el guiado, con el trofeo y qué se superó en una línea
+  propia bajo el valor: al lado no cabía junto a «32.5 kg × 6 · reserva 2» a 360 px. §9 y §12.
+- **Qué se superó** (`prKind`): «Peso máximo», «Mejor 1RM est.» o «Más reps con X kg» («Más reps»
+  sin carga), contra las mismas series anteriores que `isPR`. La pantalla de fin lo repite bajo el
+  nombre del ejercicio.
+- **Cada récord guarda su número de serie** (`i`, 0 la primera) y su tipo (`kind`) en
+  `rp_session.pr`, y de ahí en `rp_history[].pr`. La marca va por número: dos series iguales que
+  baten la marca solo cuentan la primera; por peso y reps se habrían pintado las dos. Sin
+  migración: los `pr` de v35 no los traen, se leen igual y salen sin etiqueta; la copia los lleva
+  tal cual.
+- **Borrar o corregir una serie rehace los récords** de ese ejercicio (`prRecalc`): cada serie se
+  vuelve a medir contra el historial y las anteriores de hoy, sin aviso flotante. Antes el récord
+  de una serie borrada o corregida llegaba igual a la pantalla de fin y al historial. Corregir una
+  errata que sigue siendo récord lo conserva con su nuevo valor.
+- **`isPR` cuenta lo mismo que `prFeed`** (Récords recientes): no cuenta el calentamiento, y la
+  primera vez que se registra un ejercicio no hay récord aunque la segunda serie pese más. Antes el
+  guiado celebraba récords que Progreso nunca listaba.
+- **Pruebas** en `tests/pruebas_logica.js` (calentamiento, coherencia serie a serie con `prFeed`,
+  `prKind`, la marca por número, borrar y corregir, aviso solo en nivel 2) y en
+  `tests/pruebas_datos.js` (ida y vuelta de `i` y `kind`, y datos de v35 sin ellos en el guiado,
+  la pantalla de fin y el calendario).
 
 ### Cerrado en v35
 
