@@ -135,15 +135,17 @@
       const s=await sw({ventanas:["https://app.example/otra/"]});await s.tocar("rp-rest");
       expect(s.enfocadas).toEqual([]);
       expect(s.abiertas).toEqual(["./#retomar"]);});
-    /* por que #retomar y no ?retomar=1: con la cache de verdad del navegador */
+    /* por que #retomar y no ?retomar=1: con la cache de verdad del navegador.
+       Tarda tiempo real: con el reloj virtual de la CI va en tiempoReal */
     test("la cache casa ./#retomar con la copia de la app; ?retomar=1 seria otra entrada",async app=>{
       const n="prueba-retomar-"+Date.now(),base=new URL("../",location.href).href;
-      const c=await caches.open(n);
-      try{await c.put(base,new Response("la app de hoy"));
-        const r=await caches.match(base+"#retomar",{cacheName:n});
-        expect(r?await r.text():null).toBe("la app de hoy");
-        expect(await caches.match(base+"?retomar=1",{cacheName:n})).toBe(undefined);}
-      finally{await caches.delete(n);}});
+      await Pruebas.tiempoReal(async()=>{
+        const c=await caches.open(n);
+        try{await c.put(base,new Response("la app de hoy"));
+          const r=await caches.match(base+"#retomar",{cacheName:n});
+          expect(r?await r.text():null).toBe("la app de hoy");
+          expect(await caches.match(base+"?retomar=1",{cacheName:n})).toBe(undefined);}
+        finally{await caches.delete(n);}});});
   });
 
   /* ---- el otro extremo: index.html abierto con #retomar ---- */

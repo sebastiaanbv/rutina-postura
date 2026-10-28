@@ -8,6 +8,8 @@
    test.skip(nombre, motivo, fn)           conocida: se reporta, no corre
    await app.enZona("Europe/Madrid", fn, "2026-11-04T12:30:00Z")
      corre fn con la app en esa zona horaria (y ese reloj, opcional)
+   await Pruebas.tiempoReal(async () => { ... })
+     corre fn sin que el reloj virtual de la CI salte (CacheStorage de verdad)
    expect(x).toBe / toEqual / toBeCloseTo / toBeTruthy / toBeFalsy / toContain /
      toBeGreaterThan / toBeLessThan / toMatch / toHaveLength, y .not delante.
 
@@ -55,6 +57,22 @@
       if(Date.now()>fin)throw new Error("tiempo agotado esperando "+(que||"una condicion"));await espera(25);}}
   function conTope(p,ms,que){let t;return Promise.race([p,new Promise((_,no)=>{t=setTimeout(()=>no(new Error("tiempo agotado ("+ms+" ms): "+que)),ms);})])
     .finally(()=>clearTimeout(t));}
+  /* con el tiempo virtual de run.py (--virtual-time-budget), en cuanto la
+     pagina no tiene nada que hacer el reloj salta al siguiente temporizador.
+     Lo que habla con el proceso del navegador sin pasar por la red (la
+     CacheStorage de verdad) tarda tiempo real, y el salto llega antes: al tope
+     de 20 s de la prueba. Retenerlo con una peticion pendiente, como hace
+     prelude.js con FileReader, aqui no sirve: mientras la red retiene el reloj,
+     Chrome tampoco entrega las respuestas de la cache. Lo que si sirve es no
+     dejar la pagina ociosa: un bucle de mensajes mientras corre fn. Asi el
+     reloj avanza a unas pocas veces el tiempo real, sin saltos, y la cache
+     contesta en unos ms. El bucle para al terminar fn, o al pasar el tope de
+     la prueba si fn no termina nunca. Con tiempo real (Playwright) no cambia
+     nada. */
+  async function tiempoReal(fn){const ch=new MessageChannel(),t0=performance.now();let vivo=true;
+    ch.port1.onmessage=()=>{if(vivo&&performance.now()-t0<21000)ch.port2.postMessage(0);};
+    ch.port2.postMessage(0);
+    try{return await fn();}finally{vivo=false;ch.port1.close();}}
 
   /* ---- zona horaria emulada ----
      El navegador corre en la zona del equipo (UTC en CI, sin cambios de
@@ -210,6 +228,6 @@
     res.errores_sueltos=G.__erroresApp.filter(e=>!e.visto).map(e=>e.tipo+": "+e.msg.split("\n")[0]);
     res.terminado=true;res.duracion_ms=Math.round(performance.now()-t0);publicar();}
 
-  G.Pruebas={escenario:escenario,test:test,expect:expect,app:app,correr:correr,espera:espera,hasta:hasta};
+  G.Pruebas={escenario:escenario,test:test,expect:expect,app:app,correr:correr,espera:espera,hasta:hasta,tiempoReal:tiempoReal};
   G.escenario=escenario;G.test=test;G.expect=expect;
 })(window);

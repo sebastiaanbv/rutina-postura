@@ -703,8 +703,9 @@ quedaba en blanco hasta que el navegador se rendía (en Chromium, más de 20 s s
   arreglaba nada, y con el plazo habría pasado con una simple red lenta tras «Buscar actualización».
 - **`ASSETS` y `CACHE` no cambian.** El navegador compara `sw.js` byte a byte, así que el cambio
   basta para que se instale el nuevo; `CACHE` solo se sube para tirar lo guardado. Ojo: instalar
-  vuelve a pedir `figuras.js` aunque `CACHE` no cambie (`c.add` no mira si ya está), así que cada
-  versión de `sw.js` puede costar a cada teléfono otra descarga de las figuras.
+  volvía a pedir `figuras.js` aunque `CACHE` no cambiara (`c.add` no mira si ya está), así que
+  cada versión de `sw.js` podía costar a cada teléfono otra descarga de las figuras; desde la
+  entrada siguiente (tocar un aviso) se copia de la caché que la tenga.
 - **Pruebas** en `tests/pruebas_sw.js`: `sw.js` se evalúa tal cual con red, caché y reloj de
   mentira —red buena, buena pero sin prisa, lenta, cuerpo atascado, caída, error del servidor, sin
   copia, dirección sin copia propia, manifest y figuras—, y «Buscar actualización» se prueba en la
@@ -741,10 +742,11 @@ volver a la serie.
 - **Pruebas** en `tests/pruebas_avisos.js`: `sw.js` tal cual con dobles de `self`, `caches`,
   `clients` y `fetch` —install con las figuras ya guardadas, sin guardar, sin red y con 404;
   `notificationclick` con y sin ventana, de descanso y de recordatorio, y con una ventana de otra
-  app del mismo origen—; la caché real del navegador para el fragmento; y el arranque con
-  `#retomar` con sesión de hoy, sin sesión, con una rutina que ya no existe, con la de ayer y con
-  datos de v35. Queda abierta la prueba a mano en un Android con la app instalada: el arnés no
-  registra el service worker.
+  app del mismo origen—; la caché real del navegador para el fragmento, dentro de
+  `Pruebas.tiempoReal` para que el reloj virtual de la CI no salte al tope mientras contesta; y el
+  arranque con `#retomar` con sesión de hoy, sin sesión, con una rutina que ya no existe, con la
+  de ayer y con datos de v35. Queda abierta la prueba a mano en un Android con la app instalada:
+  el arnés no registra el service worker.
 
 ### Cerrado en v35
 

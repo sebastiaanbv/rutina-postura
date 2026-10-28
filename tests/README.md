@@ -29,7 +29,7 @@ Otras opciones:
 |---|---|
 | `run.py` | servidor, navegador y resumen |
 | `prelude.js` | se inyecta en la app: errores, diálogos, descargas, service worker |
-| `lib.js` | mini marco: `escenario`, `test`, `test.skip`, `expect`, el objeto `app` (con `app.enZona`) y el ejecutor |
+| `lib.js` | mini marco: `escenario`, `test`, `test.skip`, `expect`, el objeto `app` (con `app.enZona`), `Pruebas.tiempoReal` y el ejecutor |
 | `fixtures.js` | datos con la forma exacta de las claves `rp_*`: `vacio`, `dueno`, `madre`, `sinCerrar`, `cambioHora` (fechas fijas que cruzan cambios de hora) y `aMedias` (Empuje a medias hoy, 3 de 14) |
 | `pruebas_logica.js` | suggestLoad y todayTarget (también con los juegos de datos de v35), salto de cada máquina (`rp_inc`), isPR/prKind (y su coherencia con prFeed), dose/SECDOSE, effList, buildSteps, estMinutes, strengthIdx, fechas, pendientes al final del guiado, y el récord en la propia serie del guiado (borrar, corregir, aviso) |
 | `pruebas_datos.js` | copia de seguridad de ida y vuelta, importaciones que no deben tocar nada, sesión sin cerrar, datos dañados o con otra forma, esquema `rp_schema` y migraciones, récords con y sin `i`/`kind`, teléfono lleno (`lleno(app,{margen:0})` simula `QuotaExceededError`), `rp_streak`, racha semanal con datos de v35, racha que cruza cambios de hora en cinco zonas, otra rutina con una a medias (hoja de conflicto), mirar el guiado sin registrar, y borrar una serie del guiado y deshacerlo |
@@ -55,9 +55,14 @@ test("isPR: una serie igual a la mejor no es récord", app => {
 - `run.py` corre con tiempo virtual (`--virtual-time-budget`): en cuanto la página no tiene nada
   que hacer, el reloj salta al siguiente temporizador. Lo que espera al proceso del navegador
   (CacheStorage, los registros del service worker) pierde contra el tope de 20 s de la prueba:
-  usa dobles. Y mientras se lee el cuerpo de un `ReadableStream` que sigue abierto, Chrome congela
-  temporizadores y mensajes: hasta cerrarlo solo valen microtareas (`await null`), o la corrida no
-  termina y la CI no devuelve nada. `tests/pruebas_sw.js` tiene los dos casos.
+  usa dobles. Si la prueba necesita lo de verdad (la caché del navegador en
+  `tests/pruebas_avisos.js`), envuélvelo en `await Pruebas.tiempoReal(async () => {...})`: un
+  bucle de mensajes no deja la página ociosa y el reloj avanza sin saltos. Retenerlo con una
+  petición pendiente, como `FileReader`, no sirve ahí: Chrome no entrega las respuestas de la
+  caché mientras la red retiene el reloj. Y mientras se lee el cuerpo de un `ReadableStream` que
+  sigue abierto, Chrome congela temporizadores y mensajes: hasta cerrarlo solo valen microtareas
+  (`await null`), o la corrida no termina y la CI no devuelve nada. `tests/pruebas_sw.js` tiene
+  los dos casos.
 - Aserciones: `toBe`, `toEqual` (estructural), `toBeCloseTo(n, decimales)`, `toBeTruthy`, `toBeFalsy`, `toContain`, `toBeGreaterThan`, `toBeLessThan`, `toMatch`, `toHaveLength`, y `.not` delante.
 - Las aserciones fijan el comportamiento actual. Si algo es un bug, no se arregla en la prueba: se escribe lo correcto con `test.skip(nombre, "BUG: motivo", fn)`. Esa prueba se ejecuta igual pero no cuenta para el resultado. El resumen muestra cómo falla hoy, y cuando el bug se arregle avisará con «YA PASA: quita test.skip».
 
