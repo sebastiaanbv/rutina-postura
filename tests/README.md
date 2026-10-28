@@ -30,9 +30,9 @@ Otras opciones:
 | `prelude.js` | se inyecta en la app: errores, diálogos, descargas, service worker |
 | `lib.js` | mini marco: `escenario`, `test`, `test.skip`, `expect`, el objeto `app` y el ejecutor |
 | `fixtures.js` | datos con la forma exacta de las claves `rp_*`: `vacio`, `dueno`, `madre`, `sinCerrar` |
-| `pruebas_logica.js` | suggestLoad, isPR, dose/SECDOSE, effList, buildSteps, estMinutes, strengthIdx, fechas |
+| `pruebas_logica.js` | suggestLoad, salto de cada máquina (`rp_inc`), isPR, dose/SECDOSE, effList, buildSteps, estMinutes, strengthIdx, fechas |
 | `pruebas_datos.js` | copia de seguridad de ida y vuelta, importaciones que no deben tocar nada, sesión sin cerrar, datos dañados o con otra forma, esquema `rp_schema` y migraciones, teléfono lleno (`lleno(app,{margen:0})` simula `QuotaExceededError`) |
-| `pruebas_pantallas.js` | recorrido de humo por Inicio, rutina, guiado, Calendario, Progreso y Ajustes con cada juego de datos |
+| `pruebas_pantallas.js` | recorrido de humo por Inicio, rutina, guiado, Calendario, Progreso y Ajustes con cada juego de datos, y el chip «Salto» del guiado |
 
 ## Añadir una prueba
 

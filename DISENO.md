@@ -197,7 +197,9 @@ Estados de la fila: pendiente · **siguiente** (filo verde y su botón de empeza
 Abajo, barra fija con dos acciones: continuar y finalizar.
 
 ### Modo guiado
-Manda **la serie**: pastilla con "Serie 2 de 4", nombre del ejercicio, y los controles de peso y reps inmediatamente debajo. Bajo la acción, el **único ajuste que se edita a mano**: cuántas series. Arranca en la del programa, con "Sugeridas: N" debajo, y si la cambias ese texto se convierte en el botón para volver. La ficha de cómo se hace —mapa corporal, consejo, avisos, pasos y vídeo— va **después**, plegada, y viene cerrada si ya has hecho ese ejercicio tres veces o más.
+Manda **la serie**: pastilla con "Serie 2 de 4", nombre del ejercicio, y los controles de peso y reps inmediatamente debajo. Bajo la acción, el **único ajuste de la sesión que se edita a mano**: cuántas series. Arranca en la del programa, con "Sugeridas: N" debajo, y si la cambias ese texto se convierte en el botón para volver. La ficha de cómo se hace —mapa corporal, consejo, avisos, pasos y vídeo— va **después**, plegada, y viene cerrada si ya has hecho ese ejercicio tres veces o más.
+
+Bajo el peso, el chip **Salto**: de cuánto en cuánto sube esa máquina (1 · 2 · 2,5 · 4,5 · 5 · 7 · 10 kg). No es un ajuste de la sesión sino un dato de la máquina: se dice una vez por ejercicio, queda en `rp_inc`, y desde entonces la propuesta, los −/+ y la aproximación solo dan múltiplos de ese salto. Sin decirlo, el chip invita («¿De cuánto sube?», con borde discontinuo) y todo sigue como antes; las opciones se despliegan debajo de los dos controles y tocar la marcada la quita. Cambiarlo rehace la propuesta que nadie tocó, no lo movido con −/+ ni lo tecleado. No sale en ejercicios sin carga ni en mancuernas con lista en Ajustes: ahí la lista ya dice qué pesos existen. **Lo que se teclea en el peso no se redondea nunca**: si la máquina lleva una placa suelta de 2,5, se escribe a mano.
 
 **El tiempo no se edita.** Descansos y sostenes los fija el programa: el criterio para ponerlos ya está tomado y ofrecer un stepper solo invita a deshacerlo sin datos. Cambiar las series, en cambio, responde a algo que solo sabes tú — cómo te sientes hoy y cuánto tiempo tienes.
 
@@ -246,7 +248,8 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
   propósito**, porque sería un segundo tabulador para la misma acción que ya hace el cuerpo de la
   fila.
 - **Lector de pantalla**: el visto es `role="checkbox"` con `aria-checked`; los tres interruptores
-  son `role="switch"` con `aria-checked`; el selector de métrica lleva `aria-pressed`; las tres
+  son `role="switch"` con `aria-checked`; el selector de métrica y las opciones del salto llevan
+  `aria-pressed`, y el chip que las abre, `aria-expanded`; las tres
   hojas superpuestas son `role="dialog"` con `aria-modal` y `aria-labelledby`; el progreso de la
   rutina y el descanso son `aria-live`; los iconos decorativos van con `aria-hidden`.
 - **Avisos**: los mensajes no destructivos salen por el `toast()` propio, no por `alert()`. Los
@@ -305,8 +308,8 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
 
 **De la comparación con apps líderes (2026-09-23)** — Strong, Hevy, Alpha Progression, RP
 Hypertrophy, Boostcamp, JEFIT. Ordenado por valor para estos dos usuarios:
-1. ~~Pesos disponibles~~ → cerrado en v35 para mancuernas. Queda abierto para máquinas
-   (salto de placa real de cada máquina del gimnasio).
+1. ~~Pesos disponibles~~ → cerrado en v35 para mancuernas y en v36 para máquinas (salto de
+   placa de cada una, chip «Salto» del guiado).
 2. ~~Aviso de molestia articular~~ → cerrado en v35.
 3. ~~Series de aproximación~~ → cerrado en v35.
 4. ~~Medidas corporales~~ → cerrado en v35, con curva de la medida principal (cintura en salud,
@@ -364,6 +367,27 @@ dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma d
   migra al importar, copia más nueva rechazada, forma cambiada, ida y vuelta con la sesión en
   curso, y teléfono lleno simulado (`setItem` que lanza `QuotaExceededError`) al anotar, al
   finalizar, al empezar otra rutina y al importar.
+
+Pesos que existen en cada máquina:
+
+- **Salto de placa por máquina** (chip «Salto» del guiado, `rp_inc`). La propuesta sumaba 2,5 kg
+  (1 o 2 por debajo de 20) aunque la polea fuera de 5 en 5: decía 42,5 donde solo hay 40 y 45, y
+  había que corregirlo a mano cada vez. Ahora el salto se dice una vez por ejercicio y los
+  pesos que existen son sus múltiplos:
+  - `todayTarget` aplica sobre esos múltiplos la regla de las mancuernas: salto suave (≤10 %) se
+    sube al llenar el rango; salto grande, primero el rango estirado (+2 reps) y después el peso.
+    Con 40 kg en saltos de 5 (12,5 %): 40 × 14 y luego 45. Nunca 42,5.
+  - Los −/+ van al múltiplo siguiente o anterior; un 42,5 tecleado sube a 45 y baja a 40.
+  - La aproximación redondea **hacia abajo** a un múltiplo (60 kg en saltos de 5: 30 y 40), nunca
+    por debajo de una placa. La primera vez, el peso de arranque también; `startKg:0` sigue sin peso.
+  - Lo tecleado no se redondea, ni al cambiar el salto después.
+  - Un solo sitio dice el salto: `stepFor(id,w)`, el declarado o el de siempre; `roundDownTo(id,w)`
+    da el peso real de abajo. Con mancuernas en Ajustes manda la lista y el chip no sale.
+  - Sin `rp_inc` (datos de v35) todo sigue igual. Clave nueva y sin migración: si falta es `{}`.
+    Viaja en la copia por prefijo, e importar exige que sea un objeto.
+  - **Pruebas** en `tests/pruebas_logica.js` (propuesta, −/+, aproximación, primera vez, datos de
+    v35), `pruebas_pantallas.js` (dónde sale el chip, elegir y quitar, lo tecleado se guarda tal
+    cual) y `pruebas_datos.js` (ida y vuelta de la copia con `rp_inc`, copia con otra forma).
 
 ### Cerrado en v35
 

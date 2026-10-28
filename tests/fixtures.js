@@ -12,6 +12,8 @@
    rp_extras   {rutina:[exId]}   rp_swaps {rutina:{original:alterno}}   rp_doses {rutina:{exId:{sets,reps,holdSec,rest}}}
    rp_checks   {fecha:{rutina:{exId:true}}}   rp_logged {fecha:{rutina:{exId:1}}}
    rp_pain     {exId:[fechas]}   rp_notes {exId:"texto"}
+   rp_inc      {exId:kg} (v36) salto de placa de cada maquina. Los juegos de
+               datos no lo traen, como un telefono de v35.
    rp_bw       [{date,kg}]   rp_medidas [{date,cintura,brazo,pecho,muslo,cadera}]
    rp_streak   {count,best,last,total}   rp_weekgoal {lunes:meta}   rp_rem {enabled,times}
    rp_theme    "auto"|"light"|"dark"   rp_lastexport "AAAA-MM-DD"

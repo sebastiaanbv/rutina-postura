@@ -122,7 +122,7 @@
   });
 
   /* almacenamiento dañado: la app tiene que seguir abriendo */
-  const CLAVES=["rp_bw","rp_checks","rp_custom","rp_doses","rp_extras","rp_history","rp_lastexport","rp_logged","rp_logs",
+  const CLAVES=["rp_bw","rp_checks","rp_custom","rp_doses","rp_extras","rp_history","rp_inc","rp_lastexport","rp_logged","rp_logs",
     "rp_medidas","rp_notes","rp_pain","rp_plan","rp_prefs","rp_rem","rp_session","rp_streak","rp_swaps","rp_theme","rp_weekgoal"];
   async function recorrer(app){["history","progress","settings","home"].forEach(v=>{
       app.$('.nav .tab[data-v="'+v+'"]').click();expect(app.activa()).toBe(v);});
@@ -146,7 +146,7 @@
       expect(pregunto(app,n)).toBe(0);});
     test("claves ya guardadas con otra forma: arranca y recorre las pantallas",async app=>{
       const c={rp_history:"{}",rp_plan:"{}",rp_bw:"{}",rp_medidas:"{}",rp_logs:"[]",rp_custom:"[]",rp_extras:"[]",
-        rp_swaps:"[]",rp_doses:"[]",rp_checks:"[]",rp_logged:"[]",rp_pain:"[]",rp_notes:"[]",rp_prefs:"[]",
+        rp_swaps:"[]",rp_doses:"[]",rp_checks:"[]",rp_logged:"[]",rp_pain:"[]",rp_notes:"[]",rp_inc:"[]",rp_prefs:"[]",
         rp_streak:"[]",rp_weekgoal:"[]",rp_rem:"[]",rp_session:"[]",rp_theme:"5",rp_lastexport:"[]",rp_schema:"[]"};
       await app.arrancar({__crudo:c});
       expect(app.$$("#routines .rcard").length).toBe(9);await recorrer(app);
@@ -213,6 +213,28 @@
       importar(app,JSON.stringify({store:{rp_schema:99,rp_history:[]}}));
       await app.hasta(()=>app.texto("#toast").indexOf("versión más nueva")>=0,3000,"el aviso de copia más nueva");
       expect(app.foto()).toEqual(antes);
+      expect(pregunto(app,n)).toBe(0);});
+  });
+
+  /* rp_inc (v36): el salto de placa de cada maquina viaja en la copia */
+  const SALTOS_GIMNASIO={jalon_pecho:5,extension_triceps_polea:4.5,pec_deck:7,remo_maquina:2.5};
+  escenario("Copia de seguridad con saltos de máquina (rp_inc)",()=>Object.assign(F.dueno(),{rp_inc:SALTOS_GIMNASIO}),()=>{
+    test("exportar → importar conserva rp_inc con sus valores",async app=>{
+      const antes=app.foto();
+      expect(app.leer("rp_inc")).toEqual(SALTOS_GIMNASIO);
+      const d=await exportar(app),data=JSON.parse(d.texto);
+      expect(JSON.parse(data.store.rp_inc)).toEqual(SALTOS_GIMNASIO);
+      localStorage.clear();
+      const recarga=app.cargo();importar(app,d.texto);await recarga;await app.listo();
+      expect(app.foto()).toEqual(antes);
+      expect(app.leer("rp_inc")).toEqual(SALTOS_GIMNASIO);
+      /* y la app los usa al volver */
+      expect(["jalon_pecho","extension_triceps_polea","pec_deck","remo_maquina"].map(id=>app.w.stepFor(id,40))).toEqual([5,4.5,7,2.5]);});
+    test("una copia con rp_inc que no es un objeto se rechaza entera, antes de preguntar",async app=>{
+      const antes=app.foto(),n=app.w.__dialogos.length;
+      for(const t of ['{"store":{"rp_inc":"[5]"}}','{"store":{"rp_inc":"5"}}']){sinAviso(app);importar(app,t);
+        await app.hasta(()=>app.texto("#toast").indexOf("no es una copia válida")>=0,3000,"el rechazo de "+t);
+        expect(app.foto()).toEqual(antes);}
       expect(pregunto(app,n)).toBe(0);});
   });
 
