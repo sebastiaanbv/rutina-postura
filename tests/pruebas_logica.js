@@ -879,7 +879,9 @@
       expect(prs(app)).toEqual([[32.5,6,0,tipos[0]],[30,10,1,tipos[1]],[25,11,2,tipos[2]]]);
       expect(lineas(app).map(l=>l[2])).toEqual(tipos);
       app.w.finish();
-      expect(app.texto("#guided")).toContain("Completada");
+      /* con HU-09 terminar con ejercicios sin hacer guarda lo hecho y dice
+         "Guardada · X de Y", nunca "Completada": aqui solo se hizo el pecho */
+      expect(app.texto("#guided .done .mut")).toBe("Guardada · 1 de 14 ejercicios");
       expect(app.$$("#guided .doneprs .r .k").map(k=>k.textContent)).toEqual(tipos);
       expect(app.texto("#guided .doneprs")).toContain("32.5 kg × 6");
       expect(app.leer("rp_history")[0].pr.map(p=>[p.i,p.kind])).toEqual([[0,tipos[0]],[1,tipos[1]],[2,tipos[2]]]);
@@ -891,7 +893,9 @@
       expect(prs(app)).toEqual([]);
       expect(lineas(app)).toEqual([["0",false,""]]);
       app.w.finish();
-      expect(app.texto("#guided")).toContain("Completada");
+      /* con HU-09 terminar con ejercicios sin hacer guarda lo hecho y dice
+         "Guardada · X de Y", nunca "Completada": aqui solo se hizo el pecho */
+      expect(app.texto("#guided .done .mut")).toBe("Guardada · 1 de 14 ejercicios");
       expect(app.$("#guided .doneprs")).toBe(null);
       expect(app.leer("rp_history")[0].pr).toBe(undefined);
       app.reiniciarMemoria();});

@@ -557,7 +557,9 @@
       expect(app.$$("#guided .setline").length).toBe(2);
       expect(app.$$("#guided .setline.pr, #guided .prtag").length).toBe(0);
       app.w.finish();
-      expect(app.texto("#guided")).toContain("Completada");
+      /* con HU-09 terminar con ejercicios sin hacer guarda lo hecho y dice
+         "Guardada · X de Y", nunca "Completada": aqui solo se hizo el pecho */
+      expect(app.texto("#guided .done .mut")).toBe("Guardada · 1 de 14 ejercicios");
       expect(app.$$("#guided .doneprs .r").length).toBe(1);
       expect(app.texto("#guided .doneprs .r")).toContain("40 kg × 8");
       expect(app.$$("#guided .doneprs .k").length).toBe(0);

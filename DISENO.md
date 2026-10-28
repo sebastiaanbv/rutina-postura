@@ -621,7 +621,9 @@ de fin, y ninguno decía qué se había superado.
 - **Pruebas** en `tests/pruebas_logica.js` (calentamiento, coherencia serie a serie con `prFeed`,
   `prKind`, la marca por número, borrar y corregir, aviso solo en nivel 2) y en
   `tests/pruebas_datos.js` (ida y vuelta de `i` y `kind`, y datos de v35 sin ellos en el guiado,
-  la pantalla de fin y el calendario).
+  la pantalla de fin y el calendario). Las tres que terminan con solo el pecho hecho esperan
+  «Guardada · 1 de 14 ejercicios», no «Completada»: con HU-09 eso es lo que dice el final con
+  ejercicios sin hacer.
 
 ### Cerrado en v35
 
