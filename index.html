@@ -88,6 +88,9 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     --energy-strong:#a35a0c; --energy-on:#ffffff;
     --load:#6d5bc9; --load2:#5a49b0; --load-tint:#ece9fb; --load-ink:#3a2f6b;
     --danger:#c4443f; --danger-tint:#fbe9e8; --danger-ink:#a3322e;
+    /* rojo sobre --hero (aviso de serie borrada): --danger da 3,3:1 contra el
+       hero; este, 8,6:1 (y 5,5:1 contra el hero del tema oscuro) */
+    --danger-hero:#fca5a5;
     /* --- figuras y anillos (los SVG traen estos hex y se recolorean abajo) --- */
     --diagram-ink:#2b3648; --diagram-line:#cbd3de; --diagram-hi:#2563eb; --diagram-eye:#111827;
     /* el miembro lejano: en vista lateral los dos brazos en la misma tinta se
@@ -130,7 +133,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     /* aqui el ambar es claro, asi que el boton lleva texto oscuro encima */
     --energy-strong:#fbbf24; --energy-on:#3a2a10;
     --load:#a78bfa; --load2:#8b6df0; --load-tint:#241a44; --load-ink:#c3b3fb;
-    --danger:#fca5a5; --danger-tint:#2a1414; --danger-ink:#fca5a5;
+    --danger:#fca5a5; --danger-tint:#2a1414; --danger-ink:#fca5a5; --danger-hero:#fca5a5;
     --diagram-ink:#cfe0f5; --diagram-line:#3a4b60; --diagram-hi:#60a5fa; --diagram-eye:#0a1020;
     --diagram-ink-far:#8298b0; --diagram-shadow:#1a2436;
     --diagram-bg:#101827; --ring-track:#243349;
@@ -267,23 +270,32 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
      interruptores 28 y el boton de confirmar una serie 30. Solo se amplian
      controles HOJA -- los que no llevan dentro otra cosa pulsable --, porque el
      pseudo-elemento se pone por encima y se tragaria el clic del hijo. */
-  .exck,.chip,.mchip,.setline .del,.calnav,
+  .exck,.chip,.mchip,.sets .v,.calnav,
   .sq,.exstart,.exadd,.ovhead .x,.minibtn,.vbtn,.setok,.calladd,.skip,
-  .themeseg button,.install button,.toggle,.mdel,.timepill .x{position:relative}
-  .exck:after,.chip:after,.mchip:after,.setline .del:after,.calnav:after,
+  .themeseg button,.install button,.toggle,.mdel,.timepill .x,.toast .tact{position:relative}
+  .exck:after,.chip:after,.mchip:after,.sets .v:after,.calnav:after,
   .sq:after,.exstart:after,.exadd:after,.ovhead .x:after,.minibtn:after,
   .vbtn:after,.setok:after,.calladd:after,.skip:after,
   .themeseg button:after,.install button:after,.toggle:after,.mdel:after,
-  .timepill .x:after{content:"";
+  .timepill .x:after,.toast .tact:after{content:"";
     position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
     min-width:44px;min-height:44px;width:100%;height:100%}
+  /* .sets: solo la cifra del guiado, que se toca para editar; la del resumen
+     de finalizar no es un control. Editando deja de ser hoja: dentro van los
+     campos y el visto. */
+  .setline[data-editing] .v:after{display:none}
 
   /* entradas numéricas */
   .numin,.setin,.addrow input,.bwrow input{background:var(--card);color:var(--tx);
     border:2px solid var(--primary);border-radius:10px;text-align:center;
     font-weight:var(--w-bold);font-variant-numeric:tabular-nums;-moz-appearance:textfield}
   .numin{width:104px;font-size:24px;padding:2px 4px}
-  .setin{width:58px;font-size:var(--t-sm);padding:5px 2px}
+  /* 44 de alto: van en la misma fila que la X de borrar. La fila pierde su
+     relleno vertical mientras se edita para no crecer mas que antes, y los
+     campos 6 px de ancho para que a 320 px quepa la X de 44 sin partir la
+     fila ("122.5" sigue cabiendo) */
+  .setin{width:52px;min-height:44px;font-size:var(--t-sm);padding:5px 2px}
+  .setline[data-editing]{padding-top:0;padding-bottom:0}
   .addrow input,.bwrow input{flex:1;min-width:0;text-align:left;background:var(--sunk);
     border:1px solid var(--line);border-radius:var(--r-sm);padding:12px;font-size:var(--t-md);font-weight:var(--w-med)}
   .numin::-webkit-outer-spin-button,.numin::-webkit-inner-spin-button,
@@ -387,6 +399,17 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     box-shadow:0 10px 30px -10px rgba(0,0,0,.5);transition:opacity .25s,transform .25s}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .toast .ic{color:var(--energy-hero);flex:0 0 auto}
+  /* serie borrada (v36): la X en rojo, porque el ambar es logro, y el unico
+     boton que ha tenido un aviso. Solo el boton recibe toques: el resto sigue
+     sin tapar lo de debajo. Escondido no se enfoca ni se pulsa. Con left:50%
+     el aviso solo tiene media pantalla para encoger: sin nowrap, "Serie
+     borrada" se partia en dos lineas. */
+  .toast .ic.borrado{color:var(--danger-hero)}
+  .toast .tmsg{white-space:nowrap}
+  .toast .tact{background:none;border:none;padding:0;margin-left:var(--s1);font:inherit;
+    font-weight:var(--w-bold);color:var(--hero-accent);cursor:pointer;visibility:hidden}
+  .toast.show .tact{visibility:visible;pointer-events:auto}
+  .toast .tact:focus-visible{box-shadow:0 0 0 2px var(--hero-accent)}
 
   /* pantalla de fin */
   .done .hero{margin:0 auto var(--s4);width:104px;height:104px;display:block}
@@ -794,8 +817,13 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .setline .n{color:var(--mut);font-weight:var(--w-bold);width:52px}
   .setline .v{font-weight:var(--w-semi);cursor:pointer}
   .setline .ck{margin-left:auto;color:var(--primary-ink);font-weight:var(--w-bold)}
-  .setline .del{margin-left:auto;color:var(--mut);font-size:var(--t-base);
-    font-weight:var(--w-bold);cursor:pointer;padding:2px 4px;line-height:1}
+  /* La X mide 44 de caja, no de pseudo-elemento: la zona ampliada de 23 px
+     se metia 10 px a la izquierda, por encima del hueco, y a 320 px de ancho
+     se comia el borde del visto de guardar (le dejaba 39). Con caja, el flex
+     garantiza el hueco con lo de al lado. Los margenes negativos la dejan
+     donde estaba y la fila no crece. */
+  .setline .del{margin:-12px -11px -12px auto;width:44px;height:44px;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;color:var(--mut);cursor:pointer}
   .setline .ck~.del{margin-left:var(--s2)}
 
   /* temporizadores */
@@ -1698,11 +1726,17 @@ const RICON={postura_completa:"posture",postura_movilidad:"mobility",cuello_rost
   salud_fuerza_a:"legs",salud_fuerza_b:"pull",salud_equilibrio:"mobility"};
 function routIcon(k){const r=ROUTINES[k];
   return RICON[k]||((r&&r.cls==="n")?"neck":(r&&r.cls==="g")?"dumbbell":"posture");}
-/* aviso flotante */
-let toastT=null;
-function toast(html,ms){const el=$("toast");if(!el)return;
-  el.innerHTML=html;el.classList.add("show");
-  clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("show"),ms||2600);}
+/* aviso flotante. fin (v36) es para el aviso con boton: se llama al cerrarse,
+   por tiempo o porque otro aviso lo pisa, y ahi caduca lo que el boton hacia */
+let toastT=null,toastFin=null;
+function toast(html,ms,fin){const el=$("toast");if(!el)return;
+  toastCierra();
+  el.innerHTML=html;el.classList.add("show");toastFin=fin||null;
+  clearTimeout(toastT);toastT=setTimeout(()=>{toastCierra();el.classList.remove("show");},ms||2600);}
+function toastCierra(){const f=toastFin;toastFin=null;if(f)f();}
+/* el aviso con boton es de su pantalla: al salir de ella se retira ya */
+function toastFuera(){if(!toastFin)return;clearTimeout(toastT);toastCierra();
+  const el=$("toast");if(el)el.classList.remove("show");}
 /* record personal: una serie es record si ninguna anterior la domina en peso
    Y repeticiones a la vez. Es la misma regla que ya usa el panel de progreso
    (prFeed), con sus mismas excepciones: el calentamiento no cuenta, y la
@@ -1764,7 +1798,7 @@ function prRecalc(id){const sv=sessActive(curRoutine)?loadSess():null;if(!sv)ret
 let curRoutine=null, steps=[], stepi=0, tId=null, actx=null, remTimers=[];
 const $=id=>document.getElementById(id);
 function show(v){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$(v).classList.add("active");
-  if(v==="guided")requestWake();else{releaseWake();clearRestNotif();}
+  if(v==="guided")requestWake();else{releaseWake();clearRestNotif();toastFuera();}
   document.querySelectorAll(".nav .tab").forEach(t=>{const on=t.dataset.v===v;if(on)t.setAttribute("aria-current","page");else t.removeAttribute("aria-current");});
   const main=["home","history","progress","settings"].includes(v);$("nav").classList.toggle("hide",!main);
   document.querySelectorAll(".nav .tab").forEach(a=>a.classList.toggle("on",a.dataset.v===v));window.scrollTo(0,0);}
@@ -2728,12 +2762,56 @@ function saveSet(id,src,ri,si,n){
   else logsWrite(logs=>{const rec=(logs[id]||[])[ri];
     if(rec&&rec.sets&&rec.sets[si]){if(nw!=null)rec.sets[si].w=nw;if(nr!=null)rec.sets[si].reps=nr;}});
   renderStep();}
+/* Borrar una serie es un toque, y con prisa y las manos sudadas un toque
+   fallido la borraba sin aviso, y con ella records, 1RM e indice de fuerza.
+   No pide confirmacion (DISENO 10 guarda confirm() para lo grave): se
+   deshace. Lo que se borra con el aviso a la vista se apila -- un doble
+   toque en la X se lleva dos series, porque la de abajo sube a su sitio -- y
+   Deshacer lo devuelve todo, en orden inverso y cada serie a su indice. */
+const DESHACER_MS=7000;
+let deshacer=[];
 function delSet(id,src,ri,si,n){
-  if(src==="s"){useSessionLog(curRoutine);const a=sessionLog[id];
-    if(a){a.splice(si,1);if(!a.length)delete sessionLog[id];}touchSess();prRecalc(id);}
+  const ae=document.activeElement,foco=!!(ae&&ae.classList&&ae.classList.contains("del"));
+  let x=null,rec=null,orden=null;
+  if(src==="s"){useSessionLog(curRoutine);const a=sessionLog[id];orden=Object.keys(sessionLog);
+    if(a){x=a.splice(si,1)[0];if(!a.length)delete sessionLog[id];}touchSess();prRecalc(id);}
   else{logsWrite(logs=>{const r=(logs[id]||[])[ri];if(!r||!r.sets)return;
-    r.sets.splice(si,1);if(!r.sets.length&&!r.checked)logs[id].splice(ri,1);});}
-  renderStep();}
+    x=r.sets.splice(si,1)[0];if(!r.sets.length&&!r.checked){logs[id].splice(ri,1);rec=r;}});}
+  renderStep();
+  if(x)ofrecerDeshacer({id:id,src:src,ri:ri,si:si,x:x,rec:rec,k:curRoutine,orden:orden},foco);}
+function ofrecerDeshacer(u,foco){
+  /* toast() cierra el aviso anterior, y con el vacia la pila: se rehace antes */
+  const pila=deshacer.concat([u]),n=pila.length;
+  toast(ic("close","sm borrado")+'<span class="tmsg">'+(n===1?"Serie borrada":n+" series borradas")+'</span>'
+    +'<button type="button" class="tact" onclick="deshacerSerie()">Deshacer</button>',DESHACER_MS,()=>{
+      deshacer=[];
+      /* el boton se esconde: el foco no se pierde, vuelve a la accion del guiado */
+      if($("toast").contains(document.activeElement))enfocarGuiado();});
+  deshacer=pila;
+  /* quien borro con teclado o lector de pantalla sigue en el boton: el foco
+     estaba en una X que ya no existe */
+  if(foco){const b=$("toast").querySelector(".tact");if(b)b.focus();}}
+/* sin desplazar: con el dedo el foco no se ve, y la pantalla no debe saltar */
+function enfocarGuiado(){const b=document.querySelector("#guided.active .gbtn");if(b)b.focus({preventScroll:true});}
+function deshacerSerie(){const pila=deshacer;deshacer=[];if(!pila.length)return;
+  const foco=$("toast").contains(document.activeElement);let n=0,sesion=false;
+  pila.slice().reverse().forEach(u=>{
+    if(u.src==="s"){if(sessionLogKey!==u.k)return;   /* la sesion ya se cerro */
+      /* si se habia ido su ultima serie, el ejercicio vuelve a su puesto: el
+         orden de la sesion es el de rp_session y el del historial */
+      if(!sessionLog[u.id]){const o=Object.assign({},sessionLog);Object.keys(o).forEach(k=>{delete sessionLog[k];});
+        u.orden.concat(Object.keys(o)).forEach(k=>{if(!(k in sessionLog)&&(k===u.id||o[k]))sessionLog[k]=k===u.id?[]:o[k];});}
+      const a=sessionLog[u.id];a.splice(Math.min(u.si,a.length),0,u.x);sesion=true;}
+    else logsWrite(logs=>{const a=logs[u.id]||(logs[u.id]=[]);
+      if(u.rec){u.rec.sets=[u.x];a.splice(Math.min(u.ri,a.length),0,u.rec);}
+      else{const r=a[u.ri];if(r&&r.sets)r.sets.splice(Math.min(u.si,r.sets.length),0,u.x);}});
+    n++;});
+  const s=steps[stepi],u0=pila[0];
+  if(inGuided()&&s&&document.querySelector("#guided .logrow")&&pila.some(u=>u.id===s.id))renderStep();
+  if(foco){const l=$("sl_"+u0.id+"_"+u0.si),v=l&&l.querySelector(".v");if(v)v.focus();else enfocarGuiado();}
+  if(n)toast(ic("check","sm")+" "+(n===1?"Serie recuperada":n+" series recuperadas"));else toastFuera();
+  /* se guarda despues del aviso: si no cabe, el de "No cupo" queda encima */
+  if(sesion)touchSess();}
 /* ==== fin [S2] ============================================================ */
 function persistSession(k,dateOverride,startedAt){
   const logs=loadLogs(),t=dateOverride||today(),merged=sessLog(k),list=effList(k);
@@ -3174,7 +3252,7 @@ function renderStep(keep){clearTimer();serieAbierta=true;const s=steps[stepi];le
       const sv=sessActive(curRoutine)?loadSess():null,prs=(sv&&sv.pr)||[];
       const prDe=i=>prs.find(p=>p.id===s.id&&p.i===i);
       const setsTxt=ds.map((x,i)=>{const pr=prDe(i);
-        return `<div class="setline${pr?" pr":""}" id="sl_${s.id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${valor(x)}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">${ic("close","xs")}</span>${pr?`<span class="prtag">${ic("trophy","xs")} ${esc(pr.kind||"Récord")}</span>`:""}</div>`;}).join("");
+        return `<div class="setline${pr?" pr":""}" id="sl_${s.id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${valor(x)}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie ${i+1}">${ic("close","xs")}</span>${pr?`<span class="prtag">${ic("trophy","xs")} ${esc(pr.kind||"Récord")}</span>`:""}</div>`;}).join("");
       const pesoStep=cargado?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-1)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" role="button" tabindex="0" aria-label="Escribir el peso exacto" title="Toca para escribir el peso exacto">${fmtW(curW)}</b><button class="sq" onclick="adjW(1)" aria-label="Subir peso">+</button></div>${incChipHTML(s.id)}</div>`:'';
       const repsStep=`<div class="stepper"${cargado?'':' style="max-width:220px;margin:0 auto"'}><div class="lab">${cargado?'Reps':'Repeticiones'}</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" role="button" tabindex="0" aria-label="Escribir las repeticiones" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>`;
       inner=`<div class="logrow">${pesoStep}${repsStep}</div>${cargado?incPickHTML(s.id):""}${cargado?rirHTML():""}
@@ -3288,7 +3366,7 @@ function doneHero(f){const r=44,C=(2*Math.PI*r).toFixed(1),fin=(f!=null&&f<1)?(C
       style="animation:drawring .75s ease-out"/>
     <path d="M34 53l12 12 24-26" fill="none" stroke="var(--primary)" stroke-width="7"
       stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
-function finish(){clearTimer();
+function finish(){clearTimer();toastFuera();
   /* la semana de antes de guardar: "Semana cumplida" sale en la sesion que
      la cumple, no en las que vienen despues esa misma semana. Los pendientes
      tambien se cuentan ANTES de cerrar: con pendientes (el aviso dijo

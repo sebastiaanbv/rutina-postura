@@ -73,7 +73,7 @@ la estructura de bloques.
 
 `--bg` página · `--card` tarjeta · `--card2` tarjeta destacada · `--sunk` caja hundida (dentro de una tarjeta) · `--line` separador · `--line2` separador fuerte.
 
-`--hero` es la superficie oscura invertida, la misma en los dos temas. Se usa **una vez por pantalla como máximo**: la tarjeta de hoy en Inicio, el índice de fuerza en Progreso. Su acento es `--hero-accent`, un verde claro que solo existe para ir sobre ella.
+`--hero` es la superficie oscura invertida, la misma en los dos temas. Se usa **una vez por pantalla como máximo**: la tarjeta de hoy en Inicio, el índice de fuerza en Progreso. Su acento es `--hero-accent`, un verde claro que solo existe para ir sobre ella. El rojo destructivo tiene su propio tono para ir encima, `--danger-hero` (v36): `--danger` da 3,3:1 contra el hero y este 8,6:1 (5,5:1 en oscuro). Hoy solo lo usa la X del aviso «Serie borrada».
 
 ### Familias de rutina
 
@@ -219,6 +219,8 @@ El peso del control es **solo el número**, y es el mismo al entrar en la serie,
 
 Subir o bajar series rehace la lista de pasos entera, así que `reanclar()` te devuelve a la misma serie del mismo ejercicio (o a la última que quede, si la recortaste) y conserva el peso y las reps que ya tenías marcados. No se puede bajar por debajo de lo ya registrado hoy ni por debajo de la serie en curso.
 
+Cada serie anotada queda en una línea bajo los controles: tocar la cifra la corrige en el sitio y la X la borra. **Borrar se deshace, no se confirma** (v36): sale «Serie borrada · Deshacer» siete segundos, y Deshacer la devuelve a su sitio. Es un toque que se repite en cada sesión, a veces con prisa: un `confirm()` en cada uno sería ruido, y sin vuelta atrás un toque fallido se llevaba récords, 1RM e índice de fuerza.
+
 El descanso es pantalla propia: contador y saltar. No hereda la ficha del ejercicio, y ya no lleva ±30 s — por lo mismo que el resto del tiempo no se edita; para adelantarlo está saltar.
 
 **Entrar no crea la sesión.** `rp_session` nace con lo primero que se registra —una serie, un visto o un temporizador—, así que abrir un ejercicio para mirarlo y salir no deja rastro ni pone la tarjeta de hoy «En curso».
@@ -257,10 +259,17 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
 
 - **Contraste mínimo 4,5:1** para texto normal y 3:1 para texto grande, verificado **elemento a elemento** en las cinco pantallas y los dos temas. La verificación se repite en cada cambio visual y ninguno puede empeorarla.
 - **Áreas táctiles de 44 px.** Los controles pequeños conservan su tamaño visual y amplían la zona
-  pulsable con un pseudo-elemento. Cubre **19 familias de control**: hasta v32 cubría cinco, y la
+  pulsable con un pseudo-elemento. Cubre **20 familias de control**: hasta v32 cubría cinco, y la
   mitad de los botones se quedaba fuera —los `+`/`−` del guiado medían 42 px, los interruptores 28
   y el de confirmar una serie 30—. Solo se amplían controles **hoja**: el pseudo-elemento se pinta
   por encima y se tragaría el clic de un hijo pulsable.
+  **Lo que va junto a algo destructivo no puede pisarse con ello.** El pseudo-elemento crece hacia
+  los dos lados y puede quedar encima del vecino: la X de borrar una serie, de 23 px, se metía 10 px
+  a la izquierda, y a 320 px de ancho se comía el borde del visto de guardar. Desde v36 esa X mide
+  44 px **de caja**, con márgenes negativos para no mover el dibujo ni alargar la fila, y el flex
+  garantiza el hueco con lo de al lado. En la misma fila, la cifra que abre la edición se amplía
+  (medía 61×18) y los campos para corregirla miden 44 de alto. Se comprueba como lo ve el dedo, con
+  `elementFromPoint`, a 400 y a 320 px.
 - **Teclado**: todo lo que se comporta como botón es enfocable y responde a Enter y Espacio. Las
   pestañas son botones reales con `aria-current`. En v32 había **22 controles que eran `<div>` con
   `onclick` y ni `role` ni `tabindex`** —entre ellos la lista entera de rutinas de Inicio, el
@@ -277,6 +286,11 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
   cinco `confirm()` que quedan son todos destructivos —reemplazar datos al importar, descartar la
   sesión, quitar una rutina del calendario y las dos de borrarlo todo— y ahí el diálogo del
   sistema es una ventaja: cuesta más pulsarlo por accidente.
+  Borrar una serie no pide confirmación: **se deshace** (v36). Es el único aviso con botón, y el
+  aviso sigue siendo la región viva (`role="status"`) que ya existía, así que «Serie borrada» se
+  lee sin mover el foco; si se borró con teclado, el foco pasa a «Deshacer», y al caducar vuelve a
+  la acción del guiado. Solo el botón recibe toques —el resto del aviso sigue sin tapar lo de
+  debajo— y escondido no se enfoca ni se pulsa.
 - **Movimiento**: `prefers-reduced-motion` respetado.
 - **Zonas seguras**: `env(safe-area-inset-top)` en las tres cabeceras y `inset-bottom` en la barra inferior y las hojas.
 
@@ -624,6 +638,31 @@ de fin, y ninguno decía qué se había superado.
   la pantalla de fin y el calendario). Las tres que terminan con solo el pecho hecho esperan
   «Guardada · 1 de 14 ejercicios», no «Completada»: con HU-09 eso es lo que dice el final con
   ejercicios sin hacer.
+
+Borrar una serie se puede deshacer. La X de cada serie del guiado borraba de un toque, sin
+confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se tocaba en 18 px de alto.
+
+- **«Serie borrada · Deshacer»** durante siete segundos (`DESHACER_MS`). Deshacer la vuelve a
+  poner en su índice y la sesión queda idéntica, byte a byte: si era la última serie de su
+  ejercicio, el ejercicio vuelve a su puesto en `rp_session`. Lo que se borra con el aviso a la vista se apila:
+  un doble toque en la X se lleva dos series —la de abajo sube al sitio de la borrada— y el aviso
+  pasa a «2 series borradas»; Deshacer devuelve las dos. Anotar otra mientras tanto no estorba: la
+  borrada vuelve a su sitio y la nueva se queda, y deshacer en el descanso no saca del descanso.
+  Salir del guiado o finalizar retira el aviso: una sesión cerrada no se reabre. Si al deshacer no
+  cabe en el teléfono, la serie vuelve a la memoria y queda encima el aviso de «No cupo».
+- **El aviso respeta §2, §10 y §11**: X en `--danger-hero` (el ámbar es logro), botón en
+  `--hero-accent`, sin exclamaciones y con plural. `toast()` acepta un tercer argumento que se
+  llama al cerrarse, por tiempo o porque otro aviso lo pisa; ahí caduca el Deshacer.
+- **Zonas de toque de la fila de serie** (§10): la cifra entra en la lista del pseudo-elemento, la
+  X pasa a caja de 44 y los campos de corregir miden 44 de alto y 52 de ancho (antes 58; con la X
+  de 44, a 320 px la fila se partía). La fila mide lo mismo que antes, 40 px; editando, 46 en vez
+  de 48. Cada X dice qué serie borra («Borrar serie 2»).
+- **Sin cambios de datos**: nada nuevo en `rp_*`; lo que se puede deshacer vive en memoria.
+- **Pruebas** en `tests/pruebas_datos.js`: borrar y deshacer deja `rp_session` (menos el sello
+  `lastAt`), la memoria y la lista idénticas; sin deshacer, la serie no está ni al finalizar;
+  doble toque; la única serie de un ejercicio; anotar otra y deshacer en el descanso; salir y
+  finalizar; teléfono lleno; una serie de `rp_logs`. En `tests/pruebas_pantallas.js`: cifra, X, campos y visto con 44 px propios a 400
+  y 320 px; el aviso con su rol, su voz y el contraste del rojo en los dos temas; y con teclado.
 
 ### Cerrado en v35
 

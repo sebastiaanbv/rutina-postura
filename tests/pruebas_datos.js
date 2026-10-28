@@ -998,4 +998,153 @@
       expect(app.leer("rp_session")).toBe(null);
       app.reiniciarMemoria();});
   });
+
+  /* Borrar una serie del guiado era un toque sin vuelta atras. Ahora sale
+     «Serie borrada · Deshacer» unos segundos: deshacer deja la sesion
+     identica, y dejarlo pasar la deja sin la serie. */
+  function conSerie(){const ini=Date.now()-20*60000;
+    return {rp_session:{v:1,key:"gym_empuje",date:F.fecha(0),startedAt:ini,lastAt:ini,stepi:0,src:"guided",
+      log:{press_banca_db:[{w:20,reps:10,t:ini+60000,rir:2},{w:22.5,reps:8,t:ini+240000},{w:22.5,reps:7,t:ini+420000,rir:0}]}}};}
+  /* la sesion menos lastAt, que es el sello de la ultima escritura; en
+     crudo, para que tambien cuente el orden de los ejercicios */
+  const sinSello=app=>{const s=app.leer("rp_session");if(s)delete s.lastAt;return s;};
+  const crudo=()=>String(localStorage.getItem("rp_session")).replace(/"lastAt":\d+,?/,"");
+  const copia=x=>JSON.parse(JSON.stringify(x));
+  const filas=app=>app.$$("#guided .sets .setline").map(l=>Array.from(l.children)
+    .map(c=>c.textContent.replace(/\s+/g," ").trim()).filter(Boolean).join(" | "));
+  /* cada prueba arranca con la sesion sembrada y el guiado en el press */
+  function abrir(app,semilla){app.w.toastFuera();app.reiniciarMemoria();app.sembrar(semilla||conSerie);
+    app.w.openRoutine("gym_empuje");app.w.startRoutine("press_banca_db");sinAviso(app);
+    expect(app.activa()).toBe("guided");
+    return {log:copia(app.ev("sessionLog")),ses:sinSello(app),crudo:crudo(),filas:filas(app)};}
+  const borrar=(app,i)=>app.$("#sl_press_banca_db_"+i+" .del").click();
+  const deshacer=app=>app.$("#toast .tact").click();
+  escenario("Borrar una serie en el guiado",conSerie,()=>{
+    test("borrar y deshacer deja la sesión idéntica",app=>{
+      const antes=abrir(app);
+      expect(antes.filas).toHaveLength(3);
+      borrar(app,1);
+      expect(app.ev("sessionLog").press_banca_db.map(x=>x.reps)).toEqual([10,7]);
+      expect(app.leer("rp_session").log.press_banca_db.map(x=>x.reps)).toEqual([10,7]);
+      expect(filas(app)).toHaveLength(2);
+      expect(app.texto("#toast")).toContain("Serie borrada");
+      expect(app.$("#toast").classList.contains("show")).toBe(true);
+      deshacer(app);
+      expect(copia(app.ev("sessionLog"))).toEqual(antes.log);
+      expect(sinSello(app)).toEqual(antes.ses);
+      expect(crudo()).toBe(antes.crudo);
+      expect(filas(app)).toEqual(antes.filas);
+      expect(app.texto("#toast")).toContain("Serie recuperada");
+      expect(app.$("#toast .tact")).toBeFalsy();
+      /* y lo que se guarda al cerrar es lo de antes de borrar */
+      const res=app.w.finishSession("gym_empuje","guided");
+      expect(res.summary.sets).toBe(3);
+      expect(app.leer("rp_logs").press_banca_db[0].sets).toEqual(antes.log.press_banca_db);
+      app.reiniciarMemoria();});
+    test("borrar y no deshacer la deja sin la serie",async app=>{
+      const antes=abrir(app),ms=app.ev("DESHACER_MS");
+      expect(ms).toBeGreaterThan(3999);
+      /* con teclado, para ver tambien adonde va el foco cuando el aviso caduca */
+      const x=app.$("#sl_press_banca_db_0 .del");x.focus();
+      x.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter",bubbles:true}));
+      expect(app.doc.activeElement).toBe(app.$("#toast .tact"));
+      await app.espera(ms+300);
+      expect(app.$("#toast").classList.contains("show")).toBe(false);
+      /* el boton escondido no se enfoca ni se pulsa, y el foco no se pierde */
+      expect(app.w.getComputedStyle(app.$("#toast .tact")).visibility).toBe("hidden");
+      expect(app.doc.activeElement).toBe(app.$("#guided .gbtn.go"));
+      app.w.deshacerSerie();
+      const queda=antes.log.press_banca_db.slice(1);
+      expect(copia(app.ev("sessionLog"))).toEqual({press_banca_db:queda});
+      expect(app.leer("rp_session").log).toEqual({press_banca_db:queda});
+      expect(filas(app)).toEqual(["Serie 1 | 22.5 kg × 8","Serie 2 | 22.5 kg × 7 · reserva 0"]);
+      const res=app.w.finishSession("gym_empuje","guided");
+      expect(res.summary.sets).toBe(2);
+      expect(app.leer("rp_logs").press_banca_db[0].sets).toEqual(queda);
+      app.reiniciarMemoria();});
+    test("dos toques seguidos en la X: Deshacer devuelve las dos, cada una a su sitio",app=>{
+      const antes=abrir(app);
+      /* la de abajo sube al sitio de la borrada: el segundo toque se la lleva */
+      borrar(app,1);borrar(app,1);
+      expect(app.ev("sessionLog").press_banca_db.map(x=>x.reps)).toEqual([10]);
+      expect(app.texto("#toast")).toContain("2 series borradas");
+      deshacer(app);
+      expect(copia(app.ev("sessionLog"))).toEqual(antes.log);
+      expect(crudo()).toBe(antes.crudo);
+      expect(filas(app)).toEqual(antes.filas);
+      expect(app.texto("#toast")).toContain("2 series recuperadas");
+      app.reiniciarMemoria();});
+    test("borrar la única serie de un ejercicio y deshacer: vuelve a su puesto en la sesión",app=>{
+      const s=conSerie(),log=s.rp_session.log;
+      log.press_banca_db=log.press_banca_db.slice(0,1);
+      log.press_hombro_db=[{w:12,reps:10,t:s.rp_session.startedAt+600000}];
+      const antes=abrir(app,s);
+      expect(Object.keys(antes.ses.log)).toEqual(["press_banca_db","press_hombro_db"]);
+      borrar(app,0);
+      expect(Object.keys(app.leer("rp_session").log)).toEqual(["press_hombro_db"]);
+      expect(filas(app)).toHaveLength(0);
+      deshacer(app);
+      expect(crudo()).toBe(antes.crudo);
+      expect(Object.keys(app.ev("sessionLog"))).toEqual(["press_banca_db","press_hombro_db"]);
+      expect(filas(app)).toEqual(antes.filas);
+      app.reiniciarMemoria();});
+    test("borrar, anotar otra y deshacer en el descanso: no se pierde ninguna",async app=>{
+      const antes=abrir(app);
+      borrar(app,1);
+      app.w.logSet();
+      await app.hasta(()=>app.$("#guided .isrest"),3000,"el descanso");
+      deshacer(app);
+      /* la borrada vuelve a su indice y la nueva se queda al final */
+      const log=copia(app.ev("sessionLog")).press_banca_db;
+      expect(log.slice(0,3)).toEqual(antes.log.press_banca_db);
+      expect(log).toHaveLength(4);
+      expect(app.leer("rp_session").log.press_banca_db).toEqual(log);
+      /* deshacer no saca del descanso */
+      expect(app.$("#guided .isrest")).toBeTruthy();
+      app.w.skipRest();
+      app.reiniciarMemoria();});
+    test("salir del guiado o finalizar retira el Deshacer y no toca nada",async app=>{
+      abrir(app);
+      borrar(app,0);
+      app.w.guidedExit();
+      await app.hasta(()=>app.activa()==="routine",3000,"la pantalla de la rutina");
+      expect(app.$("#toast").classList.contains("show")).toBe(false);
+      const fuera=app.foto();
+      app.w.deshacerSerie();
+      expect(app.foto()).toEqual(fuera);
+      /* finalizar con el aviso a la vista: la sesion cerrada no se reabre */
+      abrir(app);
+      borrar(app,0);
+      app.w.finish();
+      expect(app.texto("#guided")).toContain("Completada");
+      expect(app.$("#toast").classList.contains("show")).toBe(false);
+      app.w.deshacerSerie();
+      expect(app.leer("rp_session")).toBe(null);
+      expect(app.leer("rp_logs").press_banca_db.slice(-1)[0].sets).toHaveLength(2);
+      app.reiniciarMemoria();});
+    test("teléfono lleno: Deshacer devuelve la serie a la memoria y avisa que no cupo",app=>{
+      const antes=abrir(app);
+      borrar(app,2);
+      const libera=lleno(app,{margen:0});
+      try{deshacer(app);
+        expect(copia(app.ev("sessionLog"))).toEqual(antes.log);
+        expect(app.texto("#toast")).toContain("No cupo en el teléfono");}
+      finally{libera();}
+      app.w.touchSess();
+      expect(sinSello(app)).toEqual(antes.ses);
+      app.reiniciarMemoria();});
+    test("una serie ya guardada en rp_logs: borrar y deshacer deja rp_logs idéntico",app=>{
+      const t=Date.now()-3600000,logs={press_banca_db:[
+        {date:F.fecha(7),sets:[{w:20,reps:10,t:t-7*864e5}],k:"gym_empuje",t:t-7*864e5},
+        {date:F.fecha(0),sets:[{w:22.5,reps:8,t:t}],k:"gym_empuje",t:t}]};
+      abrir(app,Object.assign(conSerie(),{rp_logs:logs}));
+      const antes=localStorage.getItem("rp_logs");
+      /* la unica serie del registro: se va el registro entero */
+      app.w.delSet("press_banca_db","l",1,0,-1);
+      expect(app.leer("rp_logs").press_banca_db).toHaveLength(1);
+      expect(app.texto("#toast")).toContain("Serie borrada");
+      deshacer(app);
+      expect(localStorage.getItem("rp_logs")).toBe(antes);
+      app.reiniciarMemoria();});
+  });
 })();
