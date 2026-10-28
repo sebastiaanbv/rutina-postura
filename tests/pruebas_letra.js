@@ -7,11 +7,16 @@
 (function(){
   const F=Fixtures;
   const tab=(app,v)=>{app.$('.nav .tab[data-v="'+v+'"]').click();};
-  /* el telefono: px de ancho y la letra del sistema al pct % */
+  /* el telefono: px de ancho y la letra del sistema al pct %. Sin barras de
+     scroll que ocupen sitio, como en el telefono (alli van superpuestas): el
+     Chrome de tests/run.py y de la CI las pinta de 15 px, y la pagina de
+     "412 px" mediria 397 y una hoja con scroll propio, 15 menos */
   async function telefono(app,px,pct){app.frame.style.width=px+"px";
+    if(!app.doc.getElementById("sinbarras")){const st=app.doc.createElement("style");st.id="sinbarras";
+      st.textContent="*{scrollbar-width:none}";app.doc.head.appendChild(st);}
     app.doc.documentElement.style.fontSize=pct===100?"":pct+"%";await app.espera(30);}
   function deVuelta(app){app.frame.style.width="400px";app.doc.documentElement.style.fontSize="";
-    app.doc.documentElement.style.removeProperty("--fk");}
+    app.doc.documentElement.style.removeProperty("--fk");const st=app.doc.getElementById("sinbarras");if(st)st.remove();}
   const px=(app,el)=>parseFloat(app.w.getComputedStyle(el).fontSize);
   /* mide un token en px con un elemento de prueba */
   function token(app,t){const d=app.doc.createElement("div");d.style.fontSize="var("+t+")";
@@ -21,9 +26,9 @@
   const ESCALA={"--t-mega":50,"--t-display":30,"--t-xl":26,"--t-title":22,"--t-lg":20,"--t-md":16,
     "--t-lead":15,"--t-base":14,"--t-sm":12.5,"--t-xs":11,"--t-2xs":10};
 
-  /* La cifra mas larga de cada orden del peso (data-cifra de la fila de
-     steppers): la que la fila tiene que dejar caber, tambien en el campo */
-  const LARGA={3:"7.5",4:"57.5",5:"142.5"};
+  /* La cifra mas larga que puede tener el peso: la que la fila de steppers
+     deja caber siempre, sea cual sea el peso de ahora, tambien en el campo */
+  const LARGA="142.5";
 
   /* Recortes con "…" que el diseño decide: el riel de la semana (el nombre
      entero esta a un toque, en la hoja del plan) y el titulo de una hoja.
@@ -116,9 +121,10 @@
       tab(app,"home");await mira("Inicio");await mira("Barra inferior","#nav");
       app.w.openRoutine(o.rutina);await mira("Rutina");
       app.w.startRoutine(o.cargado);expect(app.ev("steps[stepi].id")).toBe(o.cargado);await mira("Guiado");
-      /* el campo ocupa el sitio de la cifra: la mas larga de su orden cabe
-         entera; una mas larga se desplaza dentro (lo mira el stepper) */
-      app.w.editNum("w");app.$("#numin").value=LARGA[app.$("#guided .logrow").dataset.cifra];
+      /* el campo ocupa el sitio de la cifra: la mas larga que puede tener
+         el peso cabe entera; una mas larga se desplaza dentro (lo mira el
+         stepper) */
+      app.w.editNum("w");app.$("#numin").value=LARGA;
       await mira("Guiado, escribiendo el peso");app.w.renderStep();
       app.$("#guided .gbtn.go").click();
       await app.hasta(()=>app.$("#guided .ring.rest"),3000,"el descanso");await mira("Descanso");
@@ -317,23 +323,27 @@
     function escribePeso(app,v){app.w.editNum("w");const i=app.$("#numin");i.value=v;
       i.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter"}));}
     /* la fila de steppers y lo que va debajo: cajas de la fila, de sus filas
-       de botones, de cada boton y de "Registrar serie" */
+       de botones, de cada boton, de cada cifra (o su campo) y de "Registrar
+       serie" */
     function forma(app){const caja=e=>{const b=e.getBoundingClientRect();return [b.left,b.top,b.width,b.height];},f=app.$("#guided .logrow");
-      return [caja(f),...[...f.querySelectorAll(".stepper .row,.sq")].map(caja),caja(app.$("#guided .gbtn.go"))];}
+      return [caja(f),...[...f.querySelectorAll(".stepper .row,.sq,.row>b,.numin")].map(caja),caja(app.$("#guided .gbtn.go"))];}
     const misma=(a,b)=>a.length===b.length&&a.every((x,i)=>x.every((v,j)=>Math.abs(v-b[i][j])<.5));
     test("el stepper del peso: botones de 42 px y la cifra encima o con 4 px de aire, de 320 a 430 px y hasta el 130 %",async app=>{
       /* una cifra de cada largo: bajo 10 kg ("7.5"), de 10 a 100 ("57.5") y
          desde 100 ("142.5"); y tambien mientras se escribe el peso o las
          reps: el campo ocupa el sitio de la cifra (entre - y + o encima, como
          ella), la fila no cambia de forma ni se mueve nada de debajo, y la
-         cifra de ese largo cabe en el campo sin desplazarse */
+         cifra de ese largo cabe en el campo sin desplazarse. Y la fila tiene
+         la misma forma con las tres: lo decide el ancho y la letra */
       app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");
       const fallos=[];let vistas=0;
       try{for(const ancho of [320,360,375,390,412,430])for(const pct of [100,115,130]){
-          await telefono(app,ancho,pct);
+          await telefono(app,ancho,pct);let primera=null;
           for(const v of ["7.5","57.5","142.5"]){const que=ancho+" px al "+pct+" % con «"+v+"»";
             escribePeso(app,v);expect(app.texto("#lw")).toBe(v);
             const c=steppers(app,que);fallos.push(...c.out);vistas++;
+            if(!primera)primera=forma(app);
+            else if(!misma(forma(app),primera))fallos.push(que+": la fila no tiene la misma forma que con «7.5»");
             for(const k of ["w","r"]){const antes=forma(app),cual=que+", escribiendo "+(k==="w"?"el peso":"las reps");
               app.w.editNum(k);const i=app.$("#numin");if(k==="w")i.value=v;
               const e=steppers(app,cual);fallos.push(...e.out);
@@ -349,20 +359,22 @@
       finally{deVuelta(app);app.sembrar(F.dueno);app.reiniciarMemoria();tab(app,"home");}
       expect(vistas).toBe(54);
       expect(fallos).toEqual([]);});
-    test("una cifra mas larga que su orden se desplaza dentro del campo, sin salirse del stepper",async app=>{
-      /* lo que se teclea no tiene largo previsto: un "142.5" en una fila de
-         pesos bajo 10 kg no cabe entre − y +, y no por eso cambia la fila */
+    test("una cifra mas larga que «142.5» se desplaza dentro del campo, sin salirse del stepper ni cambiar la fila",async app=>{
+      /* lo que se teclea no tiene largo previsto: un "1002.5" no cabe en el
+         sitio que la fila reserva entre − y +, y no por eso cambia la fila.
+         Donde la fila va apilada, el campo tiene todo el ancho y le cabe */
       app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");
       const fallos=[];
-      try{for(const [ancho,pct] of [[375,100],[390,115],[412,130]]){
+      try{for(const [ancho,pct] of [[412,100],[430,100],[430,115]]){
           await telefono(app,ancho,pct);escribePeso(app,"7.5");const que=ancho+" px al "+pct+" %",antes=forma(app);
           expect(steppers(app,que).encima).toBe(false);
-          app.w.editNum("w");const i=app.$("#numin");i.value="142.5";
-          fallos.push(...steppers(app,que+", escribiendo «142.5»").out);
-          if(!misma(forma(app),antes))fallos.push(que+": la fila cambia de forma al escribir «142.5»");
+          app.w.editNum("w");const i=app.$("#numin");i.value="1002.5";
+          fallos.push(...steppers(app,que+", escribiendo «1002.5»").out);
+          if(!misma(forma(app),antes))fallos.push(que+": la fila cambia de forma al escribir «1002.5»");
           expect(i.scrollWidth).toBeGreaterThan(i.clientWidth);
           i.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter"}));
-          expect(app.texto("#lw")).toBe("142.5");expect(steppers(app,que).encima).toBe(true);}}
+          expect(app.texto("#lw")).toBe("1002.5");
+          if(!misma(forma(app),antes))fallos.push(que+": la fila cambia de forma con «1002.5»");}}
       finally{deVuelta(app);app.sembrar(F.dueno);app.reiniciarMemoria();tab(app,"home");}
       expect(fallos).toEqual([]);});
     /* Un toque de verdad en el centro de el, con los eventos en el orden en
@@ -377,8 +389,13 @@
        medias, el click cae en otro sitio y el toque se pierde. Cerrar el campo
        con Enter o con renderStep, como el resto de pruebas, no lo veria. */
     async function toca(app,el,modo){
-      const w=app.w,doc=app.doc;el.scrollIntoView({block:"center"});
+      el.scrollIntoView({block:"center"});
       const b=el.getBoundingClientRect(),x=b.left+b.width/2,y=b.top+b.height/2;
+      await tocaEn(app,x,y,modo);}
+    /* el mismo toque en un punto de la pantalla, sin volver a buscar el
+       control: dos toques seguidos caen donde estaba el dedo */
+    async function tocaEn(app,x,y,modo){
+      const w=app.w,doc=app.doc;
       const manda=(t,tipo)=>{const o={bubbles:true,cancelable:true,composed:true,view:w,clientX:x,clientY:y,button:0};
         t.dispatchEvent(/^pointer/.test(tipo)?new w.PointerEvent(tipo,Object.assign(o,{pointerId:1,isPrimary:true,pointerType:modo==="dedo"?"touch":"mouse"}))
           :new w.MouseEvent(tipo,o));};
@@ -394,14 +411,14 @@
       manda(arriba,"mouseup");
       let c=abajo;while(c&&!c.contains(arriba))c=c.parentElement;
       if(c)manda(c,"click");
-      /* y lo que el toque deja para despues (la forma de la fila) corre ya,
-         como en el navegador, y no en mitad del toque siguiente */
+      /* y lo que el toque deja para despues corre ya, como en el navegador,
+         y no en mitad del toque siguiente */
       await app.espera(10);}
     function tocarEscribiendo(modo){
       test("escribir el peso o las reps y tocar «Registrar serie» o + "+(modo==="dedo"?"con el dedo":"con el raton")+": el toque llega y cuenta lo escrito, de 320 a 430 px y al 100 y al 130 %",async app=>{
         /* [lo que habia, lo que se escribe]: del mismo orden, y subiendo o
-           bajando de orden, que es cuando la fila reserva otro sitio a la
-           cifra (DISENO 10) y podria cambiar de forma bajo el dedo */
+           bajando de orden, que es cuando la cifra cambia de largo y la fila
+           podria cambiar de forma bajo el dedo (DISENO 10) */
         const CASOS=[["55","57.5"],["140","142.5"],["7.5","5"],["97.5","100"],["100","97.5"],["7.5","10"]];
         const empieza=()=>{app.sembrar(F.dueno);app.reiniciarMemoria();app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");};
         const series=()=>app.ev("sessionLog").prensa_inclinada||[];
@@ -433,9 +450,9 @@
     tocarEscribiendo("dedo");
     tocarEscribiendo("raton");
     test("al registrar con el campo abierto un peso de otro orden, «Serie registrada» no salta antes del descanso",async app=>{
-      /* la fila toma la forma del peso nuevo cuando acaba el toque, salvo si
-         ese toque registro la serie: el boton ya dice "Serie registrada" y en
-         300 ms entra el descanso, que se pinta de cero */
+      /* la fila no cambia de forma con el peso nuevo: el boton ya dice "Serie
+         registrada" y se queda quieto hasta que en 300 ms entra el descanso,
+         que se pinta de cero */
       app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");
       try{await telefono(app,390,100);
         /* que acaben las animaciones de entrada (fade y stageIn, 220 ms) */
@@ -443,7 +460,8 @@
         escribePeso(app,"97.5");app.w.editNum("w");app.$("#numin").value="100";
         const go=app.$("#guided .gbtn.go");go.scrollIntoView({block:"center"});const antes=go.getBoundingClientRect().top;
         await toca(app,go,"dedo");expect(go.textContent).toContain("Serie registrada");
-        /* scale(.985) de .done lo mueve menos de medio px; la fila apilada, 46 */
+        /* scale(.985) de .done lo mueve menos de medio px; una fila que se
+           apilara, 46 */
         await app.espera(60);expect(go.isConnected).toBe(true);expect(Math.abs(go.getBoundingClientRect().top-antes)).toBeLessThan(1);
         await app.hasta(()=>app.$("#guided .ring.rest"),3000,"el descanso");
         const s=app.ev("sessionLog").prensa_inclinada;expect(s[s.length-1].w).toBe(100);}
@@ -464,16 +482,81 @@
           app.w.adjW(2.5);expect(app.texto("#lw")).toBe("145");expect(mas()).toEqual(antes);
           app.w.adjW(-2.5);app.w.adjW(-2.5);expect(app.texto("#lw")).toBe("140");expect(mas()).toEqual(antes);}}
       finally{deVuelta(app);app.sembrar(F.dueno);app.reiniciarMemoria();tab(app,"home");}});
-    test("con la letra de serie la cifra solo sube cuando no cabe: entre − y + desde 360 px bajo 10 kg, desde 390 bajo 100 kg y desde 412 con 100 kg o mas",async app=>{
-      /* la forma de siempre se conserva donde cabe: no se apila todo por si
-         acaso. [7.5, 57.5, 142.5]: true = encima de los botones */
-      const ESPERADO={320:[true,true,true],360:[false,true,true],390:[false,false,true],412:[false,false,false],430:[false,false,false]};
+    test("con la letra de serie la cifra va entre − y + desde 412 px y encima por debajo, sea cual sea el peso",async app=>{
+      /* donde cabe un "142.5", la forma de siempre; donde no, apilada con
+         cualquier peso, para que la fila no cambie de forma al cambiar el
+         peso. [0, 7.5, 57.5, 142.5]: true = encima de los botones */
+      const ESPERADO={320:[true,true,true,true],360:[true,true,true,true],390:[true,true,true,true],
+        412:[false,false,false,false],430:[false,false,false,false]};
       app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");
       const visto={};
       try{for(const ancho of Object.keys(ESPERADO)){await telefono(app,+ancho,100);
-          visto[ancho]=["7.5","57.5","142.5"].map(v=>{escribePeso(app,v);return steppers(app,ancho).encima;});}}
+          visto[ancho]=["0","7.5","57.5","142.5"].map(v=>{escribePeso(app,v);return steppers(app,ancho).encima;});}}
       finally{deVuelta(app);app.sembrar(F.dueno);app.reiniciarMemoria();tab(app,"home");}
       expect(visto).toEqual(ESPERADO);});
+    test("la fila del guiado no cambia de forma con la cifra: de 0 a 142.5 kg, de 1 a 100 reps, con − y + y al escribir, de 320 a 430 px y hasta el 130 %",async app=>{
+      /* tres revisiones encontraron variantes del mismo fallo: la fila de
+         peso y reps cambiaba de forma o de tamaño segun la cifra, y un toque
+         en el mismo sitio caia en otro control. Aqui se mide la fila entera
+         (botones, cifras, campo y "Registrar serie") con cada cifra, al
+         cruzar 97.5→100 y 9→10 reps con + y −, y con el campo abierto */
+      app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");
+      const fallos=[];let vistas=0;
+      const reps=v=>{app.w.editNum("r");const i=app.$("#numin");i.value=v;i.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter"}));};
+      try{for(const ancho of [320,360,375,390,412,430])for(const pct of [100,115,130]){
+          await telefono(app,ancho,pct);const que=ancho+" px al "+pct+" %";
+          escribePeso(app,"0");reps("1");const base=forma(app);
+          const mira=(como,esperado)=>{vistas++;
+            if(esperado!=null&&app.texto(como[0]==="r"?"#lr":"#lw")!==esperado)fallos.push(que+", "+como+": la cifra es «"+app.texto(como[0]==="r"?"#lr":"#lw")+"» y no «"+esperado+"»");
+            if(!misma(forma(app),base))fallos.push(que+", "+como+": la fila cambia de forma");};
+          for(const v of ["0","5","7.5","10","57.5","97.5","100","142.5","999.5"]){escribePeso(app,v);mira("peso "+v,v);}
+          for(const v of ["1","9","10","99","100"]){reps(v);mira("reps "+v,v);}
+          escribePeso(app,"97.5");app.w.adjW(2.5);mira("peso de 97.5 a 100 con +","100");
+          app.w.adjW(-2.5);mira("peso de 100 a 97.5 con −","97.5");
+          escribePeso(app,"7.5");app.w.adjW(2.5);mira("peso de 7.5 a 10 con +","10");
+          app.w.adjW(-2.5);mira("peso de 10 a 7.5 con −","7.5");
+          reps("9");app.w.adjR(1);mira("reps de 9 a 10 con +","10");
+          app.w.adjR(-1);mira("reps de 10 a 9 con −","9");
+          reps("99");app.w.adjR(1);mira("reps de 99 a 100 con +","100");
+          for(const [k,v] of [["w","142.5"],["w","5"],["r","100"],["r","7"]]){
+            app.w.editNum(k);app.$("#numin").value=v;vistas++;
+            if(!misma(forma(app),base))fallos.push(que+", escribiendo «"+v+"» en "+(k==="w"?"el peso":"las reps")+": la fila cambia de forma");
+            app.$("#numin").dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter"}));}}}
+      finally{deVuelta(app);app.sembrar(F.dueno);app.reiniciarMemoria();tab(app,"home");}
+      expect(vistas).toBe(18*25);
+      expect(fallos).toEqual([]);});
+    function dosToques(modo){
+      test("dos toques seguidos en el mismo punto de + o − "+(modo==="dedo"?"con el dedo":"con el raton")+" cuentan los dos aunque la cifra cambie de largo, de 360 a 412 px y hasta el 130 %",async app=>{
+        /* el caso de la tercera revision: de 97.5 a 100 con + la fila se
+           apilaba y el segundo toque abria el campo; de 100 a 97.5 con − se
+           desapilaba y el segundo caia en la fila de la reserva. El dedo no
+           se mueve: el segundo toque va al mismo punto que el primero.
+           Cada telefono pinta el paso una vez y da por acabada su entrada
+           (fade y stageIn): la animacion tambien moveria el boton, y con el
+           tiempo virtual de la CI no se sabe cuando acaba */
+        const CASOS=[["w","97.5",1,"102.5"],["w","100",0,"95"],["w","7.5",1,"12.5"],["w","10",0,"5"],
+          ["r","9",1,"11"],["r","10",0,"8"],["r","99",1,"101"]];
+        const fallos=[];let toques=0;
+        try{for(const ancho of [360,375,390,412])for(const pct of [100,115,130]){
+            await telefono(app,ancho,pct);
+            app.sembrar(F.dueno);app.reiniciarMemoria();app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");
+            app.doc.getAnimations().forEach(a=>a.finish());
+            for(const [k,ini,cual,fin] of CASOS){const que=ancho+" px al "+pct+" %, "+(k==="w"?"peso":"reps")+" desde "+ini+" con "+(cual?"+":"−")+" "+(cual?"+":"−");
+              app.w.editNum(k);const i=app.$("#numin");i.value=ini;i.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter"}));
+              const boton=()=>app.$("#l"+k).parentElement.querySelectorAll(".sq")[cual];
+              boton().scrollIntoView({block:"center"});
+              const b=boton().getBoundingClientRect(),x=b.left+b.width/2,y=b.top+b.height/2;
+              await tocaEn(app,x,y,modo);toques++;
+              const d=boton().getBoundingClientRect();
+              if(Math.abs(d.left-b.left)>.5||Math.abs(d.top-b.top)>.5)fallos.push(que+": el boton se mueve "+(d.left-b.left).toFixed(1)+", "+(d.top-b.top).toFixed(1)+" px tras el primer toque");
+              await tocaEn(app,x,y,modo);toques++;
+              if(app.$("#numin"))fallos.push(que+": el segundo toque abre el campo");
+              if(app.texto("#l"+k)!==fin)fallos.push(que+": queda en «"+app.texto("#l"+k)+"» y no en «"+fin+"»");}}}
+        finally{deVuelta(app);app.sembrar(F.dueno);app.reiniciarMemoria();tab(app,"home");}
+        expect(toques).toBe(12*7*2);
+        expect(fallos).toEqual([]);});}
+    dosToques("dedo");
+    dosToques("raton");
     test("el aviso flotante es un solo bloque de texto y usa el ancho de la pantalla",async app=>{
       /* con left:50% el aviso solo tenia media pantalla, y suelto cada <b> era
          otra columna: «Récord en / Jalón al / pecho:» al lado de «55 / kg ×» */

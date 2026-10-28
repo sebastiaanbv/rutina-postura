@@ -320,15 +320,15 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     font-weight:var(--w-bold);font-variant-numeric:tabular-nums;-moz-appearance:textfield}
   /* la cifra del stepper al escribirla ocupa el sitio del <b> al que
      sustituye, con su letra y su alto (la letra por el 1.45 de interlinea de
-     body): entre - y + a lo que quede, o encima si la fila ya iba apilada
-     (las consultas de .stepper .row). Asi la fila no cambia de forma al
+     body): entre - y + a lo que quede, o encima si la fila va apilada
+     (la consulta de .stepper .row). Asi la fila no cambia de forma al
      abrir ni al cerrar el campo. Si cambiara, tocar "Registrar serie" o + con
      el campo abierto se perderia: el campo pierde el foco al empezar el
      toque, la cifra vuelve, lo de debajo se mueve y el toque acaba en otro
      sitio. El borde va pintado por dentro y sin relleno: el sitio que la
-     fila reserva a la cifra es el de su texto, y con un borde de verdad la
-     cifra de ese largo no cabria en el campo. Lo que sea mas largo se
-     desplaza dentro del campo. */
+     fila reserva a la cifra es el de su texto, y con un borde de verdad un
+     "142.5" no cabria en el campo. Lo que sea mas largo se desplaza dentro
+     del campo. */
   .numin{flex:1 1 0;min-width:0;height:1.45em;font-family:inherit;font-size:var(--t-xl);letter-spacing:calc(-1em/26);
     padding:0;border:0;box-shadow:inset 0 0 0 2px var(--primary)}
   /* con el foco, el anillo de siempre (seccion foco) sin perder el borde */
@@ -851,31 +851,26 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
      que encogen (un "142.5" los dejaba en 37 y pegados a la cifra) */
   .stepper .row .sq{flex:0 0 42px}
   /* -1 px con la letra de serie; en em para que la cifra crezca entera con la
-     letra y las consultas de abajo la midan igual a cualquier tamaño */
-  .stepper .row b{font-size:var(--t-xl);font-weight:var(--w-bold);letter-spacing:calc(-1em/26);cursor:pointer;text-align:center}
+     letra y la consulta de abajo la mida igual a cualquier tamaño */
+  .stepper .row b{flex:1 1 0;min-width:0;font-size:var(--t-xl);font-weight:var(--w-bold);letter-spacing:calc(-1em/26);cursor:pointer;text-align:center}
   /* Entre los dos botones de 42 px quedan 34 px a 320 de ancho: un "57.5" no
      cabia ya con la letra de serie y, pegado a los botones, empujaba el
      stepper de las reps fuera del margen; al 130 % pasaba hasta con un "12".
-     La cifra va entre - y + mientras quepa con 4 px de aire a cada lado (92 px
-     con los botones); si no, sube a su propia linea y los botones quedan
-     debajo, en los extremos. Lo que ocupa depende de cuantos caracteres puede
-     llegar a tener, y eso lo dice la fila de steppers (data-cifra, de
-     cifraPeso()): 3 de base ("7.5", las reps), 4 desde 10 kg ("57.5") y 5
-     desde 100 ("142.5"), que ocupan 2,7, 3,82 y 4,94 em de la letra del
-     stepper. Se reserva por el orden del peso y no por la cifra de cada
-     momento: con saltos de 2,5 la cifra alterna "140" y "142.5", y los
-     botones subirian y bajarian bajo el dedo en cada toque. Los dos steppers
-     de la fila cambian juntos. Las consultas van en em del stepper, asi que
-     miden a la vez el ancho y la letra. */
-  @container (max-width:calc(92px + 2.7em)){
+     La cifra va entre - y + si cabe con 4 px de aire a cada lado (92 px con
+     los botones) la mas larga que puede tener, "142.5" (4,94 em de la letra
+     del stepper; las reps de tres cifras ocupan menos); si no, sube a su
+     propia linea y los botones quedan debajo, en los extremos. Lo decide solo
+     el ancho del stepper y su letra, nunca la cifra de cada momento: si la
+     forma dependiera de la cifra, al pasar de 97.5 a 100 con + (o de 9 a 10
+     reps) la fila se apilaria entre un toque y el siguiente, y el segundo
+     toque, en el mismo sitio, caeria en la cifra o en la fila de debajo. La
+     cifra ocupa todo el hueco entre los botones (flex 1 1 0), asi que su caja
+     tampoco cambia con el largo. Los steppers de una fila miden lo mismo y
+     cambian juntos. La consulta va en em del stepper, asi que mide a la vez
+     el ancho y la letra. */
+  @container (max-width:calc(92px + 4.94em)){
     .stepper .row{flex-wrap:wrap}
     .stepper .row>b,.stepper .row>.numin{order:-1;flex:1 0 100%}}
-  @container (max-width:calc(92px + 3.82em)){
-    [data-cifra="4"] .stepper .row{flex-wrap:wrap}
-    [data-cifra="4"] .stepper .row>b,[data-cifra="4"] .stepper .row>.numin{order:-1;flex:1 0 100%}}
-  @container (max-width:calc(92px + 4.94em)){
-    [data-cifra="5"] .stepper .row{flex-wrap:wrap}
-    [data-cifra="5"] .stepper .row>b,[data-cifra="5"] .stepper .row>.numin{order:-1;flex:1 0 100%}}
   .last{margin:var(--s3) 0 var(--s1)}
   .last.tap{cursor:pointer}
   .gchart{margin:var(--s2) 0 0;display:none}
@@ -2739,29 +2734,11 @@ function persistSession(k,dateOverride,startedAt){
 function durSince(t){if(!t)return 0;const m=Math.round((Date.now()-t)/60000);return (m>0&&m<=240)?m:0;}
 function fmtW(w){return (Math.round(w*10)%10===0)?String(Math.round(w)):Number(w).toFixed(1);}
 function plural(n,sing,pl){return (Math.abs(n)===1)?sing:pl;}
-/* cuantos caracteres puede llegar a tener la cifra del peso: con saltos de
-   2,5 alterna "20" y "22.5", asi que el decimal se cuenta siempre. La fila de
-   steppers lo lleva en data-cifra y el CSS le reserva ese sitio entre - y +
-   (DISENO 10) */
-function cifraPeso(w){return w>=100?5:w>=10?4:3;}
 /* la cifra del peso, sin unidad: igual que la pinta renderStep y la deja
    editNum. adjW y reanclar le ponian "kg" y el mismo peso se veia distinto
-   segun como se hubiera llegado a el */
-function pintaPeso(){const el=$("lw");if(!el)return;el.textContent=fmtW(curW);formaPeso();}
-/* la forma de la fila de steppers: el sitio que reserva al peso de ahora */
-function formaPeso(){const el=$("lw"),r=el&&el.closest(".logrow");if(r)r.dataset.cifra=cifraPeso(curW);}
-/* El campo de la cifra se cierra al perder el foco, y con un toque en otro
-   control (- o +, "Registrar serie") lo pierde al EMPEZAR el toque, no al
-   acabar. Si ahi la fila cambiara de forma por un peso de otro orden (de 97.5
-   a 100), lo de debajo se moveria bajo el dedo, el toque acabaria en otro
-   sitio y se perderia. trasElToque deja ese cambio para cuando el toque ya
-   hizo su click: con el dedo el navegador manda mousedown, mouseup y click
-   seguidos; con el raton hay que esperar a que se suelte el boton. */
-let apretado=false;
-["pointerdown","pointerup","pointercancel"].forEach(t=>addEventListener(t,()=>{apretado=t==="pointerdown";},true));
-function trasElToque(fn){if(!apretado){setTimeout(fn,0);return;}
-  const f=()=>{removeEventListener("pointerup",f,true);removeEventListener("pointercancel",f,true);setTimeout(fn,0);};
-  addEventListener("pointerup",f,true);addEventListener("pointercancel",f,true);}
+   segun como se hubiera llegado a el. La forma de la fila no depende de la
+   cifra (DISENO 10): cambiarla no mueve nada */
+function pintaPeso(){const el=$("lw");if(el)el.textContent=fmtW(curW);}
 function adjW(d){const s=steps[stepi],l=availDB(s.id);
   /* con mancuernas declaradas, los botones saltan a la siguiente que existe */
   if(l){const c=curW||0,n=d>0?l.filter(x=>x>c+1e-9)[0]:l.filter(x=>x<c-1e-9).pop();curW=n!=null?n:c;}
@@ -2788,16 +2765,11 @@ function editNum(which){const isW=which==="w",el=$(isW?"lw":"lr");if(!el)return;
   el.outerHTML=`<input id="numin" class="numin" type="number" inputmode="decimal" step="${isW?"0.5":"1"}" min="0" value="${val}">`;
   const i=$("numin");if(!i)return;i.focus();try{i.select();}catch(e){}
   let done=false;
-  const commit=e=>{if(done)return;done=true;const v=parseFloat(i.value);
+  const commit=()=>{if(done)return;done=true;const v=parseFloat(i.value);
     if(!isNaN(v)&&v>=0){if(isW)curW=Math.round(v*10)/10;else curReps=Math.max(1,Math.round(v));}
     const s=steps[stepi];
     i.outerHTML=isW?`<b id="lw" onclick="editNum('w')" role="button" tabindex="0" aria-label="Escribir el peso exacto" title="Toca para escribir el peso exacto">${fmtW(curW)}</b>`
-                   :`<b id="lr" onclick="editNum('r')" role="button" tabindex="0" aria-label="Escribir las repeticiones" title="Toca para escribir las repeticiones">${curReps}</b>`;
-    /* con Enter, la forma al momento; al perder el foco, cuando acabe el
-       toque. Si ese toque registro la serie, la fila se queda como estaba:
-       el boton dice "Serie registrada" y no debe saltar antes del descanso */
-    if(isW){if(e&&e.type==="blur")trasElToque(()=>{if(!document.querySelector("#guided .gbtn.go.done"))formaPeso();});
-      else formaPeso();}};
+                   :`<b id="lr" onclick="editNum('r')" role="button" tabindex="0" aria-label="Escribir las repeticiones" title="Toca para escribir las repeticiones">${curReps}</b>`;};
   i.addEventListener("blur",commit);
   i.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();commit();}});}
 function loadPlan(){return jget("rp_plan",[null,null,null,null,null,null,null]);}
@@ -3090,7 +3062,7 @@ function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){cu
       const setsTxt=ds.map((x,i)=>`<div class="setline" id="sl_${s.id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${valor(x)}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">${ic("close","xs")}</span></div>`).join("");
       const pesoStep=cargado?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-2.5)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" role="button" tabindex="0" aria-label="Escribir el peso exacto" title="Toca para escribir el peso exacto">${fmtW(curW)}</b><button class="sq" onclick="adjW(2.5)" aria-label="Subir peso">+</button></div></div>`:'';
       const repsStep=`<div class="stepper"${cargado?'':' style="max-width:220px;margin:0 auto"'}><div class="lab">${cargado?'Reps':'Repeticiones'}</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" role="button" tabindex="0" aria-label="Escribir las repeticiones" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>`;
-      inner=`<div class="logrow"${cargado?` data-cifra="${cifraPeso(curW)}"`:''}>${pesoStep}${repsStep}</div>${cargado?rirHTML():""}
+      inner=`<div class="logrow">${pesoStep}${repsStep}</div>${cargado?rirHTML():""}
       <div class="last tap" onclick="toggleGChart('${s.id}')" role="button" tabindex="0" aria-label="Ver la curva de este ejercicio">${lastTxt}${spark(s.id)}</div>
       <div id="gchart" class="gchart"></div>
       ${sg.why?`<div class="qwhy">${ic("bulb","xs")} ${esc(sg.why)}</div>`:''}

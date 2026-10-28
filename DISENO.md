@@ -223,7 +223,7 @@ Estados de la fila: pendiente · **siguiente** (filo verde y su botón de empeza
 Abajo, barra fija con dos acciones: continuar y finalizar.
 
 ### Modo guiado
-Manda **la serie**: pastilla con "Serie 2 de 4", nombre del ejercicio, y los controles de peso y reps inmediatamente debajo; si la cifra no cabe entre − y +, sube encima de ellos (§10). Bajo la acción, el **único ajuste que se edita a mano**: cuántas series. Arranca en la del programa, con "Sugeridas: N" debajo, y si la cambias ese texto se convierte en el botón para volver. La ficha de cómo se hace —mapa corporal, consejo, avisos, pasos y vídeo— va **después**, plegada, y viene cerrada si ya has hecho ese ejercicio tres veces o más.
+Manda **la serie**: pastilla con "Serie 2 de 4", nombre del ejercicio, y los controles de peso y reps inmediatamente debajo; si entre − y + no cabe la cifra más larga posible («142.5»), la cifra sube encima de ellos sea cual sea el peso (§10). Bajo la acción, el **único ajuste que se edita a mano**: cuántas series. Arranca en la del programa, con "Sugeridas: N" debajo, y si la cambias ese texto se convierte en el botón para volver. La ficha de cómo se hace —mapa corporal, consejo, avisos, pasos y vídeo— va **después**, plegada, y viene cerrada si ya has hecho ese ejercicio tres veces o más.
 
 **El tiempo no se edita.** Descansos y sostenes los fija el programa: el criterio para ponerlos ya está tomado y ofrecer un stepper solo invita a deshacerlo sin datos. Cambiar las series, en cambio, responde a algo que solo sabes tú — cómo te sientes hoy y cuánto tiempo tienes.
 
@@ -300,26 +300,29 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
     - **Lista de ejercicios**: la figura grande de la fila «siguiente» vuelve a 46 px cuando no
       deja los 7 em de «Calentamiento» (a 320 px ya pasaba de su columna); por debajo de 20 em las
       figuras se van y el nombre gana 57 px.
-    - **Stepper del guiado**: la cifra va entre − y + mientras quepa con 4 px de aire a cada
-      lado; si no, sube a su propia línea y los botones quedan debajo, en los extremos. Los
-      botones **no encogen nunca** (42 px). El sitio que se pide depende de cuántos caracteres
-      puede llegar a tener la cifra, y se decide **por el orden del peso, no por la cifra de cada
-      momento** (`cifraPeso()`, `data-cifra` en la fila): 3 por debajo de 10 kg («7.5») y en las
-      reps, 4 desde 10 kg («57.5») y 5 desde 100 («142.5»). Con saltos de 2,5 la cifra alterna
-      «140» y «142.5»: si la forma dependiera de la cifra, el + subiría y bajaría bajo el dedo a
-      cada toque. Los dos steppers de la fila cambian juntos. Con la letra de serie, la de 3 sube
-      en pantallas de unos 344 px o menos, la de 4 por debajo de 375 y la de 5 por debajo de unos
-      406; con la letra grande, antes. La cifra va **sin unidad**, como ya la pintaba el paso al
-      abrirse: «Peso» lo dice encima.
+    - **Stepper del guiado**: la cifra va entre − y + si cabe con 4 px de aire a cada lado
+      **la más larga que puede tener**, «142.5» (4,94 em de la letra del stepper; las reps de
+      tres cifras ocupan menos); si no, sube a su propia línea y los botones quedan debajo, en
+      los extremos. Los botones **no encogen nunca** (42 px), y la cifra ocupa todo el hueco
+      entre ellos. **La forma de la fila la deciden solo el ancho del stepper y su letra, nunca
+      la cifra**: ni la de cada momento ni la de su orden. Si dependiera de la cifra, al pasar
+      de 97.5 a 100 con + (o de 9 a 10 reps) la fila se apilaría entre un toque y el siguiente, y
+      el segundo toque, en el mismo sitio, abriría el campo o caería en la fila de la reserva.
+      Así −, cifra, + y «Registrar serie» tienen la misma posición y tamaño de «0» a «142.5» y
+      de 1 a 100 reps, al tocar + y − y al escribir. Los dos steppers de la fila miden lo mismo y
+      cambian juntos. Con la letra de serie la cifra va entre − y + desde unos 406 px (412 y
+      430 sí; 320-393 no); con la letra grande, desde más ancho. Apilar a 375-393 px también
+      con «20» cuesta una línea, pero es lo que garantiza que nada se mueva bajo el dedo. La
+      cifra va **sin unidad**, como ya la pintaba el paso al abrirse: «Peso» lo dice encima.
     - **Al escribir la cifra nada se mueve bajo el dedo.** El campo (peso o reps) ocupa el sitio
       de la cifra a la que sustituye —entre − y + o encima, como ella— con su letra y su alto, y
-      su borde va pintado por dentro para que la cifra más larga de su orden quepa entera; una
-      más larga se desplaza dentro del campo. El motivo: el campo se cierra al perder el foco, y
-      con un toque en «Registrar serie» o en + lo pierde al **empezar** el toque. Si la fila
-      cambiara de alto en ese momento, lo de debajo se movería antes de levantar el dedo, el
-      toque acabaría en otro sitio y la serie no se registraría, sin aviso. Por eso abrir y
-      cerrar el campo no cambian la fila, y si el peso escrito es de otro orden (de 97.5 a 100)
-      la fila toma su forma nueva cuando el toque ya ha llegado (`trasElToque()`).
+      su borde va pintado por dentro para que «142.5» quepa entero; una cifra más larga se
+      desplaza dentro del campo. El motivo: el campo se cierra al perder el foco, y con un toque
+      en «Registrar serie» o en + lo pierde al **empezar** el toque. Si la fila cambiara de alto
+      en ese momento, lo de debajo se movería antes de levantar el dedo, el toque acabaría en
+      otro sitio y la serie no se registraría, sin aviso. Por eso abrir y cerrar el campo no
+      cambian la fila, y como la forma no depende de la cifra, un peso escrito de otro largo (de
+      97.5 a 100) tampoco.
   - **Filas que se reparten**: la marca de un récord y su fecha, el botón junto a un campo o en
     el aviso de copia, la tercera caja de la pantalla de fin o la tercera columna del ejercicio
     propio bajan de línea antes que recortar o pisar.
@@ -462,7 +465,7 @@ escala estaba en px y la raíz fijada a 14.
   - un «142.5» encogía los botones del stepper hasta 37 px y dejaba la cifra pegada a ellos, a
     375 px ya con la letra de serie y a 430 al 130 %; y como `adjW` le añadía «kg» (el paso al abrirse y
     `editNum` la dejaban sin unidad), el mismo peso se veía distinto según cómo se llegara a él.
-    Ahora los botones no encogen, la fila reserva el sitio por el orden del peso (§10) y la cifra
+    Ahora los botones no encogen, la fila reserva siempre el sitio de «142.5» (§10) y la cifra
     va siempre sin unidad;
   - «Caminadora» se cortaba sin «…» a 320 px, y el recorte a dos líneas dejaba «Colgado con…»;
   - la etiqueta «Calentamiento» de la fila siguiente pasaba de su columna a 320 px;
@@ -474,16 +477,28 @@ escala estaba en px y la raíz fijada a 14.
   escribía. Al tocar «Registrar serie» o + con el campo abierto, el campo perdía el foco al
   empezar el toque, la fila volvía a su alto y lo de debajo subía antes de levantar el dedo: el
   toque caía en otro sitio y la serie no se registraba, sin aviso, en cualquier ancho. Ahora el
-  campo ocupa el sitio de la cifra, y un peso escrito de otro orden cambia la forma de la fila
-  cuando el toque ya ha llegado; si ese toque registró la serie, la fila no cambia y «Serie
-  registrada» no salta antes del descanso.
+  campo ocupa el sitio de la cifra.
+- **La forma de la fila no depende de la cifra** (§10). La segunda versión reservaba el sitio
+  por el orden del peso (3, 4 o 5 caracteres): dentro de un orden nada se movía, pero al cruzar
+  de 97.5 a 100 con + la fila se apilaba entre un toque y el siguiente, y el segundo toque, en el
+  mismo sitio, abría el campo en vez de sumar (y de 100 a 97.5 con − se desapilaba y el segundo
+  caía en la fila de la reserva), con la letra de serie a 360-393 px, los iPhone más comunes.
+  Tres revisiones encontraron variantes del mismo fallo, así que se fue a la causa: la fila
+  reserva siempre el sitio de «142.5», la cifra ocupa todo el hueco entre − y +, y apilar o no
+  lo deciden solo el ancho y la letra. Fuera `cifraPeso()`, `data-cifra` y `trasElToque()`. El
+  precio: con la letra de serie, de 320 a 393 px la cifra va encima de − y + también con pesos
+  cortos.
 - **Pruebas** en `tests/pruebas_letra.js`: viewport y `text-scale`, la escala en rem a 100 y
   130 %, ningún `font-size` en px y todos de la escala, la compensación de iOS, campos de 16 px
   o más, `touch-action` en los controles y no en la página, que todo el texto de seis pantallas
   crezca un 30 %, curvas, riel y aviso; el stepper con una cifra de cada largo a 320-430 px y
   hasta el 130 % (botones de 42, cifra encima o con 4 px de aire; al escribir el peso o las
-  reps, el campo en el sitio de la cifra, la más larga de su orden entera y la fila sin cambiar
-  de forma), el + quieto de 140 a 142.5 y 145, y la forma de siempre donde cabe; escribir y
+  reps, el campo en el sitio de la cifra, «142.5» entero y la fila sin cambiar de forma), el +
+  quieto de 140 a 142.5 y 145, entre − y + desde 412 px con cualquier peso; la fila entera
+  (botones, cifras, campo y «Registrar serie») con la misma geometría de «0» a «999.5» kg y de
+  1 a 100 reps, al cruzar 97.5↔100, 7.5↔10, 9↔10 y 99→100 con + y − y con el campo abierto, a
+  320-430 px y al 100, 115 y 130 %; dos toques seguidos en el mismo punto de + o −, de dedo y
+  de ratón, a 360-412 px y hasta el 130 %, que suman o restan los dos sin abrir el campo; escribir y
   tocar «Registrar serie» o + con el campo abierto con los eventos de un toque de verdad, de
   dedo y de ratón y en el orden del navegador, a 320-430 px y al 100 y al 130 %, con pesos del
   mismo orden y de otro: la serie se registra con lo escrito y + suma a lo escrito; y el humo de las
