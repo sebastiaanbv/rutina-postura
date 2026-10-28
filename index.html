@@ -295,7 +295,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
      hay una superficie por BLOQUE y filas separadas por linea fina. */
 
   /* racha: una linea en vez de tres tarjetones */
-  .streak{display:flex;align-items:center;gap:9px;margin:var(--s3) var(--gut) 0;
+  .streak{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:var(--s3) var(--gut) 0;
     padding:13px 15px;background:var(--card);border-radius:var(--r-md);box-shadow:var(--sh-card)}
   .streak .fl{color:var(--energy);display:flex;align-items:center}
   .streak .n{font-size:var(--t-title);font-weight:var(--w-bold);line-height:1;letter-spacing:-.5px;
@@ -312,6 +312,13 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     border-right:1px dashed var(--line2);text-decoration:none}
   .streak .rt{margin-left:auto;font-size:var(--t-xs);color:var(--mut);font-weight:var(--w-med);text-align:right;line-height:1.35}
   .streak .rt b{color:var(--tx2);font-weight:var(--w-bold);font-variant-numeric:tabular-nums}
+  /* v36: con objetivo salud, segunda fila de la misma tarjeta con los dias de
+     postura. rt crece desde 0 para que la fila de arriba no salte a dos
+     lineas por culpa de la de abajo */
+  .streak .rt{flex:1 1 0}
+  .streak .stpost{flex:1 0 100%;border-top:1px solid var(--line);padding-top:9px;
+    font-size:var(--t-xs);color:var(--mut);font-weight:var(--w-med)}
+  .streak .stpost b{color:var(--tx2);font-weight:var(--w-bold);font-variant-numeric:tabular-nums}
 
   /* la semana pasa de siete tarjetas a un riel */
   .week{display:flex;margin:var(--s3) var(--gut) 0;background:var(--card);
@@ -394,9 +401,14 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .doneprs .r{display:flex;gap:10px;font-size:var(--t-sm);padding:9px 12px;background:var(--energy-tint);
     border-radius:var(--r-sm);margin-bottom:6px;color:var(--energy-ink);font-weight:var(--w-semi)}
   .doneprs .r b{margin-left:auto;font-variant-numeric:tabular-nums}
+  /* la semana, con el mismo anillo de Inicio: el avance es primario; solo
+     "Semana cumplida" va en ambar, porque eso si es un logro */
   .donest{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:var(--s5);
-    color:var(--energy-ink);font-weight:var(--w-bold);font-size:var(--t-base)}
+    font-weight:var(--w-bold);font-size:var(--t-base)}
+  .donest .wkring{display:inline-flex}
   .donest .n{font-size:var(--t-display);letter-spacing:-1px;font-variant-numeric:tabular-nums}
+  .doneok{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:var(--s2);
+    color:var(--energy-ink);font-weight:var(--w-bold);font-size:var(--t-base)}
 
   /* ============================ iconos ============================
      Un solo trazo para toda la app: rejilla 24, grosor 2, remates
@@ -1057,6 +1069,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
       <span class="fl"><svg class="ic sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c.7 2.8 3.7 3.9 3.7 7.6a3.7 3.7 0 1 1-7.4 0c0-1.8.9-2.9 1.9-3.7.2 1.9 1 2.1 1.8 1.9 0-2.8-.9-3.7 0-5.8z"/></svg></span>
       <span class="n" id="stCount">0</span><span class="lb" id="stCountL">semanas cumplidas</span>
       <span class="rt" id="stWeek"></span>
+      <div class="stpost" id="stPost" hidden></div>
     </div>
     <div id="weekCard"></div>
     <div id="routines"></div>
@@ -1800,8 +1813,10 @@ function completeDay(){const s=loadStreak(),t=today();if(s.last!==t){s.count=(s.
    descanso planificado. Con un split de 3 dias eso castiga exactamente lo que
    el programa pide. Ninguna de las cuatro apps de fuerza de referencia usa
    racha diaria, y por este motivo.
-   Se cuenta por semanas cerradas: la semana en curso nunca resta, solo se
-   muestra como progreso. El historico de la racha diaria no se borra. */
+   Se cuenta por semanas cerradas: la semana en curso nunca resta, y suma en
+   cuanto se cumple la meta. Desde v36 es la UNICA racha que se ve (Inicio,
+   pantalla de fin, "Listo por hoy", Progreso y Ajustes). rp_streak se sigue
+   escribiendo igual: su total alimenta "N sesiones en total". */
 /* ojo: mas abajo ya existe un weekStart(off) que devuelve una cadena y toma un
    desplazamiento de semanas. Estas se llaman distinto para no pisarlo. */
 function wkMonday(d){const x=new Date(d);x.setHours(0,0,0,0);
@@ -1813,6 +1828,11 @@ function gymSessionsByWeek(){const m={};
     if(r.exTotal&&r.exDone/r.exTotal<0.6)return;
     const k=wkKey(new Date(r.iso));m[k]=(m[k]||0)+1;});
   return m;}
+/* dias de esta semana (lunes a hoy) con alguna rutina que no es de fuerza:
+   la misma cuenta que el bloque "Postura y cuello" de Progreso */
+function posturaSemana(){const desde=wkKey(new Date()),dias={};
+  histRows().forEach(r=>{if(GYMKEYS.indexOf(r.key)<0&&r.date>=desde)dias[r.date]=1;});
+  return Object.keys(dias).length;}
 function weekGoal(){const p=loadPlan();
   const n=p.filter(v=>v&&GYMKEYS.indexOf(v)>=0).length;
   return n||3;}
@@ -1828,6 +1848,9 @@ function weekStats(){const m=gymSessionsByWeek(),goal=weekGoal(),hoy=new Date();
   for(;;){cur.setDate(cur.getDate()-7);const k=ds(cur);
     if((m[k]||0)>=gOf(k))racha++;else break;
     if(racha>200)break;}
+  /* la semana cumplida cuenta ya: si no, la pantalla de fin diria "Semana
+     cumplida" y Inicio seguiria con el numero de antes */
+  if(hechas>=goal)racha++;
   let mejor=racha;const keys=Object.keys(m).sort();
   if(keys.length){let run=0,prev=null;
     keys.forEach(k=>{if(m[k]<gOf(k)){run=0;prev=k;return;}
@@ -1848,14 +1871,18 @@ function recordSession(key,name,sum,when){const h=loadHist(),d=when?new Date(whe
 
 /* ---------- HOME ---------- */
 function renderHome(){
-  const s=loadStreak(),w=weekStats();
+  const w=weekStats();
   $("stCount").textContent=w.racha;
   $("stCountL").textContent=plural(w.racha,"semana cumplida","semanas cumplidas");
   /* el anillo de la semana en curso: el gradiente de meta tira mas cuanto mas
      cerca esta el objetivo, y la semana viva nunca resta */
   $("stWeek").innerHTML=`<span class="wkring">${ringSVG(w.goal?w.hechas/w.goal:0,26,3.5)}</span>`
     +`<b>${w.hechas} de ${w.goal}</b> esta semana`;
-  renderTodayCard(s);renderWeek();
+  /* con objetivo salud la postura va aparte: no cuenta para la meta de
+     fuerza, y en ella lo que importa es la frecuencia */
+  const sp=$("stPost"),salud=goalPref()==="salud";sp.hidden=!salud;
+  sp.innerHTML=salud?`Postura: <b>${posturaSemana()} de 7</b> días esta semana`:"";
+  renderTodayCard(w);renderWeek();
   let h=backupNag();
   GROUPS.forEach(g=>{
     h+=`<div class="grouptitle">${g.title}</div><div class="rlist">`;
@@ -2668,7 +2695,7 @@ function openPlan(d){pushHist({ov:"plan"});planDay=d;$("planTitle").textContent=
   h+=`<div class="planopt" onclick="setPlan(null)" role="button" tabindex="0"><div class="em none">${ic("close")}</div>Sin asignar</div>`;
   $("planBody").innerHTML=h;$("planov").classList.add("show");}
 function closePlan(){history.back();}
-function setPlan(v){const p=loadPlan();p[planDay]=v;jset("rp_plan",p);closePlan();renderWeek();renderTodayCard(loadStreak());}
+function setPlan(v){const p=loadPlan();p[planDay]=v;jset("rp_plan",p);closePlan();renderWeek();renderTodayCard();}
 function bestSet(sets){let b=null;(sets||[]).forEach(x=>{if(!b||x.w>b.w)b=x;});return b;}
 /* acepta [numero,...] (espaciado uniforme, como antes) o [{date,v},...],
    que reparte los puntos por fecha real: un parón de tres semanas se ve */
@@ -3046,7 +3073,7 @@ function finish(){clearTimer();const res=finishSession(curRoutine,"guided");
   if(res&&res.lleno){$("guided").innerHTML=`<div class="done"><h2>No cupo en el teléfono</h2>
     <p class="mut">Tus series siguen aquí, sin guardar. Libera espacio en el teléfono y vuelve a intentarlo; no cierres la app mientras tanto.</p>
     <button class="gbtn go" style="margin-top:22px" onclick="finish()">Intentar de nuevo</button></div>`;return;}
-  const s=(res&&res.streak)||loadStreak(),sum=res&&res.summary,nom=ROUTINES[curRoutine].name;
+  const s=(res&&res.streak)||loadStreak(),w=weekStats(),sum=res&&res.summary,nom=ROUTINES[curRoutine].name;
   const prs=(sum&&sum.pr)||[];
   const prHTML=prs.length?`<div class="doneprs"><div class="h">${ic("trophy","xs")} ${prs.length===1?"Récord personal":prs.length+" récords personales"}</div>`
     +prs.map(p=>`<div class="r"><span>${esc(shortName(p.id))}</span><b>${(p.w>0)?fmtW(p.w)+" "+((EX[p.id]&&EX[p.id].unit)||"kg")+" × "+p.reps:p.reps+" reps"}</b></div>`).join("")+`</div>`:"";
@@ -3058,15 +3085,17 @@ function finish(){clearTimer();const res=finishSession(curRoutine,"guided");
       <div><b>${sum.sets}</b><span>${plural(sum.sets,"serie","series")}</span></div>
       ${sum.vol>0?`<div><b>${fmtW(sum.vol)}</b><span>kg movidos</span></div>`:""}</div>`:""}
     ${prHTML}
-    <div class="donest">${ic("flame","lg")}<span class="n">${s.count}</span>${plural(s.count,"día seguido","días seguidos")}</div>
-    <p class="donesub">Mejor racha ${s.best} · ${s.total} ${plural(s.total,"sesión","sesiones")} en total</p>
+    <div class="donest"><span class="wkring" aria-hidden="true">${ringSVG(w.goal?w.hechas/w.goal:0,34,4.5)}</span>Esta semana: <span class="n">${w.hechas} de ${w.goal}</span></div>
+    ${w.semanaOK?`<div class="doneok">${ic("flame","xs")} Semana cumplida · ${w.racha} ${plural(w.racha,"seguida","seguidas")}</div>`:""}
+    <p class="donesub">Mejor racha: ${w.mejor} ${plural(w.mejor,"semana","semanas")} · ${s.total} ${plural(s.total,"sesión","sesiones")} en total</p>
     <button class="gbtn go" style="margin-top:22px" onclick="exitToHome()">Volver al inicio</button></div>`;beep();}
 function exitToHome(){sessionLog={};sessionLogKey=null;stepi=0;history.back();}
 
 /* ---------- HISTORY ---------- */
 /* tarjeta Hoy */
 function suggestion(){return ROUTINES["postura_movilidad"]?"postura_movilidad":GROUPS[0].keys[0];}
-function renderTodayCard(s){const idx=histIndex(),done=idx[today()]||[],p=loadPlan(),pv=p[todayDow()];
+/* w: weekStats() si ya se calculo; la racha que se ve es la de semanas */
+function renderTodayCard(w){const idx=histIndex(),done=idx[today()]||[],p=loadPlan(),pv=p[todayDow()];
   let sk=(pv&&pv!=="rest"&&ROUTINES[pv])?pv:suggestion(),sug=ROUTINES[sk],tc;
   /* una sesion a medias manda sobre todo lo demas: si no, queda invisible */
   const sv=loadSess();
@@ -3079,8 +3108,9 @@ function renderTodayCard(s){const idx=histIndex(),done=idx[today()]||[],p=loadPl
   if(pv==="rest"&&!done.length){tc=`<div class="today"><div class="kick">Hoy</div><div class="tt">${ic("moon","sm")} Día de descanso</div>
     <div class="mt">Hoy toca recuperar. Si quieres, haz algo suave.</div>
     <button class="today-go sec" onclick="openRoutine('${suggestion()}')">Entrenar igual</button></div>`;}
-  else if(done.length){tc=`<div class="today"><div class="kick">Hoy</div><div class="tt">${ic("checkc","sm")} ¡Listo por hoy!</div>
-    <div class="mt">Completaste ${esc(done[done.length-1].name)} · ${ic("flame","xs")} ${s.count||0} ${plural(s.count||0,"día seguido","días seguidos")}</div>
+  else if(done.length){w=w||weekStats();
+    tc=`<div class="today"><div class="kick">Hoy</div><div class="tt">${ic("checkc","sm")} ¡Listo por hoy!</div>
+    <div class="mt">Completaste ${esc(done[done.length-1].name)} · ${ic("flame","xs")} ${w.racha} ${plural(w.racha,"semana cumplida","semanas cumplidas")} · mejor ${w.mejor}</div>
     <button class="today-go sec" onclick="openRoutine('${sk}')">Hacer otra rutina</button></div>`;}
   else{tc=`<div class="today"><div class="kick">Hoy</div><div class="tt">${esc(sug.name)}</div>
     <div class="mt">${esc(sug.desc)}</div>
@@ -3340,7 +3370,8 @@ function renderSettings(){const r=loadRem();
     <div class="field"><div class="fl">Créditos</div>
       <div class="fh">Las figuras de los ejercicios son de <a class="ytlink" target="_blank" rel="noopener" href="https://github.com/bryllim/workout-guide">workout-guide</a>, de Bryl Lim, derivadas de Everkinetic, bajo licencia <a class="ytlink" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. El resto de la app es código propio bajo MIT.</div></div>`;
   $("setBody").innerHTML=b;renderTimes();markThemeSeg();
-  const s=loadStreak(),h=loadHist();$("dataInfo").textContent=`Guardado: ${s.total||0} sesiones · ${h.length} en historial · racha ${s.count||0}.`;}
+  const s=loadStreak(),h=loadHist(),w=weekStats();
+  $("dataInfo").textContent=`Guardado: ${s.total||0} sesiones · ${h.length} en historial · racha ${w.racha} ${plural(w.racha,"semana","semanas")}.`;}
 function renderTimes(){const r=loadRem();$("timeList").innerHTML=r.times.length?r.times.map((t,i)=>
   `<div class="timepill">${t} <span class="x" onclick="delTime(${i})" role="button" tabindex="0" aria-label="Quitar la hora ${t}">${ic("close","xs")}</span></div>`).join(""):'<div class="fh">Añade una hora y te avisaré ese día a esa hora.</div>';}
 function addTime(){const v=$("newTime").value;if(!v)return;const r=loadRem();if(!r.times.includes(v)){r.times.push(v);r.times.sort();jset("rp_rem",r);renderTimes();scheduleRem();}}
@@ -3811,7 +3842,8 @@ function renderProgress(){
     +'<div class="cs">Aquí lo que importa es la frecuencia, no la carga.</div></div>';
 
   /* 7 · racha */
-  b+='<div class="grouptitle">Tu historial</div><div class="chartcard"><div class="cs">Racha de '+(s.count||0)+' días · mejor '+(s.best||0)
+  const sem=weekStats();
+  b+='<div class="grouptitle">Tu historial</div><div class="chartcard"><div class="cs">'+sem.racha+' '+plural(sem.racha,"semana cumplida","semanas cumplidas")+' · mejor '+sem.mejor
     +'<br>'+(s.total||0)+' sesiones · '+rows.filter(r=>GYMKEYS.indexOf(r.key)>=0).length+' de fuerza'
     +'<br>'+Object.keys(logs).reduce((a,k)=>a+logs[k].reduce((x,r)=>x+(r.sets||[]).length,0),0)+' series registradas</div></div>';
 

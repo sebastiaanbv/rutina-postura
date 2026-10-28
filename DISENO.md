@@ -181,7 +181,9 @@ Nada dura más de medio segundo. Una celebración que se disfruta la primera vez
 ## 8. Pantallas
 
 ### Inicio
-Manda la **tarjeta de hoy**: superficie oscura, título a 30 px, icono de la familia y una sola acción a ancho completo. Debajo, en tono descendente: la racha en **una línea** con la llama en ámbar, la semana como **riel continuo** con hoy resaltado, y las rutinas en **una tarjeta por familia** con filas, azulejo de color y duración a la derecha.
+Manda la **tarjeta de hoy**: superficie oscura, título a 30 px, icono de la familia y una sola acción a ancho completo. Debajo, en tono descendente: la racha en **una línea** con la llama en ámbar y el anillo de la semana, la semana como **riel continuo** con hoy resaltado, y las rutinas en **una tarjeta por familia** con filas, azulejo de color y duración a la derecha.
+
+Con objetivo salud la tarjeta de la racha lleva una segunda fila, separada por línea fina: «Postura: N de 7 días esta semana», los días desde el lunes con alguna rutina que no está en `GYMKEYS`. La postura no cuenta para la meta de fuerza, y en ella lo que importa es la frecuencia, no la carga.
 
 Estados de la tarjeta de hoy: hoy toca · en curso (manda sobre todo) · ya entrenaste · día de descanso.
 
@@ -262,7 +264,7 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
 
 - **Mayúscula solo al principio.** "Finalizar rutina", no "Finalizar Rutina".
 - **Sin signos de exclamación** en texto de sistema. Se reservan para el momento de terminar una rutina.
-- **Plurales siempre correctos**: "1 día seguido", no "1 días seguidos". Hay un helper `plural()`; usarlo.
+- **Plurales siempre correctos**: "1 semana cumplida", no "1 semanas cumplidas". Hay un helper `plural()`; usarlo.
 - **El número primero, la unidad después**: "22,5 kg × 8", "3 de 10".
 - **Los estados vacíos invitan**, no se disculpan: "Registra tus series y aquí verás cómo evolucionas".
 - **Explicar el porqué cuando se propone algo**: "Completaste las 4 series: toca subir a 12 kg" en vez de solo el número.
@@ -278,9 +280,11 @@ Lo que se celebra, y cuánto dura. Nada pasa de medio segundo.
 | Registras una serie | La línea entra con un gesto de 240 ms y avanza el contador |
 | Completas un ejercicio | El visto rebota, la fila destella medio segundo, encoge, y el anillo avanza |
 | Bates un récord | Aviso flotante en ámbar con el ejercicio y la marca |
-| Terminas la rutina | Ilustración que se dibuja sola, tres cifras, los récords conseguidos y la racha |
+| Terminas la rutina | Ilustración que se dibuja sola, tres cifras, los récords conseguidos y la semana: el anillo de Inicio con «Esta semana: N de M» y, si esa sesión la cumple, «Semana cumplida · R seguidas» en ámbar |
 
 Un récord es una serie que **ninguna anterior domina en peso y repeticiones a la vez**. Es la misma regla del panel de progreso, así que las dos cuentan lo mismo.
+
+**Una sola racha: semanas cumplidas.** Toda la app —Inicio, pantalla de fin, «Listo por hoy», Progreso y Ajustes— cuenta la misma cifra, la de `weekStats()`: semanas seguidas con la meta de sesiones de fuerza cumplida. Una racha de días castigaba justo los descansos que pide un programa de tres días. La semana en curso nunca resta y **suma en cuanto se cumple**: si solo contaran las cerradas, la pantalla de fin diría «Semana cumplida · 6 seguidas» e Inicio seguiría en 5 hasta el lunes. El avance de la semana va en primario, como todo progreso; solo «Semana cumplida» va en ámbar, porque eso sí es un logro. `rp_streak` se sigue guardando igual, pero de él solo se muestra el total de sesiones.
 
 ## 13. Qué falta
 
@@ -364,6 +368,17 @@ dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma d
   migra al importar, copia más nueva rechazada, forma cambiada, ida y vuelta con la sesión en
   curso, y teléfono lleno simulado (`setItem` que lanza `QuotaExceededError`) al anotar, al
   finalizar, al empezar otra rutina y al importar.
+- **Una sola racha: semanas cumplidas** (HU-11). Inicio contaba semanas cumplidas, pero la
+  pantalla de fin y «Listo por hoy» enseñaban la llama con «N días seguidos» y Progreso decía
+  «Racha de N días»: dos rachas que se contradecían en la misma sesión. Ahora todas salen de
+  `weekStats()` (§12): la pantalla de fin cambia la llama por el anillo de Inicio con «Esta semana:
+  N de M» y, si la sesión cumple la meta, «Semana cumplida · R seguidas»; «Listo por hoy», «Tu
+  historial» y Ajustes dicen «R semanas cumplidas · mejor M». La semana en curso suma en cuanto se
+  cumple. Con objetivo salud, Inicio añade «Postura: N de 7 días esta semana» (§8). `rp_streak`
+  se sigue escribiendo igual (`completeDay`, `recalcStreak`) y su total es el de «N sesiones en
+  total»: sin claves nuevas ni migración. Pruebas en `pruebas_pantallas.js` (los dos juegos de
+  datos, la sesión que cumple la semana y la línea de postura) y `pruebas_datos.js` (`rp_streak`,
+  copia de ida y vuelta, y datos de v35 sin meta congelada en las semanas viejas).
 
 ### Cerrado en v35
 
