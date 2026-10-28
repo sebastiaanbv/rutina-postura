@@ -8,6 +8,7 @@
    rp_session  {v:1,key,date,startedAt,lastAt,stepi,src,log:{exId:[{w,reps,t}]},pr?,
                saltados?:[exId],repaso?:[exId]} (las dos listas, v36; los juegos
                de datos no las traen, como una sesion de v35)
+               pr = [{id,w,reps,lvl,i,kind}]; los de v35 no traen i ni kind
    rp_prefs    {goal:"masa"|"salud",pesosDB:[kg],chartMetric,keepAwake,restNotify}
    rp_plan     [7 x rutina|"rest"|null], lunes primero
    rp_custom   {u_xxx:{name,type,sets,reps|holdSec,rest,load,zona,eq,steps}}

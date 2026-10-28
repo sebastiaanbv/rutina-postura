@@ -372,9 +372,11 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .setline.pop{animation:pop .24s ease-out}
   .ex.checked .exck .ic{animation:ckpop .32s cubic-bezier(.2,1.4,.4,1)}
   .ex.justdone{animation:flash .6s ease-out}
-  .setline.pr{background:var(--energy-tint);border-color:var(--energy)}
+  .setline.pr{background:var(--energy-tint);border-color:var(--energy);flex-wrap:wrap;row-gap:2px}
   .setline.pr .n{color:var(--energy-ink)}
-  .prtag{margin-left:auto;color:var(--energy-ink);display:flex;align-items:center;gap:4px;
+  /* que se supero va en su propia linea, bajo el valor: a 360 px no cabe al
+     lado de "32.5 kg × 6 · reserva 2" sin partir los dos */
+  .prtag{flex-basis:100%;padding-left:calc(52px + var(--s2));color:var(--energy-ink);display:flex;align-items:center;gap:4px;
     font-size:var(--t-2xs);font-weight:var(--w-bold);text-transform:uppercase;letter-spacing:.6px}
 
   /* aviso flotante: la unica pieza que faltaba para poder celebrar algo */
@@ -398,9 +400,12 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .doneprs{margin:var(--s4) 0 0;text-align:left}
   .doneprs .h{font-size:var(--t-2xs);font-weight:var(--w-bold);color:var(--energy-ink);
     text-transform:uppercase;letter-spacing:1.1px;display:flex;align-items:center;gap:6px;margin-bottom:var(--s2)}
-  .doneprs .r{display:flex;gap:10px;font-size:var(--t-sm);padding:9px 12px;background:var(--energy-tint);
+  .doneprs .r{display:flex;align-items:center;gap:10px;font-size:var(--t-sm);padding:9px 12px;background:var(--energy-tint);
     border-radius:var(--r-sm);margin-bottom:6px;color:var(--energy-ink);font-weight:var(--w-semi)}
   .doneprs .r b{margin-left:auto;font-variant-numeric:tabular-nums}
+  /* que se supero (v36): mismo rotulo que la etiqueta de la serie */
+  .doneprs .r .k{display:block;margin-top:2px;font-size:var(--t-2xs);font-weight:var(--w-bold);
+    text-transform:uppercase;letter-spacing:.6px}
   /* la semana, con el mismo anillo de Inicio: el avance es primario; solo
      "Semana cumplida" va en ambar, porque eso si es un logro. Con letra
      grande en 320 px la cifra no cabe al lado y baja entera a la linea de
@@ -1699,14 +1704,29 @@ function toast(html,ms){const el=$("toast");if(!el)return;
   el.innerHTML=html;el.classList.add("show");
   clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("show"),ms||2600);}
 /* record personal: una serie es record si ninguna anterior la domina en peso
-   Y repeticiones a la vez. Es la misma regla que ya usa el panel de progreso. */
-function isPR(id,w,reps){w=w||0;reps=reps||0;if(!reps)return false;
-  const recs=loadLogs()[id]||[],ses=sessLog(curRoutine)[id]||[];
-  if(!recs.length&&!ses.length)return false;
+   Y repeticiones a la vez. Es la misma regla que ya usa el panel de progreso
+   (prFeed), con sus mismas excepciones: el calentamiento no cuenta, y la
+   primera vez que se registra un ejercicio solo marca el punto de partida.
+   Hasta v35 las dos contaban distinto en esos dos casos.
+   i: cuantas series de hoy cuentan como anteriores (todas si no viene) */
+function isPR(id,w,reps,i){w=w||0;reps=reps||0;if(!reps||warmIds()[id])return false;
+  const recs=loadLogs()[id]||[],hoy=sessLog(curRoutine)[id]||[],ses=i==null?hoy:hoy.slice(0,i);
+  if(!recs.length)return false;
   let dom=false;
   const rev=st=>{(st||[]).forEach(x=>{if((x.w||0)>=w&&(x.reps||0)>=reps)dom=true;});};
   recs.forEach(r=>rev(r.sets));rev(ses);
   return !dom;}
+/* que se supero, para nombrarlo en la propia serie y en la pantalla de fin.
+   Contra las mismas series anteriores que isPR, y en este orden: el peso
+   nuevo se entiende sin explicar nada; el e1RM, con el guardarrail del rango
+   (bestE1) y el margen de prLevel; si no, son mas reps con ese peso. */
+function prKind(id,w,reps,i){w=w||0;reps=reps||0;
+  const hoy=sessLog(curRoutine)[id]||[],prev=[];
+  (loadLogs()[id]||[]).forEach(r=>(r.sets||[]).forEach(x=>prev.push(x)));
+  (i==null?hoy:hoy.slice(0,i)).forEach(x=>prev.push(x));
+  if(w>0&&prev.every(x=>(x.w||0)<w))return "Peso máximo";
+  if(w>0&&reps>=repRange(id)[0]&&e1rm(w,reps)>bestE1(id,{sets:prev})*1.005)return "Mejor 1RM est.";
+  return w>0?"Más reps con "+fmtW(w)+" "+((EX[id]||{}).unit||"kg"):"Más reps";}
 /* Tres niveles, porque celebrar todo igual devalua la senal: un logro trivial
    no construye nada. El de rango es el fuerte, porque es el que dispara la
    subida de carga de la sesion siguiente. */
@@ -1715,14 +1735,31 @@ function prLevel(id,w,reps){const rng=repRange(id),recs=loadLogs()[id]||[];
   const e1=(reps>=rng[0])?e1rm(w||0,reps):0;
   if(e1>0&&e1>mejorE1*1.005)return 2;                    /* nuevo maximo de e1RM */
   return 1;}                                             /* mejor para esas reps */
+/* i: numero de la serie en la sesion (0 la primera). Con el, la marca va a
+   esa serie y no a todas las que pesen y repitan lo mismo. Los pr de v35 no
+   lo traen, ni kind: se leen igual, solo que sin etiqueta. */
+function prEntry(id,w,reps,i){return {id:id,w:w,reps:reps,lvl:prLevel(id,w,reps),i:i,kind:prKind(id,w,reps,i)};}
 /* solo en la sesion de esta rutina: con la de otra abierta (HU-63, no cupo
    al cambiar) el record no se apunta en la ajena */
-function markPR(id,w,reps){const sv=sessActive(curRoutine)?loadSess():null;if(!sv)return;
-  const lvl=prLevel(id,w,reps);
-  sv.pr=sv.pr||[];sv.pr.push({id:id,w:w,reps:reps,lvl:lvl});saveSess(sv);
+function markPR(id,w,reps,i){const sv=sessActive(curRoutine)?loadSess():null;if(!sv)return;
+  const p=prEntry(id,w,reps,i),lvl=p.lvl;
+  sv.pr=sv.pr||[];sv.pr.push(p);saveSess(sv);
   const e=EX[id]||{},u=e.unit||"kg",marca=(w>0)?fmtW(w)+" "+u+" \u00d7 "+reps:reps+" reps";
   /* nivel 1 no lanza aviso flotante: se ve en la propia serie y ya */
   if(lvl>=2)toast(ic("trophy","sm")+" R\u00e9cord en "+esc(shortName(id))+": <b>"+marca+"</b>");}
+/* borrar o corregir una serie de hoy rehace los records de ese ejercicio:
+   cada serie se vuelve a medir contra el historial y las anteriores. Sin
+   esto la marca seguia en una serie borrada, o en una que ya no lo es, y
+   llegaba asi a la pantalla de fin y al historial. Sin aviso flotante.
+   Como markPR, solo en la sesion de hoy de esta rutina (HU-63) */
+function prRecalc(id){const sv=sessActive(curRoutine)?loadSess():null;if(!sv)return;
+  const hoy=sessLog(curRoutine)[id]||[];
+  /* con las series de memoria, como touchSess: si no cupo, que no quede en
+     disco un pr numerado sobre otras series */
+  if(sessionLogKey===curRoutine)sv.log=sessionLog;
+  sv.pr=(sv.pr||[]).filter(p=>p.id!==id);
+  hoy.forEach((x,i)=>{if(isPR(id,x.w,x.reps,i))sv.pr.push(prEntry(id,x.w,x.reps,i));});
+  saveSess(sv);}
 /* ==== fin [S5] ============================================================ */
 let curRoutine=null, steps=[], stepi=0, tId=null, actx=null, remTimers=[];
 const $=id=>document.getElementById(id);
@@ -2491,7 +2528,8 @@ let sessionLog={}, curW=null, curReps=null, restR=0, planDay=0;
 
 /* ==== [S1] SESION PERSISTIDA =================================================
    rp_session = {v,key,date,startedAt,lastAt,stepi,src,log:{exId:[{w,reps,t}]},
-                 saltados?:[exId],repaso?:[exId]}
+                 saltados?:[exId],repaso?:[exId],
+                 pr:[{id,w,reps,lvl,i,kind}]}   (i y kind desde v36; ver markPR)
    Su ausencia significa "sin sesion activa": los datos antiguos migran solos.
    saltados y repaso (v36) son opcionales: sin ellos, lista vacia, asi que una
    sesion de v35 sirve tal cual y no hace falta migracion. saltados = los que
@@ -2686,13 +2724,13 @@ function saveSet(id,src,ri,si,n){
   const w=parseFloat(($("se_w")||{}).value),r=parseInt(($("se_r")||{}).value,10);
   const nw=isNaN(w)?null:Math.max(0,Math.round(w*10)/10),nr=isNaN(r)?null:Math.max(1,r);
   if(src==="s"){useSessionLog(curRoutine);const a=sessionLog[id];
-    if(a&&a[si]){if(nw!=null)a[si].w=nw;if(nr!=null)a[si].reps=nr;}touchSess();}
+    if(a&&a[si]){if(nw!=null)a[si].w=nw;if(nr!=null)a[si].reps=nr;}touchSess();prRecalc(id);}
   else logsWrite(logs=>{const rec=(logs[id]||[])[ri];
     if(rec&&rec.sets&&rec.sets[si]){if(nw!=null)rec.sets[si].w=nw;if(nr!=null)rec.sets[si].reps=nr;}});
   renderStep();}
 function delSet(id,src,ri,si,n){
   if(src==="s"){useSessionLog(curRoutine);const a=sessionLog[id];
-    if(a){a.splice(si,1);if(!a.length)delete sessionLog[id];}touchSess();}
+    if(a){a.splice(si,1);if(!a.length)delete sessionLog[id];}touchSess();prRecalc(id);}
   else{logsWrite(logs=>{const r=(logs[id]||[])[ri];if(!r||!r.sets)return;
     r.sets.splice(si,1);if(!r.sets.length&&!r.checked)logs[id].splice(ri,1);});}
   renderStep();}
@@ -2744,7 +2782,7 @@ function logSet(){if(!serieAbierta||performance.now()-serieT<SERIE_MS)return;
   (sessionLog[s.id]=sessionLog[s.id]||[]).push(rec);
   touchSess(stepi);
   try{if(navigator.vibrate)navigator.vibrate(18);}catch(x){}
-  if(pr)markPR(s.id,w,curReps);
+  if(pr)markPR(s.id,w,curReps,sessionLog[s.id].length-1);
   /* Son veinte o treinta pulsaciones por sesion y hasta ahora la unica senal de
      que habia pasado algo era una vibracion de 18 ms, que con el movil apoyado
      en el banco no se nota. El boton se convierte en visto y solo entonces
@@ -3130,7 +3168,13 @@ function renderStep(keep){clearTimer();serieAbierta=true;const s=steps[stepi];le
       const valor=x=>(cargado?(fmtW(x.w)+' '+s.unit+' × '+x.reps):(x.reps+' reps'))+(x.rir!=null?' <small>· reserva '+(x.rir>=3?'3+':x.rir)+'</small>':'');
       const lastTxt=ll?('La última vez: '+ll.sets.map(x=>cargado?(fmtW(x.w)+'×'+x.reps):(x.reps+' reps')).join(', '))
                      :(cargado?'Primera vez — registra tu peso':'Primera vez — registra tus repeticiones');
-      const setsTxt=ds.map((x,i)=>`<div class="setline" id="sl_${s.id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${valor(x)}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">${ic("close","xs")}</span></div>`).join("");
+      /* el record se ve en su propia serie, por su numero (i): dos series
+         iguales que baten la marca solo cuentan la primera. Solo de la
+         sesion de hoy de esta rutina, la misma en la que apunta markPR */
+      const sv=sessActive(curRoutine)?loadSess():null,prs=(sv&&sv.pr)||[];
+      const prDe=i=>prs.find(p=>p.id===s.id&&p.i===i);
+      const setsTxt=ds.map((x,i)=>{const pr=prDe(i);
+        return `<div class="setline${pr?" pr":""}" id="sl_${s.id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${valor(x)}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">${ic("close","xs")}</span>${pr?`<span class="prtag">${ic("trophy","xs")} ${esc(pr.kind||"Récord")}</span>`:""}</div>`;}).join("");
       const pesoStep=cargado?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-1)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" role="button" tabindex="0" aria-label="Escribir el peso exacto" title="Toca para escribir el peso exacto">${fmtW(curW)}</b><button class="sq" onclick="adjW(1)" aria-label="Subir peso">+</button></div>${incChipHTML(s.id)}</div>`:'';
       const repsStep=`<div class="stepper"${cargado?'':' style="max-width:220px;margin:0 auto"'}><div class="lab">${cargado?'Reps':'Repeticiones'}</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" role="button" tabindex="0" aria-label="Escribir las repeticiones" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>`;
       inner=`<div class="logrow">${pesoStep}${repsStep}</div>${cargado?incPickHTML(s.id):""}${cargado?rirHTML():""}
@@ -3263,7 +3307,7 @@ function finish(){clearTimer();
      el total de sesiones */
   const prs=(sum&&sum.pr)||[];
   const prHTML=prs.length?`<div class="doneprs"><div class="h">${ic("trophy","xs")} ${prs.length===1?"Récord personal":prs.length+" récords personales"}</div>`
-    +prs.map(p=>`<div class="r"><span>${esc(shortName(p.id))}</span><b>${(p.w>0)?fmtW(p.w)+" "+((EX[p.id]&&EX[p.id].unit)||"kg")+" × "+p.reps:p.reps+" reps"}</b></div>`).join("")+`</div>`:"";
+    +prs.map(p=>`<div class="r"><span>${esc(shortName(p.id))}${p.kind?`<small class="k">${esc(p.kind)}</small>`:""}</span><b>${(p.w>0)?fmtW(p.w)+" "+((EX[p.id]&&EX[p.id].unit)||"kg")+" × "+p.reps:p.reps+" reps"}</b></div>`).join("")+`</div>`:"";
   $("guided").innerHTML=`<div class="done">${doneHero(pend?sum.exDone/sum.exTotal:1)}
     <h2>${esc(nom)}</h2>
     <p class="mut">${pend?"Guardada · "+sum.exDone+" de "+sum.exTotal+" "+plural(sum.exTotal,"ejercicio","ejercicios")

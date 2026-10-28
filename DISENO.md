@@ -248,7 +248,7 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
 | Hecho | Círculo relleno verde con visto blanco; la fila encoge |
 | Sesión en curso | Manda en la tarjeta de hoy; el CTA de la rutina dice "Continuar" |
 | Otra rutina a medias | Registrar en otra rutina abre la hoja «Tienes X a medias»: volver a ella o guardarla y empezar. Nada se cierra solo |
-| Récord | Aviso flotante en ámbar al conseguirlo, y listado en la pantalla de fin |
+| Récord | La serie se tiñe de ámbar y lleva debajo el trofeo y qué se superó; aviso flotante solo si es nuevo máximo de 1RM estimado; listado con su tipo en la pantalla de fin |
 | Vacío | Explica qué hacer para llenarlo, nunca "sin datos" a secas |
 
 ---
@@ -301,11 +301,13 @@ Lo que se celebra, y cuánto dura. Nada pasa de medio segundo.
 |---|---|
 | Registras una serie | La línea entra con un gesto de 240 ms y avanza el contador |
 | Completas un ejercicio | El visto rebota, la fila destella medio segundo, encoge, y el anillo avanza |
-| Bates un récord | Aviso flotante en ámbar con el ejercicio y la marca |
-| Terminas la rutina | Ilustración que se dibuja sola, tres cifras, los récords conseguidos y la semana: el anillo de Inicio con «Esta semana: N de M» y, si esa sesión la cumple, «Semana cumplida · R seguidas» en ámbar. Solo esa: las que vienen después la misma semana ya no lo repiten |
+| Bates un récord | La propia serie se pinta en ámbar con el trofeo y qué superaste. Si además es nuevo máximo de 1RM estimado, aviso flotante con el ejercicio y la marca |
+| Terminas la rutina | Ilustración que se dibuja sola, tres cifras, los récords conseguidos con su tipo y la semana: el anillo de Inicio con «Esta semana: N de M» y, si esa sesión la cumple, «Semana cumplida · R seguidas» en ámbar. Solo esa: las que vienen después la misma semana ya no lo repiten |
 | Terminas con ejercicios sin hacer | Antes, el aviso con lo que falta. Si terminas así, el anillo se dibuja solo hasta lo hecho y dice «Guardada · X de Y ejercicios»: nunca «Completada» |
 
-Un récord es una serie que **ninguna anterior domina en peso y repeticiones a la vez**. Es la misma regla del panel de progreso, así que las dos cuentan lo mismo.
+Un récord es una serie que **ninguna anterior domina en peso y repeticiones a la vez**. Es la misma regla del panel de progreso, con sus mismas excepciones —el calentamiento no cuenta, y la primera vez que se registra un ejercicio solo marca el punto de partida—, así que las dos cuentan lo mismo.
+
+Qué se superó, en este orden: **Peso máximo** (más kilos que nunca en ese ejercicio), **Mejor 1RM est.** (el 1RM estimado sube más de un 0,5 %, sin bajar del mínimo de reps del rango) o **Más reps con X kg**; sin carga, **Más reps**. Va en la serie y en la pantalla de fin, con el mismo rótulo. El aviso flotante sigue reservado al nivel 2 (nuevo máximo de 1RM estimado): celebrar igual cada récord devalúa la señal.
 
 **Una sola racha: semanas cumplidas.** Toda la app —Inicio, pantalla de fin, «Listo por hoy», Progreso y Ajustes— cuenta la misma cifra, la de `weekStats()`: semanas seguidas con la meta de sesiones de fuerza cumplida. Una racha de días castigaba justo los descansos que pide un programa de tres días. La semana en curso nunca resta y **suma en cuanto se cumple**: si solo contaran las cerradas, la pantalla de fin diría «Semana cumplida · 6 seguidas» e Inicio seguiría en 5 hasta el lunes. El avance de la semana va en primario, como todo progreso; solo «Semana cumplida» va en ámbar, porque eso sí es un logro, y sale una vez por semana: celebrarlo en cada sesión que sobra lo gastaría (§7). La mejor racha cuenta las semanas seguidas **por fecha**, como la racha: restar milisegundos entre dos lunes da 7 días ± 1 h si entre ellos hay cambio de hora, y la partía en dos. «Mejor M» solo sale cuando hay alguna semana cumplida: en la primera sesión, «mejor 0» al lado de «0 semanas cumplidas» no dice nada, y la pantalla de fin se queda con «1 sesión en total» (§11: los estados vacíos invitan). `rp_streak` se sigue guardando igual, pero de él solo se muestra el total de sesiones.
 
@@ -592,6 +594,34 @@ Los ejercicios que faltan, antes de cerrar:
     ahora esperan «Guardada · X de Y» con lo hecho (1 de 14, 2 de 14 y 1 de 12), que es justo
     lo que esta historia cambia. La de 2 de 14 cuenta también el visto con el que HU-63 hace
     nacer la sesión.
+
+El récord, en la propia serie (HU-10). El comentario de `markPR` decía desde v24 que un récord de
+nivel 1 «se ve en la propia serie», pero la serie no lo enseñaba: `.setline.pr` y `.prtag` estaban
+en el CSS sin que nada los pintara, así que la mayoría de los récords no se veían hasta la pantalla
+de fin, y ninguno decía qué se había superado.
+
+- **La serie récord se pinta en ámbar** en el guiado, con el trofeo y qué se superó en una línea
+  propia bajo el valor: al lado no cabía junto a «32.5 kg × 6 · reserva 2» a 360 px. §9 y §12.
+- **Qué se superó** (`prKind`): «Peso máximo», «Mejor 1RM est.» o «Más reps con X kg» («Más reps»
+  sin carga), contra las mismas series anteriores que `isPR`. La pantalla de fin lo repite bajo el
+  nombre del ejercicio.
+- **Cada récord guarda su número de serie** (`i`, 0 la primera) y su tipo (`kind`) en
+  `rp_session.pr`, y de ahí en `rp_history[].pr`. La marca va por número: dos series iguales que
+  baten la marca solo cuentan la primera; por peso y reps se habrían pintado las dos. Sin
+  migración: los `pr` de v35 no los traen, se leen igual y salen sin etiqueta; la copia los lleva
+  tal cual.
+- **Borrar o corregir una serie rehace los récords** de ese ejercicio (`prRecalc`): cada serie se
+  vuelve a medir contra el historial y las anteriores de hoy, sin aviso flotante. Antes el récord
+  de una serie borrada o corregida llegaba igual a la pantalla de fin y al historial. Corregir una
+  errata que sigue siendo récord lo conserva con su nuevo valor. Como `markPR` desde HU-63, rehacer
+  y pintar la marca solo miran la sesión de hoy de esta rutina, nunca la de otra a medias.
+- **`isPR` cuenta lo mismo que `prFeed`** (Récords recientes): no cuenta el calentamiento, y la
+  primera vez que se registra un ejercicio no hay récord aunque la segunda serie pese más. Antes el
+  guiado celebraba récords que Progreso nunca listaba.
+- **Pruebas** en `tests/pruebas_logica.js` (calentamiento, coherencia serie a serie con `prFeed`,
+  `prKind`, la marca por número, borrar y corregir, aviso solo en nivel 2) y en
+  `tests/pruebas_datos.js` (ida y vuelta de `i` y `kind`, y datos de v35 sin ellos en el guiado,
+  la pantalla de fin y el calendario).
 
 ### Cerrado en v35
 

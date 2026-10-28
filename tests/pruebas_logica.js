@@ -357,6 +357,66 @@
       expect(app.w.isPR("press_banca_db",35,8)).toBe(false);
       expect(app.w.isPR("press_banca_db",35,9)).toBe(true);
       app.reiniciarMemoria();});
+    /* HU-10: isPR y prFeed (Récords recientes) cuentan lo mismo */
+    test("isPR: una serie de calentamiento (warmIds) no es record, igual que en prFeed",app=>{
+      expect(app.w.warmIds().rotacion_externa_db).toBe(1);
+      /* isPR mide la serie antes de guardarla; prFeed, ya guardada hoy */
+      const antes=()=>[reg(3,"gym_empuje",[[2,12]])],guardada=()=>antes().concat([reg(0,"gym_empuje",[[3,12]])]);
+      limpio(app,{rp_logs:{rotacion_externa_db:antes(),press_hombro_db:antes()}});
+      /* el mismo salto en un ejercicio de trabajo si lo es, en los dos */
+      expect(app.w.isPR("press_hombro_db",3,12)).toBe(true);
+      expect(app.w.isPR("rotacion_externa_db",3,12)).toBe(false);
+      app.sembrar({rp_logs:{rotacion_externa_db:guardada(),press_hombro_db:guardada()}});
+      expect(app.w.prFeed(30).map(p=>p.id)).toEqual(["press_hombro_db"]);});
+    test("isPR y prFeed coinciden serie a serie con los mismos datos",app=>{const t=Date.now();
+      const casos={
+        press_banca_db:{hist:[reg(10,"gym_empuje",[[30,8],[30,8]]),reg(3,"gym_empuje",[[32.5,6],[30,9]])],
+          hoy:[[30,8],[32.5,7],[32.5,7],[35,5],[25,12],[30,10]]},
+        flexiones_pared:{hist:[reg(5,"gym_empuje",[[0,10],[0,12]])],hoy:[[0,11],[0,13],[0,13],[0,14]]},
+        rotacion_externa_db:{hist:[reg(5,"gym_empuje",[[2,12]])],hoy:[[3,12],[3,14]]},
+        /* primera vez: solo marca el punto de partida (antes isPR celebraba la 2.a serie) */
+        curl_barra:{hist:[],hoy:[[20,8],[22,8],[22,9]]},
+        /* solo con visto la vez anterior: la primera serie con peso ya es record */
+        jalon_pecho:{hist:[{date:F.fecha(4),sets:[],k:"gym_tiron",t:F.momento(4,18,0).getTime(),checked:true}],hoy:[[50,8],[50,8],[55,8]]}};
+      const sesion=log=>({v:1,key:"gym_empuje",date:hoy(),startedAt:t,lastAt:t,stepi:0,src:"guided",log:log});
+      const res={};
+      Object.keys(casos).forEach(id=>{const c=casos[id],hoyReg=n=>c.hist.concat(n?[reg(0,"gym_empuje",c.hoy.slice(0,n))]:[]);
+        /* prFeed: la serie n es record si al guardarla aparece una entrada mas de hoy */
+        const cuenta=n=>{app.sembrar({rp_logs:{[id]:hoyReg(n)}});return app.w.prFeed(30).filter(p=>p.id===id&&p.date===hoy()).length;};
+        const feed=c.hoy.map((x,n)=>cuenta(n+1)-cuenta(n)===1);
+        /* isPR como lo llama logSet: historial guardado y las series anteriores en la sesion */
+        const vivo=c.hoy.map(([w,r],n)=>{limpio(app,{rp_logs:{[id]:c.hist},rp_session:sesion({[id]:c.hoy.slice(0,n).map(([a,b])=>({w:a,reps:b,t:t}))})});
+          app.ev("curRoutine='gym_empuje'");return app.w.isPR(id,w,r);});
+        /* y como lo llama prRecalc: la sesion entera y el numero de la serie */
+        limpio(app,{rp_logs:{[id]:c.hist},rp_session:sesion({[id]:c.hoy.map(([a,b])=>({w:a,reps:b,t:t}))})});
+        app.ev("curRoutine='gym_empuje'");
+        const porNumero=c.hoy.map(([w,r],n)=>app.w.isPR(id,w,r,n));
+        expect({id:id,isPR:vivo}).toEqual({id:id,isPR:feed});
+        expect({id:id,isPR:porNumero}).toEqual({id:id,isPR:feed});
+        res[id]=feed;});
+      expect(res).toEqual({press_banca_db:[false,true,false,true,true,true],flexiones_pared:[false,true,false,true],
+        rotacion_externa_db:[false,false],curl_barra:[false,false,false],jalon_pecho:[true,false,true]});
+      app.reiniciarMemoria();});
+    test("prKind: Peso máximo, Mejor 1RM est. o Más reps con X kg",app=>{
+      /* mejor e1RM previo: 30 x 8 = 38 */
+      limpio(app,{rp_logs:{press_banca_db:[reg(3,"gym_empuje",[[30,8],[30,8],[25,10]])],flexiones_pared:[reg(3,"salud_fuerza_a",[[0,12]])]}});
+      const caso=(id,w,r)=>[app.w.isPR(id,w,r),app.w.prKind(id,w,r)];
+      expect(caso("press_banca_db",32.5,6)).toEqual([true,"Peso máximo"]);
+      expect(caso("press_banca_db",30,10)).toEqual([true,"Mejor 1RM est."]);
+      expect(caso("press_banca_db",25,11)).toEqual([true,"Más reps con 25 kg"]);
+      /* sin carga no hay kilos que nombrar */
+      expect(caso("flexiones_pared",0,14)).toEqual([true,"Más reps"]);
+      /* bajo el rango (6-10) el e1RM no cuenta, aunque salga mayor: guardarrail de bestE1 */
+      app.sembrar({rp_logs:{press_banca_db:[reg(3,"gym_empuje",[[30,8],[35,3]])]}});
+      expect(app.w.e1rm(33,5)).toBeGreaterThan(app.w.e1rm(30,8)*1.005);
+      expect(caso("press_banca_db",33,5)).toEqual([true,"Más reps con 33 kg"]);});
+    test("prKind cuenta las series anteriores de hoy, no la propia ni las siguientes",app=>{const t=Date.now(),S=[[32.5,6],[32.5,8],[35,6]];
+      limpio(app,{rp_logs:{press_banca_db:[reg(3,"gym_empuje",[[30,8]])]},
+        rp_session:{v:1,key:"gym_empuje",date:hoy(),startedAt:t,lastAt:t,stepi:0,src:"guided",
+          log:{press_banca_db:S.map(([w,r])=>({w:w,reps:r,t:t}))}}});
+      app.ev("curRoutine='gym_empuje'");
+      expect(S.map(([w,r],i)=>app.w.prKind("press_banca_db",w,r,i))).toEqual(["Peso máximo","Mejor 1RM est.","Peso máximo"]);
+      app.reiniciarMemoria();});
 
     /* ---------- effList / buildSteps / estMinutes ---------- */
     test("effList: calentamiento, entrenamiento y bloque secundario en ese orden",app=>{limpio(app);
@@ -789,6 +849,87 @@
       expect(app.texto("#guided")).not.toContain("Guardada");
       expect(app.texto("#guided .donesum b")).toBe("14");
       expect(app.$("#guided .hero").getAttribute("style")).not.toContain("--fin");
+      app.reiniciarMemoria();});
+  });
+
+  /* HU-10: el record se ve en la propia serie, dice que se supero y se limpia
+     si la serie se borra o se corrige. Por el guiado real: openRoutine,
+     startRoutine, logSet, delSet, editSet y finish. */
+  const PECHO="press_banca_db";
+  /* hace 3 dias: 30 x 8 (e1RM 38) y 25 x 10 */
+  const base=()=>({rp_logs:{[PECHO]:[reg(3,"gym_empuje",[[30,8],[30,8],[25,10]])]}});
+  async function anotar(app,series){app.w.openRoutine("gym_empuje");app.w.startRoutine(PECHO);
+    for(const [w,r] of series){app.ev("curW="+w+";curReps="+r);app.w.logSet();
+      await app.espera(400);   /* el visto de 300 ms antes del descanso */
+      if(app.$("#guided .gbtn.rest"))app.w.skipRest();}}
+  const prs=app=>((app.leer("rp_session")||{}).pr||[]).map(p=>[p.w,p.reps,p.i,p.kind]);
+  const lineas=app=>app.$$("#guided .setline").map(l=>[l.id.replace("sl_"+PECHO+"_",""),l.classList.contains("pr"),
+    l.querySelector(".prtag")?l.querySelector(".prtag").textContent.trim():""]);
+  const sinAviso=app=>{app.$("#toast").innerHTML="";};
+
+  escenario("Récord en la propia serie",F.vacio,()=>{
+    test("dos series iguales que baten la marca: solo la primera lleva la clase pr",async app=>{limpio(app,base());
+      await anotar(app,[[32.5,8],[32.5,8]]);
+      expect(prs(app)).toEqual([[32.5,8,0,"Peso máximo"]]);
+      expect(lineas(app)).toEqual([["0",true,"Peso máximo"],["1",false,""]]);
+      app.reiniciarMemoria();});
+    test("cada record dice que se supero, en la serie y en la pantalla de fin",async app=>{limpio(app,base());
+      await anotar(app,[[32.5,6],[30,10],[25,11]]);
+      const tipos=["Peso máximo","Mejor 1RM est.","Más reps con 25 kg"];
+      expect(prs(app)).toEqual([[32.5,6,0,tipos[0]],[30,10,1,tipos[1]],[25,11,2,tipos[2]]]);
+      expect(lineas(app).map(l=>l[2])).toEqual(tipos);
+      app.w.finish();
+      expect(app.texto("#guided")).toContain("Completada");
+      expect(app.$$("#guided .doneprs .r .k").map(k=>k.textContent)).toEqual(tipos);
+      expect(app.texto("#guided .doneprs")).toContain("32.5 kg × 6");
+      expect(app.leer("rp_history")[0].pr.map(p=>[p.i,p.kind])).toEqual([[0,tipos[0]],[1,tipos[1]],[2,tipos[2]]]);
+      app.reiniciarMemoria();});
+    test("borrar la serie record (delSet) quita su record de la sesión y de la pantalla de fin",async app=>{limpio(app,base());
+      await anotar(app,[[35,8],[30,8]]);
+      expect(prs(app)).toEqual([[35,8,0,"Peso máximo"]]);
+      app.w.delSet(PECHO,"s",-1,0,-1);
+      expect(prs(app)).toEqual([]);
+      expect(lineas(app)).toEqual([["0",false,""]]);
+      app.w.finish();
+      expect(app.texto("#guided")).toContain("Completada");
+      expect(app.$("#guided .doneprs")).toBe(null);
+      expect(app.leer("rp_history")[0].pr).toBe(undefined);
+      app.reiniciarMemoria();});
+    test("corregir la serie record (editSet) quita su record si deja de serlo",async app=>{limpio(app,base());
+      await anotar(app,[[35,8]]);
+      expect(prs(app)).toEqual([[35,8,0,"Peso máximo"]]);
+      app.w.editSet(PECHO,"s",-1,0,-1,0);
+      app.$("#se_w").value="30";app.$("#se_r").value="7";app.$("#sl_"+PECHO+"_0 .setok").click();
+      expect(app.leer("rp_session").log[PECHO].map(x=>[x.w,x.reps])).toEqual([[30,7]]);
+      expect(prs(app)).toEqual([]);
+      expect(lineas(app)).toEqual([["0",false,""]]);
+      app.w.finish();
+      expect(app.$("#guided .doneprs")).toBe(null);
+      app.reiniciarMemoria();});
+    test("corregir una errata deja el record en su serie; borrar una anterior lo cambia de número",async app=>{limpio(app,base());
+      await anotar(app,[[30,8],[35,8]]);
+      expect(prs(app)).toEqual([[35,8,1,"Peso máximo"]]);
+      app.w.editSet(PECHO,"s",-1,1,-1,1);
+      app.$("#se_w").value="37.5";app.$("#sl_"+PECHO+"_1 .setok").click();
+      expect(prs(app)).toEqual([[37.5,8,1,"Peso máximo"]]);
+      app.w.delSet(PECHO,"s",-1,0,-1);
+      expect(prs(app)).toEqual([[37.5,8,0,"Peso máximo"]]);
+      expect(lineas(app)).toEqual([["0",true,"Peso máximo"]]);
+      app.reiniciarMemoria();});
+    test("un record de nivel 1 no lanza aviso flotante; el de nivel 2 sí",async app=>{limpio(app,base());
+      app.w.openRoutine("gym_empuje");app.w.startRoutine(PECHO);
+      /* 25 x 11: mas reps que nunca con 25 kg, pero el e1RM no mejora */
+      sinAviso(app);app.ev("curW=25;curReps=11");app.w.logSet();
+      const p1=app.leer("rp_session").pr;
+      expect(p1.map(p=>[p.lvl,p.kind])).toEqual([[1,"Más reps con 25 kg"]]);
+      expect(app.texto("#toast")).toBe("");
+      await app.espera(400);app.w.skipRest();
+      expect(lineas(app)).toEqual([["0",true,"Más reps con 25 kg"]]);
+      /* 32.5 x 8: nuevo maximo de e1RM */
+      sinAviso(app);app.ev("curW=32.5;curReps=8");app.w.logSet();
+      expect(app.leer("rp_session").pr.map(p=>p.lvl)).toEqual([1,2]);
+      expect(app.texto("#toast")).toBe("Récord en "+app.w.shortName(PECHO)+": 32.5 kg × 8");
+      await app.espera(400);
       app.reiniciarMemoria();});
   });
 })();

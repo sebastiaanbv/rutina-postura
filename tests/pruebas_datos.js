@@ -524,6 +524,56 @@
       app.reiniciarMemoria();});
   });
 
+  /* HU-10: los records guardan el numero de la serie (i) y que se supero
+     (kind). La copia va por prefijo y como texto, asi que viajan solos; la
+     prueba lo fija. */
+  escenario("Récords en la copia de seguridad",F.dueno,()=>{
+    test("exportar → importar conserva i y kind en rp_history[].pr",async app=>{
+      app.w.openRoutine("gym_empuje");app.w.startRoutine("press_banca_db");
+      app.ev("curW=60;curReps=8");app.w.logSet();await app.espera(400);
+      expect(app.w.finishSession("gym_empuje","guided").summary.sets).toBe(1);
+      const pr=app.leer("rp_history")[0].pr;
+      expect(pr.map(p=>[p.id,p.w,p.reps,p.i,p.kind])).toEqual([["press_banca_db",60,8,0,"Peso máximo"]]);
+      const antes=app.foto(),d=await exportar(app);
+      expect(JSON.parse(JSON.parse(d.texto).store.rp_history)[0].pr).toEqual(pr);
+      localStorage.clear();
+      const recarga=app.cargo();importar(app,d.texto);await recarga;await app.listo();
+      expect(app.foto()).toEqual(antes);
+      expect(app.leer("rp_history")[0].pr).toEqual(pr);
+      app.reiniciarMemoria();});
+  });
+
+  /* datos de v35: sus pr son {id,w,reps,lvl}, sin i ni kind. El ultimo
+     entrenamiento de F.dueno trae uno, y la sesion de hoy otro a medias. */
+  function prV35(){const D=F.dueno(),t=Math.max(F.momento(0,0,1).getTime(),Date.now()-20*60000);
+    D.rp_history[0].pr=[{id:"hack_squat",w:70,reps:9,lvl:2}];
+    D.rp_session={v:1,key:"gym_empuje",date:F.fecha(0),startedAt:t,lastAt:t+60000,stepi:0,src:"guided",
+      log:{press_banca_db:[{w:40,reps:8,t:t+30000},{w:40,reps:8,t:t+40000}]},pr:[{id:"press_banca_db",w:40,reps:8,lvl:2}]};
+    return D;}
+  const TIPOS=/Peso máximo|Mejor 1RM|Más reps/;
+  escenario("Récords de v35 (sin i ni kind)",prV35,()=>{
+    test("el guiado y la pantalla de fin se pintan sin errores y sin etiqueta de tipo",app=>{
+      app.w.openRoutine("gym_empuje");app.w.startRoutine("press_banca_db");
+      expect(app.$$("#guided .setline").length).toBe(2);
+      expect(app.$$("#guided .setline.pr, #guided .prtag").length).toBe(0);
+      app.w.finish();
+      expect(app.texto("#guided")).toContain("Completada");
+      expect(app.$$("#guided .doneprs .r").length).toBe(1);
+      expect(app.texto("#guided .doneprs .r")).toContain("40 kg × 8");
+      expect(app.$$("#guided .doneprs .k").length).toBe(0);
+      expect(app.texto("#guided")).not.toMatch(TIPOS);
+      /* el historial lo guarda tal cual vino: sin inventarle i ni kind */
+      expect(app.leer("rp_history")[0].pr).toEqual([{id:"press_banca_db",w:40,reps:8,lvl:2}]);
+      app.reiniciarMemoria();});
+    test("el calendario pinta los días con records de v35 sin errores y sin etiqueta de tipo",app=>{
+      app.$('.nav .tab[data-v="history"]').click();expect(app.activa()).toBe("history");
+      const dias=app.leer("rp_history").filter(h=>h.pr).map(h=>app.w.ds(new Date(h.iso)));
+      expect(dias.length).toBeGreaterThan(0);
+      dias.forEach(d=>{app.w.calPick(d);
+        expect(app.$$("#histBody .dayblock").length).toBeGreaterThan(0);
+        expect(app.texto("#histBody")).not.toMatch(TIPOS);});});
+  });
+
   /* almacenamiento lleno: jset devuelve false. Lo critico avisa y no pierde
      el dato: ni la serie en memoria ni la sesion guardada. */
   escenario("Almacenamiento lleno · anotar y terminar en el guiado",F.vacio,()=>{
