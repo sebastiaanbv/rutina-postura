@@ -2635,13 +2635,13 @@ const DESHACER_MS=7000;
 let deshacer=[];
 function delSet(id,src,ri,si,n){
   const ae=document.activeElement,foco=!!(ae&&ae.classList&&ae.classList.contains("del"));
-  let x=null,rec=null;
-  if(src==="s"){useSessionLog(curRoutine);const a=sessionLog[id];
+  let x=null,rec=null,orden=null;
+  if(src==="s"){useSessionLog(curRoutine);const a=sessionLog[id];orden=Object.keys(sessionLog);
     if(a){x=a.splice(si,1)[0];if(!a.length)delete sessionLog[id];}touchSess();}
   else{logsWrite(logs=>{const r=(logs[id]||[])[ri];if(!r||!r.sets)return;
     x=r.sets.splice(si,1)[0];if(!r.sets.length&&!r.checked){logs[id].splice(ri,1);rec=r;}});}
   renderStep();
-  if(x)ofrecerDeshacer({id:id,src:src,ri:ri,si:si,x:x,rec:rec,k:curRoutine},foco);}
+  if(x)ofrecerDeshacer({id:id,src:src,ri:ri,si:si,x:x,rec:rec,k:curRoutine,orden:orden},foco);}
 function ofrecerDeshacer(u,foco){
   /* toast() cierra el aviso anterior, y con el vacia la pila: se rehace antes */
   const pila=deshacer.concat([u]),n=pila.length;
@@ -2660,7 +2660,11 @@ function deshacerSerie(){const pila=deshacer;deshacer=[];if(!pila.length)return;
   const foco=$("toast").contains(document.activeElement);let n=0,sesion=false;
   pila.slice().reverse().forEach(u=>{
     if(u.src==="s"){if(sessionLogKey!==u.k)return;   /* la sesion ya se cerro */
-      const a=sessionLog[u.id]||(sessionLog[u.id]=[]);a.splice(Math.min(u.si,a.length),0,u.x);sesion=true;}
+      /* si se habia ido su ultima serie, el ejercicio vuelve a su puesto: el
+         orden de la sesion es el de rp_session y el del historial */
+      if(!sessionLog[u.id]){const o=Object.assign({},sessionLog);Object.keys(o).forEach(k=>{delete sessionLog[k];});
+        u.orden.concat(Object.keys(o)).forEach(k=>{if(!(k in sessionLog)&&(k===u.id||o[k]))sessionLog[k]=k===u.id?[]:o[k];});}
+      const a=sessionLog[u.id];a.splice(Math.min(u.si,a.length),0,u.x);sesion=true;}
     else logsWrite(logs=>{const a=logs[u.id]||(logs[u.id]=[]);
       if(u.rec){u.rec.sets=[u.x];a.splice(Math.min(u.ri,a.length),0,u.rec);}
       else{const r=a[u.ri];if(r&&r.sets)r.sets.splice(Math.min(u.si,r.sets.length),0,u.x);}});

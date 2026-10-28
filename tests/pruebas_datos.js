@@ -398,8 +398,10 @@
   function conSerie(){const ini=Date.now()-20*60000;
     return {rp_session:{v:1,key:"gym_empuje",date:F.fecha(0),startedAt:ini,lastAt:ini,stepi:0,src:"guided",
       log:{press_banca_db:[{w:20,reps:10,t:ini+60000,rir:2},{w:22.5,reps:8,t:ini+240000},{w:22.5,reps:7,t:ini+420000,rir:0}]}}};}
-  /* la sesion menos lastAt, que es el sello de la ultima escritura */
+  /* la sesion menos lastAt, que es el sello de la ultima escritura; en
+     crudo, para que tambien cuente el orden de los ejercicios */
   const sinSello=app=>{const s=app.leer("rp_session");if(s)delete s.lastAt;return s;};
+  const crudo=()=>String(localStorage.getItem("rp_session")).replace(/"lastAt":\d+,?/,"");
   const copia=x=>JSON.parse(JSON.stringify(x));
   const filas=app=>app.$$("#guided .sets .setline").map(l=>Array.from(l.children)
     .map(c=>c.textContent.replace(/\s+/g," ").trim()).filter(Boolean).join(" | "));
@@ -407,7 +409,7 @@
   function abrir(app,semilla){app.w.toastFuera();app.reiniciarMemoria();app.sembrar(semilla||conSerie);
     app.w.openRoutine("gym_empuje");app.w.startRoutine("press_banca_db");sinAviso(app);
     expect(app.activa()).toBe("guided");
-    return {log:copia(app.ev("sessionLog")),ses:sinSello(app),filas:filas(app)};}
+    return {log:copia(app.ev("sessionLog")),ses:sinSello(app),crudo:crudo(),filas:filas(app)};}
   const borrar=(app,i)=>app.$("#sl_press_banca_db_"+i+" .del").click();
   const deshacer=app=>app.$("#toast .tact").click();
   escenario("Borrar una serie en el guiado",conSerie,()=>{
@@ -423,6 +425,7 @@
       deshacer(app);
       expect(copia(app.ev("sessionLog"))).toEqual(antes.log);
       expect(sinSello(app)).toEqual(antes.ses);
+      expect(crudo()).toBe(antes.crudo);
       expect(filas(app)).toEqual(antes.filas);
       expect(app.texto("#toast")).toContain("Serie recuperada");
       expect(app.$("#toast .tact")).toBeFalsy();
@@ -460,9 +463,23 @@
       expect(app.texto("#toast")).toContain("2 series borradas");
       deshacer(app);
       expect(copia(app.ev("sessionLog"))).toEqual(antes.log);
-      expect(sinSello(app)).toEqual(antes.ses);
+      expect(crudo()).toBe(antes.crudo);
       expect(filas(app)).toEqual(antes.filas);
       expect(app.texto("#toast")).toContain("2 series recuperadas");
+      app.reiniciarMemoria();});
+    test("borrar la única serie de un ejercicio y deshacer: vuelve a su puesto en la sesión",app=>{
+      const s=conSerie(),log=s.rp_session.log;
+      log.press_banca_db=log.press_banca_db.slice(0,1);
+      log.press_hombro_db=[{w:12,reps:10,t:s.rp_session.startedAt+600000}];
+      const antes=abrir(app,s);
+      expect(Object.keys(antes.ses.log)).toEqual(["press_banca_db","press_hombro_db"]);
+      borrar(app,0);
+      expect(Object.keys(app.leer("rp_session").log)).toEqual(["press_hombro_db"]);
+      expect(filas(app)).toHaveLength(0);
+      deshacer(app);
+      expect(crudo()).toBe(antes.crudo);
+      expect(Object.keys(app.ev("sessionLog"))).toEqual(["press_banca_db","press_hombro_db"]);
+      expect(filas(app)).toEqual(antes.filas);
       app.reiniciarMemoria();});
     test("borrar, anotar otra y deshacer en el descanso: no se pierde ninguna",async app=>{
       const antes=abrir(app);

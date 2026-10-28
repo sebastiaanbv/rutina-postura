@@ -383,7 +383,8 @@ Borrar una serie se puede deshacer. La X de cada serie del guiado borraba de un 
 confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se tocaba en 18 px de alto.
 
 - **«Serie borrada · Deshacer»** durante siete segundos (`DESHACER_MS`). Deshacer la vuelve a
-  poner en su índice y la sesión queda idéntica. Lo que se borra con el aviso a la vista se apila:
+  poner en su índice y la sesión queda idéntica, byte a byte: si era la última serie de su
+  ejercicio, el ejercicio vuelve a su puesto en `rp_session`. Lo que se borra con el aviso a la vista se apila:
   un doble toque en la X se lleva dos series —la de abajo sube al sitio de la borrada— y el aviso
   pasa a «2 series borradas»; Deshacer devuelve las dos. Anotar otra mientras tanto no estorba: la
   borrada vuelve a su sitio y la nueva se queda, y deshacer en el descanso no saca del descanso.
@@ -399,8 +400,8 @@ confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se toca
 - **Sin cambios de datos**: nada nuevo en `rp_*`; lo que se puede deshacer vive en memoria.
 - **Pruebas** en `tests/pruebas_datos.js`: borrar y deshacer deja `rp_session` (menos el sello
   `lastAt`), la memoria y la lista idénticas; sin deshacer, la serie no está ni al finalizar;
-  doble toque; anotar otra y deshacer en el descanso; salir y finalizar; teléfono lleno; una serie
-  de `rp_logs`. En `tests/pruebas_pantallas.js`: cifra, X, campos y visto con 44 px propios a 400
+  doble toque; la única serie de un ejercicio; anotar otra y deshacer en el descanso; salir y
+  finalizar; teléfono lleno; una serie de `rp_logs`. En `tests/pruebas_pantallas.js`: cifra, X, campos y visto con 44 px propios a 400
   y 320 px; el aviso con su rol, su voz y el contraste del rojo en los dos temas; y con teclado.
 
 ### Cerrado en v35
