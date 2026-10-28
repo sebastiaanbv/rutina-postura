@@ -269,7 +269,9 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
   44 px **de caja**, con márgenes negativos para no mover el dibujo ni alargar la fila, y el flex
   garantiza el hueco con lo de al lado. En la misma fila, la cifra que abre la edición se amplía
   (medía 61×18) y los campos para corregirla miden 44 de alto. Se comprueba como lo ve el dedo, con
-  `elementFromPoint`, a 400 y a 320 px.
+  `elementFromPoint`, a 400 y a 320 px de ancho útil, también en una serie récord: la marca de
+  récord va en su propia línea bajo la cifra, la X baja 10 px por ella, y la marca no recibe
+  toques (`pointer-events:none`), así que no se queda ese trozo.
 - **Teclado**: todo lo que se comporta como botón es enfocable y responde a Enter y Espacio. Las
   pestañas son botones reales con `aria-current`. En v32 había **22 controles que eran `<div>` con
   `onclick` y ni `role` ni `tabindex`** —entre ellos la lista entera de rutinas de Inicio, el
@@ -658,11 +660,20 @@ confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se toca
   de 44, a 320 px la fila se partía). La fila mide lo mismo que antes, 40 px; editando, 46 en vez
   de 48. Cada X dice qué serie borra («Borrar serie 2»).
 - **Sin cambios de datos**: nada nuevo en `rp_*`; lo que se puede deshacer vive en memoria.
+- **Con el récord en la propia serie (HU-10)**: borrar rehace los récords del ejercicio, y
+  deshacer también. La serie vuelve con su marca y, si los récords salen los mismos que antes de
+  borrar, `pr` vuelve tal cual estaba en `rp_session`, en su orden (rehacer ponía al final los del
+  ejercicio devuelto). `prRecalc` ya no crea `pr: []` en una sesión que no tenía récords: borrar
+  y deshacer sin ninguno, o con el teléfono lleno, la dejaba con esa clave de más. La marca de
+  récord no recibe toques, para no quedarse el borde de abajo de la X (§10).
 - **Pruebas** en `tests/pruebas_datos.js`: borrar y deshacer deja `rp_session` (menos el sello
   `lastAt`), la memoria y la lista idénticas; sin deshacer, la serie no está ni al finalizar;
   doble toque; la única serie de un ejercicio; anotar otra y deshacer en el descanso; salir y
-  finalizar; teléfono lleno; una serie de `rp_logs`. En `tests/pruebas_pantallas.js`: cifra, X, campos y visto con 44 px propios a 400
-  y 320 px; el aviso con su rol, su voz y el contraste del rojo en los dos temas; y con teclado.
+  finalizar (con HU-09, «Guardada · 1 de 14 ejercicios»); teléfono lleno; una serie de `rp_logs`;
+  una serie récord, con récords en dos ejercicios. En `tests/pruebas_pantallas.js`: cifra, X,
+  campos y visto con 44 px propios a 400 y 320 px de ancho útil (en CI la barra de desplazamiento
+  clásica ocupa 15 px y el iframe se ensancha lo que mida), también en una serie récord; el aviso
+  con su rol, su voz y el contraste del rojo en los dos temas; y con teclado.
 
 ### Cerrado en v35
 

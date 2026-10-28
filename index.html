@@ -388,8 +388,10 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .setline.pr .n{color:var(--energy-ink)}
   /* que se supero va en su propia linea, bajo el valor: a 360 px no cabe al
      lado de "32.5 kg × 6 · reserva 2" sin partir los dos */
+  /* no es un control: la X de 44 px (HU-54) baja 10 px por su linea, y sin
+     esto la marca, pintada despues, se quedaba ese trozo del toque */
   .prtag{flex-basis:100%;padding-left:calc(52px + var(--s2));color:var(--energy-ink);display:flex;align-items:center;gap:4px;
-    font-size:var(--t-2xs);font-weight:var(--w-bold);text-transform:uppercase;letter-spacing:.6px}
+    font-size:var(--t-2xs);font-weight:var(--w-bold);text-transform:uppercase;letter-spacing:.6px;pointer-events:none}
 
   /* aviso flotante: la unica pieza que faltaba para poder celebrar algo */
   .toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom));
@@ -1791,8 +1793,11 @@ function prRecalc(id){const sv=sessActive(curRoutine)?loadSess():null;if(!sv)ret
   /* con las series de memoria, como touchSess: si no cupo, que no quede en
      disco un pr numerado sobre otras series */
   if(sessionLogKey===curRoutine)sv.log=sessionLog;
-  sv.pr=(sv.pr||[]).filter(p=>p.id!==id);
-  hoy.forEach((x,i)=>{if(isPR(id,x.w,x.reps,i))sv.pr.push(prEntry(id,x.w,x.reps,i));});
+  const pr=(sv.pr||[]).filter(p=>p.id!==id);
+  hoy.forEach((x,i)=>{if(isPR(id,x.w,x.reps,i))pr.push(prEntry(id,x.w,x.reps,i));});
+  /* sin records ni antes ni ahora la sesion sigue sin clave pr, como la deja
+     markPR: borrar una serie y deshacerlo (HU-54) la deja identica */
+  if(pr.length||sv.pr)sv.pr=pr;
   saveSess(sv);}
 /* ==== fin [S5] ============================================================ */
 let curRoutine=null, steps=[], stepi=0, tId=null, actx=null, remTimers=[];
@@ -2772,13 +2777,26 @@ const DESHACER_MS=7000;
 let deshacer=[];
 function delSet(id,src,ri,si,n){
   const ae=document.activeElement,foco=!!(ae&&ae.classList&&ae.classList.contains("del"));
-  let x=null,rec=null,orden=null;
-  if(src==="s"){useSessionLog(curRoutine);const a=sessionLog[id];orden=Object.keys(sessionLog);
+  let x=null,rec=null,orden=null,pr=null;
+  if(src==="s"){useSessionLog(curRoutine);const a=sessionLog[id];orden=Object.keys(sessionLog);pr=prFoto();
     if(a){x=a.splice(si,1)[0];if(!a.length)delete sessionLog[id];}touchSess();prRecalc(id);}
   else{logsWrite(logs=>{const r=(logs[id]||[])[ri];if(!r||!r.sets)return;
     x=r.sets.splice(si,1)[0];if(!r.sets.length&&!r.checked){logs[id].splice(ri,1);rec=r;}});}
   renderStep();
-  if(x)ofrecerDeshacer({id:id,src:src,ri:ri,si:si,x:x,rec:rec,k:curRoutine,orden:orden},foco);}
+  if(x)ofrecerDeshacer({id:id,src:src,ri:ri,si:si,x:x,rec:rec,k:curRoutine,orden:orden,pr:pr},foco);}
+/* los records de la sesion antes de borrar (HU-10), tal cual estan en
+   rp_session: null si no tenia clave pr */
+function prFoto(){const sv=sessActive(curRoutine)?loadSess():null;return sv&&sv.pr?JSON.stringify(sv.pr):null;}
+/* al deshacer, los records se rehacen con prRecalc; si salen los mismos que
+   antes del primer borrado, vuelven tal cual estaban, en su orden (rehacer
+   pone al final los del ejercicio devuelto) y sin clave pr si no la habia */
+function prComoAntes(pila){const u=pila.find(x=>x.src==="s");if(!u)return;
+  const sv=sessActive(curRoutine)?loadSess():null;if(!sv)return;
+  const antes=u.pr==null?null:JSON.parse(u.pr),canon=p=>JSON.stringify((p||[]).map(x=>JSON.stringify(x)).sort());
+  if(canon(sv.pr)!==canon(antes)||JSON.stringify(sv.pr||null)===JSON.stringify(antes))return;
+  if(sessionLogKey===curRoutine)sv.log=sessionLog;
+  if(antes)sv.pr=antes;else delete sv.pr;
+  saveSess(sv);}
 function ofrecerDeshacer(u,foco){
   /* toast() cierra el aviso anterior, y con el vacia la pila: se rehace antes */
   const pila=deshacer.concat([u]),n=pila.length;
@@ -2794,24 +2812,27 @@ function ofrecerDeshacer(u,foco){
 /* sin desplazar: con el dedo el foco no se ve, y la pantalla no debe saltar */
 function enfocarGuiado(){const b=document.querySelector("#guided.active .gbtn");if(b)b.focus({preventScroll:true});}
 function deshacerSerie(){const pila=deshacer;deshacer=[];if(!pila.length)return;
-  const foco=$("toast").contains(document.activeElement);let n=0,sesion=false;
+  const foco=$("toast").contains(document.activeElement);let n=0;const ids=[];
   pila.slice().reverse().forEach(u=>{
     if(u.src==="s"){if(sessionLogKey!==u.k)return;   /* la sesion ya se cerro */
       /* si se habia ido su ultima serie, el ejercicio vuelve a su puesto: el
          orden de la sesion es el de rp_session y el del historial */
       if(!sessionLog[u.id]){const o=Object.assign({},sessionLog);Object.keys(o).forEach(k=>{delete sessionLog[k];});
         u.orden.concat(Object.keys(o)).forEach(k=>{if(!(k in sessionLog)&&(k===u.id||o[k]))sessionLog[k]=k===u.id?[]:o[k];});}
-      const a=sessionLog[u.id];a.splice(Math.min(u.si,a.length),0,u.x);sesion=true;}
+      const a=sessionLog[u.id];a.splice(Math.min(u.si,a.length),0,u.x);if(ids.indexOf(u.id)<0)ids.push(u.id);}
     else logsWrite(logs=>{const a=logs[u.id]||(logs[u.id]=[]);
       if(u.rec){u.rec.sets=[u.x];a.splice(Math.min(u.ri,a.length),0,u.rec);}
       else{const r=a[u.ri];if(r&&r.sets)r.sets.splice(Math.min(u.si,r.sets.length),0,u.x);}});
     n++;});
+  /* el foco lo pone deshacer al final: el aviso que se va ya no lo mueve */
+  if(n){toastFin=null;toast(ic("check","sm")+" "+(n===1?"Serie recuperada":n+" series recuperadas"));}else toastFuera();
+  /* se guarda despues del aviso: si no cabe, el de "No cupo" queda encima.
+     Los records siguen a sus series (HU-10): se rehacen los de cada
+     ejercicio devuelto, y la serie se pinta despues, ya con su marca */
+  if(ids.length){touchSess();ids.forEach(prRecalc);prComoAntes(pila);}
   const s=steps[stepi],u0=pila[0];
   if(inGuided()&&s&&document.querySelector("#guided .logrow")&&pila.some(u=>u.id===s.id))renderStep();
-  if(foco){const l=$("sl_"+u0.id+"_"+u0.si),v=l&&l.querySelector(".v");if(v)v.focus();else enfocarGuiado();}
-  if(n)toast(ic("check","sm")+" "+(n===1?"Serie recuperada":n+" series recuperadas"));else toastFuera();
-  /* se guarda despues del aviso: si no cabe, el de "No cupo" queda encima */
-  if(sesion)touchSess();}
+  if(foco){const l=$("sl_"+u0.id+"_"+u0.si),v=l&&l.querySelector(".v");if(v)v.focus();else enfocarGuiado();}}
 /* ==== fin [S2] ============================================================ */
 function persistSession(k,dateOverride,startedAt){
   const logs=loadLogs(),t=dateOverride||today(),merged=sessLog(k),list=effList(k);

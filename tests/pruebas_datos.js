@@ -1116,7 +1116,9 @@
       abrir(app);
       borrar(app,0);
       app.w.finish();
-      expect(app.texto("#guided")).toContain("Completada");
+      /* con HU-09 terminar con ejercicios sin hacer guarda lo hecho y dice
+         "Guardada · X de Y", nunca "Completada": aqui solo se hizo el pecho */
+      expect(app.texto("#guided .done .mut")).toBe("Guardada · 1 de 14 ejercicios");
       expect(app.$("#toast").classList.contains("show")).toBe(false);
       app.w.deshacerSerie();
       expect(app.leer("rp_session")).toBe(null);
@@ -1145,6 +1147,32 @@
       expect(app.texto("#toast")).toContain("Serie borrada");
       deshacer(app);
       expect(localStorage.getItem("rp_logs")).toBe(antes);
+      app.reiniciarMemoria();});
+    /* HU-10 marca el record en su serie y lo rehace al borrar: deshacer lo
+       devuelve con la serie, y la sesion queda identica, records en su orden */
+    test("borrar una serie récord y deshacer: vuelve su récord, y los de la sesión en su orden",app=>{
+      const s=conSerie(),ini=s.rp_session.startedAt,t=ini-3*864e5;
+      /* hace 3 dias: 20 x 8 en el press de pecho y 10 x 8 en el de hombro */
+      s.rp_logs={press_banca_db:[{date:F.fecha(3),sets:[{w:20,reps:8,t:t}],k:"gym_empuje",t:t}],
+        press_hombro_db:[{date:F.fecha(3),sets:[{w:10,reps:8,t:t}],k:"gym_empuje",t:t}]};
+      s.rp_session.log.press_hombro_db=[{w:12,reps:10,t:ini+600000}];
+      abrir(app,s);
+      /* los records como los deja el guiado: los del pecho y despues el del hombro */
+      app.w.prRecalc("press_banca_db");app.w.prRecalc("press_hombro_db");app.w.renderStep();
+      const prs=()=>(app.leer("rp_session").pr||[]).map(p=>[p.id,p.i]);
+      expect(prs()).toEqual([["press_banca_db",0],["press_banca_db",1],["press_hombro_db",0]]);
+      const antes={crudo:crudo(),filas:filas(app),log:copia(app.ev("sessionLog"))};
+      const marcadas=()=>app.$$("#guided .sets .setline.pr").map(l=>l.id.replace("sl_press_banca_db_",""));
+      expect(marcadas()).toEqual(["0","1"]);
+      /* la primera se va: la de 22.5 x 8 pasa a ser la serie 1, y record */
+      borrar(app,0);
+      expect(prs()).toEqual([["press_hombro_db",0],["press_banca_db",0]]);
+      expect(marcadas()).toEqual(["0"]);
+      deshacer(app);
+      expect(copia(app.ev("sessionLog"))).toEqual(antes.log);
+      expect(crudo()).toBe(antes.crudo);
+      expect(filas(app)).toEqual(antes.filas);
+      expect(marcadas()).toEqual(["0","1"]);
       app.reiniciarMemoria();});
   });
 })();

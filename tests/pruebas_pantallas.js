@@ -548,7 +548,9 @@
   function conSerie(){const ini=Date.now()-20*60000;
     return {rp_session:{v:1,key:"gym_empuje",date:F.fecha(0),startedAt:ini,lastAt:ini,stepi:0,src:"guided",
       log:{press_banca_db:[{w:122.5,reps:12,t:ini+60000,rir:3},{w:22.5,reps:8,t:ini+240000},{w:22.5,reps:7,t:ini+420000,rir:0}]}}};}
-  function abrir(app){app.w.toastFuera();app.reiniciarMemoria();app.sembrar(conSerie);
+  /* la serie 1 con su record, como lo pinta HU-10 */
+  function conRecord(){const s=conSerie();s.rp_session.pr=[{id:"press_banca_db",w:122.5,reps:12,lvl:2,i:0,kind:"Peso máximo"}];return s;}
+  function abrir(app,semilla){app.w.toastFuera();app.reiniciarMemoria();app.sembrar(semilla||conSerie);
     app.w.openRoutine("gym_empuje");app.w.startRoutine("press_banca_db");app.$("#toast").innerHTML="";
     expect(app.activa()).toBe("guided");}
   /* Zona de toque de un control: lo que mide (su caja o el pseudo-elemento
@@ -565,6 +567,15 @@
       if(!h||!(h===el||el.contains(h)))ajenos.push(Math.round(dx)+","+Math.round(dy)+"→"+(h?(h.className&&h.className.baseVal!=null?h.className.baseVal:h.className)||h.tagName:"nada"));}
     return {ancho:Math.max(r.width,con?parseFloat(ps.width)||0:0)>=44,alto:Math.max(r.height,con?parseFloat(ps.height)||0:0)>=44,ajenos:ajenos};}
   const z44={ancho:true,alto:true,ajenos:[]};
+  /* la pagina a px de ancho util, como en un telefono de px. En CI Chrome
+     pinta la barra de desplazamiento clasica, de 15 px, y un iframe de 320
+     dejaba la pagina en 305: mas estrecha que cualquier telefono, donde la
+     barra flota sin ocupar sitio (con Playwright tampoco ocupa). El iframe se
+     ensancha lo que mida la barra, y se comprueba que la pagina mide px */
+  function anchoUtil(app,px){app.frame.style.width=px+"px";
+    const barra=app.w.innerWidth-app.doc.documentElement.clientWidth;
+    if(barra>0)app.frame.style.width=(px+barra)+"px";
+    expect(app.doc.documentElement.clientWidth).toBe(px);}
   /* contraste WCAG entre dos colores "rgb(r, g, b)" */
   function lum(c){return c.match(/\d+(\.\d+)?/g).slice(0,3).map(Number).map(v=>{v/=255;return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4);})
     .reduce((a,v,i)=>a+v*[0.2126,0.7152,0.0722][i],0);}
@@ -573,7 +584,7 @@
   const voz=t=>{expect(t).not.toContain("!");expect(t.slice(1)).toBe(t.slice(1).toLowerCase());};
   escenario("Pantallas · borrar una serie (zonas de toque y aviso)",conSerie,()=>{
     test("la cifra, la X, los campos y el visto de cada serie miden 44 px y no se pisan, a 400 y a 320 px",app=>{
-      try{for(const ancho of ["400px","320px"]){app.frame.style.width=ancho;abrir(app);
+      try{for(const ancho of [400,320]){app.frame.style.width=ancho+"px";abrir(app);anchoUtil(app,ancho);
           app.$("#guided .sets").scrollIntoView({block:"center"});
           expect(app.doc.documentElement.scrollWidth).toBe(app.doc.documentElement.clientWidth);
           app.$$("#guided .sets .setline").forEach(l=>{
@@ -588,6 +599,21 @@
           /* las filas vecinas siguen enteras */
           expect(zona(app,app.$("#sl_press_banca_db_1 .del"))).toEqual(z44);
           expect(zona(app,app.$("#sl_press_banca_db_1 .v"))).toEqual(z44);}}
+      finally{app.frame.style.width="400px";}
+      app.reiniciarMemoria();});
+    /* HU-10 pone la marca en su propia linea, bajo la cifra: la X de 44 baja
+       10 px por esa linea, y la marca, pintada despues, se quedaba ese trozo */
+    test("en una serie récord la marca no tapa la X ni la cifra, a 400 y a 320 px",app=>{
+      try{for(const ancho of [400,320]){app.frame.style.width=ancho+"px";abrir(app,conRecord);anchoUtil(app,ancho);
+          app.$("#guided .sets").scrollIntoView({block:"center"});
+          const l=app.$("#sl_press_banca_db_0");
+          expect(l.classList.contains("pr")).toBe(true);
+          expect(app.texto("#sl_press_banca_db_0 .prtag")).toBe("Peso máximo");
+          expect(zona(app,l.querySelector(".v"))).toEqual(z44);
+          expect(zona(app,l.querySelector(".del"))).toEqual(z44);
+          /* la de debajo, sin marca, sigue entera */
+          expect(zona(app,app.$("#sl_press_banca_db_1 .v"))).toEqual(z44);
+          expect(zona(app,app.$("#sl_press_banca_db_1 .del"))).toEqual(z44);}}
       finally{app.frame.style.width="400px";}
       app.reiniciarMemoria();});
     test("cada X dice qué serie borra",app=>{abrir(app);
