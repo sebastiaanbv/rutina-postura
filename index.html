@@ -966,6 +966,8 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     display:flex;align-items:center;justify-content:center}
   .planbody{padding:var(--s3) var(--s3) calc(var(--s4) + env(safe-area-inset-bottom));
     display:flex;flex-direction:column;gap:7px}
+  /* la hoja de conflicto nombra dos rutinas en un boton: puede ir a dos lineas */
+  #planBody .btn{height:auto;min-height:54px;padding:var(--s2) var(--s4);line-height:1.25}
   .planopt{display:flex;align-items:center;gap:11px;padding:12px;cursor:pointer;
     font-weight:var(--w-med);font-size:var(--t-base);color:var(--tx);background:var(--card2)}
   .planopt .em{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;
@@ -1711,7 +1713,9 @@ function prLevel(id,w,reps){const rng=repRange(id),recs=loadLogs()[id]||[];
   const e1=(reps>=rng[0])?e1rm(w||0,reps):0;
   if(e1>0&&e1>mejorE1*1.005)return 2;                    /* nuevo maximo de e1RM */
   return 1;}                                             /* mejor para esas reps */
-function markPR(id,w,reps){const sv=loadSess();if(!sv)return;
+/* solo en la sesion de esta rutina: con la de otra abierta (HU-63, no cupo
+   al cambiar) el record no se apunta en la ajena */
+function markPR(id,w,reps){const sv=sessActive(curRoutine)?loadSess():null;if(!sv)return;
   const lvl=prLevel(id,w,reps);
   sv.pr=sv.pr||[];sv.pr.push({id:id,w:w,reps:reps,lvl:lvl});saveSess(sv);
   const e=EX[id]||{},u=e.unit||"kg",marca=(w>0)?fmtW(w)+" "+u+" \u00d7 "+reps:reps+" reps";
@@ -2148,15 +2152,18 @@ function loadChecks(){return jget("rp_checks",{});}
 function checksOn(t,rk){const d=loadChecks()[t]||{};return d[rk]||{};}
 function checksFor(rk){return checksOn(today(),rk);}
 function isChecked(rk,id){return !!checksFor(rk)[id];}
-function markCheck(rk,id,val){const all=loadChecks(),t=today();all[t]=all[t]||{};all[t][rk]=all[t][rk]||{};
+function markCheck(rk,id,val){if(val!==false)ensureSess(rk,"check");
+  const all=loadChecks(),t=today();all[t]=all[t]||{};all[t][rk]=all[t][rk]||{};
   if(val===false)delete all[t][rk][id];else all[t][rk][id]=true;if(!jset("rp_checks",all))avisoLleno();
   if(curRoutine===rk)updateRoutineProgress();}
+/* HU-63: marcar en otra rutina con una a medias pregunta antes */
 function toggleCheck(id,i){const cur=isChecked(curRoutine,id);
-  if(!cur)startSess(curRoutine,"check");
-  markCheck(curRoutine,id,!cur);
-  const el=$("ex_"+i);if(el){el.classList.toggle("checked",!cur);const ck=el.querySelector(".exck");
-    if(ck)ck.setAttribute("aria-checked",!cur?"true":"false");}
-  if(!cur&&el){el.classList.add("justdone");setTimeout(()=>el.classList.remove("justdone"),650);}
+  if(!cur){const o=sessConflict(curRoutine);if(o){openConflict(o,{id:id,i:i});return;}}
+  marcarFila(id,i,!cur);}
+function marcarFila(id,i,val){markCheck(curRoutine,id,val);
+  const el=$("ex_"+i);if(el){el.classList.toggle("checked",val);const ck=el.querySelector(".exck");
+    if(ck)ck.setAttribute("aria-checked",val?"true":"false");}
+  if(val&&el){el.classList.add("justdone");setTimeout(()=>el.classList.remove("justdone"),650);}
   updateNextEx();updateRoutineCTA();}
 function routineProgressText(k){const l=effList(k),c=checksFor(k);let n=0;l.forEach(id=>{if(c[id])n++;});
   return `${n} de ${l.length} ${plural(n,"hecho","hechos")} hoy`;}
@@ -2503,21 +2510,53 @@ function loadSess(){try{const s=jget("rp_session",null);
 function saveSess(s){if(!s)return null;s.lastAt=Date.now();if(!jset("rp_session",s))avisoLleno();return s;}
 function clearSess(){try{localStorage.removeItem("rp_session");}catch(e){}}
 function sessActive(k){const s=loadSess();return !!(s&&s.key===k&&s.date===today());}
+/* hay series de k en memoria; con el telefono lleno pueden no estar en disco */
+function enMemoria(k){return !!k&&sessionLogKey===k&&Object.keys(sessionLog).some(id=>sessionLog[id]&&sessionLog[id].length);}
+/* las que estan en memoria pero no en rp_session: no cupieron */
+function soloEnMemoria(k){if(!enMemoria(k))return false;
+  const s=loadSess(),d=(s&&s.key===k&&s.date===today()&&s.log)||{};
+  return Object.keys(sessionLog).some(id=>JSON.stringify(sessionLog[id])!==JSON.stringify(d[id]||[]));}
+function avisoAbierta(k){toast("No cupo en el teléfono: la sesión de "+esc(ROUTINES[k].name)+" sigue abierta sin guardar. Libera espacio y finalízala.",7000);}
+/* cierra la sesion guardada, con su fecha, para dejar sitio a otra. Si no
+   cupo se queda donde esta: borrarla perderia sus series. */
+function closeSess(){const s=loadSess();if(!s)return true;
+  let r=null;try{if(sessStats(s.key,s.date).exDone)r=finishSession(s.key,s.date===today()?"switch":"auto");}catch(e){}
+  if(r&&r.lleno){avisoAbierta(s.key);return false;}
+  clearSess();return true;}
+/* abre la sesion de key cerrando la anterior. Solo la llama ensureSess
+   (HU-63): antes tambien startRoutine y toggleCheck, y mirar otra rutina
+   cerraba sola la que estaba a medias. Sin sesion nueva, lo de ahora vive
+   en memoria. */
 function startSess(key,src){let s=loadSess();
   if(s&&s.key===key&&s.date===today())return s;
-  /* la anterior se cierra sola; si no cupo, se queda donde esta: borrarla
-     perderia sus series. Sin sesion nueva, lo de ahora vive en memoria. */
-  if(s){let r=null;try{if(sessStats(s.key,s.date).exDone)r=finishSession(s.key,"auto");}catch(e){}
-    if(r&&r.lleno){toast("No cupo en el teléfono: la sesión de "+esc(ROUTINES[s.key].name)+" sigue abierta sin guardar. Libera espacio y finalízala.",7000);return null;}
-    clearSess();}
+  if(!closeSess())return null;
   s={v:1,key:key,date:today(),startedAt:Date.now(),lastAt:Date.now(),stepi:0,src:src||"check",log:{}};
   jset("rp_session",s);return s;}
+/* perezosa (HU-63): la sesion nace con lo primero que se registra (serie,
+   visto o temporizador), no al mirar. La de otra rutina a medias hoy no se
+   cierra aqui: eso lo decide quien entrena en la hoja de conflicto. Solo si
+   ya eligio guardarla y no cupo (las series de key estan en memoria) se
+   reintenta. La de otro dia se guarda con su fecha, como siempre. */
+function ensureSess(key,src){const s=loadSess();
+  if(s&&s.key===key&&s.date===today())return s;
+  if(s&&s.date===today()&&!enMemoria(key)){let ab=0;try{ab=sessStats(s.key).exDone;}catch(e){}
+    if(ab)return null;}
+  return startSess(key,src);}
+/* sin series en memoria no crea nada, solo pone al dia la que ya hubiera:
+   abrir el guiado y salir no deja rastro */
 function touchSess(st){if(!curRoutine||!ROUTINES[curRoutine])return null;
-  let s=loadSess();
-  if(!s||s.key!==curRoutine||s.date!==today())s=startSess(curRoutine,st==null?"check":"guided");
+  const s=enMemoria(curRoutine)?ensureSess(curRoutine,st==null?"check":"guided")
+         :(sessActive(curRoutine)?loadSess():null);
   if(!s)return null;
   if(sessionLogKey===curRoutine)s.log=sessionLog;
   if(st!=null)s.stepi=st;return saveSess(s);}
+/* HU-63: la rutina a medias hoy que registrar en k cerraria, o null. Solo
+   lee. Cuenta la de rp_session y la que solo vive en memoria porque no cupo.
+   Con las series de k ya en memoria es que se eligio cambiar y la anterior
+   no cupo: no se vuelve a preguntar. */
+function sessConflict(k){if(sessionLogKey&&sessionLogKey!==k&&enMemoria(sessionLogKey))return sessionLogKey;
+  const s=loadSess();if(!s||s.key===k||s.date!==today()||enMemoria(k))return null;
+  try{return sessStats(s.key).exDone?s.key:null;}catch(e){return null;}}
 /* vista combinada memoria + disco: la memoria manda en el ejercicio que toca */
 function sessLog(k){const s=loadSess(),out={};
   const base=(s&&s.key===k)?(s.log||{}):{};
@@ -2889,13 +2928,54 @@ function buildSteps(k){const out=[],list=effList(k),total=list.length;
   });return out;}
 
 /* ---------- GUIDED ---------- */
-function startRoutine(from){prime();pushHist({v:"guided",k:curRoutine});
-  const s=startSess(curRoutine,"guided");
+/* HU-63: con otra rutina a medias, tocar una fila, su play o Empezar pregunta
+   antes en la hoja de conflicto */
+function startRoutine(from){const o=sessConflict(curRoutine);
+  if(o){openConflict(o,{from:from||null});return;}
+  pushHist({v:"guided",k:curRoutine});enterGuided(from);}
+/* entrar no crea sesion: nace con lo primero que se registra. Solo une la de
+   hoy de esta rutina con la memoria. Una de otro dia no se puede continuar:
+   se guarda con su fecha al entrar, como antes de HU-63 */
+function enterGuided(from){prime();const s0=loadSess();if(s0&&s0.date!==today())closeSess();
+  const s=sessActive(curRoutine)?loadSess():null;
   joinSessionLog(curRoutine,s);
   curW=null;curReps=null;steps=buildSteps(curRoutine);stepi=0;
   if(from){const i=steps.findIndex(x=>x.id===from);if(i>=0)stepi=i;}
   else if(s&&s.stepi>0&&s.stepi<steps.length)stepi=s.stepi;
   show("guided");renderStep();}
+
+/* ---- HU-63: hoja de conflicto ----
+   Tocar una fila, su play o su visto en otra rutina cerraba sola la que
+   estaba a medias (finishSession "auto") y la guardaba como terminada sin
+   preguntar. Ninguna de las dos opciones borra nada; la accion que abrio la
+   hoja se reintenta al elegir guardar. */
+let conflicto=null;
+function openConflict(o,act){const k=curRoutine,st=sessStats(o),a=esc(ROUTINES[o].name),b=esc(ROUTINES[k].name);
+  conflicto={o:o,k:k,act:act};pushHist({ov:"plan"});
+  $("planTitle").textContent="Tienes "+ROUTINES[o].name+" a medias";
+  $("planBody").innerHTML=`<div class="finhead">${ic(routIcon(o),"sm")} ${a} · ${st.exDone} de ${st.exTotal} ${plural(st.exDone,"hecho","hechos")}`
+    +(st.sets?` · ${st.sets} ${plural(st.sets,"serie","series")}`:"")+`</div>
+    <div class="finempty">Para empezar ${b}, ${a} se guarda como terminada con lo que llevas. Si solo querías mirar, vuelve: no se pierde nada.</div>
+    <button class="btn" onclick="conflictBack()">${ic("left","sm")} Volver a ${a}</button>
+    <button class="btn sec" onclick="conflictSave()">${ic("flag","sm")} Guardar ${a} y empezar ${b}</button>`;
+  $("planov").classList.add("show");}
+/* vuelve a la que estaba a medias tal como estaba */
+function conflictBack(){const c=conflicto;conflicto=null;if(!c)return;
+  $("planov").classList.remove("show");
+  try{history.replaceState({v:"routine",k:c.o},"");}catch(e){}
+  openRoutine(c.o,true);}
+/* el unico sitio que cierra una sesion a medias de hoy para empezar otra.
+   Si no cupo, avisa y las dos quedan como estaban; se sigue a la nueva solo
+   en memoria (como antes), salvo que la anterior tenga series que solo viven
+   en memoria: cambiar de rutina las perderia, y la hoja se queda. */
+function conflictSave(){const c=conflicto;if(!c)return;
+  const res=finishSession(c.o,"switch");
+  if(res&&res.lleno){avisoAbierta(c.o);if(soloEnMemoria(c.o))return;}
+  conflicto=null;curRoutine=c.k;
+  if(c.act.id!=null){marcarFila(c.act.id,c.act.i,true);closePlan();return;}
+  $("planov").classList.remove("show");
+  try{history.replaceState({v:"guided",k:c.k},"");}catch(e){}
+  enterGuided(c.act.from);}
 /* salir ya no destruye nada: la sesion vive en localStorage y se cierra
    desde el boton "Finalizar rutina" de la pantalla de la rutina */
 function guidedExit(){clearTimer();clearRestNotif();releaseWake();touchSess(stepi);history.back();}
@@ -3047,7 +3127,8 @@ function toggleGVid(){const b=$("gvid");if(!b)return;gVidOn=!gVidOn;if(gVidOn){$
    cambie a mitad de cuenta cuando baja de 120. */
 function fmtDur(sec,total){return (total!=null?total:sec)>=120
   ? Math.floor(sec/60)+":"+String(sec%60).padStart(2,"0") : String(sec);}
-function startTimer(){const s=steps[stepi],C=2*Math.PI*90,btn=$("startT");if(btn)btn.style.display="none";
+function startTimer(){ensureSess(curRoutine,"guided");
+  const s=steps[stepi],C=2*Math.PI*90,btn=$("startT");if(btn)btn.style.display="none";
   tEnds=Date.now()+s.seconds*1000;const arc=$("arc");
   const upd=()=>{const r=Math.max(0,Math.ceil((tEnds-Date.now())/1000)),tv=$("tv");
     if(tv)tv.textContent=fmtDur(r,s.seconds);
@@ -3482,7 +3563,7 @@ function renderState(s){clearTimer();s=s||{v:"home"};
 function resumeGuided(k){curRoutine=k;const sess=loadSess();
   joinSessionLog(k,sess);
   steps=buildSteps(k);if(!steps.length){openRoutine(k,true);return;}
-  stepi=(sess&&sess.stepi>0&&sess.stepi<steps.length)?sess.stepi:0;
+  stepi=(sess&&sess.key===k&&sess.stepi>0&&sess.stepi<steps.length)?sess.stepi:0;
   curW=null;curReps=null;show("guided");renderStep();}
 window.addEventListener("popstate",function(e){
   var fv=$("finov");if(fv&&fv.classList.contains("show")){fv.classList.remove("show");finRescue=null;return;}

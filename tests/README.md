@@ -30,9 +30,9 @@ Otras opciones:
 | `run.py` | servidor, navegador y resumen |
 | `prelude.js` | se inyecta en la app: errores, diálogos, descargas, service worker |
 | `lib.js` | mini marco: `escenario`, `test`, `test.skip`, `expect`, el objeto `app` (con `app.enZona`) y el ejecutor |
-| `fixtures.js` | datos con la forma exacta de las claves `rp_*`: `vacio`, `dueno`, `madre`, `sinCerrar`, y `cambioHora` (fechas fijas que cruzan cambios de hora) |
+| `fixtures.js` | datos con la forma exacta de las claves `rp_*`: `vacio`, `dueno`, `madre`, `sinCerrar`, `cambioHora` (fechas fijas que cruzan cambios de hora) y `aMedias` (Empuje a medias hoy, 3 de 14) |
 | `pruebas_logica.js` | suggestLoad y todayTarget (también con los juegos de datos de v35), salto de cada máquina (`rp_inc`), isPR, dose/SECDOSE, effList, buildSteps, estMinutes, strengthIdx, fechas |
-| `pruebas_datos.js` | copia de seguridad de ida y vuelta, importaciones que no deben tocar nada, sesión sin cerrar, datos dañados o con otra forma, esquema `rp_schema` y migraciones, teléfono lleno (`lleno(app,{margen:0})` simula `QuotaExceededError`), `rp_streak`, racha semanal con datos de v35 y racha que cruza cambios de hora en cinco zonas |
+| `pruebas_datos.js` | copia de seguridad de ida y vuelta, importaciones que no deben tocar nada, sesión sin cerrar, datos dañados o con otra forma, esquema `rp_schema` y migraciones, teléfono lleno (`lleno(app,{margen:0})` simula `QuotaExceededError`), `rp_streak`, racha semanal con datos de v35, racha que cruza cambios de hora en cinco zonas, otra rutina con una a medias (hoja de conflicto) y mirar el guiado sin registrar |
 | `pruebas_pantallas.js` | recorrido de humo por Inicio, rutina, guiado, Calendario, Progreso y Ajustes con cada juego de datos, el guiado con un descanso de 0 s ajustado y el chip «Salto» del guiado, y una sola racha (semanas cumplidas) en Inicio, pantalla de fin, Progreso y Ajustes, también con zona horaria emulada |
 
 ## Añadir una prueba
