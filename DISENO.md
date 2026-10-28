@@ -253,6 +253,12 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
 | Récord | La serie se tiñe de ámbar y lleva debajo el trofeo y qué se superó; aviso flotante solo si es nuevo máximo de 1RM estimado; listado con su tipo en la pantalla de fin |
 | Vacío | Explica qué hacer para llenarlo, nunca "sin datos" a secas |
 
+**Tocar un aviso devuelve a la app donde estaba.** Si ya hay una ventana abierta se enfoca tal
+cual —la serie y el descanso siguen donde iban—; si no, se abre. El aviso de fin de descanso
+abre el guiado en el paso guardado cuando hay una sesión viva de hoy, con la pila Inicio › rutina
+› guiado, así que salir lleva a la rutina como al entrar a mano; sin esa sesión, Inicio. Cualquier
+otro aviso —el recordatorio— abre Inicio.
+
 ---
 
 ## 10. Accesibilidad
@@ -706,6 +712,39 @@ quedaba en blanco hasta que el navegador se rendía (en Chromium, más de 20 s s
   virtual de la CI: el cuerpo atascado se comprueba solo con microtareas, porque mientras sigue
   abierto Chrome congela los temporizadores y la corrida no terminaba, y en la app la caché y los
   registros son dobles, porque los de verdad tardan tiempo real y perdían contra el tope de 20 s.
+
+Tocar un aviso devuelve a la app. `sw.js` no escuchaba `notificationclick`: tocar «Descanso
+terminado» con el teléfono bloqueado cerraba el aviso y nada más, y había que buscar la app para
+volver a la serie.
+
+- **Enfocar o abrir.** Tocar cualquier aviso lo cierra y enfoca la ventana de la app si ya hay
+  una, tal como estaba; si no, abre una: el de fin de descanso (`rp-rest`) con `#retomar`, el
+  recordatorio en Inicio. Solo cuentan las ventanas dentro del scope de la app, porque en
+  github.io el origen lo comparten otros repos.
+- **`#retomar` vuelve al paso guardado.** Con una sesión viva de hoy, el arranque abre el guiado
+  en `rp_session.stepi` (`retomarDesdeAviso`), con la pila Inicio › rutina › guiado: con una
+  ventana nueva el historial está vacío y salir habría cerrado la app. Sin sesión viva, con una
+  de una rutina que ya no existe o con la de ayer —que sigue ofreciendo cerrarse— se queda en
+  Inicio. La marca se quita de la URL al leerla. No escribe nada: ni claves nuevas ni cambio de
+  forma, y la copia va y vuelve igual.
+- **Fragmento y no `?retomar=1`**, que era lo previsto: la caché casa las URL sin fragmento, así
+  que sin red sale la misma copia de la app que al abrirla a mano. Con `?`, el *network-first*
+  guardaría otra copia de `index.html` aparte y, sin red, podría servir una versión vieja, porque
+  `CACHE` no cambia entre versiones.
+- **Instalar ya no vuelve a bajar `figuras.js`.** Si está en cualquier caché —la de la versión
+  anterior, o la misma si `CACHE` no cambió— se copia a la nueva; si no, se descarga aparte y con
+  su propio `catch`, como antes, así que una instalación nueva sin red para las figuras sigue
+  instalando el service worker. Hasta ahora cada `sw.js` nuevo las volvía a pedir a la red, y
+  eran 2 MB si la caché HTTP del teléfono ya no las tenía. La contrapartida: **subir `CACHE` ya no
+  renueva las figuras**; si algún día se tocan, hay que cambiarle el nombre al archivo
+  (`figuras-2.js`, en `index.html` y en `sw.js`). `CACHE` sigue en v33.
+- **Pruebas** en `tests/pruebas_avisos.js`: `sw.js` tal cual con dobles de `self`, `caches`,
+  `clients` y `fetch` —install con las figuras ya guardadas, sin guardar, sin red y con 404;
+  `notificationclick` con y sin ventana, de descanso y de recordatorio, y con una ventana de otra
+  app del mismo origen—; la caché real del navegador para el fragmento; y el arranque con
+  `#retomar` con sesión de hoy, sin sesión, con una rutina que ya no existe, con la de ayer y con
+  datos de v35. Queda abierta la prueba a mano en un Android con la app instalada: el arnés no
+  registra el service worker.
 
 ### Cerrado en v35
 
@@ -1236,7 +1275,9 @@ Dos decisiones que hacen que ese peso no muerda:
 
 - **`figuras.js` va aparte y cache-first.** Dentro de `index.html` —que va network-first— se
   re-descargaría en cada arranque. Fuera, se pide una vez. El precio es que si algún día se tocan
-  las figuras hay que subir `CACHE`, o los teléfonos ya instalados se quedan con las viejas.
+  las figuras hay que cambiarle el nombre al archivo, o los teléfonos ya instalados se quedan con
+  las viejas: desde v36 instalar copia `figuras.js` de la caché anterior, así que subir `CACHE` ya
+  no basta.
 - **Fuera de `ASSETS`, con su propio `catch`.** `addAll` es atómico: si esos 2 MB fallan dentro de
   la lista, el service worker no se instala y la app pierde el modo sin conexión **entero**. Aparte,
   el peor caso es quedarse sin figuras hasta la siguiente visita.

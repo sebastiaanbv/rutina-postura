@@ -35,6 +35,7 @@ Otras opciones:
 | `pruebas_datos.js` | copia de seguridad de ida y vuelta, importaciones que no deben tocar nada, sesión sin cerrar, datos dañados o con otra forma, esquema `rp_schema` y migraciones, récords con y sin `i`/`kind`, teléfono lleno (`lleno(app,{margen:0})` simula `QuotaExceededError`), `rp_streak`, racha semanal con datos de v35, racha que cruza cambios de hora en cinco zonas, otra rutina con una a medias (hoja de conflicto), mirar el guiado sin registrar, y borrar una serie del guiado y deshacerlo |
 | `pruebas_pantallas.js` | recorrido de humo por Inicio, rutina, guiado, Calendario, Progreso y Ajustes con cada juego de datos, el guiado con un descanso de 0 s ajustado y el chip «Salto» del guiado, y una sola racha (semanas cumplidas) en Inicio, pantalla de fin, Progreso y Ajustes, también con zona horaria emulada; aviso de pendientes con las sesiones de v35; zonas de toque de la fila de serie (medidas con `elementFromPoint`) y el aviso de serie borrada |
 | `pruebas_sw.js` | el service worker: `sw.js` tal cual en una caja con red, caché y reloj de mentira (red buena, lenta, caída, sin copia) y «Buscar actualización» en la app |
+| `pruebas_avisos.js` | volver a la app al tocar un aviso: `sw.js` tal cual con dobles de `self`, `caches`, `clients` y `fetch` (install y `notificationclick`), y el arranque con `#retomar` |
 
 ## Añadir una prueba
 
@@ -48,6 +49,7 @@ test("isPR: una serie igual a la mejor no es récord", app => {
 ```
 
 - `app.sembrar(datos)` reemplaza localStorage sin recargar. La app lee el almacenamiento en cada llamada, así que basta para probar lógica. Si una prueba toca la memoria de la app (`curRoutine`, la sesión en curso), al final llama a `app.reiniciarMemoria()`.
+- `await app.arrancar(datos, "#retomar")` vuelve a cargar la app de cero con esos datos; el segundo argumento, opcional, se añade a la URL.
 - `async` está permitido: `await app.hasta(() => condición, ms)` y `await app.espera(ms)`.
 - El navegador corre en la zona horaria del equipo (UTC en CI, sin cambios de hora). Para lo que dependa de fechas, `await app.enZona("Europe/Madrid", () => {...}, "2026-11-04T12:30:00Z")` corre la función con la app en esa zona IANA y, si se da el tercer argumento, con el reloj parado en ese instante. Las cuentas locales de `Date` (`getDate`, `setHours`, `new Date(a, m, d)`, `"AAAA-MM-DDTHH:MM"`) se hacen en esa zona con `Intl`; el instante (`getTime`, `toISOString`) es el de siempre. Al terminar vuelve el `Date` normal.
 - `run.py` corre con tiempo virtual (`--virtual-time-budget`): en cuanto la página no tiene nada
