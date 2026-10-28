@@ -21,6 +21,10 @@
   const ESCALA={"--t-mega":50,"--t-display":30,"--t-xl":26,"--t-title":22,"--t-lg":20,"--t-md":16,
     "--t-lead":15,"--t-base":14,"--t-sm":12.5,"--t-xs":11,"--t-2xs":10};
 
+  /* La cifra mas larga de cada orden del peso (data-cifra de la fila de
+     steppers): la que la fila tiene que dejar caber, tambien en el campo */
+  const LARGA={3:"7.5",4:"57.5",5:"142.5"};
+
   /* Recortes con "…" que el diseño decide: el riel de la semana (el nombre
      entero esta a un toque, en la hoja del plan) y el titulo de una hoja.
      Cualquier otro texto tiene que verse entero. */
@@ -96,7 +100,9 @@
     raiz.querySelectorAll("input,select").forEach(i=>{
       if(!i.getClientRects().length||plegado(i)||/checkbox|file|time/.test(i.type))return;
       const c=w.getComputedStyle(i),t=i.tagName==="SELECT"?(i.selectedOptions[0]||{}).text:(i.value||i.placeholder);if(!t)return;
-      cv.font=c.fontWeight+" "+c.fontSize+" "+c.fontFamily;
+      /* con el espaciado del campo: la cifra del stepper va algo junta,
+         dentro del campo igual que fuera */
+      cv.font=c.fontWeight+" "+c.fontSize+" "+c.fontFamily;cv.letterSpacing=c.letterSpacing;
       const util=i.clientWidth-parseFloat(c.paddingLeft)-parseFloat(c.paddingRight)-(i.tagName==="SELECT"?20:0);
       if(cv.measureText(t).width>util+1)out.push("no cabe: «"+t+"» en "+nombre(i));});
     return [...new Set(out)];}
@@ -110,7 +116,10 @@
       tab(app,"home");await mira("Inicio");await mira("Barra inferior","#nav");
       app.w.openRoutine(o.rutina);await mira("Rutina");
       app.w.startRoutine(o.cargado);expect(app.ev("steps[stepi].id")).toBe(o.cargado);await mira("Guiado");
-      app.w.editNum("w");app.$("#numin").value="142.5";await mira("Guiado, escribiendo el peso");app.w.renderStep();
+      /* el campo ocupa el sitio de la cifra: la mas larga de su orden cabe
+         entera; una mas larga se desplaza dentro (lo mira el stepper) */
+      app.w.editNum("w");app.$("#numin").value=LARGA[app.$("#guided .logrow").dataset.cifra];
+      await mira("Guiado, escribiendo el peso");app.w.renderStep();
       app.$("#guided .gbtn.go").click();
       await app.hasta(()=>app.$("#guided .ring.rest"),3000,"el descanso");await mira("Descanso");
       app.w.toast(app.w.ic("trophy","sm")+" Récord en Prensa inclinada: <b>142.5 kg × 12</b>");await mira("Aviso flotante","#toast");
@@ -307,23 +316,138 @@
     /* escribe el peso como la persona: toca la cifra, teclea y Enter */
     function escribePeso(app,v){app.w.editNum("w");const i=app.$("#numin");i.value=v;
       i.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter"}));}
+    /* la fila de steppers y lo que va debajo: cajas de la fila, de sus filas
+       de botones, de cada boton y de "Registrar serie" */
+    function forma(app){const caja=e=>{const b=e.getBoundingClientRect();return [b.left,b.top,b.width,b.height];},f=app.$("#guided .logrow");
+      return [caja(f),...[...f.querySelectorAll(".stepper .row,.sq")].map(caja),caja(app.$("#guided .gbtn.go"))];}
+    const misma=(a,b)=>a.length===b.length&&a.every((x,i)=>x.every((v,j)=>Math.abs(v-b[i][j])<.5));
     test("el stepper del peso: botones de 42 px y la cifra encima o con 4 px de aire, de 320 a 430 px y hasta el 130 %",async app=>{
       /* una cifra de cada largo: bajo 10 kg ("7.5"), de 10 a 100 ("57.5") y
-         desde 100 ("142.5"); y tambien mientras se escribe */
+         desde 100 ("142.5"); y tambien mientras se escribe el peso o las
+         reps: el campo ocupa el sitio de la cifra (entre - y + o encima, como
+         ella), la fila no cambia de forma ni se mueve nada de debajo, y la
+         cifra de ese largo cabe en el campo sin desplazarse */
       app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");
       const fallos=[];let vistas=0;
       try{for(const ancho of [320,360,375,390,412,430])for(const pct of [100,115,130]){
           await telefono(app,ancho,pct);
-          for(const v of ["7.5","57.5","142.5"]){escribePeso(app,v);expect(app.texto("#lw")).toBe(v);
-            fallos.push(...steppers(app,ancho+" px al "+pct+" %").out);vistas++;}
-          app.w.editNum("w");const e=steppers(app,ancho+" px al "+pct+" %, escribiendo");
-          fallos.push(...e.out);if(!e.encima)fallos.push(ancho+" px al "+pct+" %: el campo no va encima de los botones");
-          const i=app.$("#numin"),r=i.parentElement;
-          if(i.getBoundingClientRect().width<r.clientWidth-1)fallos.push(ancho+" px al "+pct+" %: el campo no usa el ancho del stepper");
-          i.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter"}));}}
+          for(const v of ["7.5","57.5","142.5"]){const que=ancho+" px al "+pct+" % con «"+v+"»";
+            escribePeso(app,v);expect(app.texto("#lw")).toBe(v);
+            const c=steppers(app,que);fallos.push(...c.out);vistas++;
+            for(const k of ["w","r"]){const antes=forma(app),cual=que+", escribiendo "+(k==="w"?"el peso":"las reps");
+              app.w.editNum(k);const i=app.$("#numin");if(k==="w")i.value=v;
+              const e=steppers(app,cual);fallos.push(...e.out);
+              if(!misma(forma(app),antes))fallos.push(cual+": la fila cambia de forma al abrir el campo");
+              if(e.encima!==c.encima)fallos.push(cual+": el campo "+(e.encima?"sube encima de":"baja entre")+" los botones y la cifra no");
+              const r=i.parentElement,sq=r.querySelectorAll(".sq"),ci=i.getBoundingClientRect();
+              const ocupa=e.encima?Math.abs(ci.width-r.clientWidth)<1
+                :Math.abs(ci.left-sq[0].getBoundingClientRect().right-4)<.5&&Math.abs(sq[1].getBoundingClientRect().left-ci.right-4)<.5;
+              if(!ocupa)fallos.push(cual+": el campo no ocupa el sitio de la cifra");
+              if(i.scrollWidth>i.clientWidth)fallos.push(cual+": «"+i.value+"» no cabe en el campo");
+              i.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter"}));
+              if(!misma(forma(app),antes))fallos.push(cual+": la fila cambia de forma al cerrar el campo");}}}}
       finally{deVuelta(app);app.sembrar(F.dueno);app.reiniciarMemoria();tab(app,"home");}
       expect(vistas).toBe(54);
       expect(fallos).toEqual([]);});
+    test("una cifra mas larga que su orden se desplaza dentro del campo, sin salirse del stepper",async app=>{
+      /* lo que se teclea no tiene largo previsto: un "142.5" en una fila de
+         pesos bajo 10 kg no cabe entre − y +, y no por eso cambia la fila */
+      app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");
+      const fallos=[];
+      try{for(const [ancho,pct] of [[375,100],[390,115],[412,130]]){
+          await telefono(app,ancho,pct);escribePeso(app,"7.5");const que=ancho+" px al "+pct+" %",antes=forma(app);
+          expect(steppers(app,que).encima).toBe(false);
+          app.w.editNum("w");const i=app.$("#numin");i.value="142.5";
+          fallos.push(...steppers(app,que+", escribiendo «142.5»").out);
+          if(!misma(forma(app),antes))fallos.push(que+": la fila cambia de forma al escribir «142.5»");
+          expect(i.scrollWidth).toBeGreaterThan(i.clientWidth);
+          i.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter"}));
+          expect(app.texto("#lw")).toBe("142.5");expect(steppers(app,que).encima).toBe(true);}}
+      finally{deVuelta(app);app.sembrar(F.dueno);app.reiniciarMemoria();tab(app,"home");}
+      expect(fallos).toEqual([]);});
+    /* Un toque de verdad en el centro de el, con los eventos en el orden en
+       que los manda el navegador:
+       - con el dedo: pointerdown y pointerup al tocar y soltar; despues,
+         seguidos, mousedown (el campo abierto pierde el foco y se cierra),
+         mouseup y click;
+       - con el raton: pointerdown y mousedown al apretar (el campo se cierra)
+         y, un rato despues, pointerup, mouseup y click al soltar.
+       mousedown y mouseup van a lo que haya bajo ese punto en su momento, y
+       el click al ancestro comun de los dos: si la pantalla se movio entre
+       medias, el click cae en otro sitio y el toque se pierde. Cerrar el campo
+       con Enter o con renderStep, como el resto de pruebas, no lo veria. */
+    async function toca(app,el,modo){
+      const w=app.w,doc=app.doc;el.scrollIntoView({block:"center"});
+      const b=el.getBoundingClientRect(),x=b.left+b.width/2,y=b.top+b.height/2;
+      const manda=(t,tipo)=>{const o={bubbles:true,cancelable:true,composed:true,view:w,clientX:x,clientY:y,button:0};
+        t.dispatchEvent(/^pointer/.test(tipo)?new w.PointerEvent(tipo,Object.assign(o,{pointerId:1,isPrimary:true,pointerType:modo==="dedo"?"touch":"mouse"}))
+          :new w.MouseEvent(tipo,o));};
+      /* lo que hace el navegador en el mousedown: el campo pierde el foco */
+      const desenfoca=()=>{const i=doc.getElementById("numin");if(!i)return;i.blur();
+        if(i.isConnected)i.dispatchEvent(new w.FocusEvent("blur"));};
+      const abajo=doc.elementFromPoint(x,y);
+      manda(abajo,"pointerdown");if(modo==="dedo")manda(abajo,"pointerup");
+      manda(abajo,"mousedown");desenfoca();
+      if(modo==="raton")await app.espera(25);
+      const arriba=doc.elementFromPoint(x,y);
+      if(modo==="raton")manda(arriba,"pointerup");
+      manda(arriba,"mouseup");
+      let c=abajo;while(c&&!c.contains(arriba))c=c.parentElement;
+      if(c)manda(c,"click");
+      /* y lo que el toque deja para despues (la forma de la fila) corre ya,
+         como en el navegador, y no en mitad del toque siguiente */
+      await app.espera(10);}
+    function tocarEscribiendo(modo){
+      test("escribir el peso o las reps y tocar «Registrar serie» o + "+(modo==="dedo"?"con el dedo":"con el raton")+": el toque llega y cuenta lo escrito, de 320 a 430 px y al 100 y al 130 %",async app=>{
+        /* [lo que habia, lo que se escribe]: del mismo orden, y subiendo o
+           bajando de orden, que es cuando la fila reserva otro sitio a la
+           cifra (DISENO 10) y podria cambiar de forma bajo el dedo */
+        const CASOS=[["55","57.5"],["140","142.5"],["7.5","5"],["97.5","100"],["100","97.5"],["7.5","10"]];
+        const empieza=()=>{app.sembrar(F.dueno);app.reiniciarMemoria();app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");};
+        const series=()=>app.ev("sessionLog").prensa_inclinada||[];
+        const mas=k=>app.$("#l"+k).parentElement.querySelectorAll(".sq")[1];
+        /* sin la pausa de "Serie registrada": el descanso entra al momento y
+           cada caso empieza de cero (la pausa la mira la prueba de abajo) */
+        const mm=app.w.matchMedia;app.w.matchMedia=q=>/reduced-motion/.test(q)?{matches:true}:mm.call(app.w,q);
+        const fallos=[];let toques=0;
+        try{for(const ancho of [320,360,375,390,412,430])for(const pct of [100,130]){
+            await telefono(app,ancho,pct);const que=ancho+" px al "+pct+" %";
+            for(const [antes,v] of CASOS){
+              empieza();escribePeso(app,antes);app.w.editNum("w");app.$("#numin").value=v;
+              await toca(app,app.$("#guided .gbtn.go"),modo);toques++;
+              const s=series(),u=s[s.length-1];
+              if(s.length!==1||u.w!==+v)fallos.push(que+": de "+antes+" a "+v+" y «Registrar serie»: "+(s.length?"registro "+u.w+" kg":"no se registro"));}
+            empieza();app.w.editNum("r");app.$("#numin").value="11";
+            await toca(app,app.$("#guided .gbtn.go"),modo);toques++;
+            const s=series();
+            if(s.length!==1||s[0].reps!==11)fallos.push(que+": 11 reps y «Registrar serie»: "+(s.length?"registro "+s[0].reps+" reps":"no se registro"));
+            empieza();escribePeso(app,"97.5");let b=mas("w");app.w.editNum("w");app.$("#numin").value="100";
+            await toca(app,b,modo);toques++;
+            if(app.ev("curW")!==102.5||app.texto("#lw")!=="102.5")fallos.push(que+": de 97.5 a 100 y +: queda en "+app.texto("#lw"));
+            empieza();b=mas("r");app.w.editNum("r");app.$("#numin").value="11";
+            await toca(app,b,modo);toques++;
+            if(app.ev("curReps")!==12)fallos.push(que+": 11 reps y +: quedan "+app.texto("#lr"));}}
+        finally{app.w.matchMedia=mm;deVuelta(app);app.sembrar(F.dueno);app.reiniciarMemoria();tab(app,"home");}
+        expect(toques).toBe(108);
+        expect(fallos).toEqual([]);});}
+    tocarEscribiendo("dedo");
+    tocarEscribiendo("raton");
+    test("al registrar con el campo abierto un peso de otro orden, «Serie registrada» no salta antes del descanso",async app=>{
+      /* la fila toma la forma del peso nuevo cuando acaba el toque, salvo si
+         ese toque registro la serie: el boton ya dice "Serie registrada" y en
+         300 ms entra el descanso, que se pinta de cero */
+      app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");
+      try{await telefono(app,390,100);
+        /* que acaben las animaciones de entrada (fade y stageIn, 220 ms) */
+        await app.espera(300);
+        escribePeso(app,"97.5");app.w.editNum("w");app.$("#numin").value="100";
+        const go=app.$("#guided .gbtn.go");go.scrollIntoView({block:"center"});const antes=go.getBoundingClientRect().top;
+        await toca(app,go,"dedo");expect(go.textContent).toContain("Serie registrada");
+        /* scale(.985) de .done lo mueve menos de medio px; la fila apilada, 46 */
+        await app.espera(60);expect(go.isConnected).toBe(true);expect(Math.abs(go.getBoundingClientRect().top-antes)).toBeLessThan(1);
+        await app.hasta(()=>app.$("#guided .ring.rest"),3000,"el descanso");
+        const s=app.ev("sessionLog").prensa_inclinada;expect(s[s.length-1].w).toBe(100);}
+      finally{await app.espera(350);deVuelta(app);app.sembrar(F.dueno);app.reiniciarMemoria();tab(app,"home");}});
     test("un peso de cinco caracteres (142.5 desde 140 con +) va encima de − y +, y el + no se mueve de un toque al siguiente",async app=>{
       /* el caso de la revision: con 2,5 de salto la cifra alterna "140",
          "142.5" y "145". Si la forma dependiera de la cifra de cada momento,

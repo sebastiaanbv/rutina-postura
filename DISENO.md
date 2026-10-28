@@ -309,9 +309,17 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
       «140» y «142.5»: si la forma dependiera de la cifra, el + subiría y bajaría bajo el dedo a
       cada toque. Los dos steppers de la fila cambian juntos. Con la letra de serie, la de 3 sube
       en pantallas de unos 344 px o menos, la de 4 por debajo de 375 y la de 5 por debajo de unos
-      406; con la letra grande, antes. Al **escribir** la cifra, el campo va siempre encima de los
-      botones, a lo ancho del stepper, porque lo que se teclea no tiene largo previsto. La cifra
-      va **sin unidad**, como ya la pintaba el paso al abrirse: «Peso» lo dice encima.
+      406; con la letra grande, antes. La cifra va **sin unidad**, como ya la pintaba el paso al
+      abrirse: «Peso» lo dice encima.
+    - **Al escribir la cifra nada se mueve bajo el dedo.** El campo (peso o reps) ocupa el sitio
+      de la cifra a la que sustituye —entre − y + o encima, como ella— con su letra y su alto, y
+      su borde va pintado por dentro para que la cifra más larga de su orden quepa entera; una
+      más larga se desplaza dentro del campo. El motivo: el campo se cierra al perder el foco, y
+      con un toque en «Registrar serie» o en + lo pierde al **empezar** el toque. Si la fila
+      cambiara de alto en ese momento, lo de debajo se movería antes de levantar el dedo, el
+      toque acabaría en otro sitio y la serie no se registraría, sin aviso. Por eso abrir y
+      cerrar el campo no cambian la fila, y si el peso escrito es de otro orden (de 97.5 a 100)
+      la fila toma su forma nueva cuando el toque ya ha llegado (`trasElToque()`).
   - **Filas que se reparten**: la marca de un récord y su fecha, el botón junto a un campo o en
     el aviso de copia, la tercera caja de la pantalla de fin o la tercera columna del ejercicio
     propio bajan de línea antes que recortar o pisar.
@@ -461,12 +469,24 @@ escala estaba en px y la raíz fijada a 14.
   - el aviso flotante tenía media pantalla (`left:50%`) y cada `<b>` era otra columna del flex:
     un récord salía en cuatro renglones partidos en dos;
   - los récords y los músculos largos salían con «…» («Extensión de tríceps en p…», «Hombro p…»).
+- **Escribir la cifra no mueve nada** (§10). En la primera versión de la historia el campo subía
+  siempre encima de − y +, a lo ancho del stepper, y la fila ganaba unos 47 px mientras se
+  escribía. Al tocar «Registrar serie» o + con el campo abierto, el campo perdía el foco al
+  empezar el toque, la fila volvía a su alto y lo de debajo subía antes de levantar el dedo: el
+  toque caía en otro sitio y la serie no se registraba, sin aviso, en cualquier ancho. Ahora el
+  campo ocupa el sitio de la cifra, y un peso escrito de otro orden cambia la forma de la fila
+  cuando el toque ya ha llegado; si ese toque registró la serie, la fila no cambia y «Serie
+  registrada» no salta antes del descanso.
 - **Pruebas** en `tests/pruebas_letra.js`: viewport y `text-scale`, la escala en rem a 100 y
   130 %, ningún `font-size` en px y todos de la escala, la compensación de iOS, campos de 16 px
   o más, `touch-action` en los controles y no en la página, que todo el texto de seis pantallas
   crezca un 30 %, curvas, riel y aviso; el stepper con una cifra de cada largo a 320-430 px y
-  hasta el 130 % (botones de 42, cifra encima o con 4 px de aire, también al escribirla), el
-  + quieto de 140 a 142.5 y 145, y la forma de siempre donde cabe; y el humo de las
+  hasta el 130 % (botones de 42, cifra encima o con 4 px de aire; al escribir el peso o las
+  reps, el campo en el sitio de la cifra, la más larga de su orden entera y la fila sin cambiar
+  de forma), el + quieto de 140 a 142.5 y 145, y la forma de siempre donde cabe; escribir y
+  tocar «Registrar serie» o + con el campo abierto con los eventos de un toque de verdad, de
+  dedo y de ratón y en el orden del navegador, a 320-430 px y al 100 y al 130 %, con pesos del
+  mismo orden y de otro: la serie se registra con lo escrito y + suma a lo escrito; y el humo de las
   pantallas principales a 320, 375 y 430 px con la letra de serie y al 130 %, con tres juegos de
   datos. El humo revisa cada texto contra las cajas que lo contienen, contra los demás textos y
   contra los botones, y cada tarjeta contra el ancho del teléfono. En `tests/pruebas_pantallas.js`,
