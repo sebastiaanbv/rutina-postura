@@ -675,6 +675,38 @@ confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se toca
   clásica ocupa 15 px y el iframe se ensancha lo que mida), también en una serie récord; el aviso
   con su rol, su voz y el contraste del rojo en los dos temas; y con teclado.
 
+La app abre aunque la señal sea mala. `index.html` iba *network-first* sin más: con la red caída
+salía la copia en el acto, pero con señal mala la petición ni responde ni falla, y la pantalla se
+quedaba en blanco hasta que el navegador se rendía (en Chromium, más de 20 s sin nada).
+
+- **Red primero con plazo** (`ESPERA_RED`, 3 s en `sw.js`). Si en ese tiempo la red no ha traído
+  el archivo **entero**, sale la copia guardada y la descarga sigue detrás: si termina, se guarda
+  y la versión nueva sale en la siguiente apertura. Cuenta el archivo entero y no las cabeceras
+  porque con señal mala también se atasca el cuerpo, y la app es un solo archivo que no pinta nada
+  hasta tenerlo completo. Con buena red no cambia nada: llega la versión nueva y se guarda. Con la
+  red caída del todo la copia sigue saliendo en el acto, sin esperar el plazo.
+- **Sin copia se espera a la red**, como antes: en la primera visita y justo después de «Buscar
+  actualización», que vacía la caché. Por eso ese botón sigue trayendo la última versión aunque la
+  red tarde.
+- **Una dirección sin copia propia cae a la de `./`**, y solo si no está, a la de `index.html`.
+  `./` se renueva en cada apertura con buena red; `index.html` solo al instalar (o al entrar por
+  ahí con buena red), y como `sw.js` no cambia en cada versión puede quedarse varias por detrás.
+  Entrar por `index.html?…` sin red ya abría esa copia vieja; con el plazo también lo habría hecho
+  con señal lenta. Abrir desde el icono (`start_url` es `.`) no pasaba por aquí.
+- **El manifest ya no cae a `index.html`** cuando no tiene copia: servir HTML como manifest no
+  arreglaba nada, y con el plazo habría pasado con una simple red lenta tras «Buscar actualización».
+- **`ASSETS` y `CACHE` no cambian.** El navegador compara `sw.js` byte a byte, así que el cambio
+  basta para que se instale el nuevo; `CACHE` solo se sube para tirar lo guardado. Ojo: instalar
+  vuelve a pedir `figuras.js` aunque `CACHE` no cambie (`c.add` no mira si ya está), así que cada
+  versión de `sw.js` puede costar a cada teléfono otra descarga de las figuras.
+- **Pruebas** en `tests/pruebas_sw.js`: `sw.js` se evalúa tal cual con red, caché y reloj de
+  mentira —red buena, buena pero sin prisa, lenta, cuerpo atascado, caída, error del servidor, sin
+  copia, dirección sin copia propia, manifest y figuras—, y «Buscar actualización» se prueba en la
+  app: vacía la caché, pide buscar un `sw.js` nuevo y recarga. Las dos tienen en cuenta el tiempo
+  virtual de la CI: el cuerpo atascado se comprueba solo con microtareas, porque mientras sigue
+  abierto Chrome congela los temporizadores y la corrida no terminaba, y en la app la caché y los
+  registros son dobles, porque los de verdad tardan tiempo real y perdían contra el tope de 20 s.
+
 ### Cerrado en v35
 
 - **Corregir series pasadas desde Historial.** Botón «Corregir» en cada ejercicio del día:

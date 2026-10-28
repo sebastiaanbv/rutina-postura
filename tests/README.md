@@ -34,6 +34,7 @@ Otras opciones:
 | `pruebas_logica.js` | suggestLoad y todayTarget (también con los juegos de datos de v35), salto de cada máquina (`rp_inc`), isPR/prKind (y su coherencia con prFeed), dose/SECDOSE, effList, buildSteps, estMinutes, strengthIdx, fechas, pendientes al final del guiado, y el récord en la propia serie del guiado (borrar, corregir, aviso) |
 | `pruebas_datos.js` | copia de seguridad de ida y vuelta, importaciones que no deben tocar nada, sesión sin cerrar, datos dañados o con otra forma, esquema `rp_schema` y migraciones, récords con y sin `i`/`kind`, teléfono lleno (`lleno(app,{margen:0})` simula `QuotaExceededError`), `rp_streak`, racha semanal con datos de v35, racha que cruza cambios de hora en cinco zonas, otra rutina con una a medias (hoja de conflicto), mirar el guiado sin registrar, y borrar una serie del guiado y deshacerlo |
 | `pruebas_pantallas.js` | recorrido de humo por Inicio, rutina, guiado, Calendario, Progreso y Ajustes con cada juego de datos, el guiado con un descanso de 0 s ajustado y el chip «Salto» del guiado, y una sola racha (semanas cumplidas) en Inicio, pantalla de fin, Progreso y Ajustes, también con zona horaria emulada; aviso de pendientes con las sesiones de v35; zonas de toque de la fila de serie (medidas con `elementFromPoint`) y el aviso de serie borrada |
+| `pruebas_sw.js` | el service worker: `sw.js` tal cual en una caja con red, caché y reloj de mentira (red buena, lenta, caída, sin copia) y «Buscar actualización» en la app |
 
 ## Añadir una prueba
 
@@ -49,6 +50,12 @@ test("isPR: una serie igual a la mejor no es récord", app => {
 - `app.sembrar(datos)` reemplaza localStorage sin recargar. La app lee el almacenamiento en cada llamada, así que basta para probar lógica. Si una prueba toca la memoria de la app (`curRoutine`, la sesión en curso), al final llama a `app.reiniciarMemoria()`.
 - `async` está permitido: `await app.hasta(() => condición, ms)` y `await app.espera(ms)`.
 - El navegador corre en la zona horaria del equipo (UTC en CI, sin cambios de hora). Para lo que dependa de fechas, `await app.enZona("Europe/Madrid", () => {...}, "2026-11-04T12:30:00Z")` corre la función con la app en esa zona IANA y, si se da el tercer argumento, con el reloj parado en ese instante. Las cuentas locales de `Date` (`getDate`, `setHours`, `new Date(a, m, d)`, `"AAAA-MM-DDTHH:MM"`) se hacen en esa zona con `Intl`; el instante (`getTime`, `toISOString`) es el de siempre. Al terminar vuelve el `Date` normal.
+- `run.py` corre con tiempo virtual (`--virtual-time-budget`): en cuanto la página no tiene nada
+  que hacer, el reloj salta al siguiente temporizador. Lo que espera al proceso del navegador
+  (CacheStorage, los registros del service worker) pierde contra el tope de 20 s de la prueba:
+  usa dobles. Y mientras se lee el cuerpo de un `ReadableStream` que sigue abierto, Chrome congela
+  temporizadores y mensajes: hasta cerrarlo solo valen microtareas (`await null`), o la corrida no
+  termina y la CI no devuelve nada. `tests/pruebas_sw.js` tiene los dos casos.
 - Aserciones: `toBe`, `toEqual` (estructural), `toBeCloseTo(n, decimales)`, `toBeTruthy`, `toBeFalsy`, `toContain`, `toBeGreaterThan`, `toBeLessThan`, `toMatch`, `toHaveLength`, y `.not` delante.
 - Las aserciones fijan el comportamiento actual. Si algo es un bug, no se arregla en la prueba: se escribe lo correcto con `test.skip(nombre, "BUG: motivo", fn)`. Esa prueba se ejecuta igual pero no cuenta para el resultado. El resumen muestra cómo falla hoy, y cuando el bug se arregle avisará con «YA PASA: quita test.skip».
 
