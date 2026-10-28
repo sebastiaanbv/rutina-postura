@@ -3081,6 +3081,8 @@ function finish(){clearTimer();
     <p class="mut">Tus series siguen aquí, sin guardar. Libera espacio en el teléfono y vuelve a intentarlo; no cierres la app mientras tanto.</p>
     <button class="gbtn go" style="margin-top:22px" onclick="finish()">Intentar de nuevo</button></div>`;return;}
   const s=(res&&res.streak)||loadStreak(),w=weekStats(),sum=res&&res.summary,nom=ROUTINES[curRoutine].name;
+  /* sin ninguna semana cumplida "Mejor racha: 0 semanas" no dice nada: solo
+     el total de sesiones */
   const prs=(sum&&sum.pr)||[];
   const prHTML=prs.length?`<div class="doneprs"><div class="h">${ic("trophy","xs")} ${prs.length===1?"Récord personal":prs.length+" récords personales"}</div>`
     +prs.map(p=>`<div class="r"><span>${esc(shortName(p.id))}</span><b>${(p.w>0)?fmtW(p.w)+" "+((EX[p.id]&&EX[p.id].unit)||"kg")+" × "+p.reps:p.reps+" reps"}</b></div>`).join("")+`</div>`:"";
@@ -3094,7 +3096,7 @@ function finish(){clearTimer();
     ${prHTML}
     <div class="donest"><span class="wkring" aria-hidden="true">${ringSVG(w.goal?w.hechas/w.goal:0,34,4.5)}</span>Esta semana: <span class="n">${w.hechas} de ${w.goal}</span></div>
     ${w.semanaOK&&!ya?`<div class="doneok">${ic("flame","xs")} Semana cumplida · ${w.racha} ${plural(w.racha,"seguida","seguidas")}</div>`:""}
-    <p class="donesub">Mejor racha: ${w.mejor} ${plural(w.mejor,"semana","semanas")} · ${s.total} ${plural(s.total,"sesión","sesiones")} en total</p>
+    <p class="donesub">${w.mejor?`Mejor racha: ${w.mejor} ${plural(w.mejor,"semana","semanas")} · `:""}${s.total} ${plural(s.total,"sesión","sesiones")} en total</p>
     <button class="gbtn go" style="margin-top:22px" onclick="exitToHome()">Volver al inicio</button></div>`;beep();}
 function exitToHome(){sessionLog={};sessionLogKey=null;stepi=0;history.back();}
 
@@ -3116,8 +3118,9 @@ function renderTodayCard(w){const idx=histIndex(),done=idx[today()]||[],p=loadPl
     <div class="mt">Hoy toca recuperar. Si quieres, haz algo suave.</div>
     <button class="today-go sec" onclick="openRoutine('${suggestion()}')">Entrenar igual</button></div>`;}
   else if(done.length){w=w||weekStats();
+    /* "mejor 0" al lado de "0 semanas" no dice nada: sale cuando hay alguna */
     tc=`<div class="today"><div class="kick">Hoy</div><div class="tt">${ic("checkc","sm")} ¡Listo por hoy!</div>
-    <div class="mt">Completaste ${esc(done[done.length-1].name)} · ${ic("flame","xs")} ${w.racha} ${plural(w.racha,"semana cumplida","semanas cumplidas")} · mejor ${w.mejor}</div>
+    <div class="mt">Completaste ${esc(done[done.length-1].name)} · ${ic("flame","xs")} ${w.racha} ${plural(w.racha,"semana cumplida","semanas cumplidas")}${w.mejor?" · mejor "+w.mejor:""}</div>
     <button class="today-go sec" onclick="openRoutine('${sk}')">Hacer otra rutina</button></div>`;}
   else{tc=`<div class="today"><div class="kick">Hoy</div><div class="tt">${esc(sug.name)}</div>
     <div class="mt">${esc(sug.desc)}</div>
@@ -3378,7 +3381,7 @@ function renderSettings(){const r=loadRem();
       <div class="fh">Las figuras de los ejercicios son de <a class="ytlink" target="_blank" rel="noopener" href="https://github.com/bryllim/workout-guide">workout-guide</a>, de Bryl Lim, derivadas de Everkinetic, bajo licencia <a class="ytlink" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. El resto de la app es código propio bajo MIT.</div></div>`;
   $("setBody").innerHTML=b;renderTimes();markThemeSeg();
   const s=loadStreak(),h=loadHist(),w=weekStats();
-  $("dataInfo").textContent=`Guardado: ${s.total||0} sesiones · ${h.length} en historial · racha ${w.racha} ${plural(w.racha,"semana","semanas")}.`;}
+  $("dataInfo").textContent=`Guardado: ${s.total||0} ${plural(s.total||0,"sesión","sesiones")} · ${h.length} en historial · racha ${w.racha} ${plural(w.racha,"semana","semanas")}.`;}
 function renderTimes(){const r=loadRem();$("timeList").innerHTML=r.times.length?r.times.map((t,i)=>
   `<div class="timepill">${t} <span class="x" onclick="delTime(${i})" role="button" tabindex="0" aria-label="Quitar la hora ${t}">${ic("close","xs")}</span></div>`).join(""):'<div class="fh">Añade una hora y te avisaré ese día a esa hora.</div>';}
 function addTime(){const v=$("newTime").value;if(!v)return;const r=loadRem();if(!r.times.includes(v)){r.times.push(v);r.times.sort();jset("rp_rem",r);renderTimes();scheduleRem();}}
@@ -3849,10 +3852,10 @@ function renderProgress(){
     +'<div class="cs">Aquí lo que importa es la frecuencia, no la carga.</div></div>';
 
   /* 7 · racha */
-  const sem=weekStats();
-  b+='<div class="grouptitle">Tu historial</div><div class="chartcard"><div class="cs">'+sem.racha+' '+plural(sem.racha,"semana cumplida","semanas cumplidas")+' · mejor '+sem.mejor
-    +'<br>'+(s.total||0)+' sesiones · '+rows.filter(r=>GYMKEYS.indexOf(r.key)>=0).length+' de fuerza'
-    +'<br>'+Object.keys(logs).reduce((a,k)=>a+logs[k].reduce((x,r)=>x+(r.sets||[]).length,0),0)+' series registradas</div></div>';
+  const sem=weekStats(),nser=Object.keys(logs).reduce((a,k)=>a+logs[k].reduce((x,r)=>x+(r.sets||[]).length,0),0);
+  b+='<div class="grouptitle">Tu historial</div><div class="chartcard"><div class="cs">'+sem.racha+' '+plural(sem.racha,"semana cumplida","semanas cumplidas")+(sem.mejor?' · mejor '+sem.mejor:'')
+    +'<br>'+(s.total||0)+' '+plural(s.total||0,"sesión","sesiones")+' · '+rows.filter(r=>GYMKEYS.indexOf(r.key)>=0).length+' de fuerza'
+    +'<br>'+nser+' '+plural(nser,"serie registrada","series registradas")+'</div></div>';
 
   $("progBody").innerHTML=b;}
 

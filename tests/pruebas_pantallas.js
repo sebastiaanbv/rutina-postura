@@ -89,19 +89,29 @@
      de el solo se muestra el total de sesiones. */
   const DIAS_SEGUIDOS=/d[ií]as? seguid[oa]s?/i;
   const semanas=n=>n+" "+(n===1?"semana cumplida":"semanas cumplidas");
+  const sesiones=n=>n+" "+(n===1?"sesión":"sesiones");
+  /* «R semanas cumplidas · mejor M»; sin ninguna semana cumplida, sin «mejor 0» */
+  const conMejor=w=>semanas(w.racha)+(w.mejor?" · mejor "+w.mejor:"");
+  /* «Mejor racha: M semanas · N sesiones en total», o solo el total si M es 0 */
+  const pieFin=(w,total)=>(w.mejor?"Mejor racha: "+w.mejor+" "+(w.mejor===1?"semana":"semanas")+" · ":"")+sesiones(total)+" en total";
   /* lunes de esta semana a medianoche local */
   const lunes=()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d;};
   /* el bloque que sigue a un titulo de Progreso */
   const bloque=(app,titulo)=>{const g=app.$$("#progBody .grouptitle").find(x=>x.textContent.trim()===titulo);
     return g?g.nextElementSibling.textContent.replace(/\s+/g," ").trim():"";};
+  /* las lineas de «Tu historial», partidas por sus <br> */
+  const historial=app=>{const g=app.$$("#progBody .grouptitle").find(x=>x.textContent.trim()==="Tu historial");
+    return g?g.nextElementSibling.querySelector(".cs").innerHTML.split(/<br\s*\/?>/).map(x=>x.replace(/<[^>]*>/g,"").trim()):[];};
   /* cuenta aparte de la linea de postura: dias distintos desde el lunes con
      alguna rutina que no esta en GYMKEYS */
   function diasPostura(app){const G=app.ev("GYMKEYS"),desde=lunes(),dias={};
     (app.leer("rp_history")||[]).forEach(h=>{const d=new Date(h.iso);if(G.indexOf(h.key)<0&&d>=desde)dias[F.ds(d)]=1;});
     return Object.keys(dias).length;}
   /* termina k con todos sus ejercicios marcados, como quien cierra la lista.
-     Si ya hay pantalla de fin no hace nada, salvo que se pida otra sesion */
-  function terminar(app,k,otra){if(!otra&&app.$("#guided .done"))return;
+     Si ya hay pantalla de fin no termina otra (salvo que se pida otra sesion),
+     pero vuelve a ella: una prueba anterior pudo dejar otra pestana delante,
+     y medir la pantalla de fin escondida no mide nada */
+  function terminar(app,k,otra){if(!otra&&app.$("#guided .done")){app.w.show("guided");return;}
     app.w.openRoutine(k);app.w.effList(k).forEach(id=>app.w.markCheck(k,id,true));
     app.w.show("guided");app.w.finish();
     expect(app.texto("#guided")).toContain("Completada");}
@@ -130,15 +140,19 @@
         if(w.semanaOK)expect(app.texto("#guided .doneok")).toBe("Semana cumplida · "+w.racha+" "+(w.racha===1?"seguida":"seguidas"));
         /* el total de sesiones sigue saliendo de rp_streak, una mas que antes */
         expect(s.total).toBe(total+1);
-        expect(app.texto("#guided .donesub")).toBe("Mejor racha: "+w.mejor+" "+(w.mejor===1?"semana":"semanas")+" · "+s.total+" sesiones en total");});
+        expect(app.texto("#guided .donesub")).toBe(pieFin(w,s.total));});
       test("pantalla de fin a 320 px con la letra un 30 % mayor: «N de M» no se parte",async app=>{
         terminar(app,o.rutina);
         const f=app.frame,ancho=f.style.width,r=app.doc.documentElement.style,
           grande={"--t-display":"39px","--t-title":"28.6px","--t-base":"18.2px","--t-sm":"16.25px","--t-xs":"14.3px"};
         try{f.style.width="320px";Object.keys(grande).forEach(k=>r.setProperty(k,grande[k]));
           await app.espera(50);
+          /* la pantalla de fin delante: escondida mide 0 y todo pasaria */
+          expect(app.activa()).toBe("guided");
           const n=app.$("#guided .donest .n"),fs=parseFloat(app.w.getComputedStyle(n).fontSize);
           expect(fs).toBe(39);
+          expect(n.getBoundingClientRect().height).toBeGreaterThan(fs*0.8);
+          expect(n.getBoundingClientRect().width).toBeGreaterThan(0);
           /* una sola linea: con «2 de» arriba y «3» abajo mide el doble */
           expect(n.getBoundingClientRect().height).toBeLessThan(fs*1.6);
           expect(app.$("#guided .donest").getBoundingClientRect().right).not.toBeGreaterThan(320);
@@ -146,13 +160,15 @@
         }finally{f.style.width=ancho;Object.keys(grande).forEach(k=>r.removeProperty(k));}});
       test("«Listo por hoy», Inicio, «Tu historial» y Ajustes: racha y mejor de weekStats()",app=>{
         terminar(app,o.rutina);tab(app,"home");const w=app.w.weekStats();
-        expect(app.texto("#todayCard")).toContain(semanas(w.racha)+" · mejor "+w.mejor);
+        expect(app.texto("#todayCard")).toContain(conMejor(w));
+        if(!w.mejor)expect(app.texto("#todayCard")).not.toContain("mejor");
         expect(app.texto("#stCount")).toBe(String(w.racha));
         expect(app.texto("#stCountL")).toBe(semanas(w.racha).replace(/^\d+ /,""));
         tab(app,"progress");
         const h=bloque(app,"Tu historial");
-        expect(h).toContain(semanas(w.racha)+" · mejor "+w.mejor);
-        expect(h).toContain(app.leer("rp_streak").total+" sesiones");
+        expect(h).toContain(conMejor(w));
+        if(!w.mejor)expect(h).not.toContain("mejor");
+        expect(h).toContain(sesiones(app.leer("rp_streak").total));
         tab(app,"settings");
         expect(app.texto("#dataInfo")).toContain("racha "+w.racha+" "+(w.racha===1?"semana":"semanas"));});
       test(o.salud?"objetivo salud: sale «Postura: N de 7 días esta semana»":"objetivo masa: no sale la línea de postura",app=>{
@@ -212,6 +228,33 @@
       w=app.w.weekStats();
       expect(w.hechas).toBe(w0.hechas+1);
       expect(app.$("#guided .doneok")).toBeFalsy();
+      app.reiniciarMemoria();});
+  });
+
+  /* la primera sesion, sin ninguna semana cumplida: nada de «mejor 0» ni de
+     «Mejor racha: 0 semanas», y los plurales en singular donde toca */
+  escenario("Racha única · primera sesión (Fixtures.vacio)",F.vacio,()=>{
+    test("pantalla de fin: «Esta semana: 1 de 3» y solo «1 sesión en total»",app=>{
+      terminar(app,"gym_empuje");const w=app.w.weekStats();
+      expect([w.hechas,w.goal,w.racha,w.mejor]).toEqual([1,3,0,0]);
+      expect(app.texto("#guided .donest")).toBe("Esta semana: 1 de 3");
+      expect(app.$("#guided .doneok")).toBeFalsy();
+      expect(app.texto("#guided .donesub")).toBe("1 sesión en total");
+      expect(app.texto("#guided")).not.toMatch(/mejor|0 semanas/i);});
+    test("«Listo por hoy», «Tu historial» y Ajustes: sin «mejor 0» y con «1 sesión»",app=>{
+      terminar(app,"gym_empuje");tab(app,"home");
+      expect(app.texto("#todayCard")).toContain("Completaste Empuje · 0 semanas cumplidas");
+      expect(app.texto("#todayCard")).not.toContain("mejor");
+      tab(app,"progress");
+      const h=historial(app);
+      expect(h.slice(0,2)).toEqual(["0 semanas cumplidas","1 sesión · 1 de fuerza"]);
+      expect(h[2]).toMatch(/^\d+ series registradas$/);
+      tab(app,"settings");
+      expect(app.texto("#dataInfo")).toBe("Guardado: 1 sesión · 1 en historial · racha 0 semanas.");});
+    test("«Tu historial» con una sola serie registrada: «1 serie registrada»",app=>{
+      app.sembrar({rp_logs:{press_banca_db:[{date:F.fecha(0),sets:[{w:30,reps:8}],k:"gym_empuje",t:1}]}});
+      tab(app,"progress");
+      expect(historial(app)[2]).toBe("1 serie registrada");
       app.reiniciarMemoria();});
   });
 

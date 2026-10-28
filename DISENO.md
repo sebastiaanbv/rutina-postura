@@ -284,7 +284,7 @@ Lo que se celebra, y cuánto dura. Nada pasa de medio segundo.
 
 Un récord es una serie que **ninguna anterior domina en peso y repeticiones a la vez**. Es la misma regla del panel de progreso, así que las dos cuentan lo mismo.
 
-**Una sola racha: semanas cumplidas.** Toda la app —Inicio, pantalla de fin, «Listo por hoy», Progreso y Ajustes— cuenta la misma cifra, la de `weekStats()`: semanas seguidas con la meta de sesiones de fuerza cumplida. Una racha de días castigaba justo los descansos que pide un programa de tres días. La semana en curso nunca resta y **suma en cuanto se cumple**: si solo contaran las cerradas, la pantalla de fin diría «Semana cumplida · 6 seguidas» e Inicio seguiría en 5 hasta el lunes. El avance de la semana va en primario, como todo progreso; solo «Semana cumplida» va en ámbar, porque eso sí es un logro, y sale una vez por semana: celebrarlo en cada sesión que sobra lo gastaría (§7). La mejor racha cuenta las semanas seguidas **por fecha**, como la racha: restar milisegundos entre dos lunes da 7 días ± 1 h si entre ellos hay cambio de hora, y la partía en dos. `rp_streak` se sigue guardando igual, pero de él solo se muestra el total de sesiones.
+**Una sola racha: semanas cumplidas.** Toda la app —Inicio, pantalla de fin, «Listo por hoy», Progreso y Ajustes— cuenta la misma cifra, la de `weekStats()`: semanas seguidas con la meta de sesiones de fuerza cumplida. Una racha de días castigaba justo los descansos que pide un programa de tres días. La semana en curso nunca resta y **suma en cuanto se cumple**: si solo contaran las cerradas, la pantalla de fin diría «Semana cumplida · 6 seguidas» e Inicio seguiría en 5 hasta el lunes. El avance de la semana va en primario, como todo progreso; solo «Semana cumplida» va en ámbar, porque eso sí es un logro, y sale una vez por semana: celebrarlo en cada sesión que sobra lo gastaría (§7). La mejor racha cuenta las semanas seguidas **por fecha**, como la racha: restar milisegundos entre dos lunes da 7 días ± 1 h si entre ellos hay cambio de hora, y la partía en dos. «Mejor M» solo sale cuando hay alguna semana cumplida: en la primera sesión, «mejor 0» al lado de «0 semanas cumplidas» no dice nada, y la pantalla de fin se queda con «1 sesión en total» (§11: los estados vacíos invitan). `rp_streak` se sigue guardando igual, pero de él solo se muestra el total de sesiones.
 
 ## 13. Qué falta
 
@@ -384,9 +384,17 @@ dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma d
     «mejor 3» en Madrid. Ahora compara fechas, como la racha. En CI no se veía porque el navegador
     corre en UTC: `app.enZona(zona, fn, ahora)` emula una zona IANA y fija el reloj.
   - Con la letra grande a 320 px, «N de M» baja entera a la línea de abajo en vez de partirse.
+    La prueba vuelve a poner delante la pantalla de fin antes de medir: escondida mide 0 y
+    pasaba también con el CSS de antes.
+  - **Sin «mejor 0» ni «1 sesiones».** Sin ninguna semana cumplida —la primera sesión, o
+    quien aún no llega a la meta— la pantalla de fin decía «Mejor racha: 0 semanas» y «Listo por
+    hoy» y «Tu historial» «· mejor 0». Ahora «mejor» sale solo cuando hay alguna (§12). Ajustes y
+    «Tu historial» usan `plural()` en las sesiones y las series: «Guardado: 1 sesión», «1 serie
+    registrada».
   - Pruebas en `pruebas_pantallas.js` (los dos juegos de datos, la sesión que cumple la semana,
-    las que vienen después, la línea de postura, la pantalla de fin a 320 px y la mejor racha en
-    pantalla en Madrid y Santiago con cifras contadas a mano) y `pruebas_datos.js` (`rp_streak`,
+    las que vienen después, la primera sesión con `Fixtures.vacio`, la línea de postura, la
+    pantalla de fin a 320 px y la mejor racha en pantalla en Madrid y Santiago con cifras
+    contadas a mano) y `pruebas_datos.js` (`rp_streak`,
     copia de ida y vuelta, datos de v35 sin meta congelada en las semanas viejas, y la racha que
     cruza los cambios de hora de Europa, EE. UU., Chile y Australia, con `Fixtures.cambioHora`).
 
