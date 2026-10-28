@@ -38,10 +38,22 @@
         app.w.guidedSkipExercise();
         expect(app.ev("steps[stepi].id")).not.toBe(o.cargado);
         expect(app.texto("#guided").length).toBeGreaterThan(20);});
-      if(o.bugUnidad)test.skip("modo guiado: el peso se muestra igual antes y despues de tocar + y −",
-        "BUG: renderStep pinta #lw solo con el numero ('30'), pero adjW lo reescribe con la unidad ('30 kg'); tras subir y bajar 2,5 kg el mismo peso se ve distinto, y editNum lo vuelve a dejar sin unidad.",
+      test("modo guiado: el peso se muestra igual antes y despues de tocar + y −",
         app=>{app.w.startRoutine(o.cargado);const a=app.texto("#lw");app.w.adjW(2.5);app.w.adjW(-2.5);
           expect(app.texto("#lw")).toBe(a);});
+      /* un solo formato del peso: el de renderStep, solo el numero */
+      test("modo guiado: el peso tiene el mismo formato al pintar, con − y +, al escribirlo y al cambiar las series",app=>{
+        app.w.startRoutine(o.cargado);
+        const igual=()=>{const el=app.$("#lw");expect(el.innerHTML).toBe(app.w.fmtW(app.ev("curW")));};
+        igual();
+        app.w.adjW(2.5);igual();
+        app.w.adjW(-2.5);igual();
+        app.w.adjW(-2.5);igual();
+        app.w.editNum("w");const i=app.$("#numin");i.value="7.5";i.dispatchEvent(new app.w.Event("blur"));
+        expect(app.texto("#lw")).toBe("7.5");igual();
+        app.w.gAdjSets(1);igual();
+        expect(app.texto("#lw")).toBe("7.5");
+        app.w.gResetSets();igual();});
       test("Calendario: mes pintado y dias con actividad",app=>{
         tab(app,"history");
         expect(app.activa()).toBe("history");
@@ -78,8 +90,28 @@
   humo("sin datos",F.vacio,{tema:"light",rutina:"gym_empuje",cargado:"press_banca_db",avisoCopia:false,
     conHistorial:false,conIndice:false,pesos:"",objetivo:"Ganar músculo"});
   humo("dueño (gimnasio, masa)",F.dueno,{tema:"dark",rutina:"gym_tiron",cargado:"jalon_pecho",avisoCopia:true,
-    conHistorial:true,conIndice:true,pesos:"",objetivo:"Ganar músculo",progreso:["Récords recientes","Series por músculo"],
-    bugUnidad:true});
+    conHistorial:true,conIndice:true,pesos:"",objetivo:"Ganar músculo",progreso:["Récords recientes","Series por músculo"]});
   humo("madre (casa, salud, 1-3 kg)",F.madre,{tema:"light",rutina:"salud_fuerza_a",cargado:"press_hombro_db",avisoCopia:false,
     conHistorial:true,conIndice:true,pesos:"1 2 3",objetivo:"Salud y mantenimiento",hoy:"En curso"});
+
+  /* un descanso de 0 s ajustado por la persona: la serie siguiente entra sin
+     pasar por la pantalla de descanso; sin el ajuste, el del programa sigue */
+  escenario("Pantallas · descanso de 0 s ajustado",()=>({rp_doses:{postura_completa:{isometricos_cervicales:{rest:0}}}}),()=>{
+    const aguante=app=>{
+      app.$$("#routines .rcard").find(c=>c.getAttribute("onclick").indexOf("'postura_completa'")>=0).click();
+      app.w.startRoutine("isometricos_cervicales");
+      expect(app.ev("steps[stepi].label")).toBe("Mantén 1 de 3");
+      app.w.afterAction();};
+    test("modo guiado: tras el aguante entra la serie siguiente, sin descanso",app=>{
+      aguante(app);
+      expect(app.$("#guided .stage.isrest")).toBeFalsy();
+      expect(app.ev("steps[stepi].label")).toBe("Mantén 2 de 3");
+      app.reiniciarMemoria();});
+    test("modo guiado: sin el ajuste vuelve el descanso del programa",app=>{
+      app.sembrar({});tab(app,"home");
+      aguante(app);
+      expect(app.$("#guided .stage.isrest")).toBeTruthy();
+      expect(app.ev("restR")).toBe(15);
+      app.reiniciarMemoria();});
+  });
 })();

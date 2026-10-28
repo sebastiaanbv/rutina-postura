@@ -765,7 +765,6 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .stepper .lab{text-align:center}
   .stepper .row{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
   .stepper .row b{font-size:var(--t-xl);font-weight:var(--w-bold);letter-spacing:-1px;cursor:pointer}
-  .stepper .row b small{font-size:var(--t-sm);font-weight:var(--w-med);color:var(--mut)}
   .last{margin:var(--s3) 0 var(--s1)}
   .last.tap{cursor:pointer}
   .gchart{margin:var(--s2) 0 0;display:none}
@@ -2621,7 +2620,11 @@ function plural(n,sing,pl){return (Math.abs(n)===1)?sing:pl;}
 function adjW(d){const s=steps[stepi],l=availDB(s.id);
   /* con mancuernas declaradas, los botones saltan a la siguiente que existe */
   if(l){const c=curW||0,n=d>0?l.filter(x=>x>c+1e-9)[0]:l.filter(x=>x<c-1e-9).pop();curW=n!=null?n:c;}
-  else curW=Math.max(0,Math.round((curW+d)*10)/10);const el=$("lw");if(el)el.innerHTML=fmtW(curW)+' <small>'+(s.unit||'kg')+'</small>';}
+  else curW=Math.max(0,Math.round((curW+d)*10)/10);pintaW();}
+/* el peso del guiado se ve igual al pintar la serie, al tocar −/+, al
+   escribirlo y al cambiar las series: solo el numero, como renderStep. Con
+   la unidad, "102.5 kg" parte la fila en dos lineas en un movil de 390 px */
+function pintaW(){const el=$("lw");if(el)el.textContent=fmtW(curW);}
 function adjR(d){curReps=Math.max(1,curReps+d);const el=$("lr");if(el)el.textContent=curReps;}
 function logSet(){const s=steps[stepi];useSessionLog(curRoutine);
   const w=(s.load===true?curW:0),pr=isPR(s.id,w,curReps);
@@ -2812,16 +2815,18 @@ function resumeSessionCheck(){try{const s=loadSess();if(!s||s.date===today())ret
 /* ---------- VIDEO OVERLAY ---------- */
 
 /* ---------- BUILD STEPS ---------- */
+/* el descanso va tal cual sale de dose(), que ya pone el de por defecto:
+   un ||15 aqui convertia en 15 s el descanso de 0 que eligio la persona */
 function buildSteps(k){const out=[],list=effList(k),total=list.length;
   list.forEach((id,idx)=>{const e=EX[id],d=dose(k,id),
     base={id,name:e.name,steps:e.steps,tag:e.tag,caveat:!!e.caveat,exI:idx+1,exN:total,load:e.load,unit:e.unit||"kg"};
     if(e.type==="reps"||e.type==="reps_side"){for(let s=1;s<=d.sets;s++)out.push(Object.assign({},base,{kind:"count",reps:d.reps,perSide:e.type==="reps_side",setNo:s,side:"",
       label:`Serie ${s} de ${d.sets}`+(e.type==="reps_side"?" · cada lado":""),restAfter:s<d.sets?d.rest:0,first:s===1}));}
     else if(e.type==="hold"){for(let s=1;s<=d.sets;s++)out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,setNo:s,side:"",
-      label:`Mantén ${s} de ${d.sets}`,restAfter:s<d.sets?(d.rest||15):0,first:s===1}));}
+      label:`Mantén ${s} de ${d.sets}`,restAfter:s<d.sets?d.rest:0,first:s===1}));}
     else if(e.type==="hold_side"){for(let s=1;s<=d.sets;s++){
       out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,setNo:s,side:"izq",label:`Serie ${s}/${d.sets} · Izquierdo`,restAfter:0,first:s===1}));
-      out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,setNo:s,side:"der",label:`Serie ${s}/${d.sets} · Derecho`,restAfter:s<d.sets?(d.rest||10):0,first:false}));}}
+      out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,setNo:s,side:"der",label:`Serie ${s}/${d.sets} · Derecho`,restAfter:s<d.sets?d.rest:0,first:false}));}}
     /* cardio: un solo paso cronometrado y sin descanso detras. Es la caminadora,
        que sube la temperatura pero no ensaya ningun patron de movimiento. */
     else if(e.type==="cardio"){out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,setNo:1,side:"",
@@ -2905,7 +2910,7 @@ function reanclar(prev){const w=curW,r=curReps;
   touchSess(stepi);renderStep();
   const ahora=steps[stepi];
   if(ahora&&ahora.id===prev.id){
-    if(w!=null){curW=w;const lw=$("lw");if(lw)lw.innerHTML=fmtW(curW)+' <small>'+(ahora.unit||'kg')+'</small>';}
+    if(w!=null){curW=w;pintaW();}
     if(r!=null){curReps=r;const lr=$("lr");if(lr)lr.textContent=curReps;}}}
 function frame(inner,opt){opt=opt||{};const s=steps[stepi],prog=Math.round(stepi/steps.length*100);
   const conFicha=(opt.info!==false);
@@ -3399,7 +3404,7 @@ function estMinutes(key){var r=ROUTINES[key];if(!r)return 0;var sec=0;
     if(e.type==="cardio"){sec+=(d.holdSec||0)+10;return;}
     var sets=d.sets||1,side=(e.type==="reps_side"||e.type==="hold_side")?2:1,work;
     if(e.type==="hold"||e.type==="hold_side"){work=(d.holdSec||30)*side;}else{work=(d.reps||10)*3.5*side;}
-    sec+=sets*work+(sets>1?(sets-1)*(d.rest||30):0)+15;});
+    sec+=sets*work+(sets>1?(sets-1)*d.rest:0)+15;});
   return Math.max(1,Math.round(sec/60));}
 document.querySelectorAll(".nav .tab").forEach(a=>a.onclick=()=>{const v=a.dataset.v;if(!$(v).classList.contains("active"))pushHist({v:v});show(v);if(v==="home")renderHome();if(v==="history")renderHistory();if(v==="progress")renderProgress();if(v==="settings")renderSettings();});
 let deferred=null;
