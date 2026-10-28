@@ -2530,7 +2530,12 @@ function closeSess(){const s=loadSess();if(!s)return true;
 function startSess(key,src){let s=loadSess();
   if(s&&s.key===key&&s.date===today())return s;
   if(!closeSess())return null;
-  s={v:1,key:key,date:today(),startedAt:Date.now(),lastAt:Date.now(),stepi:0,src:src||"check",log:{}};
+  /* startedAt es tambien su identidad para finishSession (sessCommitted): la
+     nueva nunca lleva el de la ultima cerrada, aunque nazca en el mismo
+     milisegundo. Desde HU-63 un visto crea la sesion, y cerrar una y marcar
+     en otra rutina en el mismo milisegundo daba la segunda por ya guardada */
+  const t0=Math.max(Date.now(),sessCommitted+1);
+  s={v:1,key:key,date:today(),startedAt:t0,lastAt:t0,stepi:0,src:src||"check",log:{}};
   jset("rp_session",s);return s;}
 /* perezosa (HU-63): la sesion nace con lo primero que se registra (serie,
    visto o temporizador), no al mirar. La de otra rutina a medias hoy no se

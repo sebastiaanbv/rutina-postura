@@ -548,7 +548,9 @@ terminada sin preguntar; y entrar al guiado solo para mirar ya creaba `rp_sessio
 - **Sin claves nuevas ni cambios de forma:** `rp_session` es la misma, solo nace más tarde. De
   paso, un récord se apunta solo en la sesión de su rutina (`markPR`) y al recargar en el guiado el
   paso guardado solo se usa si es de esa rutina: con dos sesiones vivas (la que no cupo y la nueva)
-  se cruzaban.
+  se cruzaban. Y como un visto ya crea la sesión, la que nace en el mismo milisegundo en que se
+  cerró otra lleva un `startedAt` posterior al de aquella: es lo que `finishSession` usa para no
+  guardar dos veces la misma, y con el mismo daba la nueva por ya guardada.
 - **Pruebas** en `tests/pruebas_datos.js` con el juego `aMedias` (Empuje 3 de 14): cada toque abre
   la hoja sin escribir nada, la hoja sin opción destructiva, volver, guardar y empezar en 2 toques
   (por el play y por el visto), teléfono lleno con la otra entera en disco y con series solo en
