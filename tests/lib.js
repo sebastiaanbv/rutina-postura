@@ -6,6 +6,8 @@
      app de cero en un iframe del mismo origen.
    test(nombre, async app => { ... })      prueba normal (async permitido)
    test.skip(nombre, motivo, fn)           conocida: se reporta, no corre
+   test.omitir(motivo)                     dentro de una prueba: este entorno no
+     puede medir lo que mide (el reloj virtual de run.py); sale omitida con su motivo
    await app.enZona("Europe/Madrid", fn, "2026-11-04T12:30:00Z")
      corre fn con la app en esa zona horaria (y ese reloj, opcional)
    await Pruebas.tiempoReal(async () => { ... })
@@ -24,6 +26,7 @@
     actual.pruebas.push({nombre:nombre,fn:fn});}
   test.skip=function(nombre,motivo,fn){if(!actual)throw new Error("test.skip() fuera de un escenario: "+nombre);
     actual.pruebas.push({nombre:nombre,fn:fn,omitida:motivo||"sin motivo"});};
+  test.omitir=function(motivo){const e=new Error(motivo||"sin motivo");e.omitir=true;throw e;};
 
   /* ---- aserciones ---- */
   /* comparacion estructural que no depende del "realm": los objetos que vienen
@@ -219,7 +222,8 @@
         if(fallo){r.estado="falla";r.error="la app no arranco en este escenario";res.pruebas.push(r);publicar();continue;}
         app.marcarErrores();const t=performance.now();
         try{await conTope(Promise.resolve().then(()=>p.fn(app)),20000,p.nombre);await espera(30);}
-        catch(err){r.estado="falla";r.error=String(err&&err.stack?err.message+"\n"+err.stack.split("\n").filter(l=>/^\s+at /.test(l)).slice(1,4).join("\n"):err);}
+        catch(err){if(err&&err.omitir){r.estado="omitida";r.motivo=err.message;}
+          else{r.estado="falla";r.error=String(err&&err.stack?err.message+"\n"+err.stack.split("\n").filter(l=>/^\s+at /.test(l)).slice(1,4).join("\n"):err);}}
         const ne=app.erroresNuevos();
         if(ne.length){r.estado="falla";r.error=(r.error?r.error+"\n":"")+"errores en la app:\n"+describeErr(ne);}
         r.ms=Math.round(performance.now()-t);res.pruebas.push(r);publicar();}

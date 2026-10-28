@@ -236,6 +236,8 @@ La cabecera del día lleva **Registrar rutina**: elige el día y añade a mano u
 ### Progreso
 Un dato hero (índice de fuerza) y seis bloques con el mismo ritmo. Los récords van justo detrás del hero, porque son la recompensa, y en ámbar.
 
+Se pinta con **una sola lectura de `rp_logs`**: `renderProgress` lo lee y se lo pasa a cada análisis (`strengthIdx`, `strengthSpark`, `overloadIndex`, `stalled`, `prFeed`, `muscleSets`, `monthSummary`), que solo lo leen, nunca lo modifican. Un bloque nuevo recibe ese `logs`; no llama a `loadLogs()`. Sin el argumento, cada análisis lo lee él mismo, igual que `exChart`.
+
 ### Ajustes
 Cuatro secciones con título: apariencia · durante el entreno · recordatorios · datos.
 
@@ -747,6 +749,31 @@ volver a la serie.
   arranque con `#retomar` con sesión de hoy, sin sesión, con una rutina que ya no existe, con la
   de ayer y con datos de v35. Queda abierta la prueba a mano en un Android con la app instalada:
   el arnés no registra el service worker.
+
+Progreso carga más rápido:
+
+- **Progreso lee el historial una vez por pintado.** Cada análisis —el índice de fuerza y su
+  curva de 12 semanas, sobrecarga, estancamiento, récords, series por músculo y el resumen del
+  mes— volvía a leer y parsear `rp_logs` entero: **25 veces por pintado**, también al guardar un
+  pesaje o una medida, que redibujan la pantalla. Ahora `renderProgress` lo lee una vez y se lo
+  pasa (§8); el resumen del mes, además, pide la lista de récords una vez y no dos. Con dos años
+  sintéticos (`Fixtures.dosAnos`: 427 sesiones, 373 KB de `rp_logs`), por pintado: **de 25
+  parseos a 1 y de 9 MB parseados a 0,36 MB**, lo que comprueba el arnés también en la CI; y en
+  tiempo, **de 55-59 ms a 17-18 ms**, mediana de 41 pintados con el arnés servido (`--servir`) en
+  Chromium con Playwright, en un ordenador. Con seis semanas de datos, de 6 a 3 ms. En el teléfono
+  no se ha medido. `run.py` no puede tomar la medida en ms: corre con reloj virtual, que dentro de
+  un pintado no avanza (`tests/README.md`).
+  Lo que se ve no cambia en un solo carácter: comparado con el código de v35 con los cuatro
+  juegos de datos, el HTML de Progreso es idéntico.
+  Queda, de menos peso: la media de 7 días del peso recorre `rp_bw` entero 112 veces por pintado
+  (unos 6 ms con dos años de pesajes casi diarios) y `rp_history` se lee tres veces.
+  **Pruebas** en `tests/pruebas_progreso.js`: una lectura y un parseo al abrir Progreso y al
+  redibujar; el pintado y cada análisis dan lo mismo con el registro compartido que leyendo el suyo,
+  como hasta v35, con `dosAnos` y con los juegos de cada día; ningún análisis modifica lo que
+  recibe; con `dosAnos`, un parseo de `rp_logs` frente a más de 20 y veinte veces menos KB, y con
+  reloj real menos del 60 % del tiempo (con el de `run.py` esa sale omitida, con su motivo). Nada
+  depende del día en que corran: `dosAnos` trae una sesión cada día 1, y una prueba con el reloj de
+  la app en un día 1 comprueba que el resumen del mes sale.
 
 ### Cerrado en v35
 

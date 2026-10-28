@@ -3993,7 +3993,7 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
 function bestE1(id,rec){const rng=repRange(id);let b=0;
   (rec.sets||[]).forEach(s=>{if((s.reps||0)<rng[0])return;
     b=Math.max(b,e1rm(s.w||0,s.reps||0));});return b;}
-function overloadIndex(days){const logs=loadLogs(),warm=warmIds(),from=dOffset(days||7);
+function overloadIndex(days,LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),from=dOffset(days||7);
   let prog=0,tot=0;const detalle=[];
   Object.keys(logs).forEach(id=>{if(warm[id])return;
     const recs=logs[id].filter(r=>r.sets&&r.sets.length);
@@ -4005,7 +4005,7 @@ function overloadIndex(days){const logs=loadLogs(),warm=warmIds(),from=dOffset(d
     detalle.push({id:id,ok:ok,hoy:hoy,antes:antes});});
   return {prog:prog,total:tot,pct:tot?Math.round(prog/tot*100):0,detalle:detalle};}
 /* Estancado: 3 sesiones sin superar el mejor e1RM de las ultimas 8 semanas. */
-function stalled(){const logs=loadLogs(),warm=warmIds(),from=dOffset(56),out=[];
+function stalled(LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),from=dOffset(56),out=[];
   Object.keys(logs).forEach(id=>{if(warm[id])return;
     const recs=logs[id].filter(r=>r.sets&&r.sets.length&&r.date>=from);
     if(recs.length<4)return;
@@ -4016,7 +4016,7 @@ function stalled(){const logs=loadLogs(),warm=warmIds(),from=dOffset(56),out=[];
   return out;}
 
 /* --- indice de fuerza (e1RM normalizado, base 100) --- */
-function strengthIdx(cut){const logs=loadLogs(),warm=warmIds(),vals=[];
+function strengthIdx(cut,LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),vals=[];
   Object.keys(logs).forEach(id=>{const e=EX[id];if(!e||e.load!==true||warm[id])return;
     const recs=logs[id].filter(r=>!cut||r.date<=cut);if(recs.length<3)return;
     const pts=[];recs.forEach(r=>{let best=0;(r.sets||[]).forEach(s=>{if((s.w||0)>0&&s.reps<=12){const v=e1rm(s.w,s.reps);if(v>best)best=v;}});
@@ -4028,7 +4028,7 @@ function strengthIdx(cut){const logs=loadLogs(),warm=warmIds(),vals=[];
     if(last.date<ds(d21))return;
     vals.push(100*last.v/base);});
   return vals.length?{idx:vals.reduce((a,b)=>a+b,0)/vals.length,n:vals.length}:null;}
-function strengthSpark(){const out=[];for(let w=11;w>=0;w--){const r=strengthIdx(dOffset(w*7));if(r)out.push(r.idx);}return out;}
+function strengthSpark(LOGS){const out=[];for(let w=11;w>=0;w--){const r=strengthIdx(dOffset(w*7),LOGS);if(r)out.push(r.idx);}return out;}
 
 /* --- peso corporal --- */
 function loadBW(){return jget("rp_bw",[]).slice().sort((a,b)=>a.date<b.date?-1:1);}
@@ -4079,7 +4079,7 @@ function bwRate(arr){const pts=[];for(let i=27;i>=0;i--){const d=dOffset(i),m=ma
 
 /* --- series por musculo --- */
 function weekStart(off){const d=new Date();const dow=(d.getDay()+6)%7;d.setDate(d.getDate()-dow-7*off);return ds(d);}
-function muscleSets(fromDate,toDate){const logs=loadLogs(),warm=warmIds(),m={};
+function muscleSets(fromDate,toDate,LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),m={};
   Object.keys(logs).forEach(id=>{const f=MUSC[id];if(!f)return;
     logs[id].forEach(r=>{if(r.date<fromDate||r.date>toDate)return;
       const n=(r.sets||[]).filter(s=>(s.reps||0)>=1).length;if(!n)return;
@@ -4088,7 +4088,7 @@ function muscleSets(fromDate,toDate){const logs=loadLogs(),warm=warmIds(),m={};
   return m;}
 
 /* --- records (dominancia de Pareto) --- */
-function prFeed(days){const logs=loadLogs(),warm=warmIds(),out=[],from=dOffset(days);
+function prFeed(days,LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),out=[],from=dOffset(days);
   Object.keys(logs).forEach(id=>{const e=EX[id];if(!e||warm[id])return;
     const recs=logs[id].slice().sort((a,b)=>a.date<b.date?-1:1);const prev=[];
     recs.forEach((r,ri)=>{(r.sets||[]).forEach(s=>{
@@ -4127,12 +4127,12 @@ function bars(items){let h='<div class="mbars">';
 const MESES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 function monthSummary(rows,logs){const t=new Date(),dia=t.getDate(),
     cur=ds(t).slice(0,7),pd=new Date(t.getFullYear(),t.getMonth()-1,1),prev=ds(pd).slice(0,7),
-    inM=(d,m)=>d&&d.slice(0,7)===m&&+d.slice(8,10)<=dia;
+    inM=(d,m)=>d&&d.slice(0,7)===m&&+d.slice(8,10)<=dia,feed=prFeed(70,logs);
   const calc=m=>{let ses=0,fz=0,sets=0,vol=0;
     rows.forEach(r=>{if(inM(r.date,m)){ses++;if(GYMKEYS.indexOf(r.key)>=0)fz++;}});
     Object.keys(logs).forEach(id=>(logs[id]||[]).forEach(r=>{if(!inM(r.date,m))return;
       (r.sets||[]).forEach(s=>{sets++;vol+=(s.w||0)*(s.reps||0);});}));
-    const prs=prFeed(70).filter(p=>inM(p.date,m)).length;
+    const prs=feed.filter(p=>inM(p.date,m)).length;
     return {ses:ses,fz:fz,sets:sets,vol:vol,prs:prs};};
   const a=calc(cur),p=calc(prev);if(!a.ses&&!p.ses)return "";
   const cell=(v,pv,lab,fmt)=>{const d=v-pv,f=fmt||(x=>String(x));
@@ -4142,11 +4142,14 @@ function monthSummary(rows,logs){const t=new Date(),dia=t.getDate(),
     <div class="msum">${cell(a.ses,p.ses,plural(a.ses,"sesión","sesiones"))}${cell(a.sets,p.sets,plural(a.sets,"serie","series"))}${cell(a.vol,p.vol,"levantado",ton)}${cell(a.prs,p.prs,plural(a.prs,"récord","récords"))}</div>
     <div class="cs" style="margin-top:8px">Comparado con el 1-${dia} de ${MESES[pd.getMonth()]}${a.fz?" · "+a.fz+" "+plural(a.fz,"sesión","sesiones")+" de fuerza":""}.</div></div>`;}
 function renderProgress(){
+  /* rp_logs se lee y se parsea una sola vez por pintado: cada analisis recibe
+     este logs (LOGS, como exChart) y solo lo lee. Hasta v35 cada uno lo volvia
+     a leer, 25 veces por pintado. Un bloque nuevo usa este, no loadLogs(). */
   const s=loadStreak(),logs=loadLogs(),rows=histRows(),bw=loadBW();
   let b=monthSummary(rows,logs);
 
   /* 1 · indice de fuerza */
-  const now=strengthIdx(null),prev=strengthIdx(dOffset(28)),spark=strengthSpark();
+  const now=strengthIdx(null,logs),prev=strengthIdx(dOffset(28),logs),spark=strengthSpark(logs);
   b+='<div class="heroP">';
   if(now){const dlt=prev?Math.round(now.idx-prev.idx):null;
     b+='<div class="hkick">Índice de fuerza</div><div class="hbig">'+Math.round(now.idx)+'</div>';
@@ -4170,7 +4173,7 @@ function renderProgress(){
      progresando, no si hiciste mucho volumen. La banda objetivo va en 40-60%
      y no en 100% a proposito: progresar en todo cada semana no pasa, y poner
      la expectativa ahi solo produce sensacion de fracaso. */
-  const ov=overloadIndex(9);
+  const ov=overloadIndex(9,logs);
   b+='<div class="grouptitle">'+ic("up","xs")+' Sobrecarga de la semana</div>';
   if(ov.total<2){b+='<div class="empty" style="padding:18px 12px">Con dos sesiones del mismo ejercicio ya te digo en cuáles estás subiendo.</div>';}
   else{b+='<div class="chartcard">';
@@ -4185,7 +4188,7 @@ function renderProgress(){
     b+='</div>';}
 
   /* 1c · radar de estancamiento, con tres salidas y sin empujar a ninguna */
-  const st=stalled();
+  const st=stalled(logs);
   if(st.length){
     b+='<div class="grouptitle">'+ic("alert","xs")+' Estancado</div><div class="chartcard">';
     b+='<div class="cs" style="margin:0 0 8px">Tres sesiones sin superar tu mejor marca de las últimas ocho semanas. Elige tú:</div>';
@@ -4196,7 +4199,7 @@ function renderProgress(){
     b+='</div>';}
 
   /* 4 · records */
-  const prs=prFeed(30);
+  const prs=prFeed(30,logs);
   b+='<div class="grouptitle">'+ic("trophy","xs")+' Récords recientes</div>';
   if(!prs.length){b+='<div class="empty" style="padding:18px 12px">Cuando superes una marca anterior aparecerá aquí.</div>';}
   else{b+='<div class="chartcard"><div class="cs" style="margin:0 0 8px"><b>'+prs.length+'</b> récords en 30 días</div>';
@@ -4232,9 +4235,9 @@ function renderProgress(){
   b+=medidasHTML();
 
   /* 3 · por musculo */
-  const wk=muscleSets(weekStart(0),today());
+  const wk=muscleSets(weekStart(0),today(),logs);
   const m4={};for(let w=0;w<4;w++){const st=weekStart(w),en=w===0?today():(d=>{d.setDate(d.getDate()-1);return ds(d);})(dlocal(weekStart(w-1)));
-    const mm=muscleSets(st,en);Object.keys(mm).forEach(k=>{m4[k]=(m4[k]||0)+mm[k];});}
+    const mm=muscleSets(st,en,logs);Object.keys(mm).forEach(k=>{m4[k]=(m4[k]||0)+mm[k];});}
   const MG=muscGoal(),muscles=Object.keys(MG).filter(k=>(m4[k]||0)>0||(wk[k]||0)>0);
   b+='<div class="grouptitle">Series por músculo · esta semana</div>';
   if(!muscles.length){b+='<div class="empty" style="padding:18px 12px">Registra tus series de fuerza y aquí verás si cada músculo recibe suficiente trabajo.</div>';}

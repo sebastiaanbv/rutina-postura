@@ -128,6 +128,45 @@ var Fixtures=(function(){
       rp_lastexport:fecha(3)});
     return cerrar(D);}
 
+  /* ---- dos años de gimnasio: para medir Progreso con un historial largo ----
+     El mismo programa de dueno() durante 104 semanas. La carga va en bloques
+     de 12 semanas contados desde hoy hacia atras: cada uno empieza por debajo
+     del anterior (descarga) y acaba por encima, asi que el ultimo deja records
+     recientes. El curl se queda en 32 kg casi todo el segundo año y el radar
+     de estancamiento tiene algo que decir. Movilidad los martes y, ademas, el
+     dia 1 de cada mes: el resumen del mes compara el 1-hoy de este mes con el
+     del anterior, y asi siempre tiene sesiones, sea el dia que sea (tambien un
+     dia 1). Pesajes seis dias de cada siete y medidas cada tres semanas. */
+  function dosAnos(){
+    const D={rp_logs:{},rp_history:[],rp_logged:{}},N=728;
+    for(let n=N;n>=1;n--){const d=momento(n,18,30),dow=d.getDay(),q=Math.floor((n-1)/7),
+        sube=8-Math.floor(q/12)+Math.floor((11-q%12)/4),r=2-q%3;
+      if(dow===1)sesion(D,"gym_empuje","Empuje",n,[
+          ["press_banca_db",26+2.5*sube,4,8+r,2],["fondos_paralelas",0,3,10+r],
+          ["press_hombro_db",14+2*sube,3,9+r,1],["elevaciones_laterales",8+sube%3,3,14+r],
+          ["extension_triceps_polea",25+2.5*sube,3,13+r],["remo_maquina",50+2.5*sube,3,10]],
+        ["caminadora","circulos_brazos","wall_angels"],14);
+      else if(dow===3)sesion(D,"gym_tiron","Tirón",n,[
+          ["jalon_pecho",50+2.5*sube,4,9+r,2],["remo_maquina",55+2.5*sube,5,10],
+          ["curl_barra",20+2*Math.min(sube,6),3,9+r],["pec_deck",40+2.5*(sube%4),3,12]],
+        ["caminadora","gato_camello_pie"],17);
+      else if(dow===5)sesion(D,"gym_pierna","Pierna",n,[
+          ["hack_squat",60+5*sube,4,7+r,1],["prensa_inclinada",120+10*sube,3,10+r],
+          ["curl_femoral",35+2.5*sube,3,11+r],["extension_cuadriceps",40+2.5*sube,3,11+r]],
+        ["caminadora","sentadilla_aire"],16);
+      else if(dow===2||d.getDate()===1)sesion(D,"postura_movilidad","Postura — Movilidad",n,[],
+        ["gato_camello","wall_angels","chin_tuck","bird_dog"],9);}
+    const bw=[],med=[];
+    for(let i=N;i>=0;i--){const x=N-i;
+      if(i%7!==3)bw.push({date:fecha(i),kg:Math.round((70+0.006*x+((i*7)%5-2)*0.15)*10)/10});
+      if(i%21===0)med.push({date:fecha(i),brazo:Math.round((35+0.004*x)*10)/10,cintura:Math.round((81+0.002*x)*10)/10,pecho:Math.round((99+0.005*x)*10)/10});}
+    Object.assign(D,{
+      rp_prefs:{goal:"masa",chartMetric:"e1rm"},
+      rp_plan:["gym_empuje","postura_movilidad","gym_tiron",null,"gym_pierna","rest","rest"],
+      rp_bw:bw,rp_medidas:med,rp_checks:{},rp_weekgoal:{},
+      rp_theme:"dark",rp_lastexport:fecha(5)});
+    return cerrar(D);}
+
   /* ---- una sesion de ayer que nunca se cerro ---- */
   function sinCerrar(){const ini=momento(1,19,0).getTime();
     return {rp_history:[],rp_logs:{},
@@ -167,6 +206,6 @@ var Fixtures=(function(){
     D.rp_checks={[fecha(0)]:{gym_empuje:{caminadora:true,circulos_brazos:true,press_banca_db:true}}};
     return D;}
 
-  return {vacio:()=>({}),dueno:dueno,madre:madre,sinCerrar:sinCerrar,cambioHora:cambioHora,
+  return {vacio:()=>({}),dueno:dueno,madre:madre,dosAnos:dosAnos,sinCerrar:sinCerrar,cambioHora:cambioHora,
     aMedias:aMedias,fecha:fecha,momento:momento,ds:ds};
 })();
