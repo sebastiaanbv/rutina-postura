@@ -174,6 +174,34 @@
           if(p==="--t-campo"?!/^\s*max\(16px,\s*var\(--t-md\)\)\s*$/.test(v):/px/.test(v))malos.push(r.selectorText+" {"+p+":"+v+"}");});});
       [...app.doc.styleSheets].forEach(s=>ver(s.cssRules));
       expect(malos).toEqual([]);});
+    test("todo tamaño de letra del CSS es un paso de la escala, ni px ni rem sueltos",app=>{
+      /* la prueba de arriba no ve un calc(1.5rem) escrito a mano: crece con
+         la letra, pero queda fuera de los once pasos de DISENO 3 */
+      const PASO=/^var\(--t-(mega|display|xl|title|lg|md|lead|base|sm|xs|2xs|campo)\)$/;
+      const malos=[];let vistos=0;
+      const ver=rs=>[...rs].forEach(r=>{if(r.cssRules)ver(r.cssRules);if(!r.style)return;
+        const v=r.style.getPropertyValue("font-size").trim();if(!v)return;vistos++;
+        if(v!=="inherit"&&!PASO.test(v))malos.push(r.selectorText+" {font-size:"+v+"}");});
+      [...app.doc.styleSheets].forEach(s=>ver(s.cssRules));
+      expect(vistos).toBeGreaterThan(100);
+      expect(malos).toEqual([]);});
+    test("los controles no amplian con doble toque y la pagina se sigue pudiendo pellizcar",async app=>{
+      /* touch-action:manipulation quita solo el doble toque para ampliar: dos
+         toques rapidos en − o + son dos toques. En la pagina, nada: el
+         pellizco y el doble toque sobre el texto siguen */
+      const ta=el=>app.w.getComputedStyle(el).touchAction,malos=[];let vistos=0;
+      const mira=que=>app.$$('.view.active button,.view.active [role="button"],.view.active [role="checkbox"],.view.active [role="switch"],#nav button')
+        .filter(e=>e.getClientRects().length).forEach(e=>{vistos++;
+          if(ta(e)!=="manipulation")malos.push(que+" · "+e.tagName.toLowerCase()+"."+[...e.classList].join(".")+": "+ta(e));});
+      try{tab(app,"home");mira("Inicio");
+        app.w.openRoutine("gym_empuje");mira("Rutina");
+        app.w.startRoutine("press_banca_db");mira("Guiado");
+        expect(app.$$("#guided .sq").length).toBeGreaterThan(3);
+        tab(app,"settings");mira("Ajustes");}
+      finally{app.sembrar({});app.reiniciarMemoria();tab(app,"home");}
+      expect(vistos).toBeGreaterThan(30);
+      expect(malos).toEqual([]);
+      [app.doc.documentElement,app.doc.body,app.$(".view.active"),app.$(".view.active h1")].forEach(e=>expect(ta(e)).toBe("auto"));});
     test("iOS: con su letra de serie (17 px) y --fk la escala mide lo mismo que en Android",async app=>{
       /* el bloque existe y solo aplica en iOS: Safari de escritorio no tiene
          -webkit-touch-callout y alli la fuente del sistema mide 13 px */
@@ -250,18 +278,78 @@
       finally{deVuelta(app);}
       /* el nombre sigue ahi para quien lo necesite: la hoja del plan lo dice entero */
       expect(app.texto("#weekCard .day .tag .tx")).toBe("Empuje");});
-    test("el peso sube encima de los botones − y + cuando no cabe entre ellos",async app=>{
-      const fila=()=>{const s=app.$("#guided .stepper"),b=s.querySelector(".row b").getBoundingClientRect(),
-        m=s.querySelectorAll(".sq")[0].getBoundingClientRect(),M=s.querySelectorAll(".sq")[1].getBoundingClientRect();
-        return {encima:b.bottom<=m.top+1,entre:b.left>=m.right-1&&b.right<=M.left+1};};
+    /* El stepper del guiado, la pieza que se toca en cada serie. En cada
+       fila de steppers: los botones miden 42 px y van en la misma linea, y la
+       cifra o esta encima de los dos o entre ellos con 4 px de aire a cada
+       lado. Los steppers de una misma fila, igual los dos. Devuelve los
+       problemas y si la cifra va encima. */
+    function steppers(app,que){
+      const out=[],encima=[];
+      app.$$("#guided .logrow").forEach(fila=>{const aqui=[];
+        fila.querySelectorAll(".stepper").forEach(st=>{
+          const r=st.querySelector(".row"),sq=r.querySelectorAll(".sq"),c=r.querySelector("b,.numin");
+          const nom=que+" · "+st.querySelector(".lab").textContent+" «"+(c.value||c.textContent)+"»";
+          const a=sq[0].getBoundingClientRect(),b=sq[1].getBoundingClientRect(),s=st.getBoundingClientRect();
+          let q=c.getBoundingClientRect();
+          if(c.tagName==="B"){const rg=app.doc.createRange();rg.selectNodeContents(c);q=rg.getBoundingClientRect();}
+          [a,b].forEach(x=>{
+            if(Math.abs(x.width-42)>.5||Math.abs(x.height-42)>.5)out.push(nom+": boton de "+x.width.toFixed(1)+"×"+x.height.toFixed(1)+" px");
+            if(x.left<s.left-.5||x.right>s.right+.5)out.push(nom+": boton fuera del stepper");});
+          if(Math.abs(a.top-b.top)>1)out.push(nom+": − y + en lineas distintas");
+          const arriba=q.bottom<=Math.min(a.top,b.top)+1;
+          if(!arriba){const i=q.left-a.right,d=b.left-q.right;
+            if(i<3.95||d<3.95)out.push(nom+": aire de "+i.toFixed(1)+" y "+d.toFixed(1)+" px junto a los botones");
+            if(q.top>a.bottom||q.bottom<a.top)out.push(nom+": la cifra ni encima ni a la altura de los botones");}
+          aqui.push(arriba);});
+        if(new Set(aqui).size>1)out.push(que+": en la misma fila, un stepper con la cifra encima y otro no");
+        encima.push(aqui[0]);});
+      return {out:out,encima:encima[0]};}
+    /* escribe el peso como la persona: toca la cifra, teclea y Enter */
+    function escribePeso(app,v){app.w.editNum("w");const i=app.$("#numin");i.value=v;
+      i.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter"}));}
+    test("el stepper del peso: botones de 42 px y la cifra encima o con 4 px de aire, de 320 a 430 px y hasta el 130 %",async app=>{
+      /* una cifra de cada largo: bajo 10 kg ("7.5"), de 10 a 100 ("57.5") y
+         desde 100 ("142.5"); y tambien mientras se escribe */
       app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");
-      try{await telefono(app,430,100);expect(fila()).toEqual({encima:false,entre:true});
-        await telefono(app,375,100);expect(fila()).toEqual({encima:false,entre:true});
-        await telefono(app,320,100);expect(fila().encima).toBe(true);
-        await telefono(app,375,130);expect(fila().encima).toBe(true);
-        /* a 430 px la cifra al 130 % todavia cabe entre los botones */
-        await telefono(app,430,130);expect(fila()).toEqual({encima:false,entre:true});}
+      const fallos=[];let vistas=0;
+      try{for(const ancho of [320,360,375,390,412,430])for(const pct of [100,115,130]){
+          await telefono(app,ancho,pct);
+          for(const v of ["7.5","57.5","142.5"]){escribePeso(app,v);expect(app.texto("#lw")).toBe(v);
+            fallos.push(...steppers(app,ancho+" px al "+pct+" %").out);vistas++;}
+          app.w.editNum("w");const e=steppers(app,ancho+" px al "+pct+" %, escribiendo");
+          fallos.push(...e.out);if(!e.encima)fallos.push(ancho+" px al "+pct+" %: el campo no va encima de los botones");
+          const i=app.$("#numin"),r=i.parentElement;
+          if(i.getBoundingClientRect().width<r.clientWidth-1)fallos.push(ancho+" px al "+pct+" %: el campo no usa el ancho del stepper");
+          i.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter"}));}}
+      finally{deVuelta(app);app.sembrar(F.dueno);app.reiniciarMemoria();tab(app,"home");}
+      expect(vistas).toBe(54);
+      expect(fallos).toEqual([]);});
+    test("un peso de cinco caracteres (142.5 desde 140 con +) va encima de − y +, y el + no se mueve de un toque al siguiente",async app=>{
+      /* el caso de la revision: con 2,5 de salto la cifra alterna "140",
+         "142.5" y "145". Si la forma dependiera de la cifra de cada momento,
+         el + subiria y bajaria bajo el dedo en cada toque */
+      app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");
+      const mas=()=>{const r=app.$("#lw").parentElement.querySelectorAll(".sq")[1].getBoundingClientRect();
+        return [Math.round(r.left),Math.round(r.top)];};
+      try{expect(app.texto("#lw")).toBe("140");
+        for(const [ancho,pct] of [[375,100],[412,115],[430,130]]){
+          await telefono(app,ancho,pct);const que=ancho+" px al "+pct+" %",antes=mas();
+          app.w.adjW(2.5);expect(app.texto("#lw")).toBe("142.5");
+          const r=steppers(app,que);expect(r.out).toEqual([]);expect(r.encima).toBe(true);
+          expect(mas()).toEqual(antes);
+          app.w.adjW(2.5);expect(app.texto("#lw")).toBe("145");expect(mas()).toEqual(antes);
+          app.w.adjW(-2.5);app.w.adjW(-2.5);expect(app.texto("#lw")).toBe("140");expect(mas()).toEqual(antes);}}
       finally{deVuelta(app);app.sembrar(F.dueno);app.reiniciarMemoria();tab(app,"home");}});
+    test("con la letra de serie la cifra solo sube cuando no cabe: entre − y + desde 360 px bajo 10 kg, desde 390 bajo 100 kg y desde 412 con 100 kg o mas",async app=>{
+      /* la forma de siempre se conserva donde cabe: no se apila todo por si
+         acaso. [7.5, 57.5, 142.5]: true = encima de los botones */
+      const ESPERADO={320:[true,true,true],360:[false,true,true],390:[false,false,true],412:[false,false,false],430:[false,false,false]};
+      app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");
+      const visto={};
+      try{for(const ancho of Object.keys(ESPERADO)){await telefono(app,+ancho,100);
+          visto[ancho]=["7.5","57.5","142.5"].map(v=>{escribePeso(app,v);return steppers(app,ancho).encima;});}}
+      finally{deVuelta(app);app.sembrar(F.dueno);app.reiniciarMemoria();tab(app,"home");}
+      expect(visto).toEqual(ESPERADO);});
     test("el aviso flotante es un solo bloque de texto y usa el ancho de la pantalla",async app=>{
       /* con left:50% el aviso solo tenia media pantalla, y suelto cada <b> era
          otra columna: «Récord en / Jalón al / pecho:» al lado de «55 / kg ×» */

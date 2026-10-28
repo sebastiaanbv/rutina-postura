@@ -38,8 +38,7 @@
         app.w.guidedSkipExercise();
         expect(app.ev("steps[stepi].id")).not.toBe(o.cargado);
         expect(app.texto("#guided").length).toBeGreaterThan(20);});
-      if(o.bugUnidad)test.skip("modo guiado: el peso se muestra igual antes y despues de tocar + y −",
-        "BUG: renderStep pinta #lw solo con el numero ('30'), pero adjW lo reescribe con la unidad ('30 kg'); tras subir y bajar 2,5 kg el mismo peso se ve distinto, y editNum lo vuelve a dejar sin unidad.",
+      test("modo guiado: el peso se muestra igual antes y despues de tocar + y −",
         app=>{app.w.startRoutine(o.cargado);const a=app.texto("#lw");app.w.adjW(2.5);app.w.adjW(-2.5);
           expect(app.texto("#lw")).toBe(a);});
       test("Calendario: mes pintado y dias con actividad",app=>{
@@ -78,8 +77,7 @@
   humo("sin datos",F.vacio,{tema:"light",rutina:"gym_empuje",cargado:"press_banca_db",avisoCopia:false,
     conHistorial:false,conIndice:false,pesos:"",objetivo:"Ganar músculo"});
   humo("dueño (gimnasio, masa)",F.dueno,{tema:"dark",rutina:"gym_tiron",cargado:"jalon_pecho",avisoCopia:true,
-    conHistorial:true,conIndice:true,pesos:"",objetivo:"Ganar músculo",progreso:["Récords recientes","Series por músculo"],
-    bugUnidad:true});
+    conHistorial:true,conIndice:true,pesos:"",objetivo:"Ganar músculo",progreso:["Récords recientes","Series por músculo"]});
   humo("madre (casa, salud, 1-3 kg)",F.madre,{tema:"light",rutina:"salud_fuerza_a",cargado:"press_hombro_db",avisoCopia:false,
     conHistorial:true,conIndice:true,pesos:"1 2 3",objetivo:"Salud y mantenimiento",hoy:"En curso"});
 })();

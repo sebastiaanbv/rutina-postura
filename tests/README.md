@@ -33,7 +33,7 @@ Otras opciones:
 | `pruebas_logica.js` | suggestLoad, isPR, dose/SECDOSE, effList, buildSteps, estMinutes, strengthIdx, fechas |
 | `pruebas_datos.js` | copia de seguridad de ida y vuelta, importaciones que no deben tocar nada, sesión sin cerrar, datos dañados o con otra forma, esquema `rp_schema` y migraciones, teléfono lleno (`lleno(app,{margen:0})` simula `QuotaExceededError`) |
 | `pruebas_pantallas.js` | recorrido de humo por Inicio, rutina, guiado, Calendario, Progreso y Ajustes con cada juego de datos |
-| `pruebas_letra.js` | zoom y letra del sistema: viewport, escala en `rem`, y las pantallas principales a 320, 375 y 430 px con la letra de serie y al 130 % sin textos cortados ni pisados (una pantalla nueva entra en el humo añadiéndola a `recorrido`) |
+| `pruebas_letra.js` | zoom y letra del sistema: viewport, escala en `rem`, `touch-action` de los controles, el stepper del guiado con cifras de cada largo, y las pantallas principales a 320, 375 y 430 px con la letra de serie y al 130 % sin textos cortados ni pisados (una pantalla nueva entra en el humo añadiéndola a `recorrido`) |
 
 ## Añadir una prueba
 

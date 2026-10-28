@@ -102,7 +102,7 @@ letra del teléfono y nada crecería— y el texto base se pone en `body`. Cada 
 |---|---|---|---|
 | `--t-mega` | 50 | 3,125 | Temporizador, racha final, índice de fuerza |
 | `--t-display` | 30 | 1,875 | Título de pantalla, título de la tarjeta de hoy |
-| `--t-xl` | 26 | 1,625 | Nombre del ejercicio en el guiado, cifra del stepper |
+| `--t-xl` | 26 | 1,625 | Nombre del ejercicio en el guiado, cifra del stepper y su campo al escribirla |
 | `--t-title` | 22 | 1,375 | Cifras destacadas |
 | `--t-lg` | 20 | 1,25 | Iconos grandes, cifras de estadística |
 | `--t-md` | 16 | 1 | Botones, campos de texto |
@@ -300,12 +300,24 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
     - **Lista de ejercicios**: la figura grande de la fila «siguiente» vuelve a 46 px cuando no
       deja los 7 em de «Calentamiento» (a 320 px ya pasaba de su columna); por debajo de 20 em las
       figuras se van y el nombre gana 57 px.
-    - **Stepper del guiado**: si la cifra no cabe entre − y + (84 px de botones más 3,8 em), sube
-      a su propia línea y los botones quedan debajo, en los extremos. A 320 px pasa ya con la
-      letra de serie: un «57.5» no cabía y empujaba el stepper de las reps fuera del margen.
+    - **Stepper del guiado**: la cifra va entre − y + mientras quepa con 4 px de aire a cada
+      lado; si no, sube a su propia línea y los botones quedan debajo, en los extremos. Los
+      botones **no encogen nunca** (42 px). El sitio que se pide depende de cuántos caracteres
+      puede llegar a tener la cifra, y se decide **por el orden del peso, no por la cifra de cada
+      momento** (`cifraPeso()`, `data-cifra` en la fila): 3 por debajo de 10 kg («7.5») y en las
+      reps, 4 desde 10 kg («57.5») y 5 desde 100 («142.5»). Con saltos de 2,5 la cifra alterna
+      «140» y «142.5»: si la forma dependiera de la cifra, el + subiría y bajaría bajo el dedo a
+      cada toque. Los dos steppers de la fila cambian juntos. Con la letra de serie, la de 3 sube
+      en pantallas de unos 344 px o menos, la de 4 por debajo de 375 y la de 5 por debajo de unos
+      406; con la letra grande, antes. Al **escribir** la cifra, el campo va siempre encima de los
+      botones, a lo ancho del stepper, porque lo que se teclea no tiene largo previsto. La cifra
+      va **sin unidad**, como ya la pintaba el paso al abrirse: «Peso» lo dice encima.
   - **Filas que se reparten**: la marca de un récord y su fecha, el botón junto a un campo o en
     el aviso de copia, la tercera caja de la pantalla de fin o la tercera columna del ejercicio
     propio bajan de línea antes que recortar o pisar.
+  - **El doble toque no amplía sobre un control.** Botones, `role="button"`, el visto y los
+    interruptores llevan `touch-action:manipulation`: dos toques rápidos en − o + son dos toques,
+    no un zoom. El pellizco sigue en toda la página, y el doble toque sobre el texto también.
 - **Zonas seguras**: `env(safe-area-inset-top)` en las tres cabeceras y `inset-bottom` en la barra inferior y las hojas.
 
 ---
@@ -421,10 +433,14 @@ Letra del sistema y zoom (HU-55). Quien necesita letra más grande no podía amp
 dedos —el viewport lo prohibía— y la app no se enteraba del tamaño de letra del teléfono: toda la
 escala estaba en px y la raíz fijada a 14.
 
-- **Pellizco permitido.** Fuera `maximum-scale=1` y `user-scalable=no` del viewport.
+- **Pellizco permitido.** Fuera `maximum-scale=1` y `user-scalable=no` del viewport. Los
+  controles llevan `touch-action:manipulation` para que dos toques rápidos en − o + no se lean
+  como doble toque para ampliar (§10).
 - **La escala tipográfica pasa a `rem`**, con los mismos once pasos y los mismos px de serie
-  (§3). `<html>` deja de tener tamaño propio y el base va en `body`. Los nueve tamaños que
-  quedaban escritos a mano (glifos de botón, campos a 16 px) pasan a la escala.
+  (§3). `<html>` deja de tener tamaño propio y el base va en `body`. De los nueve tamaños que
+  quedaban escritos a mano, ocho pasan a la escala (glifos de botón, campos a 16 px, y el campo
+  de la cifra del stepper, de 24 px a `--t-xl` como la cifra que sustituye). El noveno era el
+  emoji de la pantalla de fin, que no se pinta desde v24: la regla se borra.
 - **La letra del sistema llega**: `meta text-scale` en Android y `-apple-system-body` con `--fk`
   en iOS (§3). En escritorio, el ajuste de letra del navegador.
 - **Campos a 16 px como mínimo** (`--t-campo`): sin `maximum-scale`, iOS habría vuelto a ampliar
@@ -435,17 +451,27 @@ escala estaba en px y la raíz fijada a 14.
   - a 320 px un peso con decimal o de tres cifras no cabía entre − y +: pegado a los botones,
     empujaba el stepper de las reps hasta el borde de la pantalla; y al escribirlo, el campo de
     104 px se salía del stepper en cualquier ancho;
+  - un «142.5» encogía los botones del stepper hasta 37 px y dejaba la cifra pegada a ellos, a
+    375 px ya con la letra de serie y a 430 al 130 %; y como `adjW` le añadía «kg» (el paso al abrirse y
+    `editNum` la dejaban sin unidad), el mismo peso se veía distinto según cómo se llegara a él.
+    Ahora los botones no encogen, la fila reserva el sitio por el orden del peso (§10) y la cifra
+    va siempre sin unidad;
   - «Caminadora» se cortaba sin «…» a 320 px, y el recorte a dos líneas dejaba «Colgado con…»;
   - la etiqueta «Calentamiento» de la fila siguiente pasaba de su columna a 320 px;
   - el aviso flotante tenía media pantalla (`left:50%`) y cada `<b>` era otra columna del flex:
     un récord salía en cuatro renglones partidos en dos;
   - los récords y los músculos largos salían con «…» («Extensión de tríceps en p…», «Hombro p…»).
 - **Pruebas** en `tests/pruebas_letra.js`: viewport y `text-scale`, la escala en rem a 100 y
-  130 %, ningún `font-size` en px, la compensación de iOS, campos de 16 px o más, que todo el
-  texto de seis pantallas crezca un 30 %, curvas, riel, stepper y aviso, y el humo de las
+  130 %, ningún `font-size` en px y todos de la escala, la compensación de iOS, campos de 16 px
+  o más, `touch-action` en los controles y no en la página, que todo el texto de seis pantallas
+  crezca un 30 %, curvas, riel y aviso; el stepper con una cifra de cada largo a 320-430 px y
+  hasta el 130 % (botones de 42, cifra encima o con 4 px de aire, también al escribirla), el
+  + quieto de 140 a 142.5 y 145, y la forma de siempre donde cabe; y el humo de las
   pantallas principales a 320, 375 y 430 px con la letra de serie y al 130 %, con tres juegos de
   datos. El humo revisa cada texto contra las cajas que lo contienen, contra los demás textos y
-  contra los botones, y cada tarjeta contra el ancho del teléfono.
+  contra los botones, y cada tarjeta contra el ancho del teléfono. En `tests/pruebas_pantallas.js`,
+  la del peso igual antes y después de tocar + y −, que estaba en `test.skip` por el «kg», corre
+  ya con los tres juegos de datos.
 - **Lo que queda abierto**: al 150 % aguanta todo menos el selector de tema a 320 px; al 200 % se
   salen los títulos de una sola palabra («Calendario») y el botón «Registrar rutina». Para eso
   está el pellizco. No se ha probado en un teléfono real: las pruebas simulan la letra del

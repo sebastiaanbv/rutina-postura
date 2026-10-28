@@ -308,13 +308,21 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .timepill .x:after{content:"";
     position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
     min-width:44px;min-height:44px;width:100%;height:100%}
+  /* Desde que el viewport deja ampliar, dos toques rapidos en - o + (o en
+     "Registrar serie") pueden leerse en iOS como doble toque para ampliar.
+     manipulation quita solo ese gesto y solo en los controles: el pellizco
+     sigue, y el doble toque sobre el texto tambien. */
+  button,[role="button"],[role="checkbox"],[role="switch"]{touch-action:manipulation}
 
   /* entradas numéricas */
   .numin,.setin,.addrow input,.bwrow input{background:var(--card);color:var(--tx);
     border:2px solid var(--primary);border-radius:10px;text-align:center;
     font-weight:var(--w-bold);font-variant-numeric:tabular-nums;-moz-appearance:textfield}
-  /* min-width:0: entre los dos botones encoge en vez de salirse del stepper */
-  .numin{width:104px;min-width:0;font-size:calc(1.5rem*var(--fk));padding:2px 4px}
+  /* la cifra del stepper al escribirla, del mismo tamaño que la cifra. Va
+     encima de los botones (.logrow:has(.numin)); min-width:0 es para el
+     navegador sin :has(), donde se queda entre ellos y encoge en vez de
+     salirse del stepper */
+  .numin{width:104px;min-width:0;font-size:var(--t-xl);padding:2px 4px}
   .setin{width:3.6em;font-size:var(--t-campo);padding:5px 2px}
   /* el campo pide su sitio (10 em el de texto, 8 el de la hora) y el boton se
      queda al lado mientras quepa; con la letra grande baja a su propia linea
@@ -828,19 +836,42 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .logrow{display:flex;gap:var(--s2);margin-top:var(--s1)}
   .stepper{flex:1;border-radius:var(--r-md);padding:12px 10px;container-type:inline-size}
   .stepper .lab{text-align:center}
-  .stepper .row{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
-  .stepper .row b{font-size:var(--t-xl);font-weight:var(--w-bold);letter-spacing:-1px;cursor:pointer}
-  .stepper .row b small{font-size:var(--t-sm);font-weight:var(--w-med);color:var(--mut)}
+  .stepper .row{display:flex;align-items:center;justify-content:space-between;gap:var(--s2) var(--s1);margin-top:6px}
+  /* los botones miden 42 px siempre: si la cifra no cabe, no son ellos los
+     que encogen (un "142.5" los dejaba en 37 y pegados a la cifra) */
+  .stepper .row .sq{flex:0 0 42px}
+  /* -1 px con la letra de serie; en em para que la cifra crezca entera con la
+     letra y las consultas de abajo la midan igual a cualquier tamaño */
+  .stepper .row b{font-size:var(--t-xl);font-weight:var(--w-bold);letter-spacing:calc(-1em/26);cursor:pointer;text-align:center}
   /* Entre los dos botones de 42 px quedan 34 px a 320 de ancho: un "57.5" no
      cabia ya con la letra de serie y, pegado a los botones, empujaba el
      stepper de las reps fuera del margen; al 130 % pasaba hasta con un "12".
-     La cifra pide unos 3,8 em (los de su letra crecen con ella) ademas de los
-     84 px de botones; si no los hay, sube a su propia linea y los botones
-     quedan debajo, en los extremos. Con la letra de serie solo pasa por
-     debajo de 360 px de pantalla. */
-  @container (max-width:calc(84px + 3.8em)){
-    .stepper .row{flex-wrap:wrap;row-gap:var(--s2)}
-    .stepper .row b,.stepper .row .numin{order:-1;flex:1 0 100%;text-align:center}}
+     La cifra va entre - y + mientras quepa con 4 px de aire a cada lado (92 px
+     con los botones); si no, sube a su propia linea y los botones quedan
+     debajo, en los extremos. Lo que ocupa depende de cuantos caracteres puede
+     llegar a tener, y eso lo dice la fila de steppers (data-cifra, de
+     cifraPeso()): 3 de base ("7.5", las reps), 4 desde 10 kg ("57.5") y 5
+     desde 100 ("142.5"), que ocupan 2,7, 3,82 y 4,94 em de la letra del
+     stepper. Se reserva por el orden del peso y no por la cifra de cada
+     momento: con saltos de 2,5 la cifra alterna "140" y "142.5", y los
+     botones subirian y bajarian bajo el dedo en cada toque. Los dos steppers
+     de la fila cambian juntos. Las consultas van en em del stepper, asi que
+     miden a la vez el ancho y la letra. */
+  @container (max-width:calc(92px + 2.7em)){
+    .stepper .row{flex-wrap:wrap}
+    .stepper .row>b,.stepper .row>.numin{order:-1;flex:1 0 100%}}
+  @container (max-width:calc(92px + 3.82em)){
+    [data-cifra="4"] .stepper .row{flex-wrap:wrap}
+    [data-cifra="4"] .stepper .row>b,[data-cifra="4"] .stepper .row>.numin{order:-1;flex:1 0 100%}}
+  @container (max-width:calc(92px + 4.94em)){
+    [data-cifra="5"] .stepper .row{flex-wrap:wrap}
+    [data-cifra="5"] .stepper .row>b,[data-cifra="5"] .stepper .row>.numin{order:-1;flex:1 0 100%}}
+  /* al escribir la cifra el campo va siempre encima de - y +, a lo ancho del
+     stepper: lo que se teclea no tiene largo previsto. Regla aparte porque un
+     navegador sin :has() descarta la regla entera; alli el campo se queda
+     entre los botones y encoge (min-width:0 de .numin). */
+  .logrow:has(.numin) .stepper .row{flex-wrap:wrap}
+  .logrow:has(.numin) .stepper .row>b,.logrow:has(.numin) .stepper .row>.numin{order:-1;flex:1 0 100%}
   .last{margin:var(--s3) 0 var(--s1)}
   .last.tap{cursor:pointer}
   .gchart{margin:var(--s2) 0 0;display:none}
@@ -866,7 +897,6 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
 
   /* pantalla final */
   .done{text-align:center;padding:46px var(--s5)}
-  .done .em{font-size:calc(3.75rem*var(--fk))}
   .done h2{font-size:var(--t-xl);margin:var(--s3) 0 var(--s1);font-weight:var(--w-bold);letter-spacing:-.6px}
   .done .big{font-size:var(--t-mega);font-weight:var(--w-bold);color:var(--primary-ink);margin:var(--s4) 0 0}
 
@@ -2705,10 +2735,20 @@ function persistSession(k,dateOverride,startedAt){
 function durSince(t){if(!t)return 0;const m=Math.round((Date.now()-t)/60000);return (m>0&&m<=240)?m:0;}
 function fmtW(w){return (Math.round(w*10)%10===0)?String(Math.round(w)):Number(w).toFixed(1);}
 function plural(n,sing,pl){return (Math.abs(n)===1)?sing:pl;}
+/* cuantos caracteres puede llegar a tener la cifra del peso: con saltos de
+   2,5 alterna "20" y "22.5", asi que el decimal se cuenta siempre. La fila de
+   steppers lo lleva en data-cifra y el CSS le reserva ese sitio entre - y +
+   (DISENO 10) */
+function cifraPeso(w){return w>=100?5:w>=10?4:3;}
+/* la cifra del peso, sin unidad: igual que la pinta renderStep y la deja
+   editNum. adjW y reanclar le ponian "kg" y el mismo peso se veia distinto
+   segun como se hubiera llegado a el */
+function pintaPeso(){const el=$("lw");if(!el)return;el.textContent=fmtW(curW);
+  const r=el.closest(".logrow");if(r)r.dataset.cifra=cifraPeso(curW);}
 function adjW(d){const s=steps[stepi],l=availDB(s.id);
   /* con mancuernas declaradas, los botones saltan a la siguiente que existe */
   if(l){const c=curW||0,n=d>0?l.filter(x=>x>c+1e-9)[0]:l.filter(x=>x<c-1e-9).pop();curW=n!=null?n:c;}
-  else curW=Math.max(0,Math.round((curW+d)*10)/10);const el=$("lw");if(el)el.innerHTML=fmtW(curW)+' <small>'+(s.unit||'kg')+'</small>';}
+  else curW=Math.max(0,Math.round((curW+d)*10)/10);pintaPeso();}
 function adjR(d){curReps=Math.max(1,curReps+d);const el=$("lr");if(el)el.textContent=curReps;}
 function logSet(){const s=steps[stepi];useSessionLog(curRoutine);
   const w=(s.load===true?curW:0),pr=isPR(s.id,w,curReps);
@@ -2735,7 +2775,8 @@ function editNum(which){const isW=which==="w",el=$(isW?"lw":"lr");if(!el)return;
     if(!isNaN(v)&&v>=0){if(isW)curW=Math.round(v*10)/10;else curReps=Math.max(1,Math.round(v));}
     const s=steps[stepi];
     i.outerHTML=isW?`<b id="lw" onclick="editNum('w')" role="button" tabindex="0" aria-label="Escribir el peso exacto" title="Toca para escribir el peso exacto">${fmtW(curW)}</b>`
-                   :`<b id="lr" onclick="editNum('r')" role="button" tabindex="0" aria-label="Escribir las repeticiones" title="Toca para escribir las repeticiones">${curReps}</b>`;};
+                   :`<b id="lr" onclick="editNum('r')" role="button" tabindex="0" aria-label="Escribir las repeticiones" title="Toca para escribir las repeticiones">${curReps}</b>`;
+    if(isW)pintaPeso();};
   i.addEventListener("blur",commit);
   i.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();commit();}});}
 function loadPlan(){return jget("rp_plan",[null,null,null,null,null,null,null]);}
@@ -3000,7 +3041,7 @@ function reanclar(prev){const w=curW,r=curReps;
   touchSess(stepi);renderStep();
   const ahora=steps[stepi];
   if(ahora&&ahora.id===prev.id){
-    if(w!=null){curW=w;const lw=$("lw");if(lw)lw.innerHTML=fmtW(curW)+' <small>'+(ahora.unit||'kg')+'</small>';}
+    if(w!=null){curW=w;pintaPeso();}
     if(r!=null){curReps=r;const lr=$("lr");if(lr)lr.textContent=curReps;}}}
 function frame(inner,opt){opt=opt||{};const s=steps[stepi],prog=Math.round(stepi/steps.length*100);
   const conFicha=(opt.info!==false);
@@ -3028,7 +3069,7 @@ function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){cu
       const setsTxt=ds.map((x,i)=>`<div class="setline" id="sl_${s.id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${valor(x)}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">${ic("close","xs")}</span></div>`).join("");
       const pesoStep=cargado?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-2.5)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" role="button" tabindex="0" aria-label="Escribir el peso exacto" title="Toca para escribir el peso exacto">${fmtW(curW)}</b><button class="sq" onclick="adjW(2.5)" aria-label="Subir peso">+</button></div></div>`:'';
       const repsStep=`<div class="stepper"${cargado?'':' style="max-width:220px;margin:0 auto"'}><div class="lab">${cargado?'Reps':'Repeticiones'}</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" role="button" tabindex="0" aria-label="Escribir las repeticiones" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>`;
-      inner=`<div class="logrow">${pesoStep}${repsStep}</div>${cargado?rirHTML():""}
+      inner=`<div class="logrow"${cargado?` data-cifra="${cifraPeso(curW)}"`:''}>${pesoStep}${repsStep}</div>${cargado?rirHTML():""}
       <div class="last tap" onclick="toggleGChart('${s.id}')" role="button" tabindex="0" aria-label="Ver la curva de este ejercicio">${lastTxt}${spark(s.id)}</div>
       <div id="gchart" class="gchart"></div>
       ${sg.why?`<div class="qwhy">${ic("bulb","xs")} ${esc(sg.why)}</div>`:''}
