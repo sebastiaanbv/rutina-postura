@@ -8,6 +8,8 @@
   const veces=(n,w,reps)=>Array.from({length:n},()=>[w,reps]);
   /* lo que importa de una sugerencia: peso, reps y el porque que lee el usuario */
   const sug=(app,id,k)=>{const s=app.w.suggestLoad(id,k);return {w:s.w,reps:s.reps,why:s.why};};
+  /* el objetivo de hoy entero, con sus marcas (extiende, subeCarga, dolor, nuevo) */
+  const tt=(app,id,k)=>app.w.todayTarget(k,id);
   function limpio(app,datos){app.reiniciarMemoria();app.sembrar(datos||{});}
 
   escenario("Lógica central",F.vacio,()=>{
@@ -114,13 +116,130 @@
       expect(app.w.availDB("jalon_pecho")).toBe(null);
       app.sembrar({rp_prefs:{pesosDB:[]}});
       expect(app.w.availDB("press_banca_db")).toBe(null);});
+    test("availDB con la rutina: en casa todo lo que lleva carga se hace con la lista",app=>{
+      limpio(app,{rp_prefs:{pesosDB:[1,2,3]}});
+      /* sin rutina (botones del guiado, aproximacion) solo los de mancuerna, como en v35 */
+      expect(app.w.availDB("sentadilla_silla")).toBe(null);
+      expect(app.w.availDB("sentadilla_silla","salud_fuerza_a")).toEqual([1,2,3]);
+      expect(app.w.availDB("sentadilla_silla","salud_equilibrio")).toEqual([1,2,3]);
+      expect(app.w.availDB("zancada_estatica","salud_fuerza_a")).toEqual([1,2,3]);
+      expect(app.w.availDB("elevacion_pantorrilla","salud_fuerza_a")).toEqual([1,2,3]);
+      /* fuera de casa los gemelos son de maquina; sin carga no hay mancuerna */
+      expect(app.w.availDB("elevacion_pantorrilla","gym_empuje")).toBe(null);
+      expect(app.w.availDB("flexiones_pared","salud_fuerza_a")).toBe(null);
+      expect(app.w.availDB("press_banca_db","gym_empuje")).toEqual([1,2,3]);
+      app.sembrar({});
+      expect(app.w.availDB("sentadilla_silla","salud_fuerza_a")).toBe(null);});
     test("repRange, loadStep, progStep y e1rm",app=>{
       expect(app.w.repRange("press_banca_db")).toEqual([6,10]);
       expect(app.w.repRange("jalon_pecho")).toEqual([8,12]);
       expect(app.w.repRange("elevaciones_laterales")).toEqual([12,20]);
-      expect([8,15,20,25,30].map(w=>app.w.loadStep(w))).toEqual([0,0,0,2.5,2.5]);
+      /* v36: loadStep ya no devuelve 0 por encima del 10%; ese corte decide en
+         todayTarget cuando se sube (al llenar tope+2), no si se sube */
+      expect([8,15,20,25,30].map(w=>app.w.loadStep(w))).toEqual([1,2,2.5,2.5,2.5]);
       expect([5,15,25].map(w=>app.w.progStep(w))).toEqual([1,2,2.5]);
       expect(app.w.e1rm(100,10)).toBeCloseTo(133.333,3);});
+
+    /* ---------- todayTarget: los ligeros vuelven a subir (v36) ----------
+       Hasta v35 un salto de mas del 10% (todo peso por debajo de 25 kg) solo
+       estiraba el rango a tope+2, para siempre. Ahora, con tope+2 lleno, sube. */
+    test("todayTarget a 8 kg con el rango lleno: estira a tope+2, como en v35",app=>{
+      limpio(app,{rp_logs:{elevaciones_laterales:[reg(3,"gym_empuje",veces(4,8,20))]}});
+      expect(tt(app,"elevaciones_laterales","gym_empuje")).toEqual({w:8,reps:22,extiende:true,
+        why:"El salto de peso sería más del 10%: estira el rango a 22 reps"});});
+    test("todayTarget a 8 kg con todas las series en tope+2: sube a 9 kg y vuelve al minimo",app=>{
+      limpio(app,{rp_logs:{elevaciones_laterales:[reg(8,"gym_empuje",veces(4,8,20)),reg(3,"gym_empuje",veces(4,8,22))]}});
+      expect(tt(app,"elevaciones_laterales","gym_empuje")).toEqual({w:9,reps:12,subeCarga:true,
+        why:"Llegaste a 22 reps: sube a 9 kg y vuelve a 12"});
+      expect(sug(app,"elevaciones_laterales","gym_empuje")).toEqual({w:9,reps:12,why:"Llegaste a 22 reps: sube a 9 kg y vuelve a 12"});});
+    test("todayTarget a 8 kg: una serie por debajo de tope+2, o series de menos, todavia no sube",app=>{
+      limpio(app,{rp_logs:{elevaciones_laterales:[reg(3,"gym_empuje",[[8,22],[8,22],[8,22],[8,21]])]}});
+      expect(tt(app,"elevaciones_laterales","gym_empuje")).toEqual({w:8,reps:22,extiende:true,
+        why:"El salto de peso sería más del 10%: estira el rango a 22 reps"});
+      app.sembrar({rp_logs:{elevaciones_laterales:[reg(3,"gym_empuje",veces(3,8,22))]}});
+      const t=tt(app,"elevaciones_laterales","gym_empuje");
+      expect(t.w).toBe(8);expect(t.subeCarga).toBeFalsy();});
+    test("todayTarget a 22 kg (salto de 2,5 = 11%): estira primero y tras tope+2 propone 24,5 kg",app=>{
+      limpio(app,{rp_logs:{curl_femoral:[reg(3,"gym_pierna",veces(3,22,12))]}});
+      expect(tt(app,"curl_femoral","gym_pierna")).toEqual({w:22,reps:14,extiende:true,
+        why:"El salto de peso sería más del 10%: estira el rango a 14 reps"});
+      app.sembrar({rp_logs:{curl_femoral:[reg(8,"gym_pierna",veces(3,22,12)),reg(3,"gym_pierna",veces(3,22,14))]}});
+      expect(tt(app,"curl_femoral","gym_pierna")).toEqual({w:24.5,reps:8,subeCarga:true,
+        why:"Llegaste a 14 reps: sube a 24.5 kg y vuelve a 8"});});
+    test("no regresion: a 40 kg con el rango lleno sube directo a 42,5 kg",app=>{
+      limpio(app,{rp_logs:{press_banca_db:[reg(3,"gym_empuje",veces(4,40,10))]}});
+      expect(tt(app,"press_banca_db","gym_empuje")).toEqual({w:42.5,reps:6,subeCarga:true,
+        why:"Llenaste el rango entero: sube a 42.5 kg y vuelve a 6"});
+      /* el borde: 2,5 kg sobre 25 es justo el 10% y tambien sube sin estirar */
+      app.sembrar({rp_logs:{curl_femoral:[reg(3,"gym_pierna",veces(3,25,12))]}});
+      expect(tt(app,"curl_femoral","gym_pierna")).toEqual({w:27.5,reps:8,subeCarga:true,
+        why:"Llenaste el rango entero: sube a 27.5 kg y vuelve a 8"});
+      /* sin peso todavia (sentadilla_silla arranca en 0 kg): sube 1 kg, como en v35 */
+      app.sembrar({rp_logs:{sentadilla_silla:[reg(3,"salud_fuerza_a",veces(2,0,12))]}});
+      expect(tt(app,"sentadilla_silla","salud_fuerza_a")).toEqual({w:1,reps:8,subeCarga:true,
+        why:"Llenaste el rango entero: sube a 1 kg y vuelve a 8"});});
+    test("no regresion: con pesosDB la rama de mancuernas devuelve lo mismo que en v35",app=>{
+      /* [mancuernas, ejercicio, rutina, series de la vez pasada, lo que devolvia v35] */
+      const casos=[
+        [[1,2,3],"press_hombro_db","salud_fuerza_a",veces(2,2,12),
+          {w:2,reps:14,extiende:true,why:"Tu siguiente mancuerna (3 kg) es un salto grande: antes llega a 14 reps"}],
+        [[1,2,3],"press_hombro_db","salud_fuerza_a",veces(2,2,14),
+          {w:3,reps:8,subeCarga:true,why:"Sube a tu mancuerna de 3 kg y vuelve a 8 reps"}],
+        [[1,2,3],"peso_muerto_rumano_db","salud_fuerza_b",veces(2,3,14),
+          {w:3,reps:14,extiende:true,why:"Ya usas tu mancuerna más pesada: estira a 14 reps"}],
+        [[20,22,24],"press_banca_db","gym_empuje",veces(4,20,10),
+          {w:22,reps:6,subeCarga:true,why:"Sube a tu mancuerna de 22 kg y vuelve a 6 reps"}],
+        [[6,8,10],"elevaciones_laterales","gym_empuje",veces(4,8,20),
+          {w:8,reps:22,extiende:true,why:"Tu siguiente mancuerna (10 kg) es un salto grande: antes llega a 22 reps"}],
+        [[6,8,10],"elevaciones_laterales","gym_empuje",veces(4,8,22),
+          {w:10,reps:12,subeCarga:true,why:"Sube a tu mancuerna de 10 kg y vuelve a 12 reps"}],
+        [[8,8.5,9],"elevaciones_laterales","gym_empuje",veces(4,8,20),
+          {w:8.5,reps:12,subeCarga:true,why:"Sube a tu mancuerna de 8.5 kg y vuelve a 12 reps"}],
+        [[1,2,3],"press_hombro_db","salud_fuerza_a",veces(2,2,10),
+          {w:2,reps:11,why:"La vez pasada 10: hoy 11 con el mismo peso"}]];
+      casos.forEach(([l,id,k,series,v35])=>{
+        limpio(app,{rp_prefs:{pesosDB:l},rp_logs:{[id]:[reg(3,k,series)]}});
+        expect(tt(app,id,k)).toEqual(v35);});});
+    test("primera vez y molestia anotada: exactamente lo mismo que en v35",app=>{limpio(app);
+      expect(tt(app,"elevaciones_laterales","gym_empuje")).toEqual({w:0,reps:12,why:"Primera vez: busca 12 repeticiones limpias",nuevo:true});
+      expect(tt(app,"flexiones_pared","salud_fuerza_a")).toEqual({w:0,reps:8,why:"Primera vez: busca 8 repeticiones limpias",nuevo:true});
+      expect(tt(app,"caminadora","gym_empuje")).toBe(null);
+      /* un registro de solo visto no trae pesos: sigue siendo la primera vez */
+      app.sembrar({rp_logs:{elevaciones_laterales:[{date:F.fecha(3),sets:[],k:"gym_empuje",t:F.momento(3,18,0).getTime(),checked:true}]}});
+      expect(tt(app,"elevaciones_laterales","gym_empuje")).toEqual({w:0,reps:12,why:"Primera vez: busca 12 repeticiones limpias",nuevo:true});
+      /* molestia la ultima vez: se congela aunque tope+2 este lleno y ahora tocara subir */
+      app.sembrar({rp_pain:{elevaciones_laterales:[F.fecha(3)]},rp_logs:{elevaciones_laterales:[reg(3,"gym_empuje",veces(4,8,22))]}});
+      expect(tt(app,"elevaciones_laterales","gym_empuje")).toEqual({w:8,reps:22,dolor:true,
+        why:"La vez pasada anotaste molestia: mismo peso y sin forzar"});
+      app.sembrar({rp_pain:{elevaciones_laterales:[F.fecha(10),F.fecha(3)]},
+        rp_logs:{elevaciones_laterales:[reg(10,"gym_empuje",veces(4,8,20)),reg(3,"gym_empuje",veces(4,8,22))]}});
+      expect(tt(app,"elevaciones_laterales","gym_empuje")).toEqual({w:8,reps:22,dolor:true,
+        why:"Molestia repetida en este ejercicio: no subas y plantéate cambiarlo por otro"});
+      app.sembrar({rp_prefs:{pesosDB:[1,2,3]},rp_pain:{press_hombro_db:[F.fecha(3)]},rp_logs:{press_hombro_db:[reg(3,"salud_fuerza_a",veces(2,2,14))]}});
+      expect(tt(app,"press_hombro_db","salud_fuerza_a")).toEqual({w:2,reps:14,dolor:true,
+        why:"La vez pasada anotaste molestia: mismo peso y sin forzar"});
+      app.sembrar({rp_pain:{curl_femoral:[F.fecha(3)]},rp_logs:{curl_femoral:[reg(3,"gym_pierna",veces(3,22,14))]}});
+      expect(tt(app,"curl_femoral","gym_pierna")).toEqual({w:22,reps:14,dolor:true,
+        why:"La vez pasada anotaste molestia: mismo peso y sin forzar"});});
+    test("todayTarget con el peso guardado como texto: suma, no concatena",app=>{
+      /* importar valida que rp_logs sea un objeto, no el tipo de cada w: una
+         copia editada a mano puede traer "8". Antes salia "8"+1 = 81 kg */
+      limpio(app,{rp_logs:{elevaciones_laterales:[reg(3,"gym_empuje",veces(4,"8",22))]}});
+      expect(tt(app,"elevaciones_laterales","gym_empuje")).toEqual({w:9,reps:12,subeCarga:true,
+        why:"Llegaste a 22 reps: sube a 9 kg y vuelve a 12"});
+      expect(sug(app,"elevaciones_laterales","gym_empuje")).toEqual({w:9,reps:12,why:"Llegaste a 22 reps: sube a 9 kg y vuelve a 12"});
+      app.sembrar({rp_logs:{elevaciones_laterales:[reg(3,"gym_empuje",veces(4,"8",20))]}});
+      expect(tt(app,"elevaciones_laterales","gym_empuje")).toEqual({w:8,reps:22,extiende:true,
+        why:"El salto de peso sería más del 10%: estira el rango a 22 reps"});
+      app.sembrar({rp_logs:{press_banca_db:[reg(3,"gym_empuje",veces(4,"30",10))]}});
+      expect(tt(app,"press_banca_db","gym_empuje")).toEqual({w:32.5,reps:6,subeCarga:true,
+        why:"Llenaste el rango entero: sube a 32.5 kg y vuelve a 6"});
+      app.sembrar({rp_logs:{press_banca_db:[reg(3,"gym_empuje",veces(4,"30",8))]}});
+      expect(tt(app,"press_banca_db","gym_empuje")).toEqual({w:30,reps:9,why:"La vez pasada 8: hoy 9 con el mismo peso"});
+      /* con lista, "8" se comparaba como texto y proponia bajar a la de 6 */
+      app.sembrar({rp_prefs:{pesosDB:[6,8,10]},rp_logs:{elevaciones_laterales:[reg(3,"gym_empuje",veces(4,"8",22))]}});
+      expect(tt(app,"elevaciones_laterales","gym_empuje")).toEqual({w:10,reps:12,subeCarga:true,
+        why:"Sube a tu mancuerna de 10 kg y vuelve a 12 reps"});});
 
     /* ---------- isPR ---------- */
     test("isPR: record solo si ninguna serie anterior lo domina en peso Y reps",app=>{
@@ -255,5 +374,115 @@
       const r=app.w.strengthIdx(F.fecha(20));
       expect(r&&r.n).toBe(1);
       expect(app.w.strengthIdx(F.fecha(30))).toBe(null);});
+  });
+
+  /* ---------- la progresion con los telefonos tal como los dejo v35 ----------
+     Calcular el objetivo de hoy de todos los ejercicios de todas las rutinas
+     no escribe nada ni crea claves, y ningun objetivo sale roto. Tiene que ser
+     la primera prueba del escenario: mira los datos recien arrancados.
+     CLAVES_V35: las claves que ya usaba v35, mas rp_schema (v36). */
+  const CLAVES_V35=["rp_bw","rp_checks","rp_custom","rp_doses","rp_extras","rp_history","rp_lastexport","rp_logged",
+    "rp_logs","rp_medidas","rp_notes","rp_pain","rp_plan","rp_prefs","rp_rem","rp_session","rp_streak","rp_swaps",
+    "rp_theme","rp_weekgoal","rp_schema"];
+  const nuevas=app=>app.claves().filter(k=>CLAVES_V35.indexOf(k)<0);
+  /* con la lista declarada, en casa ninguna subida propone una mancuerna que no hay */
+  function sinEscribir(app){app.reiniciarMemoria();
+    expect(nuevas(app)).toEqual([]);
+    const antes=app.foto(),rotos=[],R=app.ev("ROUTINES"),lista=(app.leer("rp_prefs")||{}).pesosDB;let n=0;
+    Object.keys(R).forEach(k=>app.w.effList(k).forEach(id=>{
+      const t=app.w.todayTarget(k,id),s=app.w.suggestLoad(id,k);
+      if(t){n++;if(!(isFinite(t.w)&&t.w>=0&&t.reps>=1&&Math.round(t.reps)===t.reps&&t.why))rotos.push(k+" "+id+" "+JSON.stringify(t));
+        if(t.subeCarga&&lista&&R[k].group==="Casa"&&lista.indexOf(t.w)<0)rotos.push(k+" "+id+" sube a una mancuerna que no hay "+JSON.stringify(t));}
+      if(!(isFinite(s.w)&&s.reps>=1))rotos.push(k+" "+id+" suggestLoad "+JSON.stringify(s));}));
+    expect(rotos).toEqual([]);
+    expect(n).toBeGreaterThan(20);
+    expect(app.foto()).toEqual(antes);}
+
+  escenario("Lógica · progresión con los datos de v35 del gimnasio",F.dueno,()=>{
+    test("todas las rutinas: objetivos validos, sin escribir nada ni crear claves",sinEscribir);
+    test("en el guiado, elevaciones laterales a 8 kg con tope+2 lleno proponen 9 kg y dicen por que",app=>{
+      const D=F.dueno();
+      /* en este juego de datos van a 3 series (rp_doses): las tres en 22 */
+      D.rp_logs.elevaciones_laterales.push(reg(1,"gym_empuje",veces(3,8,22)));
+      limpio(app,D);
+      app.w.openRoutine("gym_empuje");app.w.startRoutine("elevaciones_laterales");
+      expect(app.ev("steps[stepi].id")).toBe("elevaciones_laterales");
+      expect(app.texto("#lw")).toBe("9");
+      expect(app.texto("#lr")).toBe("12");
+      expect(app.texto("#guided .qwhy")).toContain("Llegaste a 22 reps: sube a 9 kg y vuelve a 12");
+      expect(nuevas(app)).toEqual([]);
+      app.reiniciarMemoria();});
+  });
+
+  escenario("Lógica · progresión con los datos de v35 de casa",F.madre,()=>{
+    test("todas las rutinas: objetivos validos, sin escribir nada ni crear claves",sinEscribir);
+    /* el ultimo peso muerto rumano de casa es con la mancuerna de 3 kg: 2 series de 12 */
+    const casa=(lista,series)=>{const D=F.madre();
+      if(lista)D.rp_prefs.pesosDB=lista;else delete D.rp_prefs.pesosDB;
+      if(series)D.rp_logs.peso_muerto_rumano_db.push(reg(1,"salud_fuerza_b",series));
+      return D;};
+    test("sin pesosDB: la mancuerna de 3 kg estira a 14 y, con las series en 14, propone 4 kg",app=>{
+      limpio(app,casa(null));
+      expect(tt(app,"peso_muerto_rumano_db","salud_fuerza_b")).toEqual({w:3,reps:14,extiende:true,
+        why:"El salto de peso sería más del 10%: estira el rango a 14 reps"});
+      limpio(app,casa(null,veces(2,3,14)));
+      expect(tt(app,"peso_muerto_rumano_db","salud_fuerza_b")).toEqual({w:4,reps:8,subeCarga:true,
+        why:"Llegaste a 14 reps: sube a 4 kg y vuelve a 8"});
+      expect(sug(app,"peso_muerto_rumano_db","salud_fuerza_b")).toEqual({w:4,reps:8,why:"Llegaste a 14 reps: sube a 4 kg y vuelve a 8"});});
+    test("con pesosDB declarado sigue mandando la lista: nunca propone una mancuerna que no hay",app=>{
+      limpio(app,casa([1,2,3],veces(2,3,14)));
+      expect(tt(app,"peso_muerto_rumano_db","salud_fuerza_b")).toEqual({w:3,reps:14,extiende:true,
+        why:"Ya usas tu mancuerna más pesada: estira a 14 reps"});
+      limpio(app,casa([1,2,3,5]));
+      expect(tt(app,"peso_muerto_rumano_db","salud_fuerza_b")).toEqual({w:3,reps:14,extiende:true,
+        why:"Tu siguiente mancuerna (5 kg) es un salto grande: antes llega a 14 reps"});
+      limpio(app,casa([1,2,3,5],veces(2,3,14)));
+      expect(tt(app,"peso_muerto_rumano_db","salud_fuerza_b")).toEqual({w:5,reps:8,subeCarga:true,
+        why:"Sube a tu mancuerna de 5 kg y vuelve a 8 reps"});});
+    /* En casa lo que lleva carga se hace con esas mancuernas aunque el
+       ejercicio no sea "de mancuerna": sentarse con una al pecho (silla), la
+       zancada (sin aparato) y los gemelos (maquina en el gimnasio) */
+    const otra=(app,id,k,series,lista)=>{const D=F.madre();D.rp_prefs.pesosDB=lista||[1,2,3];
+      (D.rp_logs[id]=D.rp_logs[id]||[]).push(reg(1,k,series));limpio(app,D);return tt(app,id,k);};
+    test("con pesosDB, sentarse, zancada y gemelos en casa: con la de 3 kg en tope+2 no proponen 4",app=>{
+      const mas=reps=>({w:3,reps:reps,extiende:true,why:"Ya usas tu mancuerna más pesada: estira a "+reps+" reps"});
+      expect(otra(app,"sentadilla_silla","salud_fuerza_a",veces(2,3,14))).toEqual(mas(14));
+      expect(otra(app,"sentadilla_silla","salud_equilibrio",veces(2,3,14))).toEqual(mas(14));
+      expect(otra(app,"zancada_estatica","salud_fuerza_a",veces(2,3,14))).toEqual(mas(14));
+      expect(otra(app,"elevacion_pantorrilla","salud_fuerza_a",veces(2,3,22))).toEqual(mas(22));
+      /* en el tope, igual que en v35: se estira con el mismo peso */
+      expect(otra(app,"sentadilla_silla","salud_fuerza_a",veces(2,3,12))).toEqual(mas(14));
+      expect(sug(app,"sentadilla_silla","salud_fuerza_a")).toEqual({w:3,reps:14,why:"Ya usas tu mancuerna más pesada: estira a 14 reps"});});
+    test("con pesosDB, sentarse en casa sube por la lista: 0 → la mas ligera, 1 → 2 tras tope+2",app=>{
+      /* sin peso todavia: al llenar el rango coge la mas ligera, como en v35 subia 1 kg */
+      expect(otra(app,"sentadilla_silla","salud_fuerza_a",veces(2,0,12))).toEqual({w:1,reps:8,subeCarga:true,
+        why:"Llenaste el rango entero: sube a 1 kg y vuelve a 8"});
+      /* y si no hay de 1 kg, la mas ligera que hay; v35 proponia 1 kg igual */
+      expect(otra(app,"sentadilla_silla","salud_fuerza_a",veces(2,0,12),[2,3,5])).toEqual({w:2,reps:8,subeCarga:true,
+        why:"Llenaste el rango entero: sube a 2 kg y vuelve a 8"});
+      expect(otra(app,"sentadilla_silla","salud_fuerza_a",veces(2,1,12))).toEqual({w:1,reps:14,extiende:true,
+        why:"El salto de peso sería más del 10%: estira el rango a 14 reps"});
+      expect(otra(app,"sentadilla_silla","salud_fuerza_a",veces(2,1,14))).toEqual({w:2,reps:8,subeCarga:true,
+        why:"Llegaste a 14 reps: sube a 2 kg y vuelve a 8"});
+      /* entre dos de la lista (1,5 kg) sube a la siguiente que hay, no a 2,5 */
+      expect(otra(app,"zancada_estatica","salud_fuerza_a",veces(2,1.5,14))).toEqual({w:2,reps:8,subeCarga:true,
+        why:"Llegaste a 14 reps: sube a 2 kg y vuelve a 8"});
+      /* con una de 5 kg, de 3 salta a 5 tras tope+2 */
+      expect(otra(app,"elevacion_pantorrilla","salud_fuerza_a",veces(2,3,22),[1,2,3,5])).toEqual({w:5,reps:12,subeCarga:true,
+        why:"Llegaste a 22 reps: sube a 5 kg y vuelve a 12"});});
+    test("con pesosDB, fuera de casa los gemelos son de maquina: salto teorico, la lista no manda",app=>{
+      expect(otra(app,"elevacion_pantorrilla","gym_empuje",veces(2,3,22))).toEqual({w:4,reps:12,subeCarga:true,
+        why:"Llegaste a 22 reps: sube a 4 kg y vuelve a 12"});});
+    test("con pesosDB, ninguna subida en casa propone una mancuerna que no hay, en ningun ejercicio con carga",app=>{
+      const R=app.ev("ROUTINES"),EX=app.ev("EX"),malos=[];let n=0;
+      ["salud_fuerza_a","salud_fuerza_b","salud_equilibrio"].forEach(k=>{const r=R[k],
+          ids=[].concat(r.list||[],r.extras||[]);Object.keys(r.swaps||{}).forEach(o=>ids.push.apply(ids,r.swaps[o]));
+        ids.filter(id=>EX[id]&&EX[id].load===true).forEach(id=>{const rng=app.w.repRange(id);
+          [0,1,2,3].forEach(w=>[rng[1],rng[1]+2].forEach(reps=>{
+            limpio(app,{rp_prefs:{pesosDB:[1,2,3]},rp_logs:{[id]:[reg(1,k,veces(app.w.dose(k,id).sets,w,reps))]}});
+            const t=tt(app,id,k);n++;
+            if(!t||[0,1,2,3].indexOf(t.w)<0||(t.subeCarga&&!(t.w>w)))malos.push(k+" "+id+" "+w+"x"+reps+" "+JSON.stringify(t));}));});});
+      expect(malos).toEqual([]);
+      expect(n).toBeGreaterThan(80);});
   });
 })();
