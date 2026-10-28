@@ -3485,13 +3485,12 @@ function repRange(id){const e=EX[id]||{},r=e.reps||10;
   if(r<=8)return [6,10];
   if(r<=12)return [8,12];
   return [12,20];}
-/* Tope del 10% sobre el peso de trabajo, que es el limite alto del rango que
-   maneja la NSCA (2,5-10%). Un 5% seria mas conservador pero bloquearia casi
-   todo: el escalon minimo real de una mancuerna es 2,5 kg, que sobre 47,5 kg
-   ya es un 5,3%. Por encima del tope no se sube carga, se estira el rango de
-   repeticiones, que da la misma hipertrofia (Plotkin 2022). */
-function loadStep(w){const s=w<10?1:(w<20?2:2.5);
-  return (w>0&&s/w>0.10)?0:s;}
+/* Salto de carga de la progresion doble: la tabla de progStep, sin corte.
+   Hasta v35 devolvia 0 si el salto pasaba del 10% del peso de trabajo (el
+   limite alto de la NSCA, 2,5-10%), y por debajo de 25 kg eso no dejaba subir
+   nunca: el rango se estiraba para siempre. El 10% sigue mandando, pero en
+   todayTarget decide CUANDO se sube, no SI se sube. */
+function loadStep(w){return progStep(w);}
 /* mancuernas que hay en casa (v35, rp_prefs.pesosDB), ordenadas; null si el
    ejercicio no es de mancuerna o no se declararon (gimnasio: rack completo) */
 function availDB(id){const z=ZONAS[id];if(!z||z.eq!=="mancuerna")return null;
@@ -3517,8 +3516,8 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
   const trabajo=ll.sets,tope=trabajo.every(x=>(x.reps||0)>=rng[1]),
         completo=trabajo.length>=(d.sets||trabajo.length),first=trabajo[0];
   /* Con mancuernas propias (Ajustes) manda la lista real, no un salto teorico.
-     Con 1-2-3 kg cualquier salto pasa del 10% y la regla general no dejaba
-     subir nunca: aqui se sube cuando el rango ESTIRADO tambien se llena. */
+     Con 1-2-3 kg cualquier salto pasa del 10%: se sube cuando el rango
+     ESTIRADO tambien se llena, y con la mas pesada solo se estira. */
   const disp=availDB(id);
   if(e.load===true&&disp&&completo&&tope){const w0=first.w||0,next=disp.filter(x=>x>w0+1e-9)[0];
     if(next==null)return {w:w0,reps:rng[1]+2,extiende:true,
@@ -3528,10 +3527,16 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
       why:"Sube a tu mancuerna de "+fmtW(next)+" kg y vuelve a "+rng[0]+" reps"};
     return {w:w0,reps:rng[1]+2,extiende:true,
       why:"Tu siguiente mancuerna ("+fmtW(next)+" kg) es un salto grande: antes llega a "+(rng[1]+2)+" reps"};}
-  if(e.load===true&&tope&&completo){const inc=loadStep(first.w||0);
-    if(inc>0){const w=Math.round((first.w+inc)*10)/10;
+  /* Sin lista, el salto teorico. Si es de hasta el 10% se sube al llenar el
+     rango; si es mayor (todo lo que pesa menos de 25 kg) primero se estira a
+     tope+2 y se sube cuando ese tambien se llena: la misma regla que con la
+     lista. Un 5% seria mas conservador pero bloquearia casi todo: 2,5 kg
+     sobre 47,5 ya es un 5,3%. Estirar da la misma hipertrofia (Plotkin 2022). */
+  if(e.load===true&&tope&&completo){const w0=first.w||0,inc=loadStep(w0),
+        suave=w0<=0||inc/w0<=0.10,lleno=trabajo.every(x=>(x.reps||0)>=rng[1]+2);
+    if(suave||lleno){const w=Math.round((w0+inc)*10)/10;
       return {w:w,reps:rng[0],subeCarga:true,
-        why:"Llenaste el rango entero: sube a "+fmtW(w)+" kg y vuelve a "+rng[0]};}
+        why:(suave?"Llenaste el rango entero":"Llegaste a "+(rng[1]+2)+" reps")+": sube a "+fmtW(w)+" kg y vuelve a "+rng[0]};}
     return {w:first.w,reps:rng[1]+2,extiende:true,
       why:"El salto de peso sería más del 10%: estira el rango a "+(rng[1]+2)+" reps"};}
   const objetivo=Math.min(rng[1],Math.max(rng[0],(first.reps||rng[0])+1));

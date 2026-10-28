@@ -365,6 +365,33 @@ dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma d
   curso, y teléfono lleno simulado (`setItem` que lanza `QuotaExceededError`) al anotar, al
   finalizar, al empezar otra rutina y al importar.
 
+Los ejercicios ligeros vuelven a subir de peso. Por debajo de 25 kg la progresión sin lista de
+mancuernas se quedaba pidiendo más repeticiones para siempre.
+
+- **El 10 % decide cuándo se sube, no si se sube.** `loadStep` devolvía 0 cuando el salto pasaba
+  del 10 % del peso de trabajo, y por debajo de 25 kg siempre pasa (1 kg sobre 8 es un 12,5 %;
+  2,5 sobre 22, un 11 %). `todayTarget` estiraba el rango a tope+2 y, al llenarlo, lo volvía a
+  estirar. Ahora `loadStep` es el salto sin corte (la tabla de `progStep`: 1, 2 o 2,5 kg) y la
+  regla, con el rango lleno y todas las series hechas, es:
+  - salto de hasta el 10 % (25 kg o más): se sube y se vuelve al mínimo, como antes;
+  - salto mayor: primero se estira a tope+2 («estira el rango a 22 reps») y, cuando **todas**
+    las series llegan a tope+2, se sube y se vuelve al mínimo: «Llegaste a 22 reps: sube a 9 kg
+    y vuelve a 12».
+
+  Es la regla que ya seguía la lista de mancuernas de v35, que no cambia: con `pesosDB`
+  declarado manda la lista y nunca se propone una mancuerna que no existe.
+- **Lo que no cambia:** la primera vez, la molestia anotada (congela aunque tope+2 esté lleno),
+  el ejercicio que aún va sin peso (de 0 kg sube a 1, como antes) y las series de menos (no
+  sube). Sin claves nuevas ni cambios en la forma de `rp_logs`.
+- **Riesgo conocido:** sin lista, el salto es teórico y una máquina puede no tener ese peso en
+  su placa. Se corrige a mano en el guiado; el salto real de cada máquina sigue abierto (punto 1
+  de la comparación con apps líderes).
+- **Pruebas** en `tests/pruebas_logica.js`: 8 kg en el tope y en tope+2, 22 kg que sube a 24,5,
+  40 kg y el borde de 25 kg que suben directo, la rama de `pesosDB` contra lo que devolvía v35,
+  primera vez y molestia idénticas, una mancuerna de 3 kg sin lista (sube a 4) y con lista
+  (manda la lista), el guiado mostrando «sube a 9 kg», y los juegos de datos de v35 sin
+  escrituras ni claves nuevas.
+
 ### Cerrado en v35
 
 - **Corregir series pasadas desde Historial.** Botón «Corregir» en cada ejercicio del día:
