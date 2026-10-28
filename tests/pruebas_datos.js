@@ -488,6 +488,42 @@
     });
   });
 
+  /* v36: los saltados y el repaso de pendientes viven en rp_session. La copia
+     los lleva, y al volver el guiado sigue donde estaba y en el mismo orden. */
+  escenario("Copia de seguridad · sesión repasando pendientes (dueño)",F.dueno,()=>{
+    test("exportar → importar conserva saltados y repaso, y el guiado retoma en el mismo paso",async app=>{
+      const R="gym_empuje",l=app.w.effList(R),id=()=>app.ev("steps[stepi].id");
+      const avanzarHasta=x=>{for(let n=0;n<300&&id()!==x;n++)app.w.advance();expect(id()).toBe(x);};
+      const hastaElFinal=()=>{const v=[];for(let n=0;n<300&&!app.$("#guided .done");n++){
+        if(v[v.length-1]!==id())v.push(id());app.w.advance();}return v;};
+      /* empieza por el 4.º, salta el press de pecho, llega al aviso y hace el 1.º pendiente */
+      app.w.openRoutine(R);app.w.startRoutine(l[3]);
+      avanzarHasta("press_banca_db");app.w.guidedSkipExercise();
+      hastaElFinal();app.w.hacerPendientes();avanzarHasta(l[1]);
+      const paso=app.ev("stepi"),s=app.leer("rp_session");
+      expect([s.stepi,s.saltados,s.repaso]).toEqual([paso,["press_banca_db"],l.slice(0,3)]);
+      const antes=app.foto(),d=await exportar(app);
+      expect(JSON.parse(JSON.parse(d.texto).store.rp_session)).toEqual(s);
+      localStorage.clear();
+      const recarga=app.cargo();importar(app,d.texto);await recarga;await app.listo();
+      expect(app.foto()).toEqual(antes);
+      /* la recarga vuelve al guiado (resumeGuided) en el mismo paso... */
+      expect(app.activa()).toBe("guided");
+      expect([app.ev("stepi"),id()]).toEqual([paso,l[1]]);
+      /* ...y salir y "Continuar" (startRoutine) tambien */
+      app.w.guidedExit();await app.hasta(()=>app.activa()==="routine",3000,"la rutina");
+      app.$("#routCta .btn:not(.sec)").click();
+      expect([app.activa(),app.ev("stepi"),id()]).toEqual(["guided",paso,l[1]]);
+      /* el repaso sigue: del 2.º al 3.º pendiente y al final, sin pasar por los
+         hechos; el saltado no sale como pendiente ni cuenta como hecho */
+      expect(hastaElFinal()).toEqual([l[1],l[2]]);
+      expect(app.$("#guided .finlist")).toBe(null);
+      expect(app.texto("#guided .done .mut")).toMatch(/^Completada/);
+      const h=app.leer("rp_history")[0];
+      expect([h.exDone,h.exTotal]).toEqual([13,14]);
+      app.reiniciarMemoria();});
+  });
+
   /* almacenamiento lleno: jset devuelve false. Lo critico avisa y no pierde
      el dato: ni la serie en memoria ni la sesion guardada. */
   escenario("Almacenamiento lleno · anotar y terminar en el guiado",F.vacio,()=>{
@@ -506,7 +542,8 @@
         expect(app.ev("sessionLog").press_banca_db.length).toBe(1);
       }finally{libera();}
       app.$("#guided .gbtn.go").click();
-      expect(app.texto("#guided")).toContain("Completada");
+      /* guardada al reintentar. Quedan 13 sin hacer: desde v36 dice "Guardada", nunca "Completada" */
+      expect(app.texto("#guided .done .mut")).toBe("Guardada · 1 de 14 ejercicios");
       const l=app.leer("rp_logs").press_banca_db;
       expect(l.length).toBe(1);expect(l[0].sets.length).toBe(1);
       expect(app.leer("rp_history")[0].key).toBe("gym_empuje");
@@ -621,7 +658,7 @@
         expect(app.leer("rp_session").log).toEqual({});
       }finally{libera();}
       app.w.finish();
-      expect(app.texto("#guided")).toContain("Completada");
+      expect(app.texto("#guided .done .mut")).toBe("Guardada · 1 de 14 ejercicios");
       const l=app.leer("rp_logs").press_banca_db;
       expect(l.length).toBe(1);expect(l[0].sets.length).toBe(1);
       expect(app.leer("rp_session")).toBe(null);
@@ -651,7 +688,7 @@
       }finally{libera();}
       expect(app.foto().rp_session).toBe(sesion);
       app.w.finish();
-      expect(app.texto("#guided")).toContain("Completada");
+      expect(app.texto("#guided .done .mut")).toBe("Guardada · 1 de 12 ejercicios");
       const l=app.leer("rp_logs").sentadilla_silla.slice(-1)[0];
       expect(l.date).toBe(app.w.today());expect(l.sets.length).toBe(1);
       expect(app.foto().rp_session).toBe(sesion);

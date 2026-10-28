@@ -223,6 +223,10 @@ El descanso es pantalla propia: contador y saltar. No hereda la ficha del ejerci
 
 **Entrar no crea la sesión.** `rp_session` nace con lo primero que se registra —una serie, un visto o un temporizador—, así que abrir un ejercicio para mirarlo y salir no deja rastro ni pone la tarjeta de hoy «En curso».
 
+**El final avisa de lo que falta.** Si al acabar el último paso queda algún ejercicio **sin series ni visto** —por haber empezado a mitad de la lista, por ejemplo—, el guiado no cierra: sale «Te faltan N ejercicios», la lista de cuáles con su dosis y dos botones. **Hacerlos ahora** (el primario) va al primer paso del primero que falta y, al acabar cada uno, salta al siguiente que falte sin volver a pasar por lo hecho. **Terminar así** guarda igual que siempre y la pantalla final dice «Guardada · X de Y ejercicios», con el anillo parado en lo hecho. «Completada» queda para cuando no falta nada; sin pendientes, el final es el de siempre. Salir del aviso sin elegir deja la sesión abierta, y «Continuar» lleva a lo que falta, no al último paso, que ya está hecho.
+
+**Saltar ejercicio es «hoy no lo hago».** El saltado no sale como pendiente en el aviso, pero tampoco cuenta como hecho en el «X de Y». Si ya tenía series, esas series se guardan y sí cuenta.
+
 ### Calendario
 Resumen del mes arriba, calendario, y las sesiones del día seleccionado con icono y color de familia. El detalle se despliega **dentro** de la tarjeta de su sesión.
 La cabecera del día lleva **Registrar rutina**: elige el día y añade a mano una sesión que hiciste y nunca quedó anotada. Solo aparece en días pasados o en hoy. Lo añadido a mano se marca como tal y se puede quitar; la racha se recuenta desde el historial, que es la única fuente de qué días hubo.
@@ -299,6 +303,7 @@ Lo que se celebra, y cuánto dura. Nada pasa de medio segundo.
 | Completas un ejercicio | El visto rebota, la fila destella medio segundo, encoge, y el anillo avanza |
 | Bates un récord | Aviso flotante en ámbar con el ejercicio y la marca |
 | Terminas la rutina | Ilustración que se dibuja sola, tres cifras, los récords conseguidos y la semana: el anillo de Inicio con «Esta semana: N de M» y, si esa sesión la cumple, «Semana cumplida · R seguidas» en ámbar. Solo esa: las que vienen después la misma semana ya no lo repiten |
+| Terminas con ejercicios sin hacer | Antes, el aviso con lo que falta. Si terminas así, el anillo se dibuja solo hasta lo hecho y dice «Guardada · X de Y ejercicios»: nunca «Completada» |
 
 Un récord es una serie que **ninguna anterior domina en peso y repeticiones a la vez**. Es la misma regla del panel de progreso, así que las dos cuentan lo mismo.
 
@@ -559,6 +564,30 @@ terminada sin preguntar; y entrar al guiado solo para mirar ya creaba `rp_sessio
   otra la cerraba sola conservan sus aserciones y añaden el paso que ahora hace falta: salir del
   guiado y volver pasa por el primer visto; la otra sesión sin cerrar y el recorrido de pantallas
   con una rutina de casa a medias, por la hoja.
+
+Los ejercicios que faltan, antes de cerrar:
+
+- **Aviso de lo que falta antes de cerrar** (HU-09, idea de RP Hypertrophy, Fitbod y Hevy).
+  Llegar al final del guiado cerraba la sesión como «Completada» aunque faltaran ejercicios:
+  empezar por el cuarto dejaba los tres primeros sin hacer y sin aviso. Ahora el final
+  (`advance` y `guidedSkipExercise` → `alFinal`) cuenta los pendientes —sin series hoy, sin
+  visto y sin saltar a propósito— y, si hay alguno, pregunta: «Hacerlos ahora» o «Terminar así».
+  Las reglas, en §8 Modo guiado y §12.
+  - `rp_session` gana dos listas **opcionales**: `saltados` (lo que se saltó con «Saltar
+    ejercicio») y `repaso` (los pendientes que se están haciendo tras el aviso). Sin ellas —una
+    sesión de v35— son listas vacías, así que no hace falta migración, y sin usarlas la sesión se
+    guarda igual que en v35. Siguen la regla de la memoria: viven junto a `sessionLog` y la
+    memoria manda. Viajan en la copia de seguridad y el guiado retoma en el mismo paso y en el
+    mismo orden.
+  - «Terminar así» llama a lo mismo que antes (`finishSession`): series, vistos, racha e
+    historial se escriben igual. Lo único nuevo es el texto y el anillo de la pantalla final.
+  - Con pendientes y nada hecho, «Terminar así» no guarda nada y lo dice («Nada nuevo que
+    guardar»), en vez del «Completada» vacío de antes.
+  - Pruebas en `tests/pruebas_logica.js` (aviso, repaso, terminar así, saltados y el final sin
+    pendientes), `tests/pruebas_datos.js` (ida y vuelta con el repaso a medias) y
+    `tests/pruebas_pantallas.js` (sesiones de v35 de los juegos `madre` y `sinCerrar`). Tres
+    pruebas de teléfono lleno esperaban «Completada» al reintentar con trece ejercicios sin
+    hacer; ahora esperan «Guardada · 1 de 14», que es justo lo que esta historia cambia.
 
 ### Cerrado en v35
 

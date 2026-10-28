@@ -622,4 +622,169 @@
       expect(distintos).toEqual([]);
       expect(n).toBeGreaterThan(80);});
   });
+
+  /* ---------- pendientes al final del guiado (v36) ----------
+     Empezar por el 4.º ejercicio y llegar al final cerraba la sesion como
+     "Completada" con los tres primeros sin hacer. */
+  const R="gym_empuje";
+  function empezarPorElCuarto(app,datos){app.reiniciarMemoria();app.sembrar(datos||F.dueno);
+    const l=app.w.effList(R);app.w.openRoutine(R);app.w.startRoutine(l[3]);return l;}
+  /* avanza paso a paso, como quien termina cada serie, hasta que el guiado
+     deja de mostrar pasos (aviso o pantalla de fin). Devuelve los ejercicios
+     por los que paso, en orden */
+  function hastaElFinal(app){const vistos=[];
+    for(let n=0;n<300&&!app.$("#guided .done");n++){const id=app.ev("steps[stepi].id");
+      if(vistos[vistos.length-1]!==id)vistos.push(id);app.w.advance();}
+    return vistos;}
+  function avanzarHasta(app,id){for(let n=0;n<300&&app.ev("steps[stepi].id")!==id;n++)app.w.advance();
+    expect(app.ev("steps[stepi].id")).toBe(id);}
+  /* cuenta las llamadas a finishSession sin cambiar lo que hace */
+  function contarCierres(app){const orig=app.w.finishSession,c={n:0,soltar:()=>{app.w.finishSession=orig;}};
+    app.w.finishSession=function(){c.n++;return orig.apply(this,arguments);};return c;}
+  const enAviso=app=>app.$$("#guided .finlist [data-ex]").map(e=>e.dataset.ex);
+  /* lo que escribe cerrar una sesion, sin las marcas de tiempo */
+  function loGuardado(app){const hoy=F.fecha(0),logs=app.leer("rp_logs")||{},out={};
+    Object.keys(logs).forEach(id=>{const a=logs[id].filter(r=>r.date===hoy);
+      if(a.length)out[id]=a.map(r=>({k:r.k,checked:!!r.checked,sets:(r.sets||[]).map(x=>[x.w,x.reps])}));});
+    const h=Object.assign({},app.leer("rp_history")[0]);["iso","day","date","time","dur"].forEach(c=>delete h[c]);
+    return {logs:out,logged:(app.leer("rp_logged")||{})[hoy],streak:app.leer("rp_streak"),ultima:h,n:app.leer("rp_history").length};}
+  /* una serie real en el press de pecho: registrar, dejar pasar el gesto y saltar el descanso */
+  async function unaSerie(app){avanzarHasta(app,"press_banca_db");app.w.logSet();await app.espera(400);app.w.skipRest();}
+
+  escenario("Pendientes al final del guiado (dueño)",F.dueno,()=>{
+    test("empezar por el 4.º y llegar al final: avisa de los 3 sin series ni visto y no cierra",app=>{
+      app.reiniciarMemoria();app.sembrar(F.dueno);const antes=app.leer("rp_history").length;
+      const c=contarCierres(app);let l;
+      try{l=empezarPorElCuarto(app);
+        expect(app.ev("steps[stepi].id")).toBe(l[3]);
+        hastaElFinal(app);}finally{c.soltar();}
+      expect(c.n).toBe(0);
+      expect(enAviso(app)).toEqual(l.slice(0,3));
+      expect(enAviso(app)).toEqual(["caminadora","circulos_brazos","wall_angels"]);
+      expect(app.texto("#guided h2")).toBe("Te faltan 3 ejercicios");
+      expect([app.texto("#guided .gbtn.go"),app.texto("#guided .gbtn.sec")]).toEqual(["Hacerlos ahora","Terminar así"]);
+      expect(app.texto("#guided")).not.toContain("Completada");
+      expect(app.leer("rp_history").length).toBe(antes);
+      expect(app.leer("rp_session").key).toBe(R);
+      app.reiniciarMemoria();});
+    test("'Hacerlos ahora' lleva al primer paso del primer pendiente y de uno al siguiente; al acabar, Completada 14 de 14",app=>{
+      const l=empezarPorElCuarto(app);hastaElFinal(app);
+      app.$("#guided .gbtn.go").click();
+      expect(app.ev("steps[stepi].id")).toBe(l[0]);
+      expect(app.ev("stepi")).toBe(app.ev("steps.findIndex(x=>x.id==='"+l[0]+"')"));
+      expect(app.leer("rp_session").repaso).toEqual(l.slice(0,3));
+      const c=contarCierres(app);let vistos;
+      try{vistos=hastaElFinal(app);}finally{c.soltar();}
+      /* solo los tres pendientes: ninguno de los once ya hechos se repite */
+      expect(vistos).toEqual(l.slice(0,3));
+      expect(c.n).toBe(1);
+      expect(app.texto("#guided .done .mut")).toMatch(/^Completada/);
+      expect(app.texto("#guided")).not.toContain("Guardada");
+      const h=app.leer("rp_history")[0];
+      expect([h.key,h.exDone,h.exTotal]).toEqual([R,14,14]);
+      expect(app.texto("#guided .donesum b")).toBe("14");
+      expect(app.leer("rp_session")).toBe(null);
+      app.reiniciarMemoria();});
+    test("'Hacerlos ahora' salta los ya hechos que hay entre dos pendientes",app=>{
+      /* el 2.º ya marcado con visto desde la lista: faltan el 1.º y el 3.º */
+      const datos=F.dueno();datos.rp_checks={[F.fecha(0)]:{[R]:{circulos_brazos:true}}};
+      const l=empezarPorElCuarto(app,datos);hastaElFinal(app);
+      expect(enAviso(app)).toEqual([l[0],l[2]]);
+      app.$("#guided .gbtn.go").click();
+      expect(hastaElFinal(app)).toEqual([l[0],l[2]]);
+      expect(app.texto("#guided .done .mut")).toMatch(/^Completada/);
+      app.reiniciarMemoria();});
+    test("con un solo pendiente el aviso habla en singular",app=>{
+      const datos=F.dueno();datos.rp_checks={[F.fecha(0)]:{[R]:{circulos_brazos:true,wall_angels:true}}};
+      const l=empezarPorElCuarto(app,datos);hastaElFinal(app);
+      expect(enAviso(app)).toEqual([l[0]]);
+      expect(app.texto("#guided h2")).toBe("Te falta 1 ejercicio");
+      expect(app.texto("#guided .done .mut")).toContain("sin hacer este.");
+      expect(app.texto("#guided .gbtn.go")).toBe("Hacerlo ahora");
+      app.reiniciarMemoria();});
+    test("salir del aviso sin elegir y 'Continuar' lleva a lo que falta, no al último paso",async app=>{
+      const l=empezarPorElCuarto(app);hastaElFinal(app);
+      /* el boton atras del telefono: el popstate pinta la rutina */
+      app.w.history.back();await app.hasta(()=>app.activa()==="routine",3000,"la rutina");
+      expect(app.leer("rp_session").repaso).toEqual(l.slice(0,3));
+      app.$("#routCta .btn:not(.sec)").click();
+      expect(app.activa()).toBe("guided");
+      expect(app.ev("stepi")).toBe(app.ev("steps.findIndex(x=>x.id==='"+l[0]+"')"));
+      expect(hastaElFinal(app)).toEqual(l.slice(0,3));
+      expect(app.texto("#guided .done .mut")).toMatch(/^Completada/);
+      app.reiniciarMemoria();});
+    test("con pendientes y nada hecho, 'Terminar así' no guarda nada ni dice 'Completada'",app=>{
+      app.reiniciarMemoria();app.sembrar(F.dueno);const antes=app.leer("rp_history").length,l=app.w.effList(R);
+      app.w.openRoutine(R);app.w.startRoutine(l[l.length-1]);app.w.guidedSkipExercise();
+      expect(enAviso(app)).toEqual(l.slice(0,-1));
+      app.$("#guided .gbtn.sec").click();
+      expect(app.texto("#guided .done .mut")).toContain("Nada nuevo que guardar");
+      expect(app.texto("#guided")).not.toContain("Completada");
+      expect(app.leer("rp_history").length).toBe(antes);
+      app.reiniciarMemoria();});
+    test("'Terminar así' guarda igual que antes y dice 'Guardada · 11 de 14 ejercicios', nunca 'Completada'",async app=>{
+      /* lo que guardaba cerrar en el guiado hasta v35: finishSession tal cual */
+      empezarPorElCuarto(app);await unaSerie(app);hastaElFinal(app);
+      app.w.finishSession(R,"guided");const comoAntes=loGuardado(app);
+      /* lo mismo, cerrado con el boton del aviso */
+      const antes=(empezarPorElCuarto(app),app.leer("rp_history").length),racha=app.leer("rp_streak");
+      await unaSerie(app);hastaElFinal(app);
+      expect(app.texto("#guided .gbtn.sec")).toBe("Terminar así");
+      app.$("#guided .gbtn.sec").click();
+      const g=loGuardado(app);
+      expect(g).toEqual(comoAntes);
+      expect(g.n).toBe(antes+1);
+      expect([g.ultima.key,g.ultima.exDone,g.ultima.exTotal,g.ultima.sets]).toEqual([R,11,14,1]);
+      expect(g.logs.press_banca_db.length).toBe(1);
+      expect(g.logs.press_banca_db[0].sets.length).toBe(1);
+      expect(g.logs.caminadora).toBe(undefined);
+      expect(Object.keys(g.logged[R]).length).toBe(11);
+      expect(g.streak.last).toBe(F.fecha(0));
+      expect(g.streak.total).toBe(racha.total+1);
+      expect(app.leer("rp_session")).toBe(null);
+      expect(app.texto("#guided .done .mut")).toBe("Guardada · 11 de 14 ejercicios");
+      expect(app.texto("#guided")).not.toContain("Completada");
+      /* el anillo se queda en lo hecho */
+      expect(app.$("#guided .hero").getAttribute("style")).toContain("--fin:");
+      app.reiniciarMemoria();});
+    test("un ejercicio saltado con 'Saltar ejercicio' no sale como pendiente ni cuenta como hecho",app=>{
+      const l=empezarPorElCuarto(app);avanzarHasta(app,"press_banca_db");
+      app.$("#guided .skip").click();
+      expect(app.ev("steps[stepi].id")).not.toBe("press_banca_db");
+      expect(app.leer("rp_session").saltados).toEqual(["press_banca_db"]);
+      hastaElFinal(app);
+      expect(enAviso(app)).toEqual(l.slice(0,3));
+      app.$("#guided .gbtn.sec").click();
+      expect(app.texto("#guided .done .mut")).toBe("Guardada · 10 de 14 ejercicios");
+      const h=app.leer("rp_history")[0];
+      expect([h.exDone,h.exTotal]).toEqual([10,14]);
+      expect(h.ids.indexOf("press_banca_db")).toBe(-1);
+      expect((app.leer("rp_logs").press_banca_db||[]).filter(r=>r.date===F.fecha(0))).toEqual([]);
+      app.reiniciarMemoria();});
+    test("saltado y sin pendientes: cierra sin aviso, y el saltado tampoco cuenta como hecho",app=>{
+      app.reiniciarMemoria();app.sembrar(F.dueno);app.w.openRoutine(R);app.w.startRoutine();
+      avanzarHasta(app,"press_banca_db");app.w.guidedSkipExercise();
+      hastaElFinal(app);
+      expect(app.$("#guided .finlist")).toBe(null);
+      expect(app.texto("#guided .done .mut")).toMatch(/^Completada/);
+      const h=app.leer("rp_history")[0];
+      expect([h.exDone,h.exTotal]).toEqual([13,14]);
+      expect(h.ids.indexOf("press_banca_db")).toBe(-1);
+      app.reiniciarMemoria();});
+    test("sin pendientes, el final es el de siempre: 'Completada en N min'",app=>{
+      app.reiniciarMemoria();app.sembrar(F.dueno);app.w.openRoutine(R);app.w.startRoutine();
+      expect(app.ev("stepi")).toBe(0);
+      /* la sesion empezo hace 25 minutos */
+      const s=app.leer("rp_session");s.startedAt=Date.now()-25*60000;localStorage.setItem("rp_session",JSON.stringify(s));
+      const c=contarCierres(app);let vistos;
+      try{vistos=hastaElFinal(app);}finally{c.soltar();}
+      expect(vistos).toEqual(app.w.effList(R));
+      expect(c.n).toBe(1);
+      expect(app.$("#guided .finlist")).toBe(null);
+      expect(app.texto("#guided .done .mut")).toBe("Completada en 25 min");
+      expect(app.texto("#guided")).not.toContain("Guardada");
+      expect(app.texto("#guided .donesum b")).toBe("14");
+      expect(app.$("#guided .hero").getAttribute("style")).not.toContain("--fin");
+      app.reiniciarMemoria();});
+  });
 })();
