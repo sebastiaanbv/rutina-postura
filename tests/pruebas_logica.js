@@ -774,10 +774,14 @@
     test("sin pendientes, el final es el de siempre: 'Completada en N min'",app=>{
       app.reiniciarMemoria();app.sembrar(F.dueno);app.w.openRoutine(R);app.w.startRoutine();
       expect(app.ev("stepi")).toBe(0);
-      /* la sesion empezo hace 25 minutos */
-      const s=app.leer("rp_session");s.startedAt=Date.now()-25*60000;localStorage.setItem("rp_session",JSON.stringify(s));
-      const c=contarCierres(app);let vistos;
-      try{vistos=hastaElFinal(app);}finally{c.soltar();}
+      /* HU-63: entrar no crea la sesion; nace con el visto del primer
+         ejercicio. Desde ahi, la sesion empezo hace 25 minutos */
+      expect(app.leer("rp_session")).toBe(null);
+      const l=app.w.effList(R),c=contarCierres(app);let vistos=[l[0]];
+      try{for(let n=0;n<300&&app.ev("steps[stepi].id")===l[0];n++)app.w.advance();
+        const s=app.leer("rp_session");expect(s.key).toBe(R);
+        s.startedAt=Date.now()-25*60000;localStorage.setItem("rp_session",JSON.stringify(s));
+        vistos=vistos.concat(hastaElFinal(app));}finally{c.soltar();}
       expect(vistos).toEqual(app.w.effList(R));
       expect(c.n).toBe(1);
       expect(app.$("#guided .finlist")).toBe(null);

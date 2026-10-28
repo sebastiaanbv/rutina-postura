@@ -658,7 +658,9 @@
         expect(app.leer("rp_session").log).toEqual({});
       }finally{libera();}
       app.w.finish();
-      expect(app.texto("#guided .done .mut")).toBe("Guardada · 1 de 14 ejercicios");
+      /* hechos: la caminadora (el visto que crea la sesion, HU-63) y el press
+         con su serie. Quedan 12 sin hacer: "Guardada", nunca "Completada" */
+      expect(app.texto("#guided .done .mut")).toBe("Guardada · 2 de 14 ejercicios");
       const l=app.leer("rp_logs").press_banca_db;
       expect(l.length).toBe(1);expect(l[0].sets.length).toBe(1);
       expect(app.leer("rp_session")).toBe(null);

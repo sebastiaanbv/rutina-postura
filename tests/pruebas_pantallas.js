@@ -523,11 +523,18 @@
       expect(app.$("#finov").classList.contains("show")).toBe(true);
       app.w.closeFinish();await app.hasta(()=>!app.$("#finov").classList.contains("show"),3000,"que se cierre la hoja");
       app.w.openRoutine("gym_empuje");app.w.startRoutine();
-      const h=app.leer("rp_history"),s=app.leer("rp_session");
+      const h=app.leer("rp_history");
       expect(h.length).toBe(1);expect(app.w.ds(new Date(h[0].iso))).toBe(F.fecha(1));
-      expect([s.date,s.stepi]).toEqual([F.fecha(0),0]);
+      /* HU-63: la de ayer se cierra al entrar, pero la de hoy no nace hasta
+         lo primero que se registra. Saltar no registra nada: el saltado vive
+         en memoria y entra en rp_session con el visto del siguiente */
+      expect(app.leer("rp_session")).toBe(null);
+      expect(app.ev("stepi")).toBe(0);
       app.w.guidedSkipExercise();
-      expect(app.leer("rp_session").saltados).toEqual(["caminadora"]);
+      expect(app.ev("sessSaltados")).toEqual(["caminadora"]);
+      const seg=paso(app);for(let n=0;n<300&&paso(app)===seg;n++)app.w.advance();
+      const s=app.leer("rp_session");
+      expect([s.date,s.saltados]).toEqual([F.fecha(0),["caminadora"]]);
       hastaElFinal(app);
       expect(app.$("#guided .finlist")).toBe(null);
       expect(app.texto("#guided .done .mut")).toMatch(/^Completada/);

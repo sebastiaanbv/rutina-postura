@@ -578,7 +578,9 @@ Los ejercicios que faltan, antes de cerrar:
     sesión de v35— son listas vacías, así que no hace falta migración, y sin usarlas la sesión se
     guarda igual que en v35. Siguen la regla de la memoria: viven junto a `sessionLog` y la
     memoria manda. Viajan en la copia de seguridad y el guiado retoma en el mismo paso y en el
-    mismo orden.
+    mismo orden. Con HU-63 saltar o llegar al aviso no crean la sesión, porque no registran
+    nada: las dos listas viven en memoria y entran en `rp_session` cuando nace, con el primer
+    visto o la primera serie. Si no se registró nada, no hay sesión que dejar abierta.
   - «Terminar así» llama a lo mismo que antes (`finishSession`): series, vistos, racha e
     historial se escriben igual. Lo único nuevo es el texto y el anillo de la pantalla final.
   - Con pendientes y nada hecho, «Terminar así» no guarda nada y lo dice («Nada nuevo que
@@ -586,8 +588,10 @@ Los ejercicios que faltan, antes de cerrar:
   - Pruebas en `tests/pruebas_logica.js` (aviso, repaso, terminar así, saltados y el final sin
     pendientes), `tests/pruebas_datos.js` (ida y vuelta con el repaso a medias) y
     `tests/pruebas_pantallas.js` (sesiones de v35 de los juegos `madre` y `sinCerrar`). Tres
-    pruebas de teléfono lleno esperaban «Completada» al reintentar con trece ejercicios sin
-    hacer; ahora esperan «Guardada · 1 de 14», que es justo lo que esta historia cambia.
+    pruebas de teléfono lleno esperaban «Completada» al reintentar con casi todo sin hacer;
+    ahora esperan «Guardada · X de Y» con lo hecho (1 de 14, 2 de 14 y 1 de 12), que es justo
+    lo que esta historia cambia. La de 2 de 14 cuenta también el visto con el que HU-63 hace
+    nacer la sesión.
 
 ### Cerrado en v35
 
