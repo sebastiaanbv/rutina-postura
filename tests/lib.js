@@ -6,6 +6,8 @@
      app de cero en un iframe del mismo origen.
    test(nombre, async app => { ... })      prueba normal (async permitido)
    test.skip(nombre, motivo, fn)           conocida: se reporta, no corre
+   await app.enZona("Europe/Madrid", fn, "2026-11-04T12:30:00Z")
+     corre fn con la app en esa zona horaria (y ese reloj, opcional)
    expect(x).toBe / toEqual / toBeCloseTo / toBeTruthy / toBeFalsy / toContain /
      toBeGreaterThan / toBeLessThan / toMatch / toHaveLength, y .not delante.
 
@@ -54,6 +56,62 @@
   function conTope(p,ms,que){let t;return Promise.race([p,new Promise((_,no)=>{t=setTimeout(()=>no(new Error("tiempo agotado ("+ms+" ms): "+que)),ms);})])
     .finally(()=>clearTimeout(t));}
 
+  /* ---- zona horaria emulada ----
+     El navegador corre en la zona del equipo (UTC en CI, sin cambios de
+     hora), y un fallo que solo sale con horario de verano pasaria siempre.
+     fechaEnZona devuelve un Date cuyo instante es el de siempre (getTime,
+     toISOString, restas) pero cuyas cuentas locales (getDate, setHours,
+     new Date(a,m,d), "AAAA-MM-DDTHH:MM", Date.parse) se hacen en la zona IANA
+     indicada, con Intl. ahora (ms, opcional) fija el reloj. */
+  function fechaEnZona(Base,zona,ahora){
+    const f=new Intl.DateTimeFormat("en-US",{timeZone:zona,hourCycle:"h23",year:"numeric",month:"numeric",
+      day:"numeric",hour:"numeric",minute:"numeric",second:"numeric"});
+    const P=Base.prototype,tv=d=>P.getTime.call(d);
+    /* hora local menos UTC, en ms, en el instante t */
+    function desfase(t){if(!isFinite(t))return 0;const s=t-((t%1000)+1000)%1000,p={};
+      f.formatToParts(new Base(s)).forEach(x=>{p[x.type]=+x.value;});
+      return Base.UTC(p.year,p.month-1,p.day,p.hour,p.minute,p.second)-s;}
+    /* instante de una hora local L (los campos locales leidos como UTC). Si
+       esa hora se repite gana la primera; si se salta, avanza con el desfase
+       de antes del cambio, como hace Date */
+    function instante(L){if(!isFinite(L))return NaN;
+      const a=L-desfase(L-864e5),b=L-desfase(L+864e5),ok=t=>t+desfase(t)===L;
+      if(ok(a)&&ok(b))return Math.min(a,b);
+      return ok(b)?b:a;}
+    function valor(a){if(!a.length)return ahora!=null?ahora:Base.now();
+      if(a.length>1)return instante(Base.UTC.apply(null,a));
+      const v=a[0];if(typeof v!=="string")return +v;
+      const m=/^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d)(?::(\d\d)(?:\.(\d+))?)?$/.exec(v);
+      return m?instante(Base.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0),+(m[7]||"0").padEnd(3,"0").slice(0,3)))
+        :Base.parse(v);}
+    /* los campos locales, como un Date que se lee con getUTC* */
+    const loc=d=>new Base(tv(d)+desfase(tv(d)));
+    const fijar=(d,cambio)=>{const l=loc(d);cambio(l);return P.setTime.call(d,instante(tv(l)));};
+    class FechaZona extends Base{
+      constructor(...a){super(valor(a));}
+      static now(){return ahora!=null?ahora:Base.now();}
+      static parse(s){return valor([String(s)]);}
+      getFullYear(){return loc(this).getUTCFullYear();}
+      getMonth(){return loc(this).getUTCMonth();}
+      getDate(){return loc(this).getUTCDate();}
+      getDay(){return loc(this).getUTCDay();}
+      getHours(){return loc(this).getUTCHours();}
+      getMinutes(){return loc(this).getUTCMinutes();}
+      getSeconds(){return loc(this).getUTCSeconds();}
+      getMilliseconds(){return loc(this).getUTCMilliseconds();}
+      getTimezoneOffset(){return -desfase(tv(this))/6e4;}
+      setFullYear(...a){return fijar(this,l=>l.setUTCFullYear(...a));}
+      setMonth(...a){return fijar(this,l=>l.setUTCMonth(...a));}
+      setDate(...a){return fijar(this,l=>l.setUTCDate(...a));}
+      setHours(...a){return fijar(this,l=>l.setUTCHours(...a));}
+      setMinutes(...a){return fijar(this,l=>l.setUTCMinutes(...a));}
+      setSeconds(...a){return fijar(this,l=>l.setUTCSeconds(...a));}
+      setMilliseconds(...a){return fijar(this,l=>l.setUTCMilliseconds(...a));}
+      toLocaleString(l,o){return P.toLocaleString.call(this,l,Object.assign({timeZone:zona},o));}
+      toLocaleDateString(l,o){return P.toLocaleDateString.call(this,l,Object.assign({timeZone:zona},o));}
+      toLocaleTimeString(l,o){return P.toLocaleTimeString.call(this,l,Object.assign({timeZone:zona},o));}}
+    return FechaZona;}
+
   /* ---- la app en su iframe ---- */
   G.__erroresApp=[];
   const SRC="../index.html?__pruebas=1";
@@ -89,6 +147,11 @@
       await hasta(()=>this.doc.readyState==="complete"&&typeof this.w.renderHome==="function",10000,"que la app arranque");
       await espera(50);},
     destruir(){if(this.frame){try{this.ev("clearTimer()");}catch(e){}this.frame.remove();this.frame=null;}},
+    /* corre fn con la app en otra zona horaria (y el reloj en ahora, si se da:
+       "2026-11-04T12:30:00Z"); al terminar vuelve el Date de siempre */
+    async enZona(zona,fn,ahora){const w=this.w,Base=w.Date;
+      w.Date=fechaEnZona(Base,zona,ahora==null?null:Base.parse(ahora));
+      try{return await fn();}finally{w.Date=Base;}},
     marcarErrores(){this.marca=G.__erroresApp.length;},
     /* los que se entregan quedan vistos; los que caen entre pruebas (al
        destruir un iframe, un temporizador tardio) salen al final como sueltos */

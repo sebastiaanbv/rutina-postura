@@ -252,6 +252,114 @@
       expect(JSON.parse((await exportar(app)).texto).store).toEqual(data.store);});
   });
 
+  /* HU-11: en pantalla solo queda la racha de semanas (weekStats), pero
+     rp_streak se sigue escribiendo igual: su total es «N sesiones en total» */
+  escenario("Racha diaria guardada (rp_streak)",F.dueno,()=>{
+    test("terminar una sesión escribe rp_streak como siempre (completeDay)",app=>{
+      const s0=app.leer("rp_streak"),hoy=app.w.today();
+      expect(s0.last).not.toBe(hoy);
+      app.w.markCheck("gym_empuje","caminadora",true);
+      const res=app.w.finishSession("gym_empuje","sheet");
+      expect(!!res&&!res.lleno).toBe(true);
+      const cuenta=s0.last===app.w.yesterday()?s0.count+1:1;
+      expect(app.leer("rp_streak")).toEqual({count:cuenta,best:Math.max(s0.best,cuenta),last:hoy,total:s0.total+1});
+      expect(res.streak).toEqual(app.leer("rp_streak"));
+      /* una segunda sesion el mismo dia suma al total y no a la cuenta */
+      app.w.markCheck("gym_tiron","caminadora",true);
+      expect(!!app.w.finishSession("gym_tiron","sheet")).toBe(true);
+      expect(app.leer("rp_streak")).toEqual({count:cuenta,best:Math.max(s0.best,cuenta),last:hoy,total:s0.total+1});
+      app.reiniciarMemoria();});
+    test("recalcStreak recuenta los días seguidos desde el historial sin bajar el total",app=>{
+      const h=app.leer("rp_history"),dias=new Set(h.map(x=>F.ds(new Date(x.iso)))),s0=app.leer("rp_streak");
+      let d=new Date(),n=0;if(!dias.has(F.ds(d)))d.setDate(d.getDate()-1);
+      while(dias.has(F.ds(d))){n++;d.setDate(d.getDate()-1);}
+      const s=app.w.recalcStreak();
+      expect(Object.keys(s).sort()).toEqual(["best","count","last","total"]);
+      expect([s.count,s.last,s.total]).toEqual([n,[...dias].sort().pop(),Math.max(s0.total,h.length)]);
+      expect(s.best).not.toBeLessThan(s0.best);
+      expect(app.leer("rp_streak")).toEqual(s);});
+    test("exportar → importar conserva rp_streak intacto y la racha semanal sale igual",async app=>{
+      const antes=localStorage.getItem("rp_streak"),w=app.w.weekStats(),d=await exportar(app);
+      expect(JSON.parse(d.texto).store.rp_streak).toBe(antes);
+      localStorage.clear();
+      const recarga=app.cargo();importar(app,d.texto);await recarga;await app.listo();
+      expect(localStorage.getItem("rp_streak")).toBe(antes);
+      expect(app.w.weekStats()).toEqual(w);
+      expect(app.texto("#stCount")).toBe(String(w.racha));});
+  });
+
+  /* v35 congelaba en rp_weekgoal solo la meta de la semana viva: las semanas
+     anteriores no tienen foto y se miden con la meta actual. Con todas las
+     sesiones del juego de gimnasio completas, cada semana entera lleva 3 de fuerza. */
+  function semanasV35(){const D=F.dueno();D.rp_history.forEach(h=>{h.exTotal=h.exDone;});delete D.rp_weekgoal;return D;}
+  escenario("Racha semanal con datos de v35 (sin rp_weekgoal de semanas viejas)",semanasV35,()=>{
+    const lun=d=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return F.ds(x);};
+    const haceSemanas=i=>{const x=new Date();x.setDate(x.getDate()-7*i);return lun(x);};
+    /* cuenta aparte: semanas seguidas hacia atras desde la pasada con al
+       menos su meta de sesiones de fuerza (60 % hecho), y la actual si ya
+       la cumplio */
+    function esperada(app,meta,fotos){const G=app.ev("GYMKEYS"),m={};
+      app.leer("rp_history").forEach(h=>{if(G.indexOf(h.key)<0||(h.exTotal&&h.exDone/h.exTotal<0.6))return;
+        const k=lun(new Date(h.iso));m[k]=(m[k]||0)+1;});
+      const metaDe=k=>fotos&&fotos[k]!=null?fotos[k]:meta;let r=0;
+      for(let i=1;i<300;i++){const k=haceSemanas(i);if((m[k]||0)>=metaDe(k))r++;else break;}
+      return r+((m[lun(new Date())]||0)>=meta?1:0);}
+    const plan4=["gym_empuje","gym_tiron","gym_pierna","gym_empuje",null,null,"rest"];
+    test("la racha se mide con la meta actual y solo se congela la semana en curso",app=>{
+      const w=app.w.weekStats();
+      expect(w.goal).toBe(3);
+      expect(w.racha).toBe(esperada(app,3));
+      expect(w.racha).toBeGreaterThan(3);
+      expect(w.mejor).not.toBeLessThan(w.racha);
+      expect(app.leer("rp_weekgoal")).toEqual({[lun(new Date())]:3});
+      expect(app.texto("#stCount")).toBe(String(w.racha));});
+    test("con la meta subida a 4 las semanas sin foto se miden con 4; las congeladas guardan la suya",app=>{
+      /* semanas cerradas cumplidas con 3: la actual no puede llegar a 4 (el
+         juego de gimnasio entrena lunes, miercoles y viernes, y hoy aun no) */
+      const plan=localStorage.getItem("rp_plan"),w3=app.w.weekStats(),cerradas=w3.racha-(w3.semanaOK?1:0);
+      try{localStorage.setItem("rp_plan",JSON.stringify(plan4));
+        expect(app.w.weekStats().goal).toBe(4);
+        expect(app.w.weekStats().racha).toBe(esperada(app,4));
+        expect(app.w.weekStats().racha).toBe(0);
+        /* como si v36 hubiera congelado las semanas viejas con 3 */
+        const fotos={};for(let i=1;i<=8;i++)fotos[haceSemanas(i)]=3;
+        localStorage.setItem("rp_weekgoal",JSON.stringify(fotos));
+        const w=app.w.weekStats();
+        expect(w.racha).toBe(esperada(app,4,fotos));
+        expect(w.racha).toBe(cerradas);
+        expect(w.racha).toBeGreaterThan(3);
+        /* y nada se rompe: las pantallas pintan la misma cifra */
+        ["progress","settings","history","home"].forEach(v=>{app.$('.nav .tab[data-v="'+v+'"]').click();expect(app.activa()).toBe(v);});
+        expect(app.texto("#stCount")).toBe(String(w.racha));
+        expect(app.texto("#stWeek")).toContain(" de 4 esta semana");
+      }finally{localStorage.setItem("rp_plan",plan);localStorage.setItem("rp_weekgoal",JSON.stringify({}));app.w.weekStats();}});
+  });
+
+  /* la mejor racha de semanas no se parte en un cambio de hora. Se contaba
+     restando milisegundos entre dos lunes, y con un cambio en medio salian
+     7 dias +-1 h. CI corre en UTC, donde no pasa nunca: cada zona se emula
+     con app.enZona y el reloj en el miercoles 4 de noviembre de 2026. Las
+     cifras esperadas estan contadas a mano (Fixtures.cambioHora). */
+  escenario("Racha semanal que cruza cambios de hora",F.cambioHora,()=>{
+    test("en la zona del equipo la mejor racha son las 8 semanas de marzo y abril",app=>{
+      expect(app.w.weekStats().mejor).toBe(8);});
+    /* zona, dos lunes seguidos con su cambio de hora en medio y las horas
+       que hay entre ellos (UTC no cambia nunca: es el control) */
+    [["UTC","2026-03-23","2026-03-30",168],["Europe/Madrid","2026-03-23","2026-03-30",167],
+     ["America/New_York","2026-03-02","2026-03-09",167],["America/Santiago","2026-03-30","2026-04-06",169],
+     ["Australia/Sydney","2026-03-30","2026-04-06",169]].forEach(([zona,l1,l2,horas])=>{
+      test("en "+zona+": racha 3 (las de octubre) y mejor 8 (marzo y abril)",async app=>{
+        await app.enZona(zona,()=>{const D=app.w.Date;
+          /* la zona emulada de verdad cambia de hora entre esos dos lunes */
+          expect((new D(l2+"T00:00:00")-new D(l1+"T00:00:00"))/36e5).toBe(horas);
+          expect(app.w.today()).toBe("2026-11-04");
+          const w=app.w.weekStats();
+          expect({goal:w.goal,hechas:w.hechas,racha:w.racha,mejor:w.mejor,semanaOK:w.semanaOK})
+            .toEqual({goal:3,hechas:2,racha:3,mejor:8,semanaOK:false});
+        },"2026-11-04T12:30:00Z");});
+    });
+  });
+
   /* almacenamiento lleno: jset devuelve false. Lo critico avisa y no pierde
      el dato: ni la serie en memoria ni la sesion guardada. */
   escenario("Almacenamiento lleno · anotar y terminar en el guiado",F.vacio,()=>{

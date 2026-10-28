@@ -181,7 +181,9 @@ Nada dura más de medio segundo. Una celebración que se disfruta la primera vez
 ## 8. Pantallas
 
 ### Inicio
-Manda la **tarjeta de hoy**: superficie oscura, título a 30 px, icono de la familia y una sola acción a ancho completo. Debajo, en tono descendente: la racha en **una línea** con la llama en ámbar, la semana como **riel continuo** con hoy resaltado, y las rutinas en **una tarjeta por familia** con filas, azulejo de color y duración a la derecha.
+Manda la **tarjeta de hoy**: superficie oscura, título a 30 px, icono de la familia y una sola acción a ancho completo. Debajo, en tono descendente: la racha en **una línea** con la llama en ámbar y el anillo de la semana, la semana como **riel continuo** con hoy resaltado, y las rutinas en **una tarjeta por familia** con filas, azulejo de color y duración a la derecha.
+
+Con objetivo salud la tarjeta de la racha lleva una segunda fila, separada por línea fina: «Postura: N de 7 días esta semana», los días desde el lunes con alguna rutina que no está en `GYMKEYS`. La postura no cuenta para la meta de fuerza, y en ella lo que importa es la frecuencia, no la carga.
 
 Estados de la tarjeta de hoy: hoy toca · en curso (manda sobre todo) · ya entrenaste · día de descanso.
 
@@ -269,7 +271,7 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
 
 - **Mayúscula solo al principio.** "Finalizar rutina", no "Finalizar Rutina".
 - **Sin signos de exclamación** en texto de sistema. Se reservan para el momento de terminar una rutina.
-- **Plurales siempre correctos**: "1 día seguido", no "1 días seguidos". Hay un helper `plural()`; usarlo.
+- **Plurales siempre correctos**: "1 semana cumplida", no "1 semanas cumplidas". Hay un helper `plural()`; usarlo.
 - **El número primero, la unidad después**: "22,5 kg × 8", "3 de 10".
 - **Los estados vacíos invitan**, no se disculpan: "Registra tus series y aquí verás cómo evolucionas".
 - **Explicar el porqué cuando se propone algo**: "Completaste las 4 series: toca subir a 12 kg" en vez de solo el número.
@@ -285,9 +287,11 @@ Lo que se celebra, y cuánto dura. Nada pasa de medio segundo.
 | Registras una serie | La línea entra con un gesto de 240 ms y avanza el contador |
 | Completas un ejercicio | El visto rebota, la fila destella medio segundo, encoge, y el anillo avanza |
 | Bates un récord | Aviso flotante en ámbar con el ejercicio y la marca |
-| Terminas la rutina | Ilustración que se dibuja sola, tres cifras, los récords conseguidos y la racha |
+| Terminas la rutina | Ilustración que se dibuja sola, tres cifras, los récords conseguidos y la semana: el anillo de Inicio con «Esta semana: N de M» y, si esa sesión la cumple, «Semana cumplida · R seguidas» en ámbar. Solo esa: las que vienen después la misma semana ya no lo repiten |
 
 Un récord es una serie que **ninguna anterior domina en peso y repeticiones a la vez**. Es la misma regla del panel de progreso, así que las dos cuentan lo mismo.
+
+**Una sola racha: semanas cumplidas.** Toda la app —Inicio, pantalla de fin, «Listo por hoy», Progreso y Ajustes— cuenta la misma cifra, la de `weekStats()`: semanas seguidas con la meta de sesiones de fuerza cumplida. Una racha de días castigaba justo los descansos que pide un programa de tres días. La semana en curso nunca resta y **suma en cuanto se cumple**: si solo contaran las cerradas, la pantalla de fin diría «Semana cumplida · 6 seguidas» e Inicio seguiría en 5 hasta el lunes. El avance de la semana va en primario, como todo progreso; solo «Semana cumplida» va en ámbar, porque eso sí es un logro, y sale una vez por semana: celebrarlo en cada sesión que sobra lo gastaría (§7). La mejor racha cuenta las semanas seguidas **por fecha**, como la racha: restar milisegundos entre dos lunes da 7 días ± 1 h si entre ellos hay cambio de hora, y la partía en dos. «Mejor M» solo sale cuando hay alguna semana cumplida: en la primera sesión, «mejor 0» al lado de «0 semanas cumplidas» no dice nada, y la pantalla de fin se queda con «1 sesión en total» (§11: los estados vacíos invitan). `rp_streak` se sigue guardando igual, pero de él solo se muestra el total de sesiones.
 
 ## 13. Qué falta
 
@@ -460,6 +464,38 @@ Pesos que existen en cada máquina:
     gemelos siguen su salto en el gimnasio), `pruebas_pantallas.js` (dónde sale el chip, elegir y
     quitar, lo tecleado se guarda tal cual, gemelos en el gimnasio y en casa) y
     `pruebas_datos.js` (ida y vuelta de la copia con `rp_inc`, copia con otra forma).
+
+Una sola racha en toda la app:
+
+- **Una sola racha: semanas cumplidas** (HU-11). Inicio contaba semanas cumplidas, pero la
+  pantalla de fin y «Listo por hoy» enseñaban la llama con «N días seguidos» y Progreso decía
+  «Racha de N días»: dos rachas que se contradecían en la misma sesión. Ahora todas salen de
+  `weekStats()` (§12): la pantalla de fin cambia la llama por el anillo de Inicio con «Esta semana:
+  N de M» y, en la sesión que cumple la meta (solo en esa), «Semana cumplida · R seguidas»;
+  «Listo por hoy» y «Tu historial» dicen «R semanas cumplidas · mejor M», y Ajustes «racha R
+  semanas». La semana en curso suma en cuanto se cumple. Con objetivo salud, Inicio añade
+  «Postura: N de 7 días esta semana» (§8). `rp_streak` se sigue escribiendo igual
+  (`completeDay`, `recalcStreak`) y su total es el de «N sesiones en total»: sin claves nuevas ni
+  migración.
+  - **La mejor racha se partía en los cambios de hora.** `weekStats()` ya calculaba `mejor`, pero
+    no se veía; al enseñarlo salió que juntaba semanas restando milisegundos entre lunes, y con un
+    cambio de hora en medio daba 7 días ± 1 h: seis semanas seguidas de marzo y abril salían como
+    «mejor 3» en Madrid. Ahora compara fechas, como la racha. En CI no se veía porque el navegador
+    corre en UTC: `app.enZona(zona, fn, ahora)` emula una zona IANA y fija el reloj.
+  - Con la letra grande a 320 px, «N de M» baja entera a la línea de abajo en vez de partirse.
+    La prueba vuelve a poner delante la pantalla de fin antes de medir: escondida mide 0 y
+    pasaba también con el CSS de antes.
+  - **Sin «mejor 0» ni «1 sesiones».** Sin ninguna semana cumplida —la primera sesión, o
+    quien aún no llega a la meta— la pantalla de fin decía «Mejor racha: 0 semanas» y «Listo por
+    hoy» y «Tu historial» «· mejor 0». Ahora «mejor» sale solo cuando hay alguna (§12). Ajustes y
+    «Tu historial» usan `plural()` en las sesiones y las series: «Guardado: 1 sesión», «1 serie
+    registrada».
+  - Pruebas en `pruebas_pantallas.js` (los dos juegos de datos, la sesión que cumple la semana,
+    las que vienen después, la primera sesión con `Fixtures.vacio`, la línea de postura, la
+    pantalla de fin a 320 px y la mejor racha en pantalla en Madrid y Santiago con cifras
+    contadas a mano) y `pruebas_datos.js` (`rp_streak`,
+    copia de ida y vuelta, datos de v35 sin meta congelada en las semanas viejas, y la racha que
+    cruza los cambios de hora de Europa, EE. UU., Chile y Australia, con `Fixtures.cambioHora`).
 
 ### Cerrado en v35
 
