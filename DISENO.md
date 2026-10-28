@@ -176,6 +176,12 @@ en JS. El navegador lleva el tiempo, y apagarlas sigue siendo una decisión en u
 
 Nada dura más de medio segundo. Una celebración que se disfruta la primera vez estorba la trigésima.
 
+**Una confirmación no abre una ventana.** «Registrar serie» se queda 300 ms como visto antes del
+descanso; mientras tanto el botón está deshabilitado y sin `pointer-events`, y `logSet` no admite
+otra serie del mismo paso ni dos a menos de 300 ms (`SERIE_MS`). Con `prefers-reduced-motion` no
+hay confirmación y la pantalla siguiente se pinta en el acto, bajo el mismo dedo: por eso la
+guardia no depende de la animación.
+
 ---
 
 ## 8. Pantallas
@@ -496,6 +502,22 @@ Una sola racha en toda la app:
     contadas a mano) y `pruebas_datos.js` (`rp_streak`,
     copia de ida y vuelta, datos de v35 sin meta congelada en las semanas viejas, y la racha que
     cruza los cambios de hora de Europa, EE. UU., Chile y Australia, con `Fixtures.cambioHora`).
+
+Un toque, una serie:
+
+- **Un doble toque no duplica la serie.** «Registrar serie» se convierte en visto 300 ms antes
+  del descanso, pero seguía aceptando toques: uno de más en esa ventana, frecuente con prisa o
+  con guantes, metía otra serie igual en la sesión —y al finalizar, en `rp_logs`, con su volumen
+  y su recuento— y lanzaba `afterAction` dos veces: en la última serie de un ejercicio, eso se
+  saltaba la primera del siguiente. El récord ya salía una sola vez, porque la copia no supera a
+  la original. Ahora el botón queda deshabilitado y sin `pointer-events` mientras confirma, y
+  `logSet` admite una serie por paso pintado (`renderStep` abre el candado) y nunca dos a menos
+  de 300 ms, con reloj monótono. Esto último es para «reducir movimiento»: sin confirmación y sin
+  descanso detrás, el ejercicio siguiente se pinta en el acto y el segundo toque caía en su botón.
+  Sin claves nuevas ni cambio de forma: la copia va y vuelve igual. Pruebas en
+  `tests/pruebas_datos.js` («Doble toque en «Registrar serie»»), con y sin reducir movimiento.
+  Queda abierto «Serie completada», el botón de los ejercicios que no se registran: no anota
+  nada, pero un doble toque sin descanso detrás todavía puede saltarse un paso.
 
 ### Cerrado en v35
 
