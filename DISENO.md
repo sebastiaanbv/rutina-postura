@@ -91,19 +91,45 @@ Un solo bloque `[data-theme="dark"]`. Cero media queries: el script de la cabece
 
 Once pasos, todos tokens. Ningún tamaño escrito a mano.
 
-| Token | px | Uso |
-|---|---|---|
-| `--t-mega` | 50 | Temporizador, racha final, índice de fuerza |
-| `--t-display` | 30 | Título de pantalla, título de la tarjeta de hoy |
-| `--t-xl` | 26 | Nombre del ejercicio en el guiado, cifra del stepper |
-| `--t-title` | 22 | Cifras destacadas |
-| `--t-lg` | 20 | Iconos grandes, cifras de estadística |
-| `--t-md` | 16 | Botones, campos de texto |
-| `--t-lead` | 15 | Nombre de rutina y de ejercicio en listas |
-| `--t-base` | 14 | Texto normal |
-| `--t-sm` | 12,5 | Metadatos, descripciones |
-| `--t-xs` | 11 | Etiquetas |
-| `--t-2xs` | 10 | Etiquetas en mayúsculas |
+**La escala va en `rem`, y los px de la tabla son los de la letra de serie.** `1rem` es la letra
+que pide el teléfono —16 px si nadie la toca—, así que cuando la persona sube la letra del sistema
+al 130 % la escala entera crece un 30 % y sigue siendo la misma escala: los once pasos guardan sus
+proporciones. Por eso `<html>` **no lleva tamaño propio** —si lo llevara, `1rem` dejaría de ser la
+letra del teléfono y nada crecería— y el texto base se pone en `body`. Cada token es
+`calc(N rem × --fk)`; `--fk` vale 1 salvo en iOS.
+
+| Token | px de serie | rem | Uso |
+|---|---|---|---|
+| `--t-mega` | 50 | 3,125 | Temporizador, racha final, índice de fuerza |
+| `--t-display` | 30 | 1,875 | Título de pantalla, título de la tarjeta de hoy |
+| `--t-xl` | 26 | 1,625 | Nombre del ejercicio en el guiado, cifra del stepper |
+| `--t-title` | 22 | 1,375 | Cifras destacadas |
+| `--t-lg` | 20 | 1,25 | Iconos grandes, cifras de estadística |
+| `--t-md` | 16 | 1 | Botones, campos de texto |
+| `--t-lead` | 15 | 0,9375 | Nombre de rutina y de ejercicio en listas |
+| `--t-base` | 14 | 0,875 | Texto normal |
+| `--t-sm` | 12,5 | 0,78125 | Metadatos, descripciones |
+| `--t-xs` | 11 | 0,6875 | Etiquetas |
+| `--t-2xs` | 10 | 0,625 | Etiquetas en mayúsculas |
+
+**Cómo llega la letra del sistema.**
+- **Android:** `<meta name="text-scale" content="scale">` declara que la página está hecha para
+  crecer con la letra del sistema, y el navegador que la entiende la pasa a `1rem` en vez de
+  aplicarla por su cuenta (ampliando la página o inflando el texto sin que la maqueta se entere).
+- **iOS** no pasa su tamaño de letra (Dynamic Type) a la web salvo por la fuente
+  `-apple-system-body`, que va en `<html>` dentro de un `@supports`. Con la letra de serie mide
+  17 px y no 16: `--fk` (16/17 = 0,9412) lo compensa, y de serie la escala mide lo mismo que en
+  Android. La condición lleva `-webkit-touch-callout` para dejar fuera a Safari de escritorio,
+  donde esa fuente mide 13 px y encogería la app.
+- **Escritorio:** el ajuste de letra del navegador, que también cambia `1rem`.
+
+**`--t-campo`** es `--t-md` con suelo de 16 px, y es el tamaño de todo campo de texto. Por debajo
+de 16, iOS amplía la pantalla al enfocar el campo; antes lo impedía `maximum-scale=1`, que ya no
+está (§10). El campo de corregir una serie iba a 12,5 px.
+
+**Lo que no es CSS también crece.** Las etiquetas de las curvas son `<text>` de SVG y no heredan
+los `rem`: `chart()` las escala con `letraK()` —texto base entre 14— y agranda en la misma medida
+el margen que las aloja, para que las del pie no pisen las de la derecha.
 
 **Pesos:** `400` texto normal · `600` etiquetas · `700` nombres · `800` cifras y títulos. El error a evitar es el de antes: todo en 700-800, que deja la pantalla sin jerarquía y gritando.
 
@@ -181,12 +207,12 @@ Nada dura más de medio segundo. Una celebración que se disfruta la primera vez
 ## 8. Pantallas
 
 ### Inicio
-Manda la **tarjeta de hoy**: superficie oscura, título a 30 px, icono de la familia y una sola acción a ancho completo. Debajo, en tono descendente: la racha en **una línea** con la llama en ámbar, la semana como **riel continuo** con hoy resaltado, y las rutinas en **una tarjeta por familia** con filas, azulejo de color y duración a la derecha.
+Manda la **tarjeta de hoy**: superficie oscura, título a 30 px, icono de la familia y una sola acción a ancho completo. Debajo, en tono descendente: la racha en **una línea** con la llama en ámbar, la semana como **riel continuo** con hoy resaltado (con la letra grande en un teléfono estrecho, cada día lleva el icono de su rutina; §10), y las rutinas en **una tarjeta por familia** con filas, azulejo de color y duración a la derecha.
 
 Estados de la tarjeta de hoy: hoy toca · en curso (manda sobre todo) · ya entrenaste · día de descanso.
 
 ### Detalle de rutina
-Cabecera con título a 30 px y **anillo de avance**. Los ejercicios en **una tarjeta por bloque** (calentamiento · entrenamiento · bloque secundario · opcionales), cada uno una fila.
+Cabecera con título a 30 px y **anillo de avance**. Los ejercicios en **una tarjeta por bloque** (calentamiento · entrenamiento · bloque secundario · opcionales), cada uno una fila. El nombre se lee **entero**, sin recorte a dos líneas; con la letra grande en un teléfono estrecho las figuras de la lista se van para dejarle sitio (§10).
 
 La fila **no despliega nada**: tocarla entra al ejercicio. Hasta v26 abría un panel acordeón con los pasos, la figura, el vídeo, la curva y los ajustes — una vista previa que obligaba a mirar el ejercicio antes de hacerlo y partía cada dato en dos sitios. Ahora todo eso vive dentro, y la lista vuelve a ser lo que dice ser: una lista.
 
@@ -197,7 +223,7 @@ Estados de la fila: pendiente · **siguiente** (filo verde y su botón de empeza
 Abajo, barra fija con dos acciones: continuar y finalizar.
 
 ### Modo guiado
-Manda **la serie**: pastilla con "Serie 2 de 4", nombre del ejercicio, y los controles de peso y reps inmediatamente debajo. Bajo la acción, el **único ajuste que se edita a mano**: cuántas series. Arranca en la del programa, con "Sugeridas: N" debajo, y si la cambias ese texto se convierte en el botón para volver. La ficha de cómo se hace —mapa corporal, consejo, avisos, pasos y vídeo— va **después**, plegada, y viene cerrada si ya has hecho ese ejercicio tres veces o más.
+Manda **la serie**: pastilla con "Serie 2 de 4", nombre del ejercicio, y los controles de peso y reps inmediatamente debajo; si la cifra no cabe entre − y +, sube encima de ellos (§10). Bajo la acción, el **único ajuste que se edita a mano**: cuántas series. Arranca en la del programa, con "Sugeridas: N" debajo, y si la cambias ese texto se convierte en el botón para volver. La ficha de cómo se hace —mapa corporal, consejo, avisos, pasos y vídeo— va **después**, plegada, y viene cerrada si ya has hecho ese ejercicio tres veces o más.
 
 **El tiempo no se edita.** Descansos y sostenes los fija el programa: el criterio para ponerlos ya está tomado y ofrecer un stepper solo invita a deshacerlo sin datos. Cambiar las series, en cambio, responde a algo que solo sabes tú — cómo te sientes hoy y cuánto tiempo tienes.
 
@@ -254,6 +280,32 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
   sesión, quitar una rutina del calendario y las dos de borrarlo todo— y ahí el diálogo del
   sistema es una ventaja: cuesta más pulsarlo por accidente.
 - **Movimiento**: `prefers-reduced-motion` respetado.
+- **Zoom y letra del sistema.** El viewport deja **ampliar con pellizco**: sin `maximum-scale` ni
+  `user-scalable=no`, que lo bloqueaban en Android. Y la letra del sistema entra por `1rem` (§3).
+  Las pantallas principales —Inicio, rutina, guiado con su descanso, fin, Calendario, Progreso,
+  Ajustes y las hojas— se comprueban a **320, 375 y 430 px, con la letra de serie y al 130 %**:
+  ningún texto cortado, que se salga de su caja o que pise otro texto o un botón
+  (`tests/pruebas_letra.js`). Reglas para que aguante:
+  - **Alto mínimo, no alto fijo**, en todo lo que lleva texto: un botón con una etiqueta larga
+    pasa a dos líneas dentro de sí mismo en vez de salirse por abajo.
+  - **Lo que acompaña al texto se mide en `em`**: el anillo de la cabecera, la columna de nombres
+    de las series por músculo, el campo de una serie. Con la letra de serie miden los mismos px.
+  - **El nombre de un ejercicio no se recorta nunca**: se parte con guion (`hyphens:auto`) si una
+    palabra no cabe. «…» solo donde el diseño lo decide —el riel de la semana, con el nombre
+    entero a un toque, y el título de una hoja—.
+  - **Cuando el texto no cabe, la pieza cambia de forma, no encoge la letra.** Son consultas de
+    contenedor en `em` del propio bloque, que miden a la vez el ancho y el tamaño de letra:
+    - **Riel de la semana** (por debajo de 19 em): cada día muestra el icono de su rutina en vez
+      de «Em…». Con la letra de serie no salta.
+    - **Lista de ejercicios**: la figura grande de la fila «siguiente» vuelve a 46 px cuando no
+      deja los 7 em de «Calentamiento» (a 320 px ya pasaba de su columna); por debajo de 20 em las
+      figuras se van y el nombre gana 57 px.
+    - **Stepper del guiado**: si la cifra no cabe entre − y + (84 px de botones más 3,8 em), sube
+      a su propia línea y los botones quedan debajo, en los extremos. A 320 px pasa ya con la
+      letra de serie: un «57.5» no cabía y empujaba el stepper de las reps fuera del margen.
+  - **Filas que se reparten**: la marca de un récord y su fecha, el botón junto a un campo o en
+    el aviso de copia, la tercera caja de la pantalla de fin o la tercera columna del ejercicio
+    propio bajan de línea antes que recortar o pisar.
 - **Zonas seguras**: `env(safe-area-inset-top)` en las tres cabeceras y `inset-bottom` en la barra inferior y las hojas.
 
 ---
@@ -364,6 +416,40 @@ dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma d
   migra al importar, copia más nueva rechazada, forma cambiada, ida y vuelta con la sesión en
   curso, y teléfono lleno simulado (`setItem` que lanza `QuotaExceededError`) al anotar, al
   finalizar, al empezar otra rutina y al importar.
+
+Letra del sistema y zoom (HU-55). Quien necesita letra más grande no podía ampliar con los
+dedos —el viewport lo prohibía— y la app no se enteraba del tamaño de letra del teléfono: toda la
+escala estaba en px y la raíz fijada a 14.
+
+- **Pellizco permitido.** Fuera `maximum-scale=1` y `user-scalable=no` del viewport.
+- **La escala tipográfica pasa a `rem`**, con los mismos once pasos y los mismos px de serie
+  (§3). `<html>` deja de tener tamaño propio y el base va en `body`. Los nueve tamaños que
+  quedaban escritos a mano (glifos de botón, campos a 16 px) pasan a la escala.
+- **La letra del sistema llega**: `meta text-scale` en Android y `-apple-system-body` con `--fk`
+  en iOS (§3). En escritorio, el ajuste de letra del navegador.
+- **Campos a 16 px como mínimo** (`--t-campo`): sin `maximum-scale`, iOS habría vuelto a ampliar
+  la pantalla al enfocar el campo de corregir una serie, que iba a 12,5.
+- **Las etiquetas de las curvas** (SVG) crecen con la letra (`letraK()`).
+- **Revisión de desbordes a 320-430 px y al 130 %** (§10). De paso salieron cosas que ya fallaban
+  con la letra de serie:
+  - a 320 px un peso con decimal o de tres cifras no cabía entre − y +: pegado a los botones,
+    empujaba el stepper de las reps hasta el borde de la pantalla; y al escribirlo, el campo de
+    104 px se salía del stepper en cualquier ancho;
+  - «Caminadora» se cortaba sin «…» a 320 px, y el recorte a dos líneas dejaba «Colgado con…»;
+  - la etiqueta «Calentamiento» de la fila siguiente pasaba de su columna a 320 px;
+  - el aviso flotante tenía media pantalla (`left:50%`) y cada `<b>` era otra columna del flex:
+    un récord salía en cuatro renglones partidos en dos;
+  - los récords y los músculos largos salían con «…» («Extensión de tríceps en p…», «Hombro p…»).
+- **Pruebas** en `tests/pruebas_letra.js`: viewport y `text-scale`, la escala en rem a 100 y
+  130 %, ningún `font-size` en px, la compensación de iOS, campos de 16 px o más, que todo el
+  texto de seis pantallas crezca un 30 %, curvas, riel, stepper y aviso, y el humo de las
+  pantallas principales a 320, 375 y 430 px con la letra de serie y al 130 %, con tres juegos de
+  datos. El humo revisa cada texto contra las cajas que lo contienen, contra los demás textos y
+  contra los botones, y cada tarjeta contra el ancho del teléfono.
+- **Lo que queda abierto**: al 150 % aguanta todo menos el selector de tema a 320 px; al 200 % se
+  salen los títulos de una sola palabra («Calendario») y el botón «Registrar rutina». Para eso
+  está el pellizco. No se ha probado en un teléfono real: las pruebas simulan la letra del
+  sistema agrandando la raíz, que es lo que hacen `text-scale` y `-apple-system-body`.
 
 ### Cerrado en v35
 
