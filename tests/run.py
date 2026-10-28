@@ -16,6 +16,7 @@ import argparse
 import json
 import os
 import re
+import select
 import shutil
 import subprocess
 import sys
@@ -47,6 +48,8 @@ def navegadores():
 # El archivo en disco no se toca.
 MARCA = "__pruebas"
 PRELUDIO = b'<script src="tests/prelude.js"></script>'
+RETENER = "/__retener"            # ver Manejador.retener
+RETENER_MAX_S = 30                # tope real de una retencion, por si nadie la suelta
 PRESUPUESTO_VIRTUAL_MS = 240000   # tiempo virtual del navegador para todo el arnes
 TIEMPO_REAL_S = 240               # tope real por navegador antes de rendirse
 
@@ -66,8 +69,31 @@ class Manejador(SimpleHTTPRequestHandler):
             faltantes.append(self.path)
         super().send_error(code, message, explain)
 
+    def retener(self):
+        """Peticion que no contesta hasta que el navegador la cancela.
+
+        Con --virtual-time-budget el reloj de Chrome solo se detiene mientras
+        hay peticiones de red pendientes; lo que corre fuera del hilo principal
+        sin red (FileReader leyendo un archivo) no lo frena, y el reloj salta
+        al siguiente temporizador: un tope de 3 o 20 s "vence" antes de que la
+        lectura termine. prelude.js abre esta peticion al empezar cada lectura
+        y la cancela al terminar, asi el reloj espera a FileReader."""
+        fin = time.time() + RETENER_MAX_S
+        while time.time() < fin:
+            # el navegador ya mando la peticion entera: lo unico que puede
+            # llegar ahora es el cierre (lectura terminada, fetch cancelado)
+            listo, _, _ = select.select([self.connection], [], [], 0.05)
+            if listo:
+                return
+        self.send_response(204)
+        self.end_headers()
+
     def do_GET(self):
         ruta, _, consulta = self.path.partition("?")
+        if ruta == RETENER:
+            self.close_connection = True
+            self.retener()
+            return
         if ruta == "/index.html" and MARCA in consulta:
             cuerpo = (RAIZ / "index.html").read_bytes()
             m = re.search(rb"<head[^>]*>", cuerpo)
