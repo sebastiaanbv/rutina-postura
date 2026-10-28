@@ -584,5 +584,42 @@
             if(!t||[0,1,2,3].indexOf(t.w)<0||(t.subeCarga&&!(t.w>w)))malos.push(k+" "+id+" "+w+"x"+reps+" "+JSON.stringify(t));}));});});
       expect(malos).toEqual([]);
       expect(n).toBeGreaterThan(80);});
+    /* HU-08 con HU-07: el salto de una maquina (rp_inc) se dice en el gimnasio.
+       En casa, con la lista declarada, lo que lleva carga se hace con esas
+       mancuernas y manda la lista, aunque el mismo ejercicio (los gemelos)
+       tenga guardado el salto de su maquina */
+    test("con pesosDB y un salto de máquina guardado: en casa manda la lista, en el gimnasio el salto",app=>{
+      const gem=(k,series)=>{limpio(app,{rp_prefs:{pesosDB:[1,2,3]},rp_inc:{elevacion_pantorrilla:5},
+        rp_logs:{elevacion_pantorrilla:[reg(1,k,series)]}});return tt(app,"elevacion_pantorrilla",k);};
+      expect(gem("salud_fuerza_a",veces(2,3,22))).toEqual({w:3,reps:22,extiende:true,
+        why:"Ya usas tu mancuerna más pesada: estira a 22 reps"});
+      expect(gem("salud_fuerza_a",veces(2,2,22))).toEqual({w:3,reps:12,subeCarga:true,
+        why:"Llegaste a 22 reps: sube a 3 kg y vuelve a 12"});
+      /* en el gimnasio son de maquina: 5 sobre 40 pasa del 10 %, tras tope+2 sube a 45 */
+      expect(gem("gym_empuje",veces(2,40,20))).toEqual({w:40,reps:22,extiende:true,
+        why:"El siguiente peso que existe (45 kg) es un salto grande: antes llega a 22 reps"});
+      expect(gem("gym_empuje",veces(2,40,22))).toEqual({w:45,reps:12,subeCarga:true,
+        why:"Llegaste a 22 reps: sube a 45 kg y vuelve a 12"});
+      /* primera vez: en casa el peso de arranque de la rutina (2 kg), no la placa de 5 */
+      limpio(app,{rp_prefs:{pesosDB:[1,2,3]},rp_inc:{elevacion_pantorrilla:5}});
+      expect(sug(app,"elevacion_pantorrilla","salud_fuerza_a").w).toBe(2);
+      expect(sug(app,"elevacion_pantorrilla","gym_empuje").w).toBe(10);
+      app.sembrar({rp_prefs:{pesosDB:[1,2,3]},rp_inc:{elevacion_pantorrilla:7}});
+      expect(sug(app,"elevacion_pantorrilla","gym_empuje").w).toBe(7);
+      expect(sug(app,"elevacion_pantorrilla","salud_fuerza_a").w).toBe(2);});
+    test("con pesosDB, un salto guardado en cada ejercicio con carga no cambia nada en casa",app=>{
+      const R=app.ev("ROUTINES"),EX=app.ev("EX"),distintos=[];let n=0;
+      ["salud_fuerza_a","salud_fuerza_b","salud_equilibrio"].forEach(k=>{const r=R[k],
+          ids=[].concat(r.list||[],r.extras||[]);Object.keys(r.swaps||{}).forEach(o=>ids.push.apply(ids,r.swaps[o]));
+        const cargados=ids.filter(id=>EX[id]&&EX[id].load===true),inc={};cargados.forEach(id=>{inc[id]=5;});
+        cargados.forEach(id=>{const rng=app.w.repRange(id);
+          [null,0,1,2,3].forEach(w=>[rng[1],rng[1]+2].forEach(reps=>{
+            const logs=w==null?{}:{[id]:[reg(1,k,veces(app.w.dose(k,id).sets,w,reps))]},
+                  ver=()=>JSON.stringify([tt(app,id,k),sug(app,id,k)]);
+            limpio(app,{rp_prefs:{pesosDB:[1,2,3]},rp_logs:logs});const sin=ver();
+            app.sembrar({rp_prefs:{pesosDB:[1,2,3]},rp_logs:logs,rp_inc:inc});n++;
+            const con=ver();if(con!==sin)distintos.push(k+" "+id+" "+w+"x"+reps+" "+sin+" → "+con);}));});});
+      expect(distintos).toEqual([]);
+      expect(n).toBeGreaterThan(80);});
   });
 })();

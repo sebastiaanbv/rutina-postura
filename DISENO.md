@@ -199,7 +199,7 @@ Abajo, barra fija con dos acciones: continuar y finalizar.
 ### Modo guiado
 Manda **la serie**: pastilla con "Serie 2 de 4", nombre del ejercicio, y los controles de peso y reps inmediatamente debajo. Bajo la acción, el **único ajuste de la sesión que se edita a mano**: cuántas series. Arranca en la del programa, con "Sugeridas: N" debajo, y si la cambias ese texto se convierte en el botón para volver. La ficha de cómo se hace —mapa corporal, consejo, avisos, pasos y vídeo— va **después**, plegada, y viene cerrada si ya has hecho ese ejercicio tres veces o más.
 
-Bajo el peso, el chip **Salto**: de cuánto en cuánto sube esa máquina (1 · 2 · 2,5 · 4,5 · 5 · 7 · 10 kg). No es un ajuste de la sesión sino un dato de la máquina: se dice una vez por ejercicio, queda en `rp_inc`, y desde entonces la propuesta, los −/+ y la aproximación solo dan múltiplos de ese salto. Sin decirlo, el chip invita («¿De cuánto sube?», con borde discontinuo) y todo sigue como antes; las opciones se despliegan debajo de los dos controles y tocar la marcada la quita. Cambiarlo rehace la propuesta que nadie tocó, no lo movido con −/+ ni lo tecleado. No sale en ejercicios sin carga ni en mancuernas con lista en Ajustes: ahí la lista ya dice qué pesos existen. **Lo que se teclea en el peso no se redondea nunca**: si la máquina lleva una placa suelta de 2,5, se escribe a mano.
+Bajo el peso, el chip **Salto**: de cuánto en cuánto sube esa máquina (1 · 2 · 2,5 · 4,5 · 5 · 7 · 10 kg). No es un ajuste de la sesión sino un dato de la máquina: se dice una vez por ejercicio, queda en `rp_inc`, y desde entonces la propuesta, los −/+ y la aproximación solo dan múltiplos de ese salto. Sin decirlo, el chip invita («¿De cuánto sube?», con borde discontinuo) y todo sigue como antes; las opciones se despliegan debajo de los dos controles y tocar la marcada la quita. Cambiarlo rehace la propuesta que nadie tocó, no lo movido con −/+ ni lo tecleado. No sale en ejercicios sin carga ni en mancuernas con lista en Ajustes: ahí la lista ya dice qué pesos existen. Tampoco en casa con esa lista en lo que allí se hace con mancuernas (los gemelos, que en el gimnasio son de máquina): el salto guardado en el gimnasio no cuenta en casa. **Lo que se teclea en el peso no se redondea nunca**: si la máquina lleva una placa suelta de 2,5, se escribe a mano.
 
 El peso del control es **solo el número**, y es el mismo al entrar en la serie, al tocar − o +, al escribirlo a mano y al cambiar las series: los cuatro caminos pintan con `fmtW(curW)` (`pintaW()` los que no rehacen la serie). Con la unidad, «102.5 kg» parte la fila en dos líneas en un móvil de 390 px; la unidad sigue en la línea de cada serie registrada.
 
@@ -447,11 +447,19 @@ Pesos que existen en cada máquina:
   - Lo tecleado no se redondea, ni al cambiar el salto después.
   - Un solo sitio dice el salto: `stepFor(id,w)`, el declarado o el de siempre; `roundDownTo(id,w)`
     da el peso real de abajo. Con mancuernas en Ajustes manda la lista y el chip no sale.
+  - Con los ligeros que vuelven a subir (arriba): en casa con la lista, lo que lleva carga se hace
+    con mancuernas y manda la lista aunque el ejercicio tenga salto de máquina guardado. Los
+    gemelos son de máquina en el gimnasio (allí su salto manda) y de mancuerna en casa (allí ni
+    chip ni salto: la propuesta, la primera vez, los −/+ y la aproximación quedan como sin
+    `rp_inc`). Por eso `incFor`, `stepFor`, `roundDownTo` y `nextW` aceptan la rutina, igual que
+    `availDB(id,k)`.
   - Sin `rp_inc` (datos de v35) todo sigue igual. Clave nueva y sin migración: si falta es `{}`.
     Viaja en la copia por prefijo, e importar exige que sea un objeto.
   - **Pruebas** en `tests/pruebas_logica.js` (propuesta, −/+, aproximación, primera vez, datos de
-    v35), `pruebas_pantallas.js` (dónde sale el chip, elegir y quitar, lo tecleado se guarda tal
-    cual) y `pruebas_datos.js` (ida y vuelta de la copia con `rp_inc`, copia con otra forma).
+    v35; en casa con la lista, un salto guardado en cada ejercicio con carga no cambia nada, y los
+    gemelos siguen su salto en el gimnasio), `pruebas_pantallas.js` (dónde sale el chip, elegir y
+    quitar, lo tecleado se guarda tal cual, gemelos en el gimnasio y en casa) y
+    `pruebas_datos.js` (ida y vuelta de la copia con `rp_inc`, copia con otra forma).
 
 ### Cerrado en v35
 

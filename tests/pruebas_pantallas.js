@@ -201,5 +201,29 @@
       expect(app.$("#incchip")).toBeTruthy();
       expect(app.leer("rp_inc")).toBe(null);
       app.reiniciarMemoria();});
+    /* HU-08 con HU-07: los gemelos son de maquina en el gimnasio y de
+       mancuerna en casa. Con la lista de Ajustes, en casa no sale el chip y el
+       salto guardado en el gimnasio no toca ni la propuesta ni los -/+ */
+    test("gemelos con salto guardado: en el gimnasio el chip sale y manda; en casa con la lista, no",app=>{
+      const datos=inc=>Object.assign({rp_prefs:{pesosDB:[1,2,3]},rp_extras:{salud_fuerza_a:["elevacion_pantorrilla"]}},
+        inc?{rp_inc:{elevacion_pantorrilla:5}}:{});
+      const masUno=()=>{app.$$("#guided .logrow .stepper:first-child .sq")[1].click();return app.ev("curW");};
+      app.sembrar(datos(true));
+      guiado(app,"gym_empuje","elevacion_pantorrilla");
+      expect(app.texto("#incchip")).toBe("Salto 5 kg");
+      expect(app.texto("#lw")).toBe("10");
+      expect(masUno()).toBe(15);
+      guiado(app,"salud_fuerza_a","elevacion_pantorrilla");
+      expect(app.$("#lw")).toBeTruthy();
+      expect(app.$("#incchip")).toBe(null);expect(app.$("#incpick")).toBe(null);
+      expect(app.texto("#lw")).toBe("2");
+      const conSalto=masUno();
+      /* lo mismo que sin el salto guardado */
+      app.sembrar(datos(false));
+      guiado(app,"salud_fuerza_a","elevacion_pantorrilla");
+      expect(app.texto("#lw")).toBe("2");
+      expect(masUno()).toBe(conSalto);
+      expect(app.leer("rp_inc")).toBe(null);
+      app.reiniciarMemoria();});
   });
 })();

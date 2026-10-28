@@ -2563,10 +2563,10 @@ function suggestLoad(id,k){const e=EX[id]||{},kk=k!=null?k:curRoutine,d=dose(kk,
   /* primera vez: con el salto declarado, el peso real que no pasa del de
      arranque, y nunca menos de una placa (startKg:0 sigue siendo sin peso) */
   const ini=d.startKg!=null?d.startKg:10;
-  if(!ll)return {w:loaded?(ini>0?Math.max(incFor(id),roundDownTo(id,ini)):ini):0,reps:tgt,why:"Objetivo del programa: "+tgt+" repeticiones"};
+  if(!ll)return {w:loaded?(ini>0?Math.max(incFor(id,kk),roundDownTo(id,ini,kk)):ini):0,reps:tgt,why:"Objetivo del programa: "+tgt+" repeticiones"};
   const first=ll.sets[0],sets=d.sets||ll.sets.length;
   const todas=ll.sets.length>=sets&&ll.sets.every(x=>(x.reps||0)>=tgt);
-  if(loaded&&todas){const w=nextW(id,first.w||0,1);
+  if(loaded&&todas){const w=nextW(id,first.w||0,1,kk);
     return {w:w,reps:tgt,why:"Completaste las "+sets+" series: toca subir a "+fmtW(w)+" "+u};}
   if(loaded)return {w:first.w,reps:first.reps,why:"Mismo peso que la vez pasada · apunta a "+tgt+" reps"};
   const r=(first.reps>=tgt)?first.reps+1:tgt;
@@ -2631,7 +2631,7 @@ function adjW(d){const s=steps[stepi],l=availDB(s.id);
      la siguiente que existe; con el salto de la maquina declarado (v36), al
      multiplo siguiente o anterior; sin nada declarado, 2,5 kg como siempre */
   if(l){const c=curW||0,n=d>0?l.filter(x=>x>c+1e-9)[0]:l.filter(x=>x<c-1e-9).pop();curW=n!=null?n:c;}
-  else if(incFor(s.id))curW=nextW(s.id,curW||0,d);
+  else if(incFor(s.id,curRoutine))curW=nextW(s.id,curW||0,d,curRoutine);
   else curW=Math.max(0,Math.round((curW+(d>0?2.5:-2.5))*10)/10);pintaW();}
 /* el peso del guiado se ve igual al pintar la serie, al tocar −/+, al
    escribirlo y al cambiar las series: solo el numero, como renderStep. Con
@@ -3246,10 +3246,11 @@ function setRir(n){curRir=curRir===n?null:n;
 /* ---- chip "Salto" (v36) ----
    Bajo el peso: de cuanto en cuanto sube esta maquina. Se dice una vez y
    queda en rp_inc. No sale sin carga ni con mancuernas declaradas en
-   Ajustes: ahi la lista ya dice que pesos existen. */
-function incChipHTML(id){if(availDB(id))return "";const v=incFor(id);
+   Ajustes: ahi la lista ya dice que pesos existen. Tampoco en casa con la
+   lista, en lo que alli se hace con mancuernas (availDB con la rutina). */
+function incChipHTML(id){if(availDB(id,curRoutine))return "";const v=incFor(id,curRoutine);
   return `<button type="button" class="chip incchip${v?"":" add"}" id="incchip" onclick="toggleIncPick()" aria-expanded="false" aria-controls="incpick">${v?"Salto "+fmtW(v)+" kg":"¿De cuánto sube?"}</button>`;}
-function incPickHTML(id){if(availDB(id))return "";const v=incFor(id);
+function incPickHTML(id){if(availDB(id,curRoutine))return "";const v=incFor(id,curRoutine);
   return `<div class="incpick" id="incpick" role="group" aria-label="De cuánto en cuánto sube el peso" hidden><span>De cuánto en cuánto sube, en kg${v?" (toca el marcado para quitarlo)":""}</span><div class="mchips">`
     +SALTOS.map(x=>`<button type="button" class="mchip${v===x?" on":""}" onclick="setInc(${x})" aria-pressed="${v===x}">${fmtW(x)}</button>`).join("")+`</div></div>`;}
 function toggleIncPick(){const p=$("incpick"),b=$("incchip");if(!p)return;p.hidden=!p.hidden;
@@ -3283,8 +3284,8 @@ function warmupHTML(id,w){const e=EX[id]||{};if(e.load!==true||!(w>=8))return ""
   const r=ROUTINES[curRoutine]||{},warm=r.warm||[],
     first=effList(curRoutine).find(x=>EX[x]&&EX[x].load===true&&warm.indexOf(x)<0&&EX[x].tag!=="calent");
   if(first!==id)return "";
-  const l=availDB(id),inc=incFor(id),st=w>=20?2.5:1,rd=x=>l?(l.filter(v=>v<=x+1e-9).pop()||l[0])
-    :inc?Math.max(inc,roundDownTo(id,x)):Math.max(st,Math.round(x/st)*st);
+  const l=availDB(id),inc=incFor(id,curRoutine),st=w>=20?2.5:1,rd=x=>l?(l.filter(v=>v<=x+1e-9).pop()||l[0])
+    :inc?Math.max(inc,roundDownTo(id,x,curRoutine)):Math.max(st,Math.round(x/st)*st);
   return `<div class="qwhy warmup">${ic("flame","xs")} Antes de la primera serie, aproximación (no se registra): 1×10 con ${fmtW(rd(w*.5))} kg · 1×5 con ${fmtW(rd(w*.7))} kg</div>`;}
 function editExNote(id){const all=loadNotes(),v=prompt("Nota para "+shortName(id)+" (se verá cada vez que hagas este ejercicio). Déjala vacía para borrarla.",all[id]||"");
   if(v==null)return;const t=v.trim().slice(0,200);if(t)all[id]=t;else delete all[id];jset("rp_notes",all);
@@ -3557,18 +3558,20 @@ function savePesosDB(){const raw=(($("pesosDB")||{}).value||"").trim(),
 const SALTOS=[1,2,2.5,4.5,5,7,10];
 function loadInc(){return jget("rp_inc",{});}
 /* salto declarado para ese ejercicio, o 0 si no hay. Con mancuernas
-   declaradas en Ajustes manda la lista, que ya dice que pesos existen */
-function incFor(id){if(availDB(id))return 0;const v=loadInc()[id];
+   declaradas en Ajustes manda la lista, que ya dice que pesos existen. Con la
+   rutina (k), como availDB: en casa lo que lleva carga se hace con esas
+   mancuernas, y el salto de la maquina del gimnasio (los gemelos) no cuenta */
+function incFor(id,k){if(availDB(id,k))return 0;const v=loadInc()[id];
   return (typeof v==="number"&&isFinite(v)&&v>0)?v:0;}
 /* la funcion unica del salto: el declarado o, sin declarar, el de siempre */
-function stepFor(id,w){return incFor(id)||progStep(w||0);}
+function stepFor(id,w,k){return incFor(id,k)||progStep(w||0);}
 /* el peso real mas alto que no pasa de w. Sin salto declarado no se sabe que
    pesos hay, y w se queda como esta */
-function roundDownTo(id,w){const s=incFor(id);if(!s)return w;
+function roundDownTo(id,w,k){const s=incFor(id,k);if(!s)return w;
   return Math.round(Math.floor((w+1e-6)/s)*s*10)/10;}
 /* el siguiente peso real por encima (dir>0) o por debajo de w. Con un peso
    tecleado fuera de la escala (42,5 en saltos de 5) sube a 45 y baja a 40 */
-function nextW(id,w,dir){const b=roundDownTo(id,w),s=stepFor(id,w);
+function nextW(id,w,dir,k){const b=roundDownTo(id,w,k),s=stepFor(id,w,k);
   return Math.max(0,Math.round((dir>0?b+s:(b<w-1e-6?b:b-s))*10)/10);}
 /* Objetivo de hoy: una meta de proceso resoluble hoy, no un resultado lejano. */
 function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)return null;
@@ -3599,9 +3602,10 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
       why:"Tu siguiente mancuerna ("+fmtW(next)+" kg) es un salto grande: antes llega a "+(rng[1]+2)+" reps"};}
   /* Con el salto de la maquina declarado (v36), la misma regla sobre sus
      multiplos: salto suave (<=10%) se sube al llenar el rango; salto grande,
-     al llenar tambien el estirado. Nunca un peso que no se puede poner. */
-  const salto=incFor(id);
-  if(e.load===true&&salto&&completo&&tope){const next=nextW(id,w0,1),
+     al llenar tambien el estirado. Nunca un peso que no se puede poner. En
+     casa con la lista manda la lista (abajo), aunque haya salto guardado. */
+  const salto=incFor(id,k);
+  if(e.load===true&&salto&&completo&&tope){const next=nextW(id,w0,1,k),
       suave=w0>0&&(next-w0)/w0<=0.10,lleno=trabajo.every(x=>(x.reps||0)>=rng[1]+2);
     if(suave||lleno)return {w:next,reps:rng[0],subeCarga:true,
       why:(suave?"Llenaste el rango entero":"Llegaste a "+(rng[1]+2)+" reps")+": sube a "+fmtW(next)+" kg y vuelve a "+rng[0]};
