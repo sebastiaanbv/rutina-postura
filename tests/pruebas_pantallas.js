@@ -27,6 +27,11 @@
         expect(app.$("#routCta button")).toBeTruthy();});
       test("modo guiado: arranca y el peso propuesto es el de suggestLoad",app=>{
         app.$("#routCta button").click();
+        /* HU-63: con otra rutina a medias hoy, Empezar pregunta antes; guardar
+           la otra y empezar es un toque mas */
+        if(o.aMedias){expect(app.$("#planov").classList.contains("show")).toBe(true);
+          expect(app.texto("#planTitle")).toBe("Tienes "+o.aMedias+" a medias");
+          app.$$("#planBody button").find(b=>b.textContent.indexOf("Guardar")>=0).click();}
         expect(app.activa()).toBe("guided");
         expect(app.$("#guided .gbtn.go")).toBeTruthy();
         app.w.startRoutine(o.cargado);
@@ -81,5 +86,5 @@
     conHistorial:true,conIndice:true,pesos:"",objetivo:"Ganar músculo",progreso:["Récords recientes","Series por músculo"],
     bugUnidad:true});
   humo("madre (casa, salud, 1-3 kg)",F.madre,{tema:"light",rutina:"salud_fuerza_a",cargado:"press_hombro_db",avisoCopia:false,
-    conHistorial:true,conIndice:true,pesos:"1 2 3",objetivo:"Salud y mantenimiento",hoy:"En curso"});
+    conHistorial:true,conIndice:true,pesos:"1 2 3",objetivo:"Salud y mantenimiento",hoy:"En curso",aMedias:"Casa — Fuerza B"});
 })();

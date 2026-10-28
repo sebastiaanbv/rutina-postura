@@ -194,6 +194,8 @@ Un opcional que agregas con el `+` **sube al bloque de entrenamiento** y pasa a 
 
 Estados de la fila: pendiente · **siguiente** (filo verde y su botón de empezar en verde sólido; es lo único que destaca) · hecha (encoge: se ocultan meta y etiquetas, el mapa se atenúa, de 108 a 71 px).
 
+**Otra rutina a medias no se cierra sola.** Con una sesión de hoy a medias en otra rutina, tocar una fila, su figura, su play, su visto o «Empezar» no cambia nada: sale la hoja «Tienes Empuje a medias», con lo hecho («Empuje · 3 de 14 hechos · 3 series»), y dos botones con nombre. «Volver a Empuje» es el primario, porque lo normal es que solo se quería mirar, y abre su detalle tal cual. «Guardar Empuje y empezar Tirón» la guarda y repite el toque que abrió la hoja: dos toques en total. Ninguno borra; descartar sigue en la hoja de finalizar de esa rutina. Cerrar la hoja con ×, con atrás o recargando tampoco cambia nada.
+
 Abajo, barra fija con dos acciones: continuar y finalizar.
 
 ### Modo guiado
@@ -204,6 +206,8 @@ Manda **la serie**: pastilla con "Serie 2 de 4", nombre del ejercicio, y los con
 Subir o bajar series rehace la lista de pasos entera, así que `reanclar()` te devuelve a la misma serie del mismo ejercicio (o a la última que quede, si la recortaste) y conserva el peso y las reps que ya tenías marcados. No se puede bajar por debajo de lo ya registrado hoy ni por debajo de la serie en curso.
 
 El descanso es pantalla propia: contador y saltar. No hereda la ficha del ejercicio, y ya no lleva ±30 s — por lo mismo que el resto del tiempo no se edita; para adelantarlo está saltar.
+
+**Entrar no crea la sesión.** `rp_session` nace con lo primero que se registra —una serie, un visto o un temporizador—, así que abrir un ejercicio para mirarlo y salir no deja rastro ni pone la tarjeta de hoy «En curso».
 
 ### Calendario
 Resumen del mes arriba, calendario, y las sesiones del día seleccionado con icono y color de familia. El detalle se despliega **dentro** de la tarjeta de su sesión.
@@ -225,6 +229,7 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
 | Siguiente | Filo verde en la fila + botón de empezar en verde sólido |
 | Hecho | Círculo relleno verde con visto blanco; la fila encoge |
 | Sesión en curso | Manda en la tarjeta de hoy; el CTA de la rutina dice "Continuar" |
+| Otra rutina a medias | Registrar en otra rutina abre la hoja «Tienes X a medias»: volver a ella o guardarla y empezar. Nada se cierra solo |
 | Récord | Aviso flotante en ámbar al conseguirlo, y listado en la pantalla de fin |
 | Vacío | Explica qué hacer para llenarlo, nunca "sin datos" a secas |
 
@@ -364,6 +369,40 @@ dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma d
   migra al importar, copia más nueva rechazada, forma cambiada, ida y vuelta con la sesión en
   curso, y teléfono lleno simulado (`setItem` que lanza `QuotaExceededError`) al anotar, al
   finalizar, al empezar otra rutina y al importar.
+
+Mirar otra rutina no cierra la que está a medias. Con Empuje a medias, tocar una fila, su play o
+su visto en Tirón cerraba Empuje sola (`startSess` → `finishSession` «auto») y la guardaba como
+terminada sin preguntar; y entrar al guiado solo para mirar ya creaba `rp_session`.
+
+- **La sesión nace con lo primero que se registra** (`ensureSess`): la primera serie, el primer
+  visto o el temporizador, no la entrada. `startRoutine` ya no llama a `startSess`, y `touchSess`
+  sin series en memoria solo pone al día la que ya hubiera: salir del guiado, pasar de ejercicio o
+  cambiar las series no la crean. `ensureSess` nunca cierra la de otra rutina a medias hoy.
+- **Hoja de conflicto** en `#planov` (§8). `sessConflict(k)` solo lee: mira la `rp_session` de
+  hoy de otra rutina con algo hecho y la que solo vive en memoria porque no cupo. La abren
+  `startRoutine` (fila, figura, play, Empezar) y `toggleCheck` al marcar. «Guardar y empezar» es
+  el único sitio que cierra una sesión a medias de hoy para empezar otra
+  (`finishSession(o,"switch")`); la rama «auto» queda para las de otros días.
+- **Teléfono lleno al guardar:** sale el aviso de siempre («…sigue abierta sin guardar. Libera
+  espacio y finalízala») y las dos quedan como estaban. Si la otra está entera en `rp_session`, se
+  sigue a la nueva solo en memoria, como hasta ahora, y mientras esta tenga series no se vuelve a
+  preguntar: cada serie reintenta guardar la otra, que ya se eligió guardar. Si la otra tiene
+  series que solo viven en memoria, la hoja se queda, porque cambiar de rutina las perdería.
+- **Las de otros días no cambian:** no abren la hoja, se rescatan al abrir con «Entrenamiento sin
+  cerrar» y, si se dejan para luego, se guardan con su fecha al entrar al guiado o al primer
+  visto, como antes. Mezcladas con lo de hoy pasarían por de hoy.
+- **Sin claves nuevas ni cambios de forma:** `rp_session` es la misma, solo nace más tarde. De
+  paso, un récord se apunta solo en la sesión de su rutina (`markPR`) y al recargar en el guiado el
+  paso guardado solo se usa si es de esa rutina: con dos sesiones vivas (la que no cupo y la nueva)
+  se cruzaban.
+- **Pruebas** en `tests/pruebas_datos.js` con el juego `aMedias` (Empuje 3 de 14): cada toque abre
+  la hoja sin escribir nada, la hoja sin opción destructiva, volver, guardar y empezar en 2 toques
+  (por el play y por el visto), teléfono lleno con la otra entera en disco y con series solo en
+  memoria, recarga en mitad del conflicto, mirar el guiado sin registrar, qué crea la sesión, y la
+  de ayer sin cerrar. Tres pruebas que daban por hecho que entrar creaba la sesión o que empezar
+  otra la cerraba sola conservan sus aserciones y añaden el paso que ahora hace falta: salir del
+  guiado y volver pasa por el primer visto; la otra sesión sin cerrar y el recorrido de pantallas
+  con una rutina de casa a medias, por la hoja.
 
 ### Cerrado en v35
 

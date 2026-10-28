@@ -24,6 +24,9 @@
   /* el aviso flotante conserva el texto al esconderse: se vacia antes de mirar */
   function sinAviso(app){app.$("#toast").innerHTML="";}
   const pregunto=(app,n)=>app.w.__dialogos.slice(n).filter(x=>x.tipo==="confirm").length;
+  /* HU-63: la hoja de conflicto vive en #planov */
+  const hoja=app=>app.$("#planov").classList.contains("show");
+  const boton=(app,txt)=>app.$$("#planBody button").find(b=>b.textContent.indexOf(txt)>=0);
 
   escenario("Copia de seguridad (datos del dueño)",F.dueno,()=>{
     test("exportData → importData real: todas las claves rp_* vuelven identicas",async app=>{
@@ -338,6 +341,10 @@
   escenario("Almacenamiento lleno · salir del guiado y volver",F.vacio,()=>{
     test("la serie que no cupo sobrevive a salir y volver a entrar; con espacio se guarda",async app=>{
       app.w.openRoutine("gym_empuje");app.w.startRoutine("press_banca_db");
+      /* HU-63: entrar no crea la sesion; el primer visto si, y queda en disco
+         sin la serie que viene */
+      expect(app.leer("rp_session")).toBe(null);
+      app.w.markCheck("gym_empuje","caminadora",true);
       expect(app.leer("rp_session").key).toBe("gym_empuje");
       sinAviso(app);const libera=lleno(app,{margen:0});
       try{app.w.logSet();
@@ -373,6 +380,10 @@
       const sesion=app.foto().rp_session;expect(app.leer("rp_session").key).toBe("salud_fuerza_b");
       sinAviso(app);const libera=lleno(app,{margen:0});
       try{app.w.openRoutine("salud_fuerza_a");app.w.startRoutine("sentadilla_silla");
+        /* HU-63: ya no la cierra sola; pregunta, y guardarla no cabe */
+        expect(hoja(app)).toBe(true);
+        expect(app.texto("#toast")).toBe("");
+        boton(app,"Guardar Casa — Fuerza B y empezar Casa — Fuerza A").click();
         expect(app.texto("#toast")).toContain("sigue abierta");
         expect(app.ev("steps[stepi].id")).toBe("sentadilla_silla");
         app.w.logSet();
@@ -389,6 +400,256 @@
       const l=app.leer("rp_logs").sentadilla_silla.slice(-1)[0];
       expect(l.date).toBe(app.w.today());expect(l.sets.length).toBe(1);
       expect(app.foto().rp_session).toBe(sesion);
+      app.reiniciarMemoria();});
+  });
+
+  /* HU-63: mirar otra rutina no cierra la que esta a medias. Tocar una fila,
+     su play o su visto en Tirón cerraba Empuje sola (finishSession "auto") y
+     la guardaba como terminada. Ahora sale una hoja y nada cambia hasta elegir. */
+  const fila=(app,id)=>app.$('#routine .ex[data-ex="'+id+'"]');
+  async function cerrarHoja(app){app.w.history.back();await app.hasta(()=>!hoja(app),3000,"que se cierre la hoja");}
+  escenario("Otra rutina con Empuje a medias",F.aMedias,()=>{
+    test("de partida: Empuje a medias, 3 de 14, y en curso en Inicio",app=>{
+      expect(app.leer("rp_session").key).toBe("gym_empuje");
+      const st=app.w.sessStats("gym_empuje");
+      expect([st.exDone,st.exTotal,st.sets]).toEqual([3,14,3]);
+      expect(app.texto("#todayCard")).toContain("En curso");
+      expect(app.texto("#todayCard")).toContain("Empuje");});
+    test("tocar una fila, su figura, su play, su visto o Empezar en Tirón abre la hoja en 1 toque y no cambia nada",async app=>{
+      const antes=app.foto(),h0=app.leer("rp_history").length;
+      app.w.openRoutine("gym_tiron");
+      const toques=[["la fila",()=>fila(app,"jalon_pecho").querySelector(".nm")],
+        ["la figura",()=>fila(app,"jalon_pecho").querySelector(".diag")],
+        ["el play",()=>fila(app,"jalon_pecho").querySelector(".exstart")],
+        ["el visto",()=>fila(app,"jalon_pecho").querySelector(".exck")],
+        ["Empezar",()=>app.$("#routCta .btn:not(.sec)")]];
+      for(const [que,el] of toques){
+        el().click();
+        expect(que+": "+hoja(app)).toBe(que+": true");
+        expect(app.activa()).toBe("routine");
+        expect(app.texto("#planTitle")).toBe("Tienes Empuje a medias");
+        expect(app.texto("#planBody")).toContain("Empuje · 3 de 14 hechos · 3 series");
+        expect(app.leer("rp_session").key).toBe("gym_empuje");
+        expect(app.leer("rp_history").length).toBe(h0);
+        expect(app.foto()).toEqual(antes);
+        await cerrarHoja(app);
+        expect(app.foto()).toEqual(antes);}
+      /* el visto no quedo marcado ni en pantalla */
+      expect(fila(app,"jalon_pecho").classList.contains("checked")).toBe(false);
+      expect(fila(app,"jalon_pecho").querySelector(".exck").getAttribute("aria-checked")).toBe("false");});
+    test("la hoja no tiene opción destructiva: dos botones con nombre, sin borrar ni descartar",async app=>{
+      const n=app.w.__dialogos.length;
+      app.w.openRoutine("gym_tiron");app.w.startRoutine("jalon_pecho");
+      expect(app.$$("#planBody button").map(b=>b.textContent.replace(/\s+/g," ").trim()))
+        .toEqual(["Volver a Empuje","Guardar Empuje y empezar Tirón"]);
+      expect(app.$$("#planBody .danger,#planBody .fin").length).toBe(0);
+      expect(/descart|borr|elimin/i.test(app.texto("#planov"))).toBe(false);
+      expect(pregunto(app,n)).toBe(0);
+      await cerrarHoja(app);});
+    test("«Volver a Empuje» abre su detalle con los 3 hechos intactos",async app=>{
+      await app.arrancar(F.aMedias);const antes=app.foto();
+      app.w.openRoutine("gym_tiron");fila(app,"jalon_pecho").querySelector(".exstart").click();
+      boton(app,"Volver a Empuje").click();
+      expect(hoja(app)).toBe(false);
+      expect(app.activa()).toBe("routine");
+      expect(app.ev("curRoutine")).toBe("gym_empuje");
+      expect(app.$$("#routine .ex.checked").map(e=>e.dataset.ex).sort()).toEqual(["caminadora","circulos_brazos","press_banca_db"]);
+      expect(app.texto("#routProg")).toBe("3/14");
+      expect(app.texto("#routCta")).toContain("Continuar");
+      expect(app.foto()).toEqual(antes);
+      /* atras vuelve a Tirón, y tampoco toca nada */
+      app.w.history.back();
+      await app.hasta(()=>app.ev("curRoutine")==="gym_tiron"&&app.activa()==="routine",3000,"el detalle de Tirón");
+      expect(app.foto()).toEqual(antes);
+      app.reiniciarMemoria();});
+    test("«Guardar Empuje y empezar Tirón» guarda Empuje (1 entrada) y abre Tirón: 2 toques",async app=>{
+      await app.arrancar(F.aMedias);const h0=app.leer("rp_history").length;
+      app.w.openRoutine("gym_tiron");
+      fila(app,"jalon_pecho").querySelector(".exstart").click();     /* toque 1 */
+      boton(app,"Guardar Empuje y empezar Tirón").click();           /* toque 2 */
+      expect(hoja(app)).toBe(false);
+      expect(app.activa()).toBe("guided");
+      expect(app.ev("curRoutine")).toBe("gym_tiron");
+      expect(app.ev("steps[stepi].id")).toBe("jalon_pecho");
+      const h=app.leer("rp_history");
+      expect(h.length).toBe(h0+1);
+      expect([h[0].key,h[0].exDone,h[0].exTotal,h[0].sets]).toEqual(["gym_empuje",3,14,3]);
+      expect(app.leer("rp_logs").press_banca_db.slice(-1)[0].date).toBe(app.w.today());
+      /* la de Tirón nace con lo primero que se registra */
+      expect(app.leer("rp_session")).toBe(null);
+      app.w.logSet();
+      expect(app.leer("rp_session").key).toBe("gym_tiron");
+      expect(app.leer("rp_history").length).toBe(h0+1);
+      await app.espera(400);
+      /* atras: el detalle de Tirón, no la hoja */
+      app.w.guidedExit();await app.hasta(()=>app.activa()==="routine",3000,"la rutina");
+      expect(app.ev("curRoutine")).toBe("gym_tiron");
+      expect(hoja(app)).toBe(false);
+      app.reiniciarMemoria();});
+    test("el visto de Tirón con Empuje a medias: guardar Empuje y queda marcado, en 2 toques",async app=>{
+      await app.arrancar(F.aMedias);const h0=app.leer("rp_history").length;
+      app.w.openRoutine("gym_tiron");
+      fila(app,"jalon_pecho").querySelector(".exck").click();        /* toque 1 */
+      boton(app,"Guardar Empuje y empezar Tirón").click();           /* toque 2 */
+      await app.hasta(()=>!hoja(app),3000,"que se cierre la hoja");
+      expect(app.activa()).toBe("routine");
+      expect(app.ev("curRoutine")).toBe("gym_tiron");
+      expect(fila(app,"jalon_pecho").classList.contains("checked")).toBe(true);
+      expect(app.w.checksOn(app.w.today(),"gym_tiron")).toEqual({jalon_pecho:true});
+      expect(app.leer("rp_session").key).toBe("gym_tiron");
+      expect(app.leer("rp_history").length).toBe(h0+1);
+      expect(app.leer("rp_history")[0].key).toBe("gym_empuje");
+      app.reiniciarMemoria();});
+    test("teléfono lleno al guardar: el aviso de siempre y las dos sesiones intactas",async app=>{
+      await app.arrancar(F.aMedias);
+      app.w.openRoutine("gym_tiron");fila(app,"jalon_pecho").querySelector(".exstart").click();
+      const antes=app.foto(),h0=app.leer("rp_history").length;sinAviso(app);const libera=lleno(app,{margen:0});
+      try{boton(app,"Guardar Empuje y empezar Tirón").click();
+        expect(app.texto("#toast")).toBe("No cupo en el teléfono: la sesión de Empuje sigue abierta sin guardar. Libera espacio y finalízala.");
+        expect(app.foto()).toEqual(antes);
+        expect(app.leer("rp_session").key).toBe("gym_empuje");
+        expect(app.w.sessStats("gym_empuje").exDone).toBe(3);
+        /* Empuje esta entera en disco: se sigue a Tirón solo en memoria, como
+           antes, y no se vuelve a preguntar mientras tenga series */
+        expect(app.activa()).toBe("guided");
+        expect(app.ev("steps[stepi].id")).toBe("jalon_pecho");
+        sinAviso(app);app.w.logSet();
+        expect(app.texto("#toast")).toContain("Empuje sigue abierta");
+        expect(app.foto()).toEqual(antes);
+        await app.espera(400);
+        await salirDelGuiado(app);
+        fila(app,"jalon_pecho").querySelector(".exstart").click();
+        expect(hoja(app)).toBe(false);
+        expect(app.activa()).toBe("guided");
+        expect(app.ev("steps[stepi].id")).toBe("jalon_pecho");
+        expect(app.ev("sessionLog").jalon_pecho.length).toBe(1);
+        expect(app.foto()).toEqual(antes);
+      }finally{libera();}
+      /* con espacio, la siguiente serie guarda Empuje, que ya se eligió
+         guardar, y Tirón pasa a tener su sesion con las dos series */
+      app.w.logSet();
+      const h=app.leer("rp_history");
+      expect(h.length).toBe(h0+1);
+      expect([h[0].key,h[0].exDone]).toEqual(["gym_empuje",3]);
+      const s=app.leer("rp_session");
+      expect([s.key,s.log.jalon_pecho.length]).toEqual(["gym_tiron",2]);
+      await app.espera(400);app.ev("clearTimer()");
+      app.reiniciarMemoria();});
+    test("teléfono lleno con series de Empuje solo en pantalla: la hoja se queda y no se pierde ninguna",async app=>{
+      await app.arrancar(F.aMedias);
+      app.w.openRoutine("gym_empuje");app.w.startRoutine("fondos_paralelas");
+      sinAviso(app);const libera=lleno(app,{margen:0});
+      try{app.w.logSet();
+        expect(app.texto("#toast")).toContain("No cupo en el teléfono");
+        await app.espera(400);
+        await salirDelGuiado(app);
+        const antes=app.foto();
+        app.w.openRoutine("gym_tiron");fila(app,"jalon_pecho").querySelector(".exstart").click();
+        expect(hoja(app)).toBe(true);
+        expect(app.texto("#planBody")).toContain("Empuje · 4 de 14 hechos · 4 series");
+        sinAviso(app);boton(app,"Guardar Empuje y empezar Tirón").click();
+        expect(app.texto("#toast")).toContain("la sesión de Empuje sigue abierta sin guardar");
+        expect(hoja(app)).toBe(true);
+        expect(app.activa()).toBe("routine");
+        expect(app.ev("sessionLogKey")).toBe("gym_empuje");
+        expect(app.ev("sessionLog").fondos_paralelas.length).toBe(1);
+        expect(app.foto()).toEqual(antes);
+        boton(app,"Volver a Empuje").click();
+        expect(app.ev("curRoutine")).toBe("gym_empuje");
+        expect(app.ev("sessionLog").fondos_paralelas.length).toBe(1);
+        expect(app.foto()).toEqual(antes);
+      }finally{libera();}
+      /* con espacio, finalizar Empuje guarda tambien la serie que no cupo */
+      const res=app.w.finishSession("gym_empuje","sheet");
+      expect(!!res&&!res.lleno).toBe(true);
+      expect(res.summary.exDone).toBe(4);
+      expect(app.leer("rp_logs").fondos_paralelas.slice(-1)[0].sets.length).toBe(1);
+      expect(app.leer("rp_session")).toBe(null);
+      app.reiniciarMemoria();});
+    test("recarga en mitad del conflicto: nada cambia y Empuje sigue en curso",async app=>{
+      await app.arrancar(F.aMedias);
+      app.w.openRoutine("gym_tiron");fila(app,"jalon_pecho").querySelector(".exck").click();
+      expect(hoja(app)).toBe(true);
+      const antes=app.foto();
+      await app.recargar();
+      expect(hoja(app)).toBe(false);
+      expect(app.foto()).toEqual(antes);
+      expect(app.activa()).toBe("home");
+      expect(app.texto("#todayCard")).toContain("En curso");
+      expect(app.texto("#todayCard")).toContain("Empuje");
+      /* y la hoja vuelve a salir si se insiste */
+      app.w.openRoutine("gym_tiron");fila(app,"jalon_pecho").querySelector(".exck").click();
+      expect(hoja(app)).toBe(true);
+      await cerrarHoja(app);
+      expect(app.foto()).toEqual(antes);});
+  });
+
+  /* HU-63: entrar al guiado solo para mirar no deja rastro; la sesion nace
+     con lo primero que se registra */
+  escenario("Mirar el guiado sin registrar",F.dueno,()=>{
+    test("abrir el guiado y salir sin registrar nada no crea rp_session ni pone la tarjeta «En curso»",async app=>{
+      const antes=app.foto(),tarjeta=app.texto("#todayCard");
+      expect(app.leer("rp_session")).toBe(null);
+      app.w.openRoutine("gym_tiron");app.w.startRoutine("jalon_pecho");
+      expect(app.activa()).toBe("guided");
+      app.w.guidedSkipExercise();app.w.guidedBack();
+      await salirDelGuiado(app);
+      app.$("#routCta .btn:not(.sec)").click();
+      expect(app.activa()).toBe("guided");
+      await salirDelGuiado(app);
+      expect(app.leer("rp_session")).toBe(null);
+      expect(app.foto()).toEqual(antes);
+      app.$('.nav .tab[data-v="home"]').click();
+      expect(app.activa()).toBe("home");
+      expect(app.texto("#todayCard")).toBe(tarjeta);
+      expect(app.texto("#todayCard")).not.toContain("En curso");
+      app.reiniciarMemoria();});
+    test("lo primero que se registra sí la crea: una serie, un visto o el temporizador",async app=>{
+      const sesion=()=>app.leer("rp_session");
+      app.sembrar(F.dueno);app.reiniciarMemoria();
+      app.w.openRoutine("gym_tiron");app.w.startRoutine("jalon_pecho");
+      expect(sesion()).toBe(null);
+      app.w.logSet();
+      expect([sesion().key,sesion().src,sesion().log.jalon_pecho.length]).toEqual(["gym_tiron","guided",1]);
+      await app.espera(400);app.ev("clearTimer()");
+      app.sembrar(F.dueno);app.reiniciarMemoria();
+      app.w.openRoutine("gym_tiron");
+      expect(sesion()).toBe(null);
+      fila(app,"jalon_pecho").querySelector(".exck").click();
+      expect([sesion().key,sesion().src]).toEqual(["gym_tiron","check"]);
+      app.sembrar(F.dueno);app.reiniciarMemoria();
+      app.w.openRoutine("gym_tiron");app.w.startRoutine("caminadora");
+      expect(app.ev("steps[stepi].kind")).toBe("timer");
+      expect(sesion()).toBe(null);
+      app.w.startTimer();
+      expect([sesion().key,sesion().src]).toEqual(["gym_tiron","guided"]);
+      app.ev("clearTimer()");app.reiniciarMemoria();});
+  });
+
+  /* criterio 5 de HU-63: las de otros dias siguen su camino de siempre */
+  escenario("Sesión de ayer sin cerrar · otra rutina hoy",F.sinCerrar,()=>{
+    test("se sigue rescatando al abrir; «Ahora no» la deja y vuelve a salir al recargar",async app=>{
+      const antes=app.foto();
+      expect(app.$("#finov").classList.contains("show")).toBe(true);
+      expect(app.texto("#finTitle")).toBe("Entrenamiento sin cerrar");
+      app.$$("#finBody button").find(b=>b.textContent.indexOf("Ahora no")>=0).click();
+      await app.hasta(()=>!app.$("#finov").classList.contains("show"),3000,"que se cierre el rescate");
+      expect(app.foto()).toEqual(antes);
+      await app.recargar();
+      expect(app.$("#finov").classList.contains("show")).toBe(true);
+      expect(app.texto("#finTitle")).toBe("Entrenamiento sin cerrar");});
+    test("no es «a medias»: no abre la hoja de conflicto y, como antes, se guarda con su fecha al entrar",app=>{
+      app.ev("$('finov').classList.remove('show')");
+      app.w.openRoutine("gym_tiron");
+      expect(app.w.sessConflict("gym_tiron")).toBe(null);
+      app.w.startRoutine("jalon_pecho");
+      expect(hoja(app)).toBe(false);
+      expect(app.activa()).toBe("guided");
+      const h=app.leer("rp_history");
+      expect(h.length).toBe(1);
+      expect([h[0].key,h[0].sets]).toEqual(["gym_empuje",2]);
+      expect(app.w.ds(new Date(h[0].iso))).toBe(F.fecha(1));
+      expect(app.leer("rp_session")).toBe(null);
       app.reiniciarMemoria();});
   });
 })();

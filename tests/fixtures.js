@@ -130,5 +130,13 @@ var Fixtures=(function(){
         log:{press_banca_db:[{w:30,reps:8,t:ini+600000},{w:30,reps:7,t:ini+780000}]}},
       rp_checks:{[fecha(1)]:{gym_empuje:{caminadora:true}}}};}
 
-  return {vacio:()=>({}),dueno:dueno,madre:madre,sinCerrar:sinCerrar,fecha:fecha,momento:momento,ds:ds};
+  /* ---- dueno() con Empuje a medias hoy (HU-63): 3 de 14, dos de
+     calentamiento con visto y el press con sus tres series ---- */
+  function aMedias(){const D=dueno(),ini=Date.now()-25*60000;
+    D.rp_session={v:1,key:"gym_empuje",date:fecha(0),startedAt:ini,lastAt:ini+1200000,stepi:0,src:"guided",
+      log:{press_banca_db:[{w:30,reps:8,t:ini+600000},{w:30,reps:8,t:ini+800000},{w:30,reps:7,t:ini+1000000}]}};
+    D.rp_checks={[fecha(0)]:{gym_empuje:{caminadora:true,circulos_brazos:true,press_banca_db:true}}};
+    return D;}
+
+  return {vacio:()=>({}),dueno:dueno,madre:madre,sinCerrar:sinCerrar,aMedias:aMedias,fecha:fecha,momento:momento,ds:ds};
 })();
