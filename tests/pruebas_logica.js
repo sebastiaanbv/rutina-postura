@@ -187,11 +187,26 @@
       const g=app.w.buildSteps("salud_equilibrio").filter(s=>s.id==="caminata_granjero");
       expect(g.map(s=>[s.kind,s.seconds,s.label,s.restAfter])).toEqual([["timer",30,"Mantén 1 de 2",45],["timer",30,"Mantén 2 de 2",0]]);
       expect(app.w.buildSteps("gym_empuje").filter(s=>s.id==="press_banca_db").length).toBe(2);});
-    test.skip("buildSteps: un descanso de 0 s en un aguante se respeta",
-      "BUG: buildSteps usa d.rest||15 (aguante) y d.rest||10 (por lado), asi que un rest:0 ajustado por el usuario se convierte en 15/10 s; dose() advierte justo lo contrario ('!=null, nunca ||: rest:0 es un valor real'). estMinutes tiene el mismo patron con d.rest||30.",
+    test("buildSteps: un descanso de 0 s en un aguante se respeta",
       app=>{limpio(app,{rp_doses:{postura_completa:{isometricos_cervicales:{rest:0}}}});
         const s=app.w.buildSteps("postura_completa").filter(x=>x.id==="isometricos_cervicales");
         expect(s.map(x=>x.restAfter)).toEqual([0,0,0]);});
+    test("buildSteps: un descanso de 0 s en un aguante por lado se respeta",app=>{
+      limpio(app,{rp_doses:{salud_equilibrio:{equilibrio_unipodal:{rest:0}}}});
+      const e=app.w.buildSteps("salud_equilibrio").filter(s=>s.id==="equilibrio_unipodal");
+      expect(e.map(s=>s.side)).toEqual(["izq","der","izq","der"]);
+      expect(e.map(s=>s.restAfter)).toEqual([0,0,0,0]);});
+    test("buildSteps: un aguante propio creado con descanso 0 no descansa entre series",app=>{
+      limpio(app,{rp_custom:{u_aguante0:{name:"Aguante de prueba",type:"hold",sets:3,holdSec:20,rest:0,load:false,zona:"core",eq:"",steps:[]},
+                             u_lado0:{name:"Aguante por lado de prueba",type:"hold_side",sets:2,holdSec:20,rest:0,load:false,zona:"core",eq:"",steps:[]}},
+        rp_extras:{salud_equilibrio:["u_aguante0","u_lado0"]}});
+      app.w.mergeCustom();
+      const st=app.w.buildSteps("salud_equilibrio");
+      expect(st.filter(s=>s.id==="u_aguante0").map(s=>s.restAfter)).toEqual([0,0,0]);
+      expect(st.filter(s=>s.id==="u_lado0").map(s=>s.restAfter)).toEqual([0,0,0,0]);});
+    test("buildSteps: el descanso del programa en aguantes no cambia",app=>{limpio(app);
+      expect(app.w.buildSteps("postura_completa").filter(s=>s.id==="isometricos_cervicales").map(s=>s.restAfter)).toEqual([15,15,0]);
+      expect(app.w.buildSteps("salud_equilibrio").filter(s=>s.id==="caminata_granjero").map(s=>s.restAfter)).toEqual([45,0]);});
     test("estMinutes: minutos estimados de cada rutina (linea base)",app=>{limpio(app);
       const m={};Object.keys(app.ev("ROUTINES")).forEach(k=>m[k]=app.w.estMinutes(k));
       expect(m).toEqual({cuello_rostro:19,gym_empuje:62,gym_pierna:68,gym_tiron:64,postura_completa:21,postura_movilidad:14,
@@ -200,6 +215,18 @@
     test("estMinutes: sube si el usuario anade series",app=>{
       limpio(app,{rp_doses:{gym_empuje:{press_banca_db:{sets:6}}}});
       expect(app.w.estMinutes("gym_empuje")).toBeGreaterThan(62);});
+    /* el descanso entre series cuenta entero o nada: con rest:0 resta todo lo
+       que habria descansado, no 30 s por hueco */
+    test("estMinutes: un descanso de 0 s ajustado se respeta (series)",app=>{
+      /* press de banca: 4 series y 120 s, 3 huecos = 6 min exactos */
+      limpio(app,{rp_doses:{gym_empuje:{press_banca_db:{rest:0}}}});
+      expect(app.w.estMinutes("gym_empuje")).toBe(62-6);});
+    test("estMinutes: un descanso de 0 s ajustado se respeta (aguantes)",app=>{
+      const m=d=>{limpio(app,{rp_doses:{salud_equilibrio:d}});return app.w.estMinutes("salud_equilibrio");};
+      /* granjero a 5 series: 4 huecos de 45 s = 3 min exactos */
+      expect(m({caminata_granjero:{sets:5}})-m({caminata_granjero:{sets:5,rest:0}})).toBe(3);
+      /* unipodal por lado a 4 series: 3 huecos de 20 s = 1 min exacto */
+      expect(m({equilibrio_unipodal:{sets:4}})-m({equilibrio_unipodal:{sets:4,rest:0}})).toBe(1);});
 
     /* ---------- fechas ---------- */
     test("dlocal: AAAA-MM-DD es medianoche LOCAL (no UTC)",app=>{

@@ -199,7 +199,11 @@ Abajo, barra fija con dos acciones: continuar y finalizar.
 ### Modo guiado
 Manda **la serie**: pastilla con "Serie 2 de 4", nombre del ejercicio, y los controles de peso y reps inmediatamente debajo. Bajo la acción, el **único ajuste que se edita a mano**: cuántas series. Arranca en la del programa, con "Sugeridas: N" debajo, y si la cambias ese texto se convierte en el botón para volver. La ficha de cómo se hace —mapa corporal, consejo, avisos, pasos y vídeo— va **después**, plegada, y viene cerrada si ya has hecho ese ejercicio tres veces o más.
 
+El peso del control es **solo el número**, y es el mismo al entrar en la serie, al tocar − o +, al escribirlo a mano y al cambiar las series: los cuatro caminos pintan con `fmtW(curW)` (`pintaW()` los que no rehacen la serie). Con la unidad, «102.5 kg» parte la fila en dos líneas en un móvil de 390 px; la unidad sigue en la línea de cada serie registrada.
+
 **El tiempo no se edita.** Descansos y sostenes los fija el programa: el criterio para ponerlos ya está tomado y ofrecer un stepper solo invita a deshacerlo sin datos. Cambiar las series, en cambio, responde a algo que solo sabes tú — cómo te sientes hoy y cuánto tiempo tienes.
+
+**Un descanso de 0 s es 0 s.** Lo traen los calentamientos encadenados y lo puede elegir la persona al crear un ejercicio propio: la serie siguiente entra directa, sin pantalla de descanso, y la duración estimada de la rutina no le suma nada. `dose()` ya pone el descanso por defecto cuando nadie lo declara, así que `buildSteps` y `estMinutes` lo usan tal cual, nunca con `||`.
 
 Subir o bajar series rehace la lista de pasos entera, así que `reanclar()` te devuelve a la misma serie del mismo ejercicio (o a la última que quede, si la recortaste) y conserva el peso y las reps que ya tenías marcados. No se puede bajar por debajo de lo ya registrado hoy ni por debajo de la serie en curso.
 
@@ -364,6 +368,25 @@ dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma d
   migra al importar, copia más nueva rechazada, forma cambiada, ida y vuelta con la sesión en
   curso, y teléfono lleno simulado (`setItem` que lanza `QuotaExceededError`) al anotar, al
   finalizar, al empezar otra rutina y al importar.
+
+Dos fallos que encontró el arnés de pruebas y que estaban anotados como `test.skip`:
+
+- **Un descanso de 0 s ya no se convierte en 15.** `buildSteps` rellenaba con `d.rest||15` en
+  los aguantes y `d.rest||10` en los de por lado, y `estMinutes` con `d.rest||30` en todo, así que
+  un `rest:0` —ajustado en `rp_doses` o puesto al crear un ejercicio propio— metía un descanso que
+  nadie había pedido y alargaba la duración estimada. `dose()` ya avisaba de lo contrario. Las
+  nueve rutinas, con sus opcionales, no cambian ni en pasos ni en minutos: sus aguantes con
+  `rest:0` van a una serie. Solo cambian los dos estiramientos por lado del programa con `rest:0`
+  y dos series (pectoral en la puerta, trapecio superior) cuando se agregan a otra rutina o se les
+  suben las series: las series van seguidas, como dice su dosis, en vez de con 10 s entre medias.
+- **El peso del guiado se ve siempre igual.** Al entrar en la serie y al escribirlo salía «30»,
+  pero tocar − o + y cambiar las series lo reescribían como «30 kg». Queda solo el número en los
+  cuatro caminos (`pintaW()`), y sale la regla CSS de la unidad, que solo usaban esos dos.
+- **Pruebas**: las dos que estaban omitidas pasan a ser normales (la del peso corre ahora en los
+  tres juegos de datos, no solo en el del gimnasio), y se añaden el descanso 0 en aguantes por lado
+  y en ejercicios propios, el descanso del programa sin cambios, los minutos estimados con
+  descanso 0, la serie siguiente sin pantalla de descanso en el guiado, y el formato del peso al
+  pintar, con − y +, al escribirlo y al cambiar las series.
 
 ### Cerrado en v35
 
