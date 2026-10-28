@@ -212,6 +212,8 @@ La cabecera del día lleva **Registrar rutina**: elige el día y añade a mano u
 ### Progreso
 Un dato hero (índice de fuerza) y seis bloques con el mismo ritmo. Los récords van justo detrás del hero, porque son la recompensa, y en ámbar.
 
+Se pinta con **una sola lectura de `rp_logs`**: `renderProgress` lo lee y se lo pasa a cada análisis (`strengthIdx`, `strengthSpark`, `overloadIndex`, `stalled`, `prFeed`, `muscleSets`, `monthSummary`), que solo lo leen, nunca lo modifican. Un bloque nuevo recibe ese `logs`; no llama a `loadLogs()`. Sin el argumento, cada análisis lo lee él mismo, igual que `exChart`.
+
 ### Ajustes
 Cuatro secciones con título: apariencia · durante el entreno · recordatorios · datos.
 
@@ -364,6 +366,22 @@ dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma d
   migra al importar, copia más nueva rechazada, forma cambiada, ida y vuelta con la sesión en
   curso, y teléfono lleno simulado (`setItem` que lanza `QuotaExceededError`) al anotar, al
   finalizar, al empezar otra rutina y al importar.
+- **Progreso lee el historial una vez por pintado.** Cada análisis —el índice de fuerza y su
+  curva de 12 semanas, sobrecarga, estancamiento, récords, series por músculo y el resumen del
+  mes— volvía a leer y parsear `rp_logs` entero: **25 veces por pintado**, también al guardar un
+  pesaje o una medida, que redibujan la pantalla. Ahora `renderProgress` lo lee una vez y se lo
+  pasa (§8); el resumen del mes, además, pide la lista de récords una vez y no dos. Medido en el
+  arnés con dos años sintéticos (`Fixtures.dosAnos`: 416 sesiones, 370 KB de `rp_logs`), mediana
+  de 41 pintados en escritorio: **antes 54-60 ms y 9 MB parseados; ahora 17-20 ms y 0,36 MB**.
+  Con seis semanas de datos, de 6 a 3 ms. En el teléfono no se ha medido.
+  Lo que se ve no cambia en un solo carácter: comparado con el código de v35 con los cuatro
+  juegos de datos, el HTML de Progreso es idéntico.
+  Queda, de menos peso: la media de 7 días del peso recorre `rp_bw` entero 112 veces por pintado
+  (unos 6 ms con dos años de pesajes casi diarios) y `rp_history` se lee tres veces.
+  **Pruebas** en `tests/pruebas_progreso.js`: una lectura y un parseo al abrir Progreso y al
+  redibujar; el pintado y cada análisis dan lo mismo con el registro compartido que leyendo el suyo,
+  como hasta v35, con `dosAnos` y con los juegos de cada día; ningún análisis modifica lo que
+  recibe; y con `dosAnos` el pintado tarda menos del 60 % de lo que tardaba.
 
 ### Cerrado en v35
 
