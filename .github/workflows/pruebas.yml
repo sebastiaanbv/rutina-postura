@@ -1,0 +1,24 @@
+# Corre las pruebas automaticas de Mi Rutina (tests/run.py) en cada PR y en
+# cada push a desarrollo o main. Las mismas que se corren en local: Chrome sin
+# interfaz contra la app servida por http.server, sin dependencias que instalar.
+name: Pruebas
+
+on:
+  pull_request:
+  push:
+    branches: [desarrollo, main]
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pruebas automáticas
+        run: python tests/run.py

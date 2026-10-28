@@ -33,6 +33,14 @@ NAVEGADORES = [
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
     r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
 ]
+# en Linux (la integracion continua de GitHub) los navegadores estan en el PATH
+NAVEGADORES_PATH = ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "microsoft-edge"]
+
+
+def navegadores():
+    rutas = [x for x in NAVEGADORES if os.path.exists(x)]
+    rutas += [r for r in (shutil.which(n) for n in NAVEGADORES_PATH) if r and r not in rutas]
+    return rutas
 # Con ?__pruebas en la URL, el servidor mete tests/prelude.js como PRIMER
 # script de index.html: asi los errores de arranque, los dialogos, las
 # descargas y el service worker quedan bajo control antes de que corra la app.
@@ -93,6 +101,9 @@ def correr_navegador(exe, url):
            "--user-data-dir=" + perfil,
            "--virtual-time-budget=%d" % PRESUPUESTO_VIRTUAL_MS,
            "--dump-dom", url]
+    if sys.platform.startswith("linux") and os.environ.get("CI"):
+        # los contenedores de CI no traen el sandbox de Chrome; en un equipo propio no se quita
+        cmd.insert(1, "--no-sandbox")
     try:
         p = subprocess.run(cmd, capture_output=True, timeout=TIEMPO_REAL_S)
         salida = p.stdout.decode("utf-8", "replace")
@@ -180,7 +191,7 @@ def main():
         except KeyboardInterrupt:
             return 0
 
-    candidatos = [a.navegador] if a.navegador else [x for x in NAVEGADORES if os.path.exists(x)]
+    candidatos = [a.navegador] if a.navegador else navegadores()
     if not candidatos:
         print("No encontre Edge ni Chrome. Pasa la ruta con --navegador.")
         return 1
