@@ -553,13 +553,22 @@
   function abrir(app,semilla){app.w.toastFuera();app.reiniciarMemoria();app.sembrar(semilla||conSerie);
     app.w.openRoutine("gym_empuje");app.w.startRoutine("press_banca_db");app.$("#toast").innerHTML="";
     expect(app.activa()).toBe("guided");}
+  /* Se mide la pantalla quieta, la que toca el dedo: las entradas que aun
+     corren (el fade de la vista, 0,22 s, y el stageIn del paso) se terminan
+     antes. Abrir el guiado con el guiado ya en pantalla no reinicia el fade
+     de la vista: con reloj real (Playwright) puede ir a medias, y con un
+     translateY a medias getBoundingClientRect da 43,99997 de alto a una caja
+     de 44. Las infinitas (las figuras) no se tocan: no tienen final. */
+  function quieta(app){app.doc.getAnimations().forEach(a=>{
+    const fin=a.effect&&a.effect.getComputedTiming().endTime;if(isFinite(fin))a.finish();});}
   /* Zona de toque de un control: lo que mide (su caja o el pseudo-elemento
      que la agranda) y si es suya. Un cuadrado de 44 px centrado en el control
      tiene que caer en el: si otro lo tapa, no es suya. El cuadrado va a 21,4
      del centro porque elementFromPoint redondea el punto hasta medio pixel, y
      sin esquinas de 10 px porque el navegador respeta el border-radius al
      decidir que se toca: un campo redondeado las deja pasar al padre. */
-  function zona(app,el){const r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,m=21.4,ajenos=[];
+  function zona(app,el){quieta(app);
+    const r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,m=21.4,ajenos=[];
     const ps=app.w.getComputedStyle(el,"::after"),con=ps.content&&ps.content!=="none"&&ps.display!=="none";
     for(let dy=-m;dy<=m+1e-6;dy+=m/6)for(let dx=-m;dx<=m+1e-6;dx+=m/6){
       if(Math.abs(dx)>12&&Math.abs(dy)>12)continue;
