@@ -378,19 +378,33 @@ mancuernas se quedaba pidiendo más repeticiones para siempre.
     las series llegan a tope+2, se sube y se vuelve al mínimo: «Llegaste a 22 reps: sube a 9 kg
     y vuelve a 12».
 
-  Es la regla que ya seguía la lista de mancuernas de v35, que no cambia: con `pesosDB`
-  declarado manda la lista y nunca se propone una mancuerna que no existe.
+  Es la regla que ya seguía la lista de mancuernas de v35, que no cambia.
+- **Con `pesosDB` declarado manda la lista, también en lo que no es «de mancuerna».** En las
+  rutinas de casa todo lo que lleva carga se hace con esas mancuernas: sentarse con una al pecho
+  (`eq` silla), la zancada (sin aparato) y los gemelos (máquina en el gimnasio). Con la regla de
+  arriba a secas caían en el salto teórico y, de 3 kg con una lista 1-2-3, proponían 4 (en v35
+  solo estiraban). Ahora
+  `availDB(id,k)` les da la lista cuando `k` es de casa, y el salto es a la siguiente que existe:
+  de 1 a 2 tras tope+2, y con la de 3, la más pesada, se estira («Ya usas tu mancuerna más
+  pesada»). Sin peso todavía, al llenar el rango se coge la más ligera de la lista. Fuera de casa
+  los gemelos siguen siendo de máquina y siguen el salto teórico; los botones −/+ del guiado y la
+  aproximación llaman a `availDB` sin rutina y no cambian.
+- **Un peso guardado como texto ya no se concatena.** Importar comprueba que `rp_logs` sea un
+  objeto, no el tipo de cada `w`, así que una copia editada a mano puede traer `"8"`: sumaba
+  `"8"+1` = 81 kg, y con la lista proponía bajar a la de 6. `todayTarget` lo pasa a número.
 - **Lo que no cambia:** la primera vez, la molestia anotada (congela aunque tope+2 esté lleno),
-  el ejercicio que aún va sin peso (de 0 kg sube a 1, como antes) y las series de menos (no
-  sube). Sin claves nuevas ni cambios en la forma de `rp_logs`.
+  el ejercicio que aún va sin peso (de 0 kg sube a 1, como antes; con lista, a la más ligera) y
+  las series de menos (no sube). Sin claves nuevas ni cambios en la forma de `rp_logs`.
 - **Riesgo conocido:** sin lista, el salto es teórico y una máquina puede no tener ese peso en
   su placa. Se corrige a mano en el guiado; el salto real de cada máquina sigue abierto (punto 1
   de la comparación con apps líderes).
 - **Pruebas** en `tests/pruebas_logica.js`: 8 kg en el tope y en tope+2, 22 kg que sube a 24,5,
   40 kg y el borde de 25 kg que suben directo, la rama de `pesosDB` contra lo que devolvía v35,
   primera vez y molestia idénticas, una mancuerna de 3 kg sin lista (sube a 4) y con lista
-  (manda la lista), el guiado mostrando «sube a 9 kg», y los juegos de datos de v35 sin
-  escrituras ni claves nuevas.
+  (manda la lista), sentarse, zancada y gemelos en casa con la lista (de 3 kg no proponen 4;
+  todo ejercicio con carga de casa, de 0 a 3 kg, solo propone pesos de la lista), los gemelos
+  del gimnasio con salto teórico, pesos guardados como texto, el guiado mostrando «sube a
+  9 kg», y los juegos de datos de v35 sin escrituras ni claves nuevas.
 
 ### Cerrado en v35
 
