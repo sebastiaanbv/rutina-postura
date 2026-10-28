@@ -99,8 +99,9 @@
   function diasPostura(app){const G=app.ev("GYMKEYS"),desde=lunes(),dias={};
     (app.leer("rp_history")||[]).forEach(h=>{const d=new Date(h.iso);if(G.indexOf(h.key)<0&&d>=desde)dias[F.ds(d)]=1;});
     return Object.keys(dias).length;}
-  /* termina k con todos sus ejercicios marcados, como quien cierra la lista */
-  function terminar(app,k){if(app.$("#guided .done"))return;
+  /* termina k con todos sus ejercicios marcados, como quien cierra la lista.
+     Si ya hay pantalla de fin no hace nada, salvo que se pida otra sesion */
+  function terminar(app,k,otra){if(!otra&&app.$("#guided .done"))return;
     app.w.openRoutine(k);app.w.effList(k).forEach(id=>app.w.markCheck(k,id,true));
     app.w.show("guided");app.w.finish();
     expect(app.texto("#guided")).toContain("Completada");}
@@ -124,11 +125,25 @@
         expect(w.hechas).toBe(antes.hechas+1);
         expect(app.texto("#guided .donest")).toBe("Esta semana: "+w.hechas+" de "+w.goal);
         expect(app.$("#guided .donest svg")).toBeTruthy();
-        expect(!!app.$("#guided .doneok")).toBe(w.semanaOK);
+        /* «Semana cumplida» solo en la sesion que la cumple */
+        expect(!!app.$("#guided .doneok")).toBe(w.semanaOK&&!antes.semanaOK);
         if(w.semanaOK)expect(app.texto("#guided .doneok")).toBe("Semana cumplida · "+w.racha+" "+(w.racha===1?"seguida":"seguidas"));
         /* el total de sesiones sigue saliendo de rp_streak, una mas que antes */
         expect(s.total).toBe(total+1);
         expect(app.texto("#guided .donesub")).toBe("Mejor racha: "+w.mejor+" "+(w.mejor===1?"semana":"semanas")+" · "+s.total+" sesiones en total");});
+      test("pantalla de fin a 320 px con la letra un 30 % mayor: «N de M» no se parte",async app=>{
+        terminar(app,o.rutina);
+        const f=app.frame,ancho=f.style.width,r=app.doc.documentElement.style,
+          grande={"--t-display":"39px","--t-title":"28.6px","--t-base":"18.2px","--t-sm":"16.25px","--t-xs":"14.3px"};
+        try{f.style.width="320px";Object.keys(grande).forEach(k=>r.setProperty(k,grande[k]));
+          await app.espera(50);
+          const n=app.$("#guided .donest .n"),fs=parseFloat(app.w.getComputedStyle(n).fontSize);
+          expect(fs).toBe(39);
+          /* una sola linea: con «2 de» arriba y «3» abajo mide el doble */
+          expect(n.getBoundingClientRect().height).toBeLessThan(fs*1.6);
+          expect(app.$("#guided .donest").getBoundingClientRect().right).not.toBeGreaterThan(320);
+          expect(app.doc.documentElement.scrollWidth).not.toBeGreaterThan(320);
+        }finally{f.style.width=ancho;Object.keys(grande).forEach(k=>r.removeProperty(k));}});
       test("«Listo por hoy», Inicio, «Tu historial» y Ajustes: racha y mejor de weekStats()",app=>{
         terminar(app,o.rutina);tab(app,"home");const w=app.w.weekStats();
         expect(app.texto("#todayCard")).toContain(semanas(w.racha)+" · mejor "+w.mejor);
@@ -184,6 +199,52 @@
       expect(app.texto("#dataInfo")).toContain("racha "+w.racha+" "+(w.racha===1?"semana":"semanas"));
       expect(w.mejor).not.toBeLessThan(w.racha);
       app.reiniciarMemoria();});
+    test("ya cumplida, otra de fuerza o una de postura esa semana no repiten «Semana cumplida»",app=>{
+      const w0=app.w.weekStats();
+      expect(w0.semanaOK).toBe(true);
+      terminar(app,"gym_tiron",true);
+      let w=app.w.weekStats();
+      expect([w.hechas,w.racha]).toEqual([w0.hechas+1,w0.racha]);
+      expect(app.texto("#guided .donest")).toBe("Esta semana: "+w.hechas+" de "+w.goal);
+      expect(app.$("#guided .doneok")).toBeFalsy();
+      expect(app.texto("#guided .donesub")).toContain("Mejor racha: "+w.mejor+" ");
+      terminar(app,"postura_movilidad",true);
+      w=app.w.weekStats();
+      expect(w.hechas).toBe(w0.hechas+1);
+      expect(app.$("#guided .doneok")).toBeFalsy();
+      app.reiniciarMemoria();});
+  });
+
+  /* la mejor racha en pantalla con cifras contadas a mano, no leidas de
+     weekStats(): Fixtures.cambioHora con el reloj el miercoles 4 de noviembre
+     de 2026, en Madrid (cambios de hora el 29 de marzo y el 25 de octubre) y
+     en Santiago de Chile (el 5 de abril). Antes salia «mejor 4» y «mejor 5». */
+  ["Europe/Madrid","America/Santiago"].forEach(zona=>{
+    escenario("Racha única · mejor racha que cruza cambios de hora ("+zona+")",F.cambioHora,()=>{
+      test("Inicio, «Listo por hoy», pantalla de fin, Progreso y Ajustes: mejor 8",async app=>{
+        await app.enZona(zona,()=>{
+          tab(app,"home");
+          expect(app.texto("#stCount")).toBe("3");
+          expect(app.texto("#stWeek")).toBe("2 de 3 esta semana");
+          expect(app.texto("#todayCard")).toContain("¡Listo por hoy!");
+          expect(app.texto("#todayCard")).toContain("3 semanas cumplidas · mejor 8");
+          tab(app,"progress");
+          expect(bloque(app,"Tu historial")).toContain("3 semanas cumplidas · mejor 8");
+          /* el viernes de esta semana se adelanta: es la sesion que la cumple */
+          terminar(app,"gym_pierna");
+          expect(app.texto("#guided .donest")).toBe("Esta semana: 3 de 3");
+          expect(app.texto("#guided .doneok")).toBe("Semana cumplida · 4 seguidas");
+          expect(app.texto("#guided .donesub")).toMatch(/^Mejor racha: 8 semanas · \d+ sesiones en total$/);
+          tab(app,"home");
+          expect(app.texto("#stCount")).toBe("4");
+          expect(app.texto("#todayCard")).toContain("4 semanas cumplidas · mejor 8");
+          tab(app,"progress");
+          expect(bloque(app,"Tu historial")).toContain("4 semanas cumplidas · mejor 8");
+          tab(app,"settings");
+          expect(app.texto("#dataInfo")).toContain("racha 4 semanas");
+        },"2026-11-04T12:30:00Z");
+        app.reiniciarMemoria();});
+    });
   });
 
   /* objetivo salud con postura y cuello esta semana (dos el mismo dia), una

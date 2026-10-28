@@ -313,6 +313,31 @@
       }finally{localStorage.setItem("rp_plan",plan);localStorage.setItem("rp_weekgoal",JSON.stringify({}));app.w.weekStats();}});
   });
 
+  /* la mejor racha de semanas no se parte en un cambio de hora. Se contaba
+     restando milisegundos entre dos lunes, y con un cambio en medio salian
+     7 dias +-1 h. CI corre en UTC, donde no pasa nunca: cada zona se emula
+     con app.enZona y el reloj en el miercoles 4 de noviembre de 2026. Las
+     cifras esperadas estan contadas a mano (Fixtures.cambioHora). */
+  escenario("Racha semanal que cruza cambios de hora",F.cambioHora,()=>{
+    test("en la zona del equipo la mejor racha son las 8 semanas de marzo y abril",app=>{
+      expect(app.w.weekStats().mejor).toBe(8);});
+    /* zona, dos lunes seguidos con su cambio de hora en medio y las horas
+       que hay entre ellos (UTC no cambia nunca: es el control) */
+    [["UTC","2026-03-23","2026-03-30",168],["Europe/Madrid","2026-03-23","2026-03-30",167],
+     ["America/New_York","2026-03-02","2026-03-09",167],["America/Santiago","2026-03-30","2026-04-06",169],
+     ["Australia/Sydney","2026-03-30","2026-04-06",169]].forEach(([zona,l1,l2,horas])=>{
+      test("en "+zona+": racha 3 (las de octubre) y mejor 8 (marzo y abril)",async app=>{
+        await app.enZona(zona,()=>{const D=app.w.Date;
+          /* la zona emulada de verdad cambia de hora entre esos dos lunes */
+          expect((new D(l2+"T00:00:00")-new D(l1+"T00:00:00"))/36e5).toBe(horas);
+          expect(app.w.today()).toBe("2026-11-04");
+          const w=app.w.weekStats();
+          expect({goal:w.goal,hechas:w.hechas,racha:w.racha,mejor:w.mejor,semanaOK:w.semanaOK})
+            .toEqual({goal:3,hechas:2,racha:3,mejor:8,semanaOK:false});
+        },"2026-11-04T12:30:00Z");});
+    });
+  });
+
   /* almacenamiento lleno: jset devuelve false. Lo critico avisa y no pierde
      el dato: ni la serie en memoria ni la sesion guardada. */
   escenario("Almacenamiento lleno · anotar y terminar en el guiado",F.vacio,()=>{

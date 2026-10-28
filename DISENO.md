@@ -280,11 +280,11 @@ Lo que se celebra, y cuánto dura. Nada pasa de medio segundo.
 | Registras una serie | La línea entra con un gesto de 240 ms y avanza el contador |
 | Completas un ejercicio | El visto rebota, la fila destella medio segundo, encoge, y el anillo avanza |
 | Bates un récord | Aviso flotante en ámbar con el ejercicio y la marca |
-| Terminas la rutina | Ilustración que se dibuja sola, tres cifras, los récords conseguidos y la semana: el anillo de Inicio con «Esta semana: N de M» y, si esa sesión la cumple, «Semana cumplida · R seguidas» en ámbar |
+| Terminas la rutina | Ilustración que se dibuja sola, tres cifras, los récords conseguidos y la semana: el anillo de Inicio con «Esta semana: N de M» y, si esa sesión la cumple, «Semana cumplida · R seguidas» en ámbar. Solo esa: las que vienen después la misma semana ya no lo repiten |
 
 Un récord es una serie que **ninguna anterior domina en peso y repeticiones a la vez**. Es la misma regla del panel de progreso, así que las dos cuentan lo mismo.
 
-**Una sola racha: semanas cumplidas.** Toda la app —Inicio, pantalla de fin, «Listo por hoy», Progreso y Ajustes— cuenta la misma cifra, la de `weekStats()`: semanas seguidas con la meta de sesiones de fuerza cumplida. Una racha de días castigaba justo los descansos que pide un programa de tres días. La semana en curso nunca resta y **suma en cuanto se cumple**: si solo contaran las cerradas, la pantalla de fin diría «Semana cumplida · 6 seguidas» e Inicio seguiría en 5 hasta el lunes. El avance de la semana va en primario, como todo progreso; solo «Semana cumplida» va en ámbar, porque eso sí es un logro. `rp_streak` se sigue guardando igual, pero de él solo se muestra el total de sesiones.
+**Una sola racha: semanas cumplidas.** Toda la app —Inicio, pantalla de fin, «Listo por hoy», Progreso y Ajustes— cuenta la misma cifra, la de `weekStats()`: semanas seguidas con la meta de sesiones de fuerza cumplida. Una racha de días castigaba justo los descansos que pide un programa de tres días. La semana en curso nunca resta y **suma en cuanto se cumple**: si solo contaran las cerradas, la pantalla de fin diría «Semana cumplida · 6 seguidas» e Inicio seguiría en 5 hasta el lunes. El avance de la semana va en primario, como todo progreso; solo «Semana cumplida» va en ámbar, porque eso sí es un logro, y sale una vez por semana: celebrarlo en cada sesión que sobra lo gastaría (§7). La mejor racha cuenta las semanas seguidas **por fecha**, como la racha: restar milisegundos entre dos lunes da 7 días ± 1 h si entre ellos hay cambio de hora, y la partía en dos. `rp_streak` se sigue guardando igual, pero de él solo se muestra el total de sesiones.
 
 ## 13. Qué falta
 
@@ -372,13 +372,23 @@ dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma d
   pantalla de fin y «Listo por hoy» enseñaban la llama con «N días seguidos» y Progreso decía
   «Racha de N días»: dos rachas que se contradecían en la misma sesión. Ahora todas salen de
   `weekStats()` (§12): la pantalla de fin cambia la llama por el anillo de Inicio con «Esta semana:
-  N de M» y, si la sesión cumple la meta, «Semana cumplida · R seguidas»; «Listo por hoy», «Tu
-  historial» y Ajustes dicen «R semanas cumplidas · mejor M». La semana en curso suma en cuanto se
-  cumple. Con objetivo salud, Inicio añade «Postura: N de 7 días esta semana» (§8). `rp_streak`
-  se sigue escribiendo igual (`completeDay`, `recalcStreak`) y su total es el de «N sesiones en
-  total»: sin claves nuevas ni migración. Pruebas en `pruebas_pantallas.js` (los dos juegos de
-  datos, la sesión que cumple la semana y la línea de postura) y `pruebas_datos.js` (`rp_streak`,
-  copia de ida y vuelta, y datos de v35 sin meta congelada en las semanas viejas).
+  N de M» y, en la sesión que cumple la meta (solo en esa), «Semana cumplida · R seguidas»;
+  «Listo por hoy» y «Tu historial» dicen «R semanas cumplidas · mejor M», y Ajustes «racha R
+  semanas». La semana en curso suma en cuanto se cumple. Con objetivo salud, Inicio añade
+  «Postura: N de 7 días esta semana» (§8). `rp_streak` se sigue escribiendo igual
+  (`completeDay`, `recalcStreak`) y su total es el de «N sesiones en total»: sin claves nuevas ni
+  migración.
+  - **La mejor racha se partía en los cambios de hora.** `weekStats()` ya calculaba `mejor`, pero
+    no se veía; al enseñarlo salió que juntaba semanas restando milisegundos entre lunes, y con un
+    cambio de hora en medio daba 7 días ± 1 h: seis semanas seguidas de marzo y abril salían como
+    «mejor 3» en Madrid. Ahora compara fechas, como la racha. En CI no se veía porque el navegador
+    corre en UTC: `app.enZona(zona, fn, ahora)` emula una zona IANA y fija el reloj.
+  - Con la letra grande a 320 px, «N de M» baja entera a la línea de abajo en vez de partirse.
+  - Pruebas en `pruebas_pantallas.js` (los dos juegos de datos, la sesión que cumple la semana,
+    las que vienen después, la línea de postura, la pantalla de fin a 320 px y la mejor racha en
+    pantalla en Madrid y Santiago con cifras contadas a mano) y `pruebas_datos.js` (`rp_streak`,
+    copia de ida y vuelta, datos de v35 sin meta congelada en las semanas viejas, y la racha que
+    cruza los cambios de hora de Europa, EE. UU., Chile y Australia, con `Fixtures.cambioHora`).
 
 ### Cerrado en v35
 

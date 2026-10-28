@@ -130,5 +130,30 @@ var Fixtures=(function(){
         log:{press_banca_db:[{w:30,reps:8,t:ini+600000},{w:30,reps:7,t:ini+780000}]}},
       rp_checks:{[fecha(1)]:{gym_empuje:{caminadora:true}}}};}
 
-  return {vacio:()=>({}),dueno:dueno,madre:madre,sinCerrar:sinCerrar,fecha:fecha,momento:momento,ds:ds};
+  /* ---- semanas que cruzan cambios de hora: fechas FIJAS, no desde hoy ----
+     Fuerza lunes, miercoles y viernes a las 12:00 UTC, que es el mismo dia en
+     cualquier zona entre UTC-11 y UTC+11:
+     - ocho semanas seguidas, del lunes 2 de marzo al domingo 26 de abril de
+       2026, que cruzan el cambio de hora de EE. UU. (8 mar), el de Europa
+       (29 mar) y el de Chile y Australia (5 abr);
+     - tres del 12 de octubre al 1 de noviembre, que cruzan el de Europa (25 oct);
+     - la del 2 de noviembre, tras el de EE. UU. (1 nov), con lunes y miercoles.
+     Con el reloj en el miercoles 4 de noviembre de 2026 (app.enZona): racha 3,
+     las de octubre (la semana en curso va 2 de 3), y mejor 8. */
+  function cambioHora(){const D={rp_history:[],rp_logs:{}};
+    const RUT=[["gym_empuje","Empuje"],["gym_tiron","Tirón"],["gym_pierna","Pierna"]];
+    function semana(a,m,d,n){for(let i=0;i<(n||3);i++){const x=new Date(Date.UTC(a,m-1,d+2*i,12,0));
+      D.rp_history.push({key:RUT[i][0],name:RUT[i][1],iso:x.toISOString(),day:DIAS[x.getUTCDay()],
+        date:p2(x.getUTCDate())+"/"+p2(x.getUTCMonth()+1)+"/"+x.getUTCFullYear(),time:"12:00",
+        sets:12,vol:3000,exDone:6,exTotal:6,dur:60,ids:[]});}}
+    for(let i=0;i<8;i++)semana(2026,3,2+7*i);
+    [12,19,26].forEach(d=>semana(2026,10,d));
+    semana(2026,11,2,2);
+    D.rp_history.reverse();   /* el mas nuevo primero */
+    return Object.assign(D,{rp_prefs:{goal:"masa"},
+      rp_plan:["gym_empuje",null,"gym_tiron",null,"gym_pierna","rest","rest"],
+      rp_weekgoal:{},rp_streak:{count:1,best:3,last:"2026-11-04",total:D.rp_history.length}});}
+
+  return {vacio:()=>({}),dueno:dueno,madre:madre,sinCerrar:sinCerrar,cambioHora:cambioHora,
+    fecha:fecha,momento:momento,ds:ds};
 })();

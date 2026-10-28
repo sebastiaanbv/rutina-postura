@@ -402,11 +402,13 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     border-radius:var(--r-sm);margin-bottom:6px;color:var(--energy-ink);font-weight:var(--w-semi)}
   .doneprs .r b{margin-left:auto;font-variant-numeric:tabular-nums}
   /* la semana, con el mismo anillo de Inicio: el avance es primario; solo
-     "Semana cumplida" va en ambar, porque eso si es un logro */
-  .donest{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:var(--s5);
+     "Semana cumplida" va en ambar, porque eso si es un logro. Con letra
+     grande en 320 px la cifra no cabe al lado y baja entera a la linea de
+     abajo, en vez de partirse en "2 de" / "3" */
+  .donest{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:9px;margin-top:var(--s5);
     font-weight:var(--w-bold);font-size:var(--t-base)}
   .donest .wkring{display:inline-flex}
-  .donest .n{font-size:var(--t-display);letter-spacing:-1px;font-variant-numeric:tabular-nums}
+  .donest .n{font-size:var(--t-display);letter-spacing:-1px;font-variant-numeric:tabular-nums;white-space:nowrap}
   .doneok{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:var(--s2);
     color:var(--energy-ink);font-weight:var(--w-bold);font-size:var(--t-base)}
 
@@ -1854,9 +1856,11 @@ function weekStats(){const m=gymSessionsByWeek(),goal=weekGoal(),hoy=new Date();
   let mejor=racha;const keys=Object.keys(m).sort();
   if(keys.length){let run=0,prev=null;
     keys.forEach(k=>{if(m[k]<gOf(k)){run=0;prev=k;return;}
-      const d=new Date(k+"T00:00:00");
-      if(prev){const pd=new Date(prev+"T00:00:00");
-        run=((d-pd)/86400000===7&&m[prev]>=gOf(prev))?run+1:1;}else run=1;
+      /* seguidas si k es el lunes siguiente a prev, por fecha como en la
+         racha de arriba: restar milisegundos daba 7 dias +-1 h cuando entre
+         los dos lunes habia cambio de hora, y la mejor racha se partia */
+      if(prev){const sig=dlocal(prev);sig.setDate(sig.getDate()+7);
+        run=(ds(sig)===k&&m[prev]>=gOf(prev))?run+1:1;}else run=1;
       prev=k;mejor=Math.max(mejor,run);});}
   return {goal:goal,hechas:hechas,racha:racha,mejor:mejor,
     semanaOK:hechas>=goal,total:Object.keys(m).length};}
@@ -3067,7 +3071,10 @@ function doneHero(){const r=44,C=(2*Math.PI*r).toFixed(1);
       style="animation:drawring .75s ease-out"/>
     <path d="M34 53l12 12 24-26" fill="none" stroke="var(--primary)" stroke-width="7"
       stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
-function finish(){clearTimer();const res=finishSession(curRoutine,"guided");
+function finish(){clearTimer();
+  /* la semana de antes de guardar: "Semana cumplida" sale en la sesion que
+     la cumple, no en las que vienen despues esa misma semana */
+  const ya=weekStats().semanaOK,res=finishSession(curRoutine,"guided");
   /* no cupo: nada de "Completada". Las series siguen en memoria y en
      rp_session hasta que se pueda guardar */
   if(res&&res.lleno){$("guided").innerHTML=`<div class="done"><h2>No cupo en el teléfono</h2>
@@ -3086,7 +3093,7 @@ function finish(){clearTimer();const res=finishSession(curRoutine,"guided");
       ${sum.vol>0?`<div><b>${fmtW(sum.vol)}</b><span>kg movidos</span></div>`:""}</div>`:""}
     ${prHTML}
     <div class="donest"><span class="wkring" aria-hidden="true">${ringSVG(w.goal?w.hechas/w.goal:0,34,4.5)}</span>Esta semana: <span class="n">${w.hechas} de ${w.goal}</span></div>
-    ${w.semanaOK?`<div class="doneok">${ic("flame","xs")} Semana cumplida · ${w.racha} ${plural(w.racha,"seguida","seguidas")}</div>`:""}
+    ${w.semanaOK&&!ya?`<div class="doneok">${ic("flame","xs")} Semana cumplida · ${w.racha} ${plural(w.racha,"seguida","seguidas")}</div>`:""}
     <p class="donesub">Mejor racha: ${w.mejor} ${plural(w.mejor,"semana","semanas")} · ${s.total} ${plural(s.total,"sesión","sesiones")} en total</p>
     <button class="gbtn go" style="margin-top:22px" onclick="exitToHome()">Volver al inicio</button></div>`;beep();}
 function exitToHome(){sessionLog={};sessionLogKey=null;stepi=0;history.back();}
