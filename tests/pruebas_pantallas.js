@@ -82,4 +82,72 @@
     bugUnidad:true});
   humo("madre (casa, salud, 1-3 kg)",F.madre,{tema:"light",rutina:"salud_fuerza_a",cargado:"press_hombro_db",avisoCopia:false,
     conHistorial:true,conIndice:true,pesos:"1 2 3",objetivo:"Salud y mantenimiento",hoy:"En curso"});
+
+  /* v36: aviso de pendientes al final del guiado con datos guardados por v35,
+     cuyo rp_session no trae saltados ni repaso */
+  const paso=app=>app.ev("steps[stepi].id");
+  function hastaElFinal(app){const v=[];for(let n=0;n<300&&!app.$("#guided .done");n++){
+      if(v[v.length-1]!==paso(app))v.push(paso(app));app.w.advance();}return v;}
+  const enAviso=app=>app.$$("#guided .finlist [data-ex]").map(e=>e.dataset.ex);
+
+  escenario("Pantallas · pendientes con la sesión de v35 del juego madre",F.madre,()=>{
+    const K="salud_fuerza_b";
+    test("Continuar retoma la sesión de v35 en su paso y con sus series",app=>{
+      const s=app.leer("rp_session");
+      expect([s.key,s.stepi,s.saltados,s.repaso]).toEqual([K,6,undefined,undefined]);
+      app.w.openRoutine(K);app.$("#routCta .btn:not(.sec)").click();
+      expect(app.activa()).toBe("guided");
+      expect([app.ev("stepi"),paso(app)]).toEqual([6,"peso_muerto_rumano_db"]);
+      expect(app.ev("sessionLog").remo_db.length).toBe(1);});
+    test("recargar en el guiado retoma el mismo paso",async app=>{
+      await app.recargar();
+      expect(app.activa()).toBe("guided");
+      expect([app.ev("stepi"),paso(app)]).toEqual([6,"peso_muerto_rumano_db"]);
+      expect(app.ev("sessionLog").remo_db.length).toBe(1);});
+    test("al final avisa de los que faltan; 'Hacerlos ahora' los recorre y cierra con todo",app=>{
+      hastaElFinal(app);
+      expect(enAviso(app)).toEqual(["extension_toracica","banda_pull_apart","remo_banda"]);
+      expect(app.texto("#guided h2")).toBe("Te faltan 3 ejercicios");
+      app.$("#guided .gbtn.go").click();
+      expect(hastaElFinal(app)).toEqual(["extension_toracica","banda_pull_apart","remo_banda"]);
+      expect(app.texto("#guided .done .mut")).toMatch(/^Completada/);
+      const h=app.leer("rp_history")[0];
+      expect([h.key,h.exDone,h.exTotal]).toEqual([K,12,12]);
+      const r=app.leer("rp_logs").remo_db.slice(-1)[0];
+      expect([r.date,r.sets.length]).toEqual([F.fecha(0),1]);
+      expect(app.leer("rp_session")).toBe(null);
+      app.reiniciarMemoria();});
+  });
+
+  escenario("Pantallas · pendientes tras rescatar la sesión de v35 del juego sinCerrar",F.sinCerrar,()=>{
+    test("la de ayer se rescata con la hoja y el guiado de hoy avisa y guarda a medias",async app=>{
+      expect(app.texto("#finTitle")).toBe("Entrenamiento sin cerrar");
+      const s=app.leer("rp_session");expect([s.saltados,s.repaso]).toEqual([undefined,undefined]);
+      app.ev("confirmFinish()");await app.espera(100);
+      expect(app.leer("rp_session")).toBe(null);
+      expect(app.leer("rp_history").length).toBe(1);
+      const l=app.w.effList("gym_empuje");app.w.openRoutine("gym_empuje");app.w.startRoutine(l[3]);
+      hastaElFinal(app);
+      expect(enAviso(app)).toEqual(l.slice(0,3));
+      app.$("#guided .gbtn.sec").click();
+      expect(app.texto("#guided .done .mut")).toBe("Guardada · 11 de 14 ejercicios");
+      expect(app.leer("rp_history").length).toBe(2);
+      app.reiniciarMemoria();});
+    test("sin pasar por la hoja, empezar el guiado la cierra sola con su fecha y sigue",async app=>{
+      await app.arrancar(F.sinCerrar);
+      /* la hoja de rescate sale al arrancar; se cierra sin elegir */
+      expect(app.$("#finov").classList.contains("show")).toBe(true);
+      app.w.closeFinish();await app.hasta(()=>!app.$("#finov").classList.contains("show"),3000,"que se cierre la hoja");
+      app.w.openRoutine("gym_empuje");app.w.startRoutine();
+      const h=app.leer("rp_history"),s=app.leer("rp_session");
+      expect(h.length).toBe(1);expect(app.w.ds(new Date(h[0].iso))).toBe(F.fecha(1));
+      expect([s.date,s.stepi]).toEqual([F.fecha(0),0]);
+      app.w.guidedSkipExercise();
+      expect(app.leer("rp_session").saltados).toEqual(["caminadora"]);
+      hastaElFinal(app);
+      expect(app.$("#guided .finlist")).toBe(null);
+      expect(app.texto("#guided .done .mut")).toMatch(/^Completada/);
+      expect([app.leer("rp_history")[0].exDone,app.leer("rp_history")[0].exTotal]).toEqual([13,14]);
+      app.reiniciarMemoria();});
+  });
 })();

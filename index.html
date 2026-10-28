@@ -361,7 +361,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.96)}to{opacity:1;transform:none}}
   @keyframes ckpop{0%{transform:scale(.4)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
   @keyframes flash{from{background:var(--primary-tint)}to{background:transparent}}
-  @keyframes drawring{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
+  @keyframes drawring{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:var(--fin,0)}}
   .setline.pop{animation:pop .24s ease-out}
   .ex.checked .exck .ic{animation:ckpop .32s cubic-bezier(.2,1.4,.4,1)}
   .ex.justdone{animation:flash .6s ease-out}
@@ -794,6 +794,8 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .done .em{font-size:60px}
   .done h2{font-size:var(--t-xl);margin:var(--s3) 0 var(--s1);font-weight:var(--w-bold);letter-spacing:-.6px}
   .done .big{font-size:var(--t-mega);font-weight:var(--w-bold);color:var(--primary-ink);margin:var(--s4) 0 0}
+  /* aviso de pendientes: la misma lista que la hoja de finalizar */
+  .done .finlist{text-align:left;margin:var(--s5) 0 var(--s2)}
 
   /* ==================== CALENDARIO E HISTORIAL ==================== */
   .sect{padding:6px var(--gut) var(--s5)}
@@ -2444,19 +2446,29 @@ function panelZona(id){
 let sessionLog={}, curW=null, curReps=null, restR=0, planDay=0;
 
 /* ==== [S1] SESION PERSISTIDA =================================================
-   rp_session = {v,key,date,startedAt,lastAt,stepi,src,log:{exId:[{w,reps,t}]}}
+   rp_session = {v,key,date,startedAt,lastAt,stepi,src,log:{exId:[{w,reps,t}]},
+                 saltados?:[exId],repaso?:[exId]}
    Su ausencia significa "sin sesion activa": los datos antiguos migran solos.
+   saltados y repaso (v36) son opcionales: sin ellos, lista vacia, asi que una
+   sesion de v35 sirve tal cual y no hace falta migracion. saltados = los que
+   se saltaron a proposito en el guiado ("hoy no lo hago"); repaso = los
+   pendientes que se estan haciendo tras el aviso del final.
    rp_logged  = {fecha:{rutina:{exId:1}}} ejercicios ya volcados a rp_logs hoy,
    para que cerrar dos veces el mismo dia no duplique los marcados con visto. */
-let sessCommitted=0, sessionLogKey=null;
+let sessCommitted=0, sessionLogKey=null, sessSaltados=[], sessRepaso=null;
 /* sessionLog vive en memoria; sessionLogKey dice de que rutina es, para que
-   cambiar de rutina no arrastre series de la anterior */
-function useSessionLog(k){if(sessionLogKey!==k){sessionLog={};sessionLogKey=k;}return sessionLog;}
+   cambiar de rutina no arrastre series de la anterior. sessSaltados y
+   sessRepaso son de la misma rutina y siguen las mismas reglas */
+function useSessionLog(k){if(sessionLogKey!==k){sessionLog={};sessSaltados=[];sessRepaso=null;sessionLogKey=k;}return sessionLog;}
 /* volver a la rutina o al guiado: disco + memoria, y la memoria manda (la
    misma regla que sessLog). Con el telefono lleno la serie solo vive en
    memoria; pisarla con la copia de rp_session, o con {}, la perdia. */
-function joinSessionLog(k,s){const mem=(sessionLogKey===k)?sessionLog:{};
-  sessionLog=Object.assign({},(s&&s.key===k&&s.log)||{},mem);sessionLogKey=k;return sessionLog;}
+function joinSessionLog(k,s){const mia=sessionLogKey===k,mem=mia?sessionLog:{},d=(s&&s.key===k)?s:{};
+  sessionLog=Object.assign({},d.log||{},mem);
+  sessSaltados=idsDe(d.saltados).concat(mia?sessSaltados:[]).filter((x,i,a)=>a.indexOf(x)===i);
+  if(!(mia&&sessRepaso))sessRepaso=idsDe(d.repaso).length?idsDe(d.repaso):null;
+  sessionLogKey=k;return sessionLog;}
+function idsDe(v){return Array.isArray(v)?v.filter(x=>typeof x==="string"):[];}
 function loadSess(){try{const s=jget("rp_session",null);
   if(!s||typeof s!=="object"||s.v!==1||!s.key||!ROUTINES[s.key]||!s.date)return null;
   if(!s.log||typeof s.log!=="object")s.log={};
@@ -2479,7 +2491,10 @@ function touchSess(st){if(!curRoutine||!ROUTINES[curRoutine])return null;
   let s=loadSess();
   if(!s||s.key!==curRoutine||s.date!==today())s=startSess(curRoutine,st==null?"check":"guided");
   if(!s)return null;
-  if(sessionLogKey===curRoutine)s.log=sessionLog;
+  if(sessionLogKey===curRoutine){s.log=sessionLog;
+    /* sin saltados ni repaso la sesion queda igual que en v35 */
+    if(sessSaltados.length)s.saltados=sessSaltados;else delete s.saltados;
+    if(sessRepaso)s.repaso=sessRepaso;else delete s.repaso;}
   if(st!=null)s.stepi=st;return saveSess(s);}
 /* vista combinada memoria + disco: la memoria manda en el ejercicio que toca */
 function sessLog(k){const s=loadSess(),out={};
@@ -2833,7 +2848,9 @@ function startRoutine(from){prime();pushHist({v:"guided",k:curRoutine});
   const s=startSess(curRoutine,"guided");
   joinSessionLog(curRoutine,s);
   curW=null;curReps=null;steps=buildSteps(curRoutine);stepi=0;
-  if(from){const i=steps.findIndex(x=>x.id===from);if(i>=0)stepi=i;}
+  if(from){const i=steps.findIndex(x=>x.id===from);if(i>=0)stepi=i;
+    /* empezar por otro que no falta deja el repaso de pendientes: vuelve el orden de siempre */
+    if(sessRepaso&&sessRepaso.indexOf(from)<0)sessRepaso=null;}
   else if(s&&s.stepi>0&&s.stepi<steps.length)stepi=s.stepi;
   show("guided");renderStep();}
 /* salir ya no destruye nada: la sesion vive en localStorage y se cierra
@@ -2841,7 +2858,44 @@ function startRoutine(from){prime();pushHist({v:"guided",k:curRoutine});
 function guidedExit(){clearTimer();clearRestNotif();releaseWake();touchSess(stepi);history.back();}
 function guidedBack(){clearTimer();if(stepi>0){stepi--;renderStep();}else{guidedExit();}}
 function guidedSkipExercise(){clearTimer();const cur=steps[stepi].id;let i=stepi;while(i<steps.length&&steps[i].id===cur)i++;
-  if(i>=steps.length)finish();else{stepi=i;renderStep();}}
+  /* saltar a proposito es "hoy no lo hago": no sale como pendiente al final */
+  useSessionLog(curRoutine);if(sessSaltados.indexOf(cur)<0)sessSaltados.push(cur);
+  if(sessRepaso)i=sigPendiente();
+  touchSess(Math.min(i,steps.length-1));
+  if(i>=steps.length)alFinal();else{stepi=i;renderStep();}}
+/* ==== PENDIENTES AL FINAL (v36) ==========================================
+   Llegar al final del guiado cerraba la sesion como "Completada" aunque
+   faltaran ejercicios: empezar por el cuarto dejaba los tres primeros sin
+   hacer y sin aviso. Ahora, si falta alguno, se dice cuales y se elige:
+   hacerlos ahora (el guiado va de pendiente en pendiente, sin pasar otra vez
+   por los hechos) o terminar asi (se guarda igual, como "Guardada · X de Y").
+   Pendiente = sin series hoy, sin visto y sin saltar a proposito. */
+function pendientes(k){const ck=checksFor(k),log=sessLog(k),done=loggedOn(today(),k),
+    salt=(sessionLogKey===k)?sessSaltados:[];
+  return effList(k).filter(id=>!ck[id]&&!log[id]&&!done[id]&&salt.indexOf(id)<0);}
+/* primer paso del siguiente pendiente del repaso; al acabarlos, el final */
+function sigPendiente(){const p=pendientes(curRoutine),
+    id=(sessRepaso||[]).filter(x=>p.indexOf(x)>=0&&steps.some(st=>st.id===x))[0];
+  if(!id){sessRepaso=null;return steps.length;}
+  return steps.findIndex(st=>st.id===id);}
+function alFinal(){clearTimer();const k=curRoutine,p=pendientes(k);
+  if(!p.length){finish();return;}
+  /* si sale del aviso sin elegir, "Continuar" lleva a lo que falta y no al
+     ultimo paso, que ya esta hecho */
+  const i=steps.findIndex(st=>st.id===p[0]);
+  if(i>=0){useSessionLog(k);sessRepaso=p;touchSess(i);}
+  const filas=p.map(id=>`<div class="setline fin" data-ex="${id}"><span class="n">${esc(shortName(id))}</span><span class="v">${metaOf(EX[id],dose(k,id))}</span></div>`).join("");
+  $("guided").innerHTML=`<div class="done">
+    <h2>${p.length===1?"Te falta 1 ejercicio":"Te faltan "+p.length+" ejercicios"}</h2>
+    <p class="mut">Llegaste al final sin hacer ${plural(p.length,"este","estos")}. Si terminas así, se guarda lo que hiciste.</p>
+    <div class="finlist">${filas}</div>
+    <button class="gbtn go" onclick="hacerPendientes()">${ic("play","sm solid")} ${plural(p.length,"Hacerlo ahora","Hacerlos ahora")}</button>
+    <button class="gbtn sec" onclick="finish()">${ic("flag","sm")} Terminar así</button></div>`;}
+function hacerPendientes(){const p=pendientes(curRoutine),i=p.length?steps.findIndex(st=>st.id===p[0]):-1;
+  if(i<0){finish();return;}
+  useSessionLog(curRoutine);sessRepaso=p;stepi=i;gInfoOpen=null;gVidOn=false;
+  touchSess(stepi);renderStep();}
+/* ==== fin pendientes ===================================================== */
 
 /* ficha de "como se hace": figura, avisos, pasos y video. Va DEBAJO de la
    accion y plegada si ya has hecho el ejercicio tres veces o mas. */
@@ -3028,31 +3082,41 @@ function advance(){clearTimer();const prev=steps[stepi];stepi++;
      el primer toque de "Ver video" del ejercicio siguiente no abria nada */
   if(prev&&(stepi>=steps.length||steps[stepi].id!==prev.id)){gInfoOpen=null;gVidOn=false;}
   if(prev&&(stepi>=steps.length||steps[stepi].id!==prev.id))markCheck(curRoutine,prev.id,true);
+  /* repasando pendientes: del que acabas al primer paso del siguiente que falte */
+  if(sessRepaso&&prev&&(stepi>=steps.length||steps[stepi].id!==prev.id))stepi=sigPendiente();
   touchSess(Math.min(stepi,steps.length-1));
-  if(stepi>=steps.length)finish();else renderStep();}
+  if(stepi>=steps.length)alFinal();else renderStep();}
 /* ilustracion de la pantalla de fin: fuera de la rejilla de 24, se dibuja
-   sola al entrar */
-function doneHero(){const r=44,C=(2*Math.PI*r).toFixed(1);
-  return `<svg class="hero" viewBox="0 0 104 104" style="--len:${C}">
+   sola al entrar. Con una sesion a medias (f < 1) el anillo se queda en lo
+   hecho: el avance se ve sin leer */
+function doneHero(f){const r=44,C=(2*Math.PI*r).toFixed(1),fin=(f!=null&&f<1)?(C*(1-Math.max(0,f))).toFixed(1):"0";
+  return `<svg class="hero" viewBox="0 0 104 104" style="--len:${C}${fin!=="0"?";--fin:"+fin:""}">
     <circle cx="52" cy="52" r="${r}" fill="none" stroke="var(--line)" stroke-width="7"/>
     <circle cx="52" cy="52" r="${r}" fill="none" stroke="var(--primary)" stroke-width="7" stroke-linecap="round"
-      stroke-dasharray="${C}" stroke-dashoffset="0" transform="rotate(-90 52 52)"
+      stroke-dasharray="${C}" stroke-dashoffset="${fin}" transform="rotate(-90 52 52)"
       style="animation:drawring .75s ease-out"/>
     <path d="M34 53l12 12 24-26" fill="none" stroke="var(--primary)" stroke-width="7"
       stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
-function finish(){clearTimer();const res=finishSession(curRoutine,"guided");
+function finish(){clearTimer();
+  /* se cuentan ANTES de cerrar: con pendientes (el aviso dijo "Terminar asi")
+     nunca sale "Completada" */
+  const pend=pendientes(curRoutine).length,res=finishSession(curRoutine,"guided");
   /* no cupo: nada de "Completada". Las series siguen en memoria y en
      rp_session hasta que se pueda guardar */
   if(res&&res.lleno){$("guided").innerHTML=`<div class="done"><h2>No cupo en el teléfono</h2>
     <p class="mut">Tus series siguen aquí, sin guardar. Libera espacio en el teléfono y vuelve a intentarlo; no cierres la app mientras tanto.</p>
     <button class="gbtn go" style="margin-top:22px" onclick="finish()">Intentar de nuevo</button></div>`;return;}
   const s=(res&&res.streak)||loadStreak(),sum=res&&res.summary,nom=ROUTINES[curRoutine].name;
+  if(pend&&!sum){$("guided").innerHTML=`<div class="done"><h2>${esc(nom)}</h2>
+    <p class="mut">Nada nuevo que guardar: en esta sesión no hay series ni ejercicios marcados.</p>
+    <button class="gbtn go" style="margin-top:22px" onclick="exitToHome()">Volver al inicio</button></div>`;return;}
   const prs=(sum&&sum.pr)||[];
   const prHTML=prs.length?`<div class="doneprs"><div class="h">${ic("trophy","xs")} ${prs.length===1?"Récord personal":prs.length+" récords personales"}</div>`
     +prs.map(p=>`<div class="r"><span>${esc(shortName(p.id))}</span><b>${(p.w>0)?fmtW(p.w)+" "+((EX[p.id]&&EX[p.id].unit)||"kg")+" × "+p.reps:p.reps+" reps"}</b></div>`).join("")+`</div>`:"";
-  $("guided").innerHTML=`<div class="done">${doneHero()}
+  $("guided").innerHTML=`<div class="done">${doneHero(pend?sum.exDone/sum.exTotal:1)}
     <h2>${esc(nom)}</h2>
-    <p class="mut">Completada${sum&&sum.dur?" en "+sum.dur+" min":""}</p>
+    <p class="mut">${pend?"Guardada · "+sum.exDone+" de "+sum.exTotal+" "+plural(sum.exTotal,"ejercicio","ejercicios")
+      :"Completada"+(sum&&sum.dur?" en "+sum.dur+" min":"")}</p>
     ${sum?`<div class="donesum">
       <div><b>${sum.exDone}</b><span>${plural(sum.exDone,"ejercicio","ejercicios")}</span></div>
       <div><b>${sum.sets}</b><span>${plural(sum.sets,"serie","series")}</span></div>
