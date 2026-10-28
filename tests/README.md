@@ -21,6 +21,7 @@ Otras opciones:
 - Cuando el arnés pide `index.html?__pruebas`, el servidor inyecta `tests/prelude.js` como primer script. El archivo en disco no cambia. El preludio captura los errores de la app (excepciones, promesas rechazadas sin capturar, `console.error` y recursos que no cargan), responde los `confirm`/`prompt` sin bloquear, convierte las descargas en texto legible y desactiva el service worker.
 - `harness.html` carga la app en un iframe del mismo origen. Antes de cada escenario vacía localStorage, lo siembra y recrea el iframe. Las pruebas llaman a las funciones reales de la app (`app.w.suggestLoad(...)`); las `const`/`let` se leen con `app.ev("EX")`.
 - Una prueba falla si una aserción falla, si pasa de 20 s o si la app registró cualquier error mientras corría.
+- **El reloj de `run.py` es virtual.** Chrome corre con `--virtual-time-budget`: el reloj solo avanza cuando el navegador está ocioso, así que los `setTimeout` pasan al instante pero, dentro de JS síncrono, `performance.now()` y `Date.now()` no se mueven y cualquier medida en ms da 0. Una prueba de rendimiento comprueba algo que no dependa del reloj (lecturas, parseos, KB), que es lo que vale en la CI, y deja la medida en ms para cuando el reloj es real: el arnés servido con `--servir` y abierto en un navegador, o en Playwright. Si el reloj no avanzó, la prueba llama a `test.omitir(motivo)` y sale omitida con su motivo, no en verde ni en rojo.
 
 ## Archivos
 
@@ -28,12 +29,12 @@ Otras opciones:
 |---|---|
 | `run.py` | servidor, navegador y resumen |
 | `prelude.js` | se inyecta en la app: errores, diálogos, descargas, service worker |
-| `lib.js` | mini marco: `escenario`, `test`, `test.skip`, `expect`, el objeto `app` y el ejecutor |
-| `fixtures.js` | datos con la forma exacta de las claves `rp_*`: `vacio`, `dueno`, `madre`, `sinCerrar`, y `dosAnos` (104 semanas de gimnasio, para medir con un historial largo) |
+| `lib.js` | mini marco: `escenario`, `test`, `test.skip`, `test.omitir`, `expect`, el objeto `app` y el ejecutor |
+| `fixtures.js` | datos con la forma exacta de las claves `rp_*`: `vacio`, `dueno`, `madre`, `sinCerrar`, y `dosAnos` (104 semanas de gimnasio, para medir con un historial largo; con una sesión cada día 1 para que el resumen del mes salga cualquier día) |
 | `pruebas_logica.js` | suggestLoad, isPR, dose/SECDOSE, effList, buildSteps, estMinutes, strengthIdx, fechas |
 | `pruebas_datos.js` | copia de seguridad de ida y vuelta, importaciones que no deben tocar nada, sesión sin cerrar, datos dañados o con otra forma, esquema `rp_schema` y migraciones, teléfono lleno (`lleno(app,{margen:0})` simula `QuotaExceededError`) |
 | `pruebas_pantallas.js` | recorrido de humo por Inicio, rutina, guiado, Calendario, Progreso y Ajustes con cada juego de datos |
-| `pruebas_progreso.js` | Progreso lee `rp_logs` una sola vez por pintado, pinta lo mismo que antes y, con `dosAnos`, tarda de forma medible menos que antes |
+| `pruebas_progreso.js` | Progreso lee `rp_logs` una sola vez por pintado y pinta lo mismo que antes; con `dosAnos`, 1 parseo del historial frente a más de 20 y, con reloj real, menos del 60 % del tiempo |
 
 ## Añadir una prueba
 
@@ -50,10 +51,12 @@ test("isPR: una serie igual a la mejor no es récord", app => {
 - `async` está permitido: `await app.hasta(() => condición, ms)` y `await app.espera(ms)`.
 - Aserciones: `toBe`, `toEqual` (estructural), `toBeCloseTo(n, decimales)`, `toBeTruthy`, `toBeFalsy`, `toContain`, `toBeGreaterThan`, `toBeLessThan`, `toMatch`, `toHaveLength`, y `.not` delante.
 - Las aserciones fijan el comportamiento actual. Si algo es un bug, no se arregla en la prueba: se escribe lo correcto con `test.skip(nombre, "BUG: motivo", fn)`. Esa prueba se ejecuta igual pero no cuenta para el resultado. El resumen muestra cómo falla hoy, y cuando el bug se arregle avisará con «YA PASA: quita test.skip».
+- `test.omitir(motivo)`, dentro de una prueba, es otra cosa: no es un bug, es que este entorno no puede medir lo que la prueba mide (el reloj virtual de `run.py`). La prueba sale omitida con ese motivo.
 
 ## Añadir un escenario
 
 1. Si hace falta, crea los datos en `fixtures.js`: una función que devuelve `{clave rp_*: valor}`, con fechas calculadas desde hoy (`fecha(n)`, `momento(n, h, m)`). Para valores que no son JSON usa `{__crudo: {clave: "texto"}}`.
+   Ninguna aserción puede depender del día de la semana o del mes en que corra la CI. Si un bloque solo sale con datos en cierta ventana del calendario (el resumen del mes compara el 1-hoy de este mes con el del anterior, y el día 1 este mes aún está vacío), son los datos los que la garantizan, y una prueba lo comprueba con el reloj de la app movido (`dosAnos` y «el resumen del mes sale cualquier dia» en `pruebas_progreso.js`).
 2. Decláralo en el archivo de pruebas que corresponda:
 
 ```js

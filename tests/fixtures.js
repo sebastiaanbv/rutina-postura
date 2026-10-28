@@ -128,8 +128,10 @@ var Fixtures=(function(){
      de 12 semanas contados desde hoy hacia atras: cada uno empieza por debajo
      del anterior (descarga) y acaba por encima, asi que el ultimo deja records
      recientes. El curl se queda en 32 kg casi todo el segundo año y el radar
-     de estancamiento tiene algo que decir. Pesajes seis dias de cada siete y
-     medidas cada tres semanas. */
+     de estancamiento tiene algo que decir. Movilidad los martes y, ademas, el
+     dia 1 de cada mes: el resumen del mes compara el 1-hoy de este mes con el
+     del anterior, y asi siempre tiene sesiones, sea el dia que sea (tambien un
+     dia 1). Pesajes seis dias de cada siete y medidas cada tres semanas. */
   function dosAnos(){
     const D={rp_logs:{},rp_history:[],rp_logged:{}},N=728;
     for(let n=N;n>=1;n--){const d=momento(n,18,30),dow=d.getDay(),q=Math.floor((n-1)/7),
@@ -147,7 +149,7 @@ var Fixtures=(function(){
           ["hack_squat",60+5*sube,4,7+r,1],["prensa_inclinada",120+10*sube,3,10+r],
           ["curl_femoral",35+2.5*sube,3,11+r],["extension_cuadriceps",40+2.5*sube,3,11+r]],
         ["caminadora","sentadilla_aire"],16);
-      else if(dow===2)sesion(D,"postura_movilidad","Postura — Movilidad",n,[],
+      else if(dow===2||d.getDate()===1)sesion(D,"postura_movilidad","Postura — Movilidad",n,[],
         ["gato_camello","wall_angels","chin_tuck","bird_dog"],9);}
     const bw=[],med=[];
     for(let i=N;i>=0;i--){const x=N-i;

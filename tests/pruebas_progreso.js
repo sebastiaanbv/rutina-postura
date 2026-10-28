@@ -2,6 +2,11 @@
    pintado, lo que se ve no cambia ni en un numero, y el pintado baja de forma
    medible con dos años de registros (Fixtures.dosAnos).
 
+   Ninguna asercion depende del dia en que corran: dosAnos se cuenta desde hoy
+   y trae sesiones el dia 1 de cada mes para que el resumen del mes salga
+   siempre. Y la medida que vale en run.py (y en la CI) es la de lecturas y KB
+   parseados: run.py usa reloj virtual y ahi un pintado mide 0 ms.
+
    «Antes» se reproduce sin guardar una copia del codigo viejo. Los analisis de
    Progreso aceptan el rp_logs ya leido como ultimo argumento y, si no llega, lo
    leen ellos: es exactamente lo que hacian hasta v35. comoAntes() los envuelve
@@ -52,6 +57,24 @@
       expect(app.texto("#progBody .hbig")).toMatch(/^\d+$/);
       expect(app.$$("#progBody .prrow").length).toBeGreaterThan(3);});
 
+    test("el resumen del mes sale cualquier dia que corran las pruebas, tambien el dia 1",app=>{
+      /* monthSummary compara el 1-hoy de este mes con el del anterior y no pinta
+         nada si ninguno tiene sesiones: el dia 1, este mes aun no tiene ninguna y
+         el anterior solo cuenta su dia 1. dosAnos trae una sesion cada dia 1 */
+      const w=app.w,dias={},faltan=[];
+      w.histRows().forEach(r=>{dias[r.date]=1;});
+      for(let n=1;n<=700;n++){const f=F.fecha(n);if(f.slice(8)==="01"&&!dias[f])faltan.push(f);}
+      expect(faltan).toEqual([]);
+      /* y con el reloj de la app en el primer dia 1 desde hoy (hoy mismo, o el
+         del mes que viene): el historial acaba ayer, asi que el mes nuevo no
+         tiene nada y solo cuenta el dia 1 del anterior */
+      const RD=w.Date,uno=new RD();if(uno.getDate()>1){uno.setDate(1);uno.setMonth(uno.getMonth()+1);}uno.setHours(10,0,0,0);
+      const t=uno.getTime();let html;
+      w.Date=class extends RD{constructor(...a){if(a.length)super(...a);else super(t);}static now(){return t;}};
+      try{expect(w.today()).toBe(F.ds(uno));html=w.monthSummary(w.histRows(),w.loadLogs());}finally{w.Date=RD;}
+      expect(html).toContain("hasta hoy");
+      expect(html).toContain("Comparado con el 1-1 de");});
+
     test("abrir Progreso lee y parsea rp_logs una sola vez",app=>{
       tab(app,"home");
       const n=contar(app,()=>tab(app,"progress"));
@@ -84,18 +107,30 @@
       igual(ahora,antes);
       expect(pintar(app)).toBe(ahora);});
 
-    test("con dos años el pintado baja de forma medible frente a como era",app=>{
+    test("con dos años el pintado baja de forma medible: de mas de 20 parseos del historial a 1",app=>{
+      tab(app,"progress");
+      /* «antes» leia y parseaba el historial entero en cada analisis. No depende
+         del reloj: es la medida que se comprueba en run.py y en la CI */
+      const pinta=()=>app.w.renderProgress(),nAntes=contar(app,()=>conAntes(app,pinta)),nAhora=contar(app,pinta);
+      expect(nAntes.lee).toBeGreaterThan(20);
+      expect(nAntes.parsea).toBeGreaterThan(20);
+      expect(nAhora.lee).toBe(1);
+      expect(nAhora.parsea).toBe(1);
+      expect(nAhora.kb).toBeGreaterThan(300);
+      expect(nAhora.kb*20).toBeLessThan(nAntes.kb);});
+
+    test("con dos años el pintado baja de forma medible en ms (con reloj real)",app=>{
       tab(app,"progress");
       const w=app.w,vez=()=>{const t=w.performance.now();w.renderProgress();return w.performance.now()-t;};
-      /* «antes» leia y parseaba el historial entero en cada analisis */
-      const nAntes=contar(app,()=>conAntes(app,vez)),nAhora=contar(app,vez);
-      expect(nAntes.parsea).toBeGreaterThan(20);
-      expect(nAhora.parsea).toBe(1);
-      expect(nAhora.kb*20).toBeLessThan(nAntes.kb);
-      /* en tiempo: mediana de 9 pintados de cada, alternados para repartir el
-         ruido. En el arnes, con un escritorio, antes ~55 ms y ahora ~17 ms */
+      /* mediana de 9 pintados de cada, alternados para repartir el ruido. Con el
+         arnes servido (--servir) en Chromium, en un escritorio, antes ~55 ms y
+         ahora ~18 ms */
       const antes=[],ahora=[];
       for(let i=0;i<9;i++){ahora.push(vez());antes.push(conAntes(app,vez));}
+      /* run.py abre el navegador con --virtual-time-budget: el reloj solo avanza
+         con el navegador ocioso, y dentro de un pintado (JS sincrono)
+         performance.now() no se mueve. Todo mide 0 y no hay nada que comparar */
+      if(mediana(antes)===0)test.omitir("reloj virtual (run.py): un pintado mide 0 ms. La medida en ms se toma con el arnés servido (--servir); sin reloj la comprueba «de mas de 20 parseos del historial a 1»");
       expect(mediana(ahora)).toBeLessThan(mediana(antes)*0.6);});
   });
 
