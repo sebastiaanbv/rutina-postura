@@ -121,6 +121,131 @@
       expect(app.leer("rp_logs").press_banca_db.length).toBe(1);});
   });
 
+  /* doble toque (v36): «Registrar serie» confirma 300 ms antes de pasar al
+     descanso, y un segundo toque en esa ventana volvia a entrar en logSet:
+     otra serie en la sesion (y al cerrar, en rp_logs) y otro afterAction,
+     que en la ultima serie de un ejercicio saltaba dos pasos. */
+  /* matchMedia se fija en cada prueba para no depender de como venga el
+     navegador sin interfaz; el parche muere con el iframe */
+  function movimiento(app,reducido){const w=app.w,orig=w.matchMedia;
+    w.matchMedia=function(q){return /prefers-reduced-motion/.test(q)
+      ?{matches:reducido,media:q,onchange:null,addEventListener(){},removeEventListener(){},addListener(){},removeListener(){}}
+      :orig.call(w,q);};}
+  /* juego de datos de gimnasio, primera serie del press con una marca que es
+     récord seguro. o.series:1 la deja como ultima serie, sin descanso detras */
+  async function aLaSerie(app,o){await app.arrancar(F.dueno);movimiento(app,o.reducido);
+    if(o.series)app.w.setDose("gym_empuje","press_banca_db",{sets:o.series});
+    app.w.openRoutine("gym_empuje");app.w.startRoutine("press_banca_db");
+    expect(app.ev("steps[stepi].setNo")).toBe(1);
+    app.ev("curW=60;curReps=8");
+    expect(app.w.isPR("press_banca_db",60,8)).toBe(true);
+    return app.ev("stepi");}
+  const anotadas=(app,id)=>(app.ev("sessionLog")[id]||[]).map(x=>x.w+"x"+x.reps);
+  const deHoy=(app,id)=>(app.leer("rp_logs")[id]||[]).filter(r=>r.date===app.w.today()).map(r=>r.sets.map(x=>x.w+"x"+x.reps));
+  const descanso=app=>app.hasta(()=>app.$("#guided .gbtn.rest"),3000,"el descanso");
+  /* cerrar la sesion deja una serie en rp_logs y un récord en el historial
+     y en el panel de progreso */
+  function cierraConUna(app){const res=app.w.finishSession("gym_empuje","guided");
+    expect(res.summary.sets).toBe(1);
+    expect(deHoy(app,"press_banca_db")).toEqual([["60x8"]]);
+    const h=app.leer("rp_history")[0];
+    expect([h.key,h.sets]).toEqual(["gym_empuje",1]);
+    expect(h.pr.map(p=>p.id+" "+p.w+"x"+p.reps)).toEqual(["press_banca_db 60x8"]);
+    expect(app.w.prFeed(1).filter(p=>p.id==="press_banca_db"&&p.date===app.w.today())).toHaveLength(1);
+    app.reiniciarMemoria();}
+
+  escenario("Doble toque en «Registrar serie»",F.vacio,()=>{
+    test("mientras confirma, el botón está deshabilitado y sin pointer-events",async app=>{
+      await aLaSerie(app,{reducido:false});
+      const b=app.$("#guided .gbtn.go");b.scrollIntoView({block:"center"});
+      const r=b.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
+      const bajoElDedo=()=>{const el=app.doc.elementFromPoint(x,y);return !!el&&(el===b||b.contains(el));};
+      expect(bajoElDedo()).toBe(true);expect(b.disabled).toBe(false);
+      b.click();
+      expect(b.textContent).toContain("Serie registrada");
+      expect(b.disabled).toBe(true);
+      expect(app.w.getComputedStyle(b).pointerEvents).toBe("none");
+      expect(bajoElDedo()).toBe(false);
+      b.click();
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      await descanso(app);
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      cierraConUna(app);});
+    test("dos logSet dentro de la confirmación: una serie y un récord",async app=>{
+      const i0=await aLaSerie(app,{reducido:false});
+      app.w.logSet();app.w.logSet();
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      const s=app.leer("rp_session");
+      expect(s.log.press_banca_db).toHaveLength(1);
+      expect(s.pr).toHaveLength(1);
+      await descanso(app);await app.espera(350);
+      expect(app.ev("stepi")).toBe(i0);
+      /* ya en el descanso, la serie de ese paso tampoco entra otra vez */
+      app.w.logSet();
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      cierraConUna(app);});
+    test("el doble toque en la última serie avanza un solo paso",async app=>{
+      const i0=await aLaSerie(app,{reducido:false,series:1}),sig=app.ev("steps["+(i0+1)+"].id");
+      expect(sig).toBe("fondos_paralelas");
+      app.w.logSet();app.w.logSet();
+      await app.hasta(()=>app.ev("stepi")!==i0,3000,"el ejercicio siguiente");
+      await app.espera(350);
+      expect(app.ev("stepi")).toBe(i0+1);
+      expect(app.ev("steps[stepi].setNo")).toBe(1);
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      expect(anotadas(app,sig)).toEqual([]);
+      cierraConUna(app);});
+    test("con reducir movimiento (sin confirmación) tampoco se duplica",async app=>{
+      const i0=await aLaSerie(app,{reducido:true});
+      app.w.logSet();
+      /* sin la ventana de 300 ms el descanso entra en el acto */
+      expect(app.$("#guided .gbtn.rest")).toBeTruthy();
+      app.w.logSet();
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      expect(app.leer("rp_session").pr).toHaveLength(1);
+      expect(app.ev("stepi")).toBe(i0);
+      cierraConUna(app);});
+    test("con reducir movimiento, el segundo toque no registra la serie del ejercicio siguiente",async app=>{
+      const i0=await aLaSerie(app,{reducido:true,series:1}),sig=app.ev("steps["+(i0+1)+"].id");
+      app.$("#guided .gbtn.go").click();
+      /* sin confirmacion ni descanso, el ejercicio siguiente se pinta en el
+         acto y el segundo toque cae en su «Registrar serie» */
+      expect(app.ev("stepi")).toBe(i0+1);
+      app.$("#guided .gbtn.go").click();
+      expect(app.ev("stepi")).toBe(i0+1);
+      expect(anotadas(app,sig)).toEqual([]);
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      /* pasado el doble toque, la serie siguiente entra con normalidad */
+      await app.espera(350);
+      app.$("#guided .gbtn.go").click();
+      expect(anotadas(app,sig)).toHaveLength(1);
+      expect(app.ev("stepi")).toBe(i0+1);
+      const res=app.w.finishSession("gym_empuje","guided");
+      expect(res.summary.sets).toBe(2);
+      expect(deHoy(app,"press_banca_db")).toEqual([["60x8"]]);
+      expect(deHoy(app,sig)).toHaveLength(1);
+      app.reiniciarMemoria();});
+    test("tras el doble toque no hay claves nuevas y la copia va y vuelve idéntica",async app=>{
+      await aLaSerie(app,{reducido:false});
+      app.w.logSet();app.w.logSet();await descanso(app);
+      const base=Object.keys(F.dueno()).concat("rp_schema").sort();
+      expect(app.claves()).toEqual(base.concat("rp_session").sort());
+      const idaYVuelta=async()=>{const antes=app.foto(),d=await exportar(app);
+        expect(JSON.parse(d.texto).store).toEqual(antes);
+        localStorage.clear();
+        const recarga=app.cargo();importar(app,d.texto);await recarga;await app.listo();
+        expect(app.foto()).toEqual(antes);};
+      /* a mitad de sesion: la serie y el récord viajan en rp_session */
+      await idaYVuelta();
+      const s=app.leer("rp_session");
+      expect(s.log.press_banca_db).toHaveLength(1);
+      expect(s.pr).toHaveLength(1);
+      cierraConUna(app);
+      expect(app.claves()).toEqual(base);
+      await idaYVuelta();
+      expect(deHoy(app,"press_banca_db")).toEqual([["60x8"]]);});
+  });
+
   /* almacenamiento dañado: la app tiene que seguir abriendo */
   const CLAVES=["rp_bw","rp_checks","rp_custom","rp_doses","rp_extras","rp_history","rp_lastexport","rp_logged","rp_logs",
     "rp_medidas","rp_notes","rp_pain","rp_plan","rp_prefs","rp_rem","rp_session","rp_streak","rp_swaps","rp_theme","rp_weekgoal"];

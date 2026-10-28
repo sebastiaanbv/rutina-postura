@@ -731,8 +731,9 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   /* la figura ejecuta el ejercicio: los dos fotogramas apilados y fundidos,
      con meseta en cada extremo para que se lea la postura y no sea un parpadeo */
   /* --- micro-interaccion (v25) --- */
-  /* el boton se convierte en visto antes de que entre el descanso */
-  .gbtn.go.done{background:var(--primary2);transform:scale(.985)}
+  /* el boton se convierte en visto antes de que entre el descanso, y en esos
+     300 ms un segundo toque no lo atraviesa (v36: duplicaba la serie) */
+  .gbtn.go.done{background:var(--primary2);transform:scale(.985);pointer-events:none}
   /* el descanso: pantalla propia, con el mismo anillo que el sosten */
   .stage.isrest{padding-top:var(--s5)}
   .ring.rest #rarc{transition:stroke-dashoffset .25s linear}
@@ -2623,7 +2624,16 @@ function adjW(d){const s=steps[stepi],l=availDB(s.id);
   if(l){const c=curW||0,n=d>0?l.filter(x=>x>c+1e-9)[0]:l.filter(x=>x<c-1e-9).pop();curW=n!=null?n:c;}
   else curW=Math.max(0,Math.round((curW+d)*10)/10);const el=$("lw");if(el)el.innerHTML=fmtW(curW)+' <small>'+(s.unit||'kg')+'</small>';}
 function adjR(d){curReps=Math.max(1,curReps+d);const el=$("lr");if(el)el.textContent=curReps;}
-function logSet(){const s=steps[stepi];useSessionLog(curRoutine);
+/* Doble toque (v36): un segundo toque durante la confirmacion volvia a entrar
+   aqui y metia otra serie y otro afterAction. Una serie por paso pintado
+   (renderStep abre el candado) y nunca dos a menos de SERIE_MS: con reducir
+   movimiento no hay confirmacion y, sin descanso detras, el ejercicio
+   siguiente se pinta en el acto bajo el mismo dedo. Reloj monotono: con
+   Date.now(), atrasar la hora del telefono dejaria el boton muerto. */
+const SERIE_MS=300;let serieAbierta=true,serieT=-Infinity;
+function logSet(){if(!serieAbierta||performance.now()-serieT<SERIE_MS)return;
+  serieAbierta=false;serieT=performance.now();
+  const s=steps[stepi];useSessionLog(curRoutine);
   const w=(s.load===true?curW:0),pr=isPR(s.id,w,curReps);
   const rec={w:w,reps:curReps,t:Date.now()};if(curRir!=null)rec.rir=curRir;curRir=null;
   (sessionLog[s.id]=sessionLog[s.id]||[]).push(rec);
@@ -2633,11 +2643,13 @@ function logSet(){const s=steps[stepi];useSessionLog(curRoutine);
   /* Son veinte o treinta pulsaciones por sesion y hasta ahora la unica senal de
      que habia pasado algo era una vibracion de 18 ms, que con el movil apoyado
      en el banco no se nota. El boton se convierte en visto y solo entonces
-     entra el descanso: 300 ms de confirmacion antes de cambiar de pantalla. */
+     entra el descanso: 300 ms de confirmacion antes de cambiar de pantalla.
+     Mientras confirma no acepta otro toque: deshabilitado y, por CSS, sin
+     pointer-events. */
   const b=document.querySelector("#guided .gbtn.go");
   if(b&&!matchMedia("(prefers-reduced-motion:reduce)").matches){
-    b.classList.add("done");b.innerHTML=ic("check","sm")+" Serie registrada";
-    setTimeout(afterAction,300);
+    b.classList.add("done");b.disabled=true;b.innerHTML=ic("check","sm")+" Serie registrada";
+    setTimeout(afterAction,SERIE_MS);
   }else afterAction();}
 function editNum(which){const isW=which==="w",el=$(isW?"lw":"lr");if(!el)return;
   const val=isW?curW:curReps;
@@ -2919,7 +2931,7 @@ function frame(inner,opt){opt=opt||{};const s=steps[stepi],prog=Math.round(stepi
     ${conFicha?fichaEjercicio(s):""}
     ${conFicha?`<button class="skip" onclick="guidedSkipExercise()">Saltar ejercicio ${ic("skip","xs")}</button>`:""}</div>`;}
 
-function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){curW=null;curReps=null;curRir=null;}
+function renderStep(){clearTimer();serieAbierta=true;const s=steps[stepi];let inner;if(s.first){curW=null;curReps=null;curRir=null;}
   if(s.kind==="count"){
     if(s.load===true||s.load===false){
       /* una sola rama para con carga y sin carga: antes eran dos casi
