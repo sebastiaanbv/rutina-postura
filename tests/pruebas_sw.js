@@ -3,12 +3,23 @@
    cual en una caja: self, caches, fetch y el reloj son de mentira y los maneja
    la prueba; Request/Response/ReadableStream son los del navegador. Se le
    lanzan peticiones como las de abrir la app con red buena, lenta y caida, en
-   milisegundos y sin depender de la red de verdad. */
+   milisegundos y sin depender de la red de verdad.
+   Ojo con el tiempo virtual de run.py (--virtual-time-budget, el de la CI):
+   - mientras se lee el cuerpo de un ReadableStream que sigue abierto, Chrome
+     congela los temporizadores y los mensajes. Si la prueba espera uno, el
+     arnes no termina y la CI no devuelve nada. Por eso asentar() solo deja
+     correr microtareas, y el cuerpo atascado se cierra en un finally.
+   - lo que habla con el proceso del navegador (CacheStorage, los registros
+     del service worker) tarda tiempo real, y mientras tanto el reloj virtual
+     salta al siguiente temporizador: el tope de 20 s de la prueba. En la app
+     se usan dobles. */
 (function(){
   const F=Fixtures;
   const ORIGEN="https://app.prueba",SW=ORIGEN+"/rutina/sw.js";
   const dir=r=>typeof r==="string"?new URL(r,SW).href:r.url;
-  const asentar=()=>Pruebas.espera(20);
+  /* la red, la cache y el reloj de mentira responden en microtareas: con 200
+     vueltas sobra (la copia tras el plazo llega en menos de 10) */
+  const asentar=async()=>{for(let i=0;i<200;i++)await null;};
   let fuente=null;
 
   /* reloj: setTimeout no corre solo, lo adelanta la prueba */
@@ -111,12 +122,18 @@
       const s=await montar(),ev=s.pedir("./"),plazo=s.rel.plazos()[0],enc=new TextEncoder();
       let ctl;const cuerpo=new ReadableStream({start(c){ctl=c;}});
       ctl.enqueue(enc.encode("v36 "));
-      s.net.ultima().ok(new Response(cuerpo,{status:200}));
-      await asentar();
-      expect(ev.listo).toBe(false);
-      await s.rel.avanzar(plazo);
-      expect(await texto(ev)).toBe("v35 /rutina/");
-      ctl.enqueue(enc.encode("entera"));ctl.close();await fin(ev);
+      /* hasta cerrar el cuerpo nada de temporizadores (ni texto(), que espera
+         con uno): con el tiempo virtual de la CI no saltarian nunca. Si algo
+         falla antes, el finally lo cierra y la prueba falla en vez de colgarse */
+      try{
+        s.net.ultima().ok(new Response(cuerpo,{status:200}));
+        await asentar();
+        expect(ev.listo).toBe(false);
+        await s.rel.avanzar(plazo);
+        expect(ev.listo).toBe(true);
+        expect(await ev.r.text()).toBe("v35 /rutina/");
+      }finally{ctl.enqueue(enc.encode("entera"));ctl.close();}
+      await fin(ev);
       expect(await s.cs.lee("./")).toBe("v36 entera");});
 
     test("red caída: la copia sale en el acto, sin esperar el plazo",async()=>{
@@ -124,11 +141,32 @@
       const s=await montar(),ev=s.pedir("./");
       s.net.ultima().no(new TypeError("Failed to fetch"));
       expect(await texto(ev)).toBe("v35 /rutina/");
-      /* una direccion que no esta guardada tal cual (?go=...) cae a index.html */
+      /* una direccion que no esta guardada tal cual (?go=...) cae a la de "./" */
       const ev2=s.pedir("index.html?go=1");s.net.ultima().no(new TypeError("Failed to fetch"));
-      expect(await texto(ev2)).toBe("v35 /rutina/index.html");
+      expect(await texto(ev2)).toBe("v35 /rutina/");
       /* y lo guardado sigue sano */
       expect(await s.cs.lee("./")).toBe("v35 /rutina/");});
+
+    test("una dirección sin copia propia (?go=…) recibe la copia más nueva, la de ./, no la de la instalación",async()=>{
+      /* "./" se renueva en cada apertura con buena red; "index.html" se quedo
+         en la de la instalacion */
+      const s=await montar();s.net.modo=d=>d.ok(new Response("v36"));
+      const ev=s.pedir("./");await fin(ev);
+      expect(await s.cs.lee("./")).toBe("v36");
+      expect(await s.cs.lee("index.html")).toBe("v35 /rutina/index.html");
+      s.net.modo=null;
+      /* con red lenta, al vencer el plazo */
+      const ev2=s.pedir("index.html?go=1"),plazo=s.rel.plazos()[0];
+      await s.rel.avanzar(plazo);
+      expect(await texto(ev2)).toBe("v36");
+      /* con la red caida */
+      const ev3=s.pedir("./?go=2");s.net.ultima().no(new TypeError("Failed to fetch"));
+      expect(await texto(ev3)).toBe("v36");
+      /* sin "./" (otra cache a medias) queda index.html como ultimo recurso */
+      const t=await montar({sinCopia:true});
+      await (await t.cs.open("otra")).put("index.html",new Response("v35 /rutina/index.html"));
+      const ev4=t.pedir("index.html?go=3");t.net.ultima().no(new TypeError("Failed to fetch"));
+      expect(await texto(ev4)).toBe("v35 /rutina/index.html");});
 
     test("un 404 o 500 se entrega como antes y no pisa la copia",async()=>{
       const s=await montar(),ev=s.pedir("./");
@@ -171,15 +209,20 @@
       expect(s.pedir("https://www.youtube.com/embed/x","navigate").respondio).toBe(false);});
 
     test("«Buscar actualización» vacía la caché y recarga la app",async app=>{
-      /* la cache del origen es la misma para el arnes y la app */
-      await (await caches.open("mi-rutina-prueba")).put("../index.html?vieja",new Response("vieja"));
-      expect(await caches.keys()).toContain("mi-rutina-prueba");
+      /* CacheStorage y los registros son dobles dentro de la app (ver arriba
+         el tiempo virtual); se van solos con la recarga */
+      const w=app.w,cajas=new Set(["mi-rutina-v33","mi-rutina-vieja"]),buscadas=[];
+      w.caches.keys=()=>Promise.resolve(Array.from(cajas));
+      w.caches.delete=k=>Promise.resolve(cajas.delete(k));
+      w.navigator.serviceWorker.getRegistrations=()=>Promise.resolve([{update:()=>{buscadas.push(1);return Promise.resolve();}}]);
       app.$('.nav .tab[data-v="settings"]').click();
       const b=app.$$("#settings button").find(x=>x.textContent.indexOf("Buscar actualización")>=0);
       expect(b).toBeTruthy();
-      app.w.__antes=true;const recarga=app.cargo();b.click();
+      w.__antes=true;const recarga=app.cargo();b.click();
       await recarga;await app.listo();
-      expect(await caches.keys()).toEqual([]);
+      expect(Array.from(cajas)).toEqual([]);
+      /* tambien pidio al navegador que mire si hay un sw.js nuevo */
+      expect(buscadas).toHaveLength(1);
       /* ventana nueva: la app se volvio a pedir, y sin copia el service worker va a la red */
       expect(app.w.__antes).toBe(undefined);});
   });

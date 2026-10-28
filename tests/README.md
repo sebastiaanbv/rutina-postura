@@ -48,6 +48,12 @@ test("isPR: una serie igual a la mejor no es récord", app => {
 
 - `app.sembrar(datos)` reemplaza localStorage sin recargar. La app lee el almacenamiento en cada llamada, así que basta para probar lógica. Si una prueba toca la memoria de la app (`curRoutine`, la sesión en curso), al final llama a `app.reiniciarMemoria()`.
 - `async` está permitido: `await app.hasta(() => condición, ms)` y `await app.espera(ms)`.
+- `run.py` corre con tiempo virtual (`--virtual-time-budget`): en cuanto la página no tiene nada
+  que hacer, el reloj salta al siguiente temporizador. Lo que espera al proceso del navegador
+  (CacheStorage, los registros del service worker) pierde contra el tope de 20 s de la prueba:
+  usa dobles. Y mientras se lee el cuerpo de un `ReadableStream` que sigue abierto, Chrome congela
+  temporizadores y mensajes: hasta cerrarlo solo valen microtareas (`await null`), o la corrida no
+  termina y la CI no devuelve nada. `tests/pruebas_sw.js` tiene los dos casos.
 - Aserciones: `toBe`, `toEqual` (estructural), `toBeCloseTo(n, decimales)`, `toBeTruthy`, `toBeFalsy`, `toContain`, `toBeGreaterThan`, `toBeLessThan`, `toMatch`, `toHaveLength`, y `.not` delante.
 - Las aserciones fijan el comportamiento actual. Si algo es un bug, no se arregla en la prueba: se escribe lo correcto con `test.skip(nombre, "BUG: motivo", fn)`. Esa prueba se ejecuta igual pero no cuenta para el resultado. El resumen muestra cómo falla hoy, y cuando el bug se arregle avisará con «YA PASA: quita test.skip».
 

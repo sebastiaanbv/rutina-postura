@@ -45,9 +45,14 @@ function redPrimero(e, req) {
      puede pisar la copia sana que sostiene el modo sin conexion */
   e.waitUntil(red.then(r => { if (r.ok) { const cp = r.clone(); return caches.open(CACHE).then(c => c.put(req, cp)); } })
     .catch(() => {}));
-  /* el manifest no cae a index.html: servir HTML como manifest no arregla nada */
+  /* una navegacion sin copia propia (?algo detras) cae primero a "./", que se
+     renueva en cada apertura con buena red; "index.html" solo se escribe al
+     instalar (o al entrar por ahi con buena red) y puede ir varias versiones
+     por detras. El manifest no cae a index.html: servir HTML como manifest no
+     arregla nada */
   const copia = () => caches.match(req)
-    .then(r => r || (req.mode === "navigate" ? caches.match("index.html") : r)).catch(() => undefined);
+    .then(r => r || (req.mode === "navigate" ? caches.match("./").then(r => r || caches.match("index.html")) : r))
+    .catch(() => undefined);
   /* gana lo primero que llegue: la red entera, o la copia al vencer el plazo.
      Si la red falla, la copia; sin copia, el error de siempre */
   return new Promise((sirve, falla) => {
