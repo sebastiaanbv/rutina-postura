@@ -35,6 +35,10 @@
         expect(app.texto("#lw")).toBe(app.w.fmtW(s.w));
         expect(app.texto("#lr")).toBe(String(s.reps));
         if(s.why)expect(app.texto("#guided .qwhy")).toContain(s.why);
+        /* chip "Salto" (v36): con carga sale, salvo mancuernas con lista en
+           Ajustes; pintarlo no escribe nada (datos de v35 sin rp_inc) */
+        expect(!!app.$("#guided .stepper #incchip")).toBe(o.chip);
+        expect(app.leer("rp_inc")).toBe(null);
         app.w.guidedSkipExercise();
         expect(app.ev("steps[stepi].id")).not.toBe(o.cargado);
         expect(app.texto("#guided").length).toBeGreaterThan(20);});
@@ -88,11 +92,12 @@
   }
 
   humo("sin datos",F.vacio,{tema:"light",rutina:"gym_empuje",cargado:"press_banca_db",avisoCopia:false,
-    conHistorial:false,conIndice:false,pesos:"",objetivo:"Ganar músculo"});
+    conHistorial:false,conIndice:false,pesos:"",objetivo:"Ganar músculo",chip:true});
   humo("dueño (gimnasio, masa)",F.dueno,{tema:"dark",rutina:"gym_tiron",cargado:"jalon_pecho",avisoCopia:true,
-    conHistorial:true,conIndice:true,pesos:"",objetivo:"Ganar músculo",progreso:["Récords recientes","Series por músculo"]});
+    conHistorial:true,conIndice:true,pesos:"",objetivo:"Ganar músculo",progreso:["Récords recientes","Series por músculo"],
+    chip:true});
   humo("madre (casa, salud, 1-3 kg)",F.madre,{tema:"light",rutina:"salud_fuerza_a",cargado:"press_hombro_db",avisoCopia:false,
-    conHistorial:true,conIndice:true,pesos:"1 2 3",objetivo:"Salud y mantenimiento",hoy:"En curso"});
+    conHistorial:true,conIndice:true,pesos:"1 2 3",objetivo:"Salud y mantenimiento",hoy:"En curso",chip:false});
 
   /* un descanso de 0 s ajustado por la persona: la serie siguiente entra sin
      pasar por la pantalla de descanso; sin el ajuste, el del programa sigue */
@@ -112,6 +117,89 @@
       aguante(app);
       expect(app.$("#guided .stage.isrest")).toBeTruthy();
       expect(app.ev("restR")).toBe(15);
+      app.reiniciarMemoria();});
+  });
+
+  /* chip "Salto" (v36): de cuanto en cuanto sube cada maquina. jalon_pecho
+     con el rango lleno a 40 kg: sin salto propone 42,5, que una maquina de 5
+     en 5 no tiene */
+  const lleno40=()=>{const t=F.momento(3,18,30).getTime();
+    return {rp_logs:{jalon_pecho:[{date:F.fecha(3),k:"gym_tiron",t:t,sets:[0,1,2,3].map(i=>({w:40,reps:12,t:t+i*150000}))}]}};};
+  const guiado=(app,k,id)=>{app.reiniciarMemoria();app.w.openRoutine(k);app.w.startRoutine(id);
+    expect(app.ev("steps[stepi].id")).toBe(id);};
+  const opciones=app=>app.$$("#incpick .mchip");
+  const elige=(app,txt)=>{app.$("#incchip").click();opciones(app).find(b=>b.textContent===txt).click();};
+  escenario("Pantallas · chip «Salto» bajo el peso",lleno40,()=>{
+    test("en una máquina sale bajo el peso, se despliega y elegir 5 rehace la propuesta",app=>{
+      guiado(app,"gym_tiron","jalon_pecho");
+      expect(app.texto("#lw")).toBe("42.5");
+      const chip=app.$("#guided .stepper #incchip");
+      expect(chip).toBeTruthy();
+      expect(app.texto("#incchip")).toBe("¿De cuánto sube?");
+      expect([chip.tagName,chip.getAttribute("aria-expanded"),chip.getAttribute("aria-controls")]).toEqual(["BUTTON","false","incpick"]);
+      expect(app.$("#incpick").hidden).toBe(true);
+      chip.click();
+      expect(app.$("#incpick").hidden).toBe(false);
+      expect(chip.getAttribute("aria-expanded")).toBe("true");
+      expect(opciones(app).map(b=>b.textContent)).toEqual(["1","2","2.5","4.5","5","7","10"]);
+      expect(opciones(app).every(b=>b.getAttribute("aria-pressed")==="false")).toBe(true);
+      opciones(app)[4].click();
+      expect(app.leer("rp_inc")).toEqual({jalon_pecho:5});
+      expect(app.texto("#incchip")).toBe("Salto 5 kg");
+      expect(app.$("#incpick").hidden).toBe(true);
+      /* repintar no pierde el foco del teclado */
+      expect(app.doc.activeElement.id).toBe("incchip");
+      expect(opciones(app).filter(b=>b.getAttribute("aria-pressed")==="true").map(b=>b.textContent)).toEqual(["5"]);
+      /* 5 sobre 40 pasa del 10 %: mismo peso y rango estirado */
+      expect([app.texto("#lw"),app.texto("#lr")]).toEqual(["40","14"]);
+      expect(app.texto("#guided .qwhy")).toContain("El siguiente peso que existe (45 kg)");
+      expect(app.texto("#guided .warmup")).toContain("1×10 con 20 kg · 1×5 con 25 kg");
+      /* los botones van por la escala de la maquina */
+      const [menos,mas]=app.$$("#guided .logrow .stepper:first-child .sq");
+      mas.click();expect(app.ev("curW")).toBe(45);
+      menos.click();menos.click();expect(app.ev("curW")).toBe(35);
+      mas.click();expect(app.ev("curW")).toBe(40);
+      /* tocar el marcado lo quita y vuelve la propuesta de siempre */
+      elige(app,"5");
+      expect(app.leer("rp_inc")).toEqual({});
+      expect(app.texto("#incchip")).toBe("¿De cuánto sube?");
+      expect([app.texto("#lw"),app.texto("#lr")]).toEqual(["42.5","8"]);
+      app.reiniciarMemoria();});
+    test("lo tecleado no se redondea: 42,5 con salto 5 se registra y se guarda tal cual",async app=>{
+      app.sembrar(Object.assign(lleno40(),{rp_inc:{jalon_pecho:5}}));
+      guiado(app,"gym_tiron","jalon_pecho");
+      expect(app.texto("#lw")).toBe("40");
+      app.w.editNum("w");
+      const i=app.$("#numin");i.value="42.5";
+      i.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter"}));
+      expect(app.ev("curW")).toBe(42.5);
+      expect(app.texto("#lw")).toBe("42.5");
+      /* cambiar el salto despues tampoco lo pisa */
+      elige(app,"10");
+      expect(app.leer("rp_inc")).toEqual({jalon_pecho:10});
+      expect(app.texto("#lw")).toBe("42.5");
+      app.w.logSet();
+      await app.hasta(()=>{const s=app.leer("rp_session");return s&&s.log.jalon_pecho;},3000,"la serie en rp_session");
+      expect(app.leer("rp_session").log.jalon_pecho.map(x=>x.w)).toEqual([42.5]);
+      app.w.finishSession("gym_tiron","guided");
+      expect(app.leer("rp_logs").jalon_pecho.slice(-1)[0].sets.map(x=>x.w)).toEqual([42.5]);
+      app.reiniciarMemoria();});
+    test("no sale sin carga ni en mancuernas con lista en Ajustes; en mancuernas sin lista, sí",app=>{
+      app.sembrar({rp_prefs:{pesosDB:[1,2,3]}});
+      guiado(app,"salud_fuerza_a","press_hombro_db");
+      expect(app.$("#lw")).toBeTruthy();
+      expect(app.$("#incchip")).toBe(null);expect(app.$("#incpick")).toBe(null);
+      /* sin carga: ni peso ni chip */
+      guiado(app,"gym_empuje","wall_angels");
+      expect(app.$("#lw")).toBe(null);expect(app.$("#incchip")).toBe(null);expect(app.$("#incpick")).toBe(null);
+      guiado(app,"salud_fuerza_a","flexiones_pared");
+      expect(app.$("#lr")).toBeTruthy();
+      expect(app.$("#lw")).toBe(null);expect(app.$("#incchip")).toBe(null);
+      /* la misma mancuerna sin lista (gimnasio): el chip sale */
+      app.sembrar({});
+      guiado(app,"salud_fuerza_a","press_hombro_db");
+      expect(app.$("#incchip")).toBeTruthy();
+      expect(app.leer("rp_inc")).toBe(null);
       app.reiniciarMemoria();});
   });
 })();

@@ -241,6 +241,106 @@
       expect(tt(app,"elevaciones_laterales","gym_empuje")).toEqual({w:10,reps:12,subeCarga:true,
         why:"Sube a tu mancuerna de 10 kg y vuelve a 12 reps"});});
 
+    /* ---------- salto de placa por maquina (rp_inc, v36) ---------- */
+    /* jalon_pecho: maquina, rango 8-12, 4 series en gym_tiron */
+    const obj=(app,id,k)=>{const t=app.w.todayTarget(k,id);return {w:t.w,reps:t.reps,sube:!!t.subeCarga,estira:!!t.extiende,why:t.why};};
+    test("todayTarget con salto 5 y el rango lleno a 40 kg: estira a 14 y luego sube a 45, nunca 42,5",app=>{
+      limpio(app,{rp_inc:{jalon_pecho:5},rp_logs:{jalon_pecho:[reg(3,"gym_tiron",veces(4,40,12))]}});
+      /* 5 sobre 40 es un 12,5 %: primero el rango estirado */
+      expect(obj(app,"jalon_pecho","gym_tiron")).toEqual({w:40,reps:14,sube:false,estira:true,
+        why:"El siguiente peso que existe (45 kg) es un salto grande: antes llega a 14 reps"});
+      app.sembrar({rp_inc:{jalon_pecho:5},rp_logs:{jalon_pecho:[reg(3,"gym_tiron",veces(4,40,14))]}});
+      expect(obj(app,"jalon_pecho","gym_tiron")).toEqual({w:45,reps:8,sube:true,estira:false,
+        why:"Llegaste a 14 reps: sube a 45 kg y vuelve a 8"});
+      expect(sug(app,"jalon_pecho","gym_tiron").w).toBe(45);
+      /* el mismo historial sin salto declarado proponia 42,5, que esa maquina no tiene */
+      app.sembrar({rp_logs:{jalon_pecho:[reg(3,"gym_tiron",veces(4,40,12))]}});
+      expect(app.w.todayTarget("gym_tiron","jalon_pecho").w).toBe(42.5);});
+    test("todayTarget con salto: suave (≤10%) sube directo; un peso tecleado fuera de escala va al siguiente que existe",app=>{
+      limpio(app,{rp_inc:{jalon_pecho:5},rp_logs:{jalon_pecho:[reg(3,"gym_tiron",veces(4,50,12))]}});
+      expect(obj(app,"jalon_pecho","gym_tiron")).toEqual({w:55,reps:8,sube:true,estira:false,
+        why:"Llenaste el rango entero: sube a 55 kg y vuelve a 8"});
+      app.sembrar({rp_inc:{jalon_pecho:5},rp_logs:{jalon_pecho:[reg(3,"gym_tiron",veces(4,42.5,12))]}});
+      expect(app.w.todayTarget("gym_tiron","jalon_pecho").w).toBe(45);
+      app.sembrar({rp_inc:{jalon_pecho:4.5},rp_logs:{jalon_pecho:[reg(3,"gym_tiron",veces(4,45,12))]}});
+      expect(app.w.todayTarget("gym_tiron","jalon_pecho").w).toBe(49.5);
+      /* dentro del rango se repite el peso de la vez pasada tal cual, aunque no sea multiplo */
+      app.sembrar({rp_inc:{jalon_pecho:5},rp_logs:{jalon_pecho:[reg(3,"gym_tiron",veces(4,42.5,9))]}});
+      expect(obj(app,"jalon_pecho","gym_tiron")).toEqual({w:42.5,reps:10,sube:false,estira:false,
+        why:"La vez pasada 9: hoy 10 con el mismo peso"});});
+    test("todayTarget con salto: series de menos o molestia anotada no suben",app=>{
+      limpio(app,{rp_inc:{jalon_pecho:5},rp_logs:{jalon_pecho:[reg(3,"gym_tiron",veces(3,40,14))]}});
+      expect(app.w.todayTarget("gym_tiron","jalon_pecho").w).toBe(40);
+      app.sembrar({rp_inc:{jalon_pecho:5},rp_pain:{jalon_pecho:[F.fecha(3)]},rp_logs:{jalon_pecho:[reg(3,"gym_tiron",veces(4,40,14))]}});
+      const t=app.w.todayTarget("gym_tiron","jalon_pecho");
+      expect([t.w,t.reps,t.dolor]).toEqual([40,14,true]);});
+    test("suggestLoad primera vez con salto: el peso de arranque baja al que existe",app=>{
+      limpio(app,{rp_inc:{jalon_pecho:4.5,pec_deck:7,sentadilla_silla:2}});
+      expect(sug(app,"jalon_pecho","gym_tiron").w).toBe(9);
+      expect(sug(app,"pec_deck","gym_tiron").w).toBe(7);
+      /* startKg:0 sigue siendo sin peso */
+      expect(sug(app,"sentadilla_silla","salud_fuerza_a").w).toBe(0);
+      app.sembrar({});
+      expect(sug(app,"jalon_pecho","gym_tiron").w).toBe(10);});
+    /* el paso del guiado tal como lo deja startRoutine, sin pintar */
+    const ajusta=(app,id,w,d)=>{app.ev("steps=[{id:'"+id+"',unit:'kg',load:true}];stepi=0;curW="+w);app.w.adjW(d);return app.ev("curW");};
+    test("adjW: con salto 5, de 40 sube a 45 y baja a 35; sin salto suma 2,5; con pesosDB, la mancuerna siguiente",app=>{
+      limpio(app,{rp_inc:{jalon_pecho:5}});
+      expect(ajusta(app,"jalon_pecho",40,1)).toBe(45);
+      expect(ajusta(app,"jalon_pecho",40,-1)).toBe(35);
+      /* lo tecleado fuera de escala vuelve a la escala al tocar - o + */
+      expect(ajusta(app,"jalon_pecho",42.5,1)).toBe(45);
+      expect(ajusta(app,"jalon_pecho",42.5,-1)).toBe(40);
+      expect(ajusta(app,"jalon_pecho",0,-1)).toBe(0);
+      app.sembrar({});
+      expect(ajusta(app,"jalon_pecho",40,1)).toBe(42.5);
+      expect(ajusta(app,"jalon_pecho",40,-1)).toBe(37.5);
+      expect(ajusta(app,"jalon_pecho",10,2.5)).toBe(12.5);
+      expect(ajusta(app,"jalon_pecho",1,-1)).toBe(0);
+      /* la lista de mancuernas manda aunque haya un salto guardado */
+      app.sembrar({rp_prefs:{pesosDB:[1,2,3]},rp_inc:{press_hombro_db:5}});
+      expect(ajusta(app,"press_hombro_db",2,1)).toBe(3);
+      expect(ajusta(app,"press_hombro_db",2,-1)).toBe(1);
+      expect(ajusta(app,"press_hombro_db",3,1)).toBe(3);
+      app.ev("steps=[];stepi=0;curW=null");app.reiniciarMemoria();});
+    test("warmupHTML: con salto 5 y 60 kg, aproximaciones de 30 y 40 kg",app=>{
+      limpio(app,{rp_inc:{jalon_pecho:5}});app.ev("curRoutine='gym_tiron'");
+      expect(app.w.warmupHTML("jalon_pecho",60)).toContain("1×10 con 30 kg · 1×5 con 40 kg");
+      app.sembrar({rp_inc:{jalon_pecho:4.5}});
+      expect(app.w.warmupHTML("jalon_pecho",60)).toContain("1×10 con 27 kg · 1×5 con 40.5 kg");
+      /* nunca por debajo de una placa */
+      app.sembrar({rp_inc:{jalon_pecho:10}});
+      expect(app.w.warmupHTML("jalon_pecho",12)).toContain("1×10 con 10 kg · 1×5 con 10 kg");
+      /* sin salto, como en v35 */
+      app.sembrar({});
+      expect(app.w.warmupHTML("jalon_pecho",60)).toContain("1×10 con 30 kg · 1×5 con 42.5 kg");
+      app.reiniciarMemoria();});
+    test("stepFor y roundDownTo: el salto declarado o el de siempre; un valor raro no cuenta",app=>{
+      limpio(app,{rp_inc:{jalon_pecho:4.5,pec_deck:"5",remo_maquina:-5,curl_barra:0,pec_deck_inverso:null}});
+      expect(app.w.stepFor("jalon_pecho",40)).toBe(4.5);
+      expect([5,15,25].map(w=>app.w.stepFor("pec_deck",w))).toEqual([1,2,2.5]);
+      expect(["remo_maquina","curl_barra","pec_deck_inverso"].map(id=>app.w.stepFor(id,40))).toEqual([2.5,2.5,2.5]);
+      expect([42,40.5,13.5,4].map(w=>app.w.roundDownTo("jalon_pecho",w))).toEqual([40.5,40.5,13.5,0]);
+      expect(app.w.roundDownTo("pec_deck",42)).toBe(42);
+      app.sembrar({rp_prefs:{pesosDB:[1,2,3]},rp_inc:{press_hombro_db:5}});
+      expect(app.w.incFor("press_hombro_db")).toBe(0);
+      expect(app.w.stepFor("press_hombro_db",2)).toBe(1);
+      /* rp_inc con otra forma se lee como vacio */
+      app.sembrar({rp_inc:[5]});
+      expect(app.w.loadInc()).toEqual({});
+      expect(app.w.stepFor("jalon_pecho",40)).toBe(2.5);});
+    test("datos de v35 sin rp_inc: el salto de siempre, nada escrito, y un salto solo toca su ejercicio",app=>{
+      const D=F.dueno();limpio(app,D);
+      const EX=app.ev("EX"),ids=Object.keys(D.rp_logs).filter(id=>(EX[id]||{}).load===true&&D.rp_logs[id].some(r=>r.sets.length));
+      expect(ids.length).toBeGreaterThan(8);
+      const objetivos=()=>ids.map(id=>{const ll=app.w.lastLog(id);return JSON.stringify(app.w.todayTarget(ll.k,id));});
+      ids.forEach(id=>{const w=app.w.lastLog(id).sets[0].w;
+        expect(app.w.stepFor(id,w)).toBe(app.w.progStep(w));expect(app.w.roundDownTo(id,w)).toBe(w);});
+      const antes=objetivos();
+      expect(app.leer("rp_inc")).toBe(null);
+      app.sembrar(Object.assign(F.dueno(),{rp_inc:{pec_deck_inverso:5}}));
+      expect(objetivos()).toEqual(antes);});
+
     /* ---------- isPR ---------- */
     test("isPR: record solo si ninguna serie anterior lo domina en peso Y reps",app=>{
       limpio(app,{rp_logs:{press_banca_db:[reg(3,"gym_empuje",[[30,8],[30,8]])]}});
