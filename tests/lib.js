@@ -79,10 +79,12 @@
     /* deja la memoria de la app como recien arrancada sin recargar */
     reiniciarMemoria(){this.ev("sessionLog={};sessionLogKey=null;curRoutine=null;sessCommitted=0;curRir=null;clearTimer()");},
     cargo(){const f=this.frame;return new Promise(r=>f.addEventListener("load",r,{once:true}));},
-    async arrancar(semilla){this.destruir();this.sembrar(semilla);
+    /* extra: lo que se anade a la URL, p. ej. "#retomar" (con lo que sw.js
+       abre la app al tocar el aviso de fin de descanso) */
+    async arrancar(semilla,extra){this.destruir();this.sembrar(semilla);
       const f=document.createElement("iframe");f.id="app";f.title="Mi Rutina";
       f.style.cssText="width:400px;height:800px;border:1px solid #ccc";
-      this.frame=f;const c=this.cargo();f.src=SRC;document.getElementById("zona").appendChild(f);
+      this.frame=f;const c=this.cargo();f.src=SRC+(extra||"");document.getElementById("zona").appendChild(f);
       await conTope(c,30000,"carga de index.html");await this.listo();},
     async recargar(){const c=this.cargo();this.w.location.reload();await conTope(c,30000,"recarga");await this.listo();},
     async listo(){if(!this.w.__errores)throw new Error("la app cargo sin tests/prelude.js: corre las pruebas con python tests/run.py");

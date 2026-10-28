@@ -3389,6 +3389,16 @@ function resumeGuided(k){curRoutine=k;const sess=loadSess();
   steps=buildSteps(k);if(!steps.length){openRoutine(k,true);return;}
   stepi=(sess&&sess.stepi>0&&sess.stepi<steps.length)?sess.stepi:0;
   curW=null;curReps=null;show("guided");renderStep();}
+/* tocar el aviso de fin de descanso con la app cerrada la abre con #retomar
+   (sw.js, notificationclick). Con una sesion viva de hoy se vuelve al guiado
+   en el paso guardado; sin ella, o de otro dia, se queda en Inicio. La pila
+   queda Inicio > rutina > guiado, como al entrar a mano, para que salir lleve
+   a la rutina y no fuera de la app; y la marca se quita de la URL. */
+function retomarDesdeAviso(){if(location.hash!=="#retomar")return false;
+  try{history.replaceState({v:"home"},"",location.pathname+location.search);}catch(e){}
+  const s=loadSess();if(!s||s.date!==today())return false;
+  pushHist({v:"routine",k:s.key});pushHist({v:"guided",k:s.key});
+  resumeGuided(s.key);return true;}
 window.addEventListener("popstate",function(e){
   var fv=$("finov");if(fv&&fv.classList.contains("show")){fv.classList.remove("show");finRescue=null;return;}
   var pv=$("planov");if(pv&&pv.classList.contains("show")){pv.classList.remove("show");return;}
@@ -3825,7 +3835,7 @@ mergeCustom();applyTheme(loadTheme());renderHome();
   if(st&&st.v==="routine"&&st.k&&ROUTINES[st.k]){openRoutine(st.k,true);}
   else if(st&&st.v==="guided"&&st.k&&ROUTINES[st.k]){resumeGuided(st.k);}
   else if(st&&(st.v==="history"||st.v==="progress"||st.v==="settings")){show(st.v);if(st.v==="history")renderHistory();if(st.v==="progress")renderProgress();if(st.v==="settings")renderSettings();}
-  else{try{history.replaceState({v:"home"},"");}catch(e){}}
+  else if(!retomarDesdeAviso()){try{history.replaceState({v:"home"},"");}catch(e){}}
 })();
 resumeSessionCheck();
 scheduleRem();
