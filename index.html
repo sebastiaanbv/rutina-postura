@@ -1791,8 +1791,10 @@ function markPR(id,w,reps,i){const sv=sessActive(curRoutine)?loadSess():null;
   /* si no cabe, el aviso de "No cupo" no lo tapa el de record */
   if(!jset("rp_session",sv)){prSinGuardar[id]=1;avisoLleno();return;}
   const e=EX[id]||{},u=e.unit||"kg",marca=(w>0)?fmtW(w)+" "+u+" \u00d7 "+reps:reps+" reps";
-  /* nivel 1 no lanza aviso flotante: se ve en la propia serie y ya */
-  if(lvl>=2)toast(ic("trophy","sm")+" R\u00e9cord en "+esc(shortName(id))+": <b>"+marca+"</b>");}
+  /* nivel 1 no lanza aviso flotante: se ve en la propia serie y ya. Con
+     un aviso con boton a la vista (Deshacer, HU-54) tampoco el de nivel 2:
+     lo cerraria y la serie borrada ya no se podria recuperar */
+  if(lvl>=2&&!toastFin)toast(ic("trophy","sm")+" R\u00e9cord en "+esc(shortName(id))+": <b>"+marca+"</b>");}
 /* borrar o corregir una serie de hoy rehace los records de ese ejercicio:
    cada serie se vuelve a medir contra el historial y las anteriores. Sin
    esto la marca seguia en una serie borrada, o en una que ya no lo es, y

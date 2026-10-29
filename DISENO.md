@@ -686,6 +686,8 @@ confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se toca
   un doble toque en la X se lleva dos series —la de abajo sube al sitio de la borrada— y el aviso
   pasa a «2 series borradas»; Deshacer devuelve las dos. Anotar otra mientras tanto no estorba: la
   borrada vuelve a su sitio y la nueva se queda, y deshacer en el descanso no saca del descanso.
+  Aunque la nueva sea récord de nivel 2: el aviso de récord no tapa al de Deshacer (lo cerraba y
+  la borrada ya no volvía); el récord se ve en su serie (HU-10) y se guarda igual.
   Salir del guiado o finalizar retira el aviso: una sesión cerrada no se reabre. Si al deshacer no
   cabe en el teléfono, la serie vuelve a la memoria y queda encima el aviso de «No cupo». Al
   borrar, igual: se guarda después de sacar el Deshacer, así que si no cabe el «No cupo» queda

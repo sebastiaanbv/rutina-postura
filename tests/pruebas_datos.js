@@ -1218,6 +1218,29 @@
       expect(app.$("#guided .isrest")).toBeTruthy();
       app.w.skipRest();
       app.reiniciarMemoria();});
+    test("borrar y anotar un récord de nivel 2: el aviso de récord no tapa el Deshacer",async app=>{
+      /* con historial (30x8, e1RM 38): 35x8 es nuevo maximo de e1RM */
+      const s=conSerie();s.rp_logs={press_banca_db:[{date:F.fecha(3),sets:[{w:30,reps:8}],k:"gym_empuje",t:1}]};
+      const antes=abrir(app,s);
+      borrar(app,1);
+      app.ev("curW=35;curReps=8");
+      app.w.logSet();
+      const pr=app.leer("rp_session").pr.filter(p=>p.w===35&&p.reps===8);
+      expect(pr).toHaveLength(1);
+      expect(pr[0].lvl).toBe(2);
+      /* el récord se ve en su serie; el aviso sigue siendo el de Deshacer */
+      expect(app.texto("#toast")).toContain("Serie borrada");
+      expect(app.$("#toast .tact")).toBeTruthy();
+      expect(app.ev("deshacer.length")).toBe(1);
+      await app.hasta(()=>app.$("#guided .isrest"),3000,"el descanso");
+      deshacer(app);
+      /* la borrada vuelve a su indice, la nueva se queda al final y sigue con su récord */
+      const log=copia(app.ev("sessionLog")).press_banca_db;
+      expect(log.slice(0,3)).toEqual(antes.log.press_banca_db);
+      expect(log.map(x=>x.w+"x"+x.reps)).toEqual(["20x10","22.5x8","22.5x7","35x8"]);
+      expect(app.leer("rp_session").pr.map(p=>p.w+"x"+p.reps+" "+p.i)).toContain("35x8 3");
+      app.w.skipRest();
+      app.reiniciarMemoria();});
     test("salir del guiado o finalizar retira el Deshacer y no toca nada",async app=>{
       abrir(app);
       borrar(app,0);
