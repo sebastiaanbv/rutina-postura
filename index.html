@@ -915,20 +915,26 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
      cabia ya con la letra de serie y, pegado a los botones, empujaba el
      stepper de las reps fuera del margen; al 130 % pasaba hasta con un "12".
      La cifra va entre - y + si cabe con 4 px de aire a cada lado (92 px con
-     los botones) la mas larga que puede tener, "142.5" (4,94 em de la letra
-     del stepper; las reps de tres cifras ocupan menos); si no, sube a su
-     propia linea y los botones quedan debajo, en los extremos. Lo decide solo
-     el ancho del stepper y su letra, nunca la cifra de cada momento: si la
-     forma dependiera de la cifra, al pasar de 97.5 a 100 con + (o de 9 a 10
-     reps) la fila se apilaria entre un toque y el siguiente, y el segundo
-     toque, en el mismo sitio, caeria en la cifra o en la fila de debajo. La
-     cifra ocupa todo el hueco entre los botones (flex 1 1 0), asi que su caja
-     tampoco cambia con el largo. Los steppers de una fila miden lo mismo y
-     cambian juntos. La consulta va en em del stepper, asi que mide a la vez
-     el ancho y la letra. */
-  @container (max-width:calc(92px + 4.94em)){
-    .stepper .row{flex-wrap:wrap}
-    .stepper .row>b,.stepper .row>.numin{order:-1;flex:1 0 100%}}
+     los botones) la mas larga que puede tener, "142.5" (las reps de tres
+     cifras ocupan menos); si no, sube a su propia linea y los botones quedan
+     debajo, en los extremos. Lo decide solo el ancho del stepper y su letra,
+     nunca la cifra de cada momento: si la forma dependiera de la cifra, al
+     pasar de 97.5 a 100 con + (o de 9 a 10 reps) la fila se apilaria entre un
+     toque y el siguiente, y el segundo toque, en el mismo sitio, caeria en la
+     cifra o en la fila de debajo. La cifra ocupa todo el hueco entre los
+     botones (flex 1 1 0), asi que su caja tampoco cambia con el largo. Los
+     steppers de una fila miden lo mismo y cambian juntos.
+     Lo que mide "142.5" depende de la letra del telefono, no solo de su
+     tamaño: 4,94 em del stepper en Inter, 5,5 en DejaVu Sans, 4,6 en Roboto.
+     Un numero fijo de em calibrado con una letra dejaba la cifra pegada a los
+     botones con otra mas ancha. Por eso la consulta no esta aqui: la escribe
+     reservaCifra() en <style id="cifraReserva"> con "142.5" medido en
+     #cifraRef, una cifra invisible con la letra, el peso y el espaciado de la
+     del stepper. Va en em del stepper, asi que sigue al tamaño de letra; y
+     se vuelve a medir si la cifra de referencia cambia de ancho. */
+  #cifraRef{position:absolute;left:0;top:0;visibility:hidden;pointer-events:none;
+    container-type:normal;padding:0;width:max-content}
+  #cifraRef .row b{flex:none}
   .last{margin:var(--s3) 0 var(--s1)}
   .last.tap{cursor:pointer}
   .gchart{margin:var(--s2) 0 0;display:none}
@@ -1229,6 +1235,9 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .toggle:focus-visible,.rcard:focus-visible,.ex .top:focus-visible{
     outline:none;box-shadow:var(--sh-focus);border-radius:10px}
 </style>
+<!-- la consulta del stepper (seccion steppers): reservaCifra() la reescribe con
+     "142.5" medido en la letra real; hasta entonces, una reserva holgada -->
+<style id="cifraReserva">@container (max-width:calc(92px + 5.6em)){.stepper .row{flex-wrap:wrap} .stepper .row>b,.stepper .row>.numin{order:-1;flex:1 0 100%}}</style>
 </head>
 <body>
 <div class="app">
@@ -1297,6 +1306,8 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+<!-- la cifra mas larga del stepper, invisible, con su letra: la mide reservaCifra() -->
+<div id="cifraRef" class="stepper" aria-hidden="true"><div class="row"><b>142.5</b></div></div>
 
 <div id="finov">
   <div class="ovcard" role="dialog" aria-modal="true" aria-labelledby="finTitle">
@@ -3110,6 +3121,23 @@ function adjW(d){const s=steps[stepi],ld=availDB(s.id,curRoutine),l=ld&&!availDB
    La forma de la fila no depende de la cifra (DISENO 10): cambiarla no
    mueve nada */
 function pintaW(){const el=$("lw");if(el)el.textContent=fmtW(curW);}
+/* La reserva de la cifra del stepper (CSS, seccion steppers): "142.5" medido
+   en #cifraRef con la letra del telefono, en em del stepper. Asi apilar o no
+   lo deciden el ancho, la letra y su tamaño, como antes, pero con la letra que
+   de verdad pinta la cifra y no con la que se calibro. +1 px de holgura: el
+   ancho del texto no crece exactamente en proporcion con la letra (los px se
+   redondean distinto a cada tamaño) y la consulta en em lo escala hasta que
+   se vuelve a medir. Nunca mira la cifra de ahora: #cifraRef dice siempre
+   "142.5". */
+function reservaCifra(){const ref=$("cifraRef"),st=$("cifraReserva");if(!ref||!st)return;
+  const w=ref.querySelector("b").getBoundingClientRect().width,em=parseFloat(getComputedStyle(ref).fontSize);
+  if(!(w>0&&em>0))return;
+  const css="@container (max-width:calc(92px + "+((w+1)/em).toFixed(3)+"em)){.stepper .row{flex-wrap:wrap} "
+    +".stepper .row>b,.stepper .row>.numin{order:-1;flex:1 0 100%}}";
+  if(st.textContent!==css)st.textContent=css;}
+reservaCifra();
+/* otra letra o el tamaño de letra del sistema cambian el ancho de "142.5" */
+if(typeof ResizeObserver!=="undefined")new ResizeObserver(reservaCifra).observe(document.querySelector("#cifraRef b"));
 function adjR(d){curReps=Math.max(1,curReps+d);const el=$("lr");if(el)el.textContent=curReps;}
 /* Doble toque (v36): un segundo toque durante la confirmacion volvia a entrar
    aqui y metia otra serie y otro afterAction. Una serie por paso pintado
