@@ -467,8 +467,15 @@
          que se pinta de cero */
       app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");
       try{await telefono(app,390,100);
-        /* que acaben las animaciones de entrada (fade y stageIn, 220 ms) */
+        /* que acaben las animaciones de entrada (fade y stageIn, 220 ms).
+           Se dan por acabadas, no se esperan: con el tiempo virtual de la CI
+           espera(300) no deja pasar 300 ms de verdad, y con la maquina
+           cargada la fila seguia entrando (6 + 8 px) al medir «antes»; al
+           volver a medir ya habia llegado y la prueba veia un salto de 7 a
+           13 px que no era del boton (3 de cada 8 con cuatro bucles
+           ocupando la CPU). Lo que pase desde el toque si se mide tal cual */
         await app.espera(300);
+        app.doc.getAnimations().forEach(a=>{const f=a.effect&&a.effect.getComputedTiming().endTime;if(isFinite(f))a.finish();});
         escribePeso(app,"97.5");app.w.editNum("w");app.$("#numin").value="100";
         const go=app.$("#guided .gbtn.go");go.scrollIntoView({block:"center"});const antes=go.getBoundingClientRect().top;
         await toca(app,go,"dedo");expect(go.textContent).toContain("Serie registrada");

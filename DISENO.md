@@ -1154,6 +1154,15 @@ escala estaba en px y la raíz fijada a 14.
     `left:50%` (de 2 a 5 líneas a media pantalla).
   - **Tres perfiles de letra**: la CI se corre con Inter, con DejaVu Sans y con Roboto
     (`FONTCONFIG_FILE`, cómo en `tests/README.md`), dos veces cada uno, y Playwright.
+  - **Una prueba que dependía de la máquina**: «al registrar con el campo abierto un peso de otro
+    orden, «Serie registrada» no salta…» esperaba 300 ms a que acabara la entrada del paso
+    (fade y `stageIn`). Con el tiempo virtual de la CI esos 300 ms no pasan de verdad y las
+    animaciones siguen en su primer fotograma; con la máquina cargada llegaba un fotograma entre
+    las dos medidas y la prueba veía un salto de 13,16 px (6 + 8 de las dos entradas) que no era
+    del botón: 1 de 9 corridas, 3 de 8 con cuatro bucles ocupando la CPU, ya en v36. Ahora da
+    las entradas por acabadas antes de medir, como la de los dos toques seguidos; lo que pasa
+    desde el toque se sigue midiendo tal cual. Rebobinar las entradas a su primer fotograma y
+    acabarlas entre las dos medidas reproduce los 13,16 px con lo anterior y pasa con esto.
   - **El aviso de Deshacer, en una línea y sin tapar controles**: «Serie borrada · Deshacer»
     llega hasta 8 px del borde y `colocaAviso` prueba cada borde de control en vez de ir de 8 en
     8 (HU-54, arriba). Prueba en `tests/pruebas_pantallas.js` («tras borrar…»), sin barras de
