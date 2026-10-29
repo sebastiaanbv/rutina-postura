@@ -852,6 +852,20 @@
       expect(app.activa()).toBe("guided");
       expect(app.ev("steps[stepi].id")).toBe(l[0]);
       app.reiniciarMemoria();});
+    test("marcar con visto desde la lista el primer pendiente y 'Continuar' lleva al siguiente que falta",async app=>{
+      const l=empezarPorElCuarto(app);hastaElFinal(app);
+      app.w.history.back();await app.hasta(()=>app.activa()==="routine",3000,"la rutina");
+      app.$('#routine .ex[data-ex="'+l[0]+'"] .exck').click();
+      expect(app.w.pendientes(R)).toEqual(l.slice(1,3));
+      app.$("#routCta .btn:not(.sec)").click();
+      expect(app.activa()).toBe("guided");
+      expect(app.ev("steps[stepi].id")).toBe(l[1]);
+      expect(app.ev("stepi")).toBe(app.ev("steps.findIndex(x=>x.id==='"+l[1]+"')"));
+      /* y saltarlo no apunta como saltado el que ya tiene visto */
+      app.w.guidedSkipExercise();
+      expect(app.ev("steps[stepi].id")).toBe(l[2]);
+      expect(app.leer("rp_session").saltados||[]).toEqual([l[1]]);
+      app.reiniciarMemoria();});
     test("con pendientes y nada hecho, 'Terminar así' no guarda nada ni dice 'Completada'",app=>{
       app.reiniciarMemoria();app.sembrar(F.dueno);const antes=app.leer("rp_history").length,l=app.w.effList(R);
       app.w.openRoutine(R);app.w.startRoutine(l[l.length-1]);app.w.guidedSkipExercise();

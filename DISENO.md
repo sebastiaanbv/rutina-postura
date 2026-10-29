@@ -640,6 +640,8 @@ Los ejercicios que faltan, antes de cerrar:
   - El aviso lleva su barra con «Salir» (sin «Paso anterior»): sin ella, salir sin elegir solo
     se podía con el atrás del sistema, que una app instalada en iOS no tiene. Sale como el atrás:
     la sesión queda abierta en el primer pendiente. Al pintarse, el foco va a su título.
+  - Si mientras tanto ese pendiente se marca con visto desde la lista, «Continuar» va al
+    siguiente que falte: antes volvía al ya hecho, y saltarlo lo apuntaba en `saltados`.
   - Pruebas en `tests/pruebas_logica.js` (aviso, repaso, terminar así, saltados y el final sin
     pendientes), `tests/pruebas_datos.js` (ida y vuelta con el repaso a medias) y
     `tests/pruebas_pantallas.js` (sesiones de v35 de los juegos `madre` y `sinCerrar`). Tres

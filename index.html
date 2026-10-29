@@ -3183,6 +3183,9 @@ function enterGuided(from){prime();const s0=loadSess();if(s0&&s0.date!==today())
     /* empezar por otro que no falta deja el repaso de pendientes: vuelve el orden de siempre */
     if(sessRepaso&&sessRepaso.indexOf(from)<0)sessRepaso=null;}
   else if(s&&s.stepi>0&&s.stepi<steps.length)stepi=s.stepi;
+  /* repasando: si lo de stepi ya no falta (visto desde la lista), al
+     siguiente que falte. Fuera de la rama de s.stepi: puede ser el paso 0 */
+  if(!from&&sessRepaso&&steps[stepi]&&pendientes(curRoutine).indexOf(steps[stepi].id)<0){const j=sigPendiente();if(j<steps.length)stepi=j;}
   show("guided");renderStep();}
 
 /* ---- HU-63: hoja de conflicto ----
