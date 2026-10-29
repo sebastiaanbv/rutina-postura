@@ -1888,10 +1888,27 @@ function toast(html,ms,fin){const el=$("toast");if(!el)return;
    no tape ninguno: como se queda los toques, lo que tapa no se puede tocar
    en esos 7 s (con los datos del dueno, el chip "¿De cuanto sube?"). Si no
    lo hay, uno donde al menos el boton no caiga sobre un control; sin
-   ninguno, donde siempre */
-function colocaAviso(el,arriba){el.style.top="";el.classList.toggle("arriba",arriba);if(!arriba)return;
-  const cs=controlesGuiado(),y0=el.offsetTop,fin=innerHeight-el.offsetHeight;
-  for(const entero of [true,false])for(let y=y0;y<=fin;y+=8){el.style.top=y+"px";if(!avisoPisa(el,cs,entero))return;}
+   ninguno, donde siempre.
+   Se busca primero bajo la barra y, si ahi no hay hueco, tambien por encima,
+   hasta el borde de la pantalla: con la pagina desplazada la barra ya no
+   esta y ese trozo es pagina como cualquier otro. Y si centrado no cabe en
+   ningun sitio, se prueba algo movido a un lado (hasta 8 px del borde). Con
+   una letra mas ancha que Inter (DejaVu Sans) las series de "122.5 kg × 12
+   · reserva 3" van en dos lineas, el aviso es mas ancho y a 320x568 no
+   quedaba hueco: el aviso volvia abajo y Deshacer caia sobre «Registrar
+   serie». Los huecos estaban encima, entre el stepper y el chip del salto,
+   o a 8 px a la izquierda, donde Deshacer deja de rozar las X.
+   Las posiciones se prueban con cuentas, sin mover el aviso: mover y medir
+   cada una obligaria a maquetar cientos de veces en cada desplazamiento. */
+function colocaAviso(el,arriba){el.style.top="";el.style.left=el.style.right="";el.classList.toggle("arriba",arriba);if(!arriba)return;
+  const b=el.querySelector(".tact"),cs=controlesGuiado(),y0=el.offsetTop,x0=el.offsetLeft,h=el.offsetHeight,fin=innerHeight-h;
+  el.style.top="calc(var(--s2) + env(safe-area-inset-top))";const tope=el.offsetTop;
+  const lado=Math.max(0,Math.min(x0,document.documentElement.clientWidth-x0-el.offsetWidth)-8);
+  const dxs=[0];for(let d=8;d<=lado;d+=8)dxs.push(-d,d);
+  const pon=(dx,y)=>{el.style.top=y+"px";if(dx){el.style.left=dx+"px";el.style.right=(-dx)+"px";}};
+  for(const entero of [true,false])for(const dx of dxs){
+    for(let y=y0;y<=fin;y+=8)if(!avisoPisa(el,cs,entero,b,x0+dx,y))return pon(dx,y);
+    for(let y=y0-8;y>=tope;y-=8)if(!avisoPisa(el,cs,entero,b,x0+dx,y))return pon(dx,y);}
   el.style.top="";el.classList.remove("arriba");}
 /* la pagina se mueve bajo el aviso: si en sus 7 s se desplaza, otro control
    ("Registrar serie", el +) puede pasar bajo el boton. Se vuelve a colocar
@@ -1915,13 +1932,15 @@ function controlesGuiado(){
     return {w:r.width,l:r.left-dx,r:r.right-dx,t:r.top-dy,b:r.bottom-dy};});}
 /* si la zona de 44 px del boton del aviso cae sobre un control del guiado;
    con entero, si la cae el aviso entero (con esa zona, que puede asomar).
-   Con offset*, que no ven el translateY de la entrada del aviso */
-function avisoPisa(el,cs,entero){const b=el.querySelector(".tact");if(!b)return false;
-  const cx=el.offsetLeft+b.offsetLeft+b.offsetWidth/2,cy=el.offsetTop+b.offsetTop+b.offsetHeight/2,
+   Con el aviso en x,y (o donde esta) y offset*, que no ven el translateY de
+   la entrada del aviso */
+function avisoPisa(el,cs,entero,b,x,y){b=b||el.querySelector(".tact");if(!b)return false;
+  if(x==null){x=el.offsetLeft;y=el.offsetTop;}
+  const cx=x+b.offsetLeft+b.offsetWidth/2,cy=y+b.offsetTop+b.offsetHeight/2,
     mx=Math.max(22,b.offsetWidth/2),my=Math.max(22,b.offsetHeight/2);
   let L=cx-mx,R=cx+mx,T=cy-my,B=cy+my;
-  if(entero){L=Math.min(L,el.offsetLeft);R=Math.max(R,el.offsetLeft+el.offsetWidth);
-    T=Math.min(T,el.offsetTop);B=Math.max(B,el.offsetTop+el.offsetHeight);}
+  if(entero){L=Math.min(L,x);R=Math.max(R,x+el.offsetWidth);
+    T=Math.min(T,y);B=Math.max(B,y+el.offsetHeight);}
   return (cs||controlesGuiado()).some(r=>r.w>0&&r.l<R&&r.r>L&&r.t<B&&r.b>T);}
 function toastCierra(){const f=toastFin;toastFin=null;if(f)f();}
 /* el aviso a la vista se queda los toques (pointer-events en .toast.show):
