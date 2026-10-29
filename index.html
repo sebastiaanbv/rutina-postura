@@ -1765,16 +1765,21 @@ function prKind(id,w,reps,i){w=w||0;reps=reps||0;
   return w>0?"Más reps con "+fmtW(w)+" "+((EX[id]||{}).unit||"kg"):"Más reps";}
 /* Tres niveles, porque celebrar todo igual devalua la senal: un logro trivial
    no construye nada. El de rango es el fuerte, porque es el que dispara la
-   subida de carga de la sesion siguiente. */
-function prLevel(id,w,reps){const rng=repRange(id),recs=loadLogs()[id]||[];
-  let mejorE1=0;recs.forEach(r=>{mejorE1=Math.max(mejorE1,bestE1(id,r));});
+   subida de carga de la sesion siguiente. Contra las mismas series
+   anteriores que prKind (historial y las de hoy antes de la i): medido solo
+   contra el historial, una serie ligera tras otra fuerte salia de nivel 2,
+   con aviso flotante, y su etiqueta decia "Mas reps con X kg". */
+function prLevel(id,w,reps,i){const rng=repRange(id),hoy=sessLog(curRoutine)[id]||[],prev=[];
+  (loadLogs()[id]||[]).forEach(r=>(r.sets||[]).forEach(x=>prev.push(x)));
+  (i==null?hoy:hoy.slice(0,i)).forEach(x=>prev.push(x));
+  const mejorE1=bestE1(id,{sets:prev});
   const e1=(reps>=rng[0])?e1rm(w||0,reps):0;
   if(e1>0&&e1>mejorE1*1.005)return 2;                    /* nuevo maximo de e1RM */
   return 1;}                                             /* mejor para esas reps */
 /* i: numero de la serie en la sesion (0 la primera). Con el, la marca va a
    esa serie y no a todas las que pesen y repitan lo mismo. Los pr de v35 no
    lo traen, ni kind: se leen igual, solo que sin etiqueta. */
-function prEntry(id,w,reps,i){return {id:id,w:w,reps:reps,lvl:prLevel(id,w,reps),i:i,kind:prKind(id,w,reps,i)};}
+function prEntry(id,w,reps,i){return {id:id,w:w,reps:reps,lvl:prLevel(id,w,reps,i),i:i,kind:prKind(id,w,reps,i)};}
 /* ejercicios cuyo record no cupo en rp_session: solo vivia en el objeto que
    se iba a escribir y se perdia para siempre. Se rehacen desde las series
    (prRecalc) en cuanto estas caben (touchSess), o al finalizar */

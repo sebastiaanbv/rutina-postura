@@ -331,7 +331,7 @@ Lo que se celebra, y cuánto dura. Nada pasa de medio segundo.
 
 Un récord es una serie que **ninguna anterior domina en peso y repeticiones a la vez**. Es la misma regla del panel de progreso, con sus mismas excepciones —el calentamiento no cuenta, y la primera vez que se registra un ejercicio solo marca el punto de partida—, así que las dos cuentan lo mismo.
 
-Qué se superó, en este orden: **Peso máximo** (más kilos que nunca en ese ejercicio), **Mejor 1RM est.** (el 1RM estimado sube más de un 0,5 %, sin bajar del mínimo de reps del rango) o **Más reps con X kg**; sin carga, **Más reps**. Va en la serie y en la pantalla de fin, con el mismo rótulo. El aviso flotante sigue reservado al nivel 2 (nuevo máximo de 1RM estimado): celebrar igual cada récord devalúa la señal.
+Qué se superó, en este orden: **Peso máximo** (más kilos que nunca en ese ejercicio), **Mejor 1RM est.** (el 1RM estimado sube más de un 0,5 %, sin bajar del mínimo de reps del rango) o **Más reps con X kg**; sin carga, **Más reps**. Va en la serie y en la pantalla de fin, con el mismo rótulo. El aviso flotante sigue reservado al nivel 2 (nuevo máximo de 1RM estimado frente al historial y a las series anteriores de hoy): celebrar igual cada récord devalúa la señal.
 
 **Una sola racha: semanas cumplidas.** Toda la app —Inicio, pantalla de fin, «Listo por hoy», Progreso y Ajustes— cuenta la misma cifra, la de `weekStats()`: semanas seguidas con la meta de sesiones de fuerza cumplida. Una racha de días castigaba justo los descansos que pide un programa de tres días. La semana en curso nunca resta y **suma en cuanto se cumple**: si solo contaran las cerradas, la pantalla de fin diría «Semana cumplida · 6 seguidas» e Inicio seguiría en 5 hasta el lunes. El avance de la semana va en primario, como todo progreso; solo «Semana cumplida» va en ámbar, porque eso sí es un logro, y sale una vez por semana: celebrarlo en cada sesión que sobra lo gastaría (§7). La mejor racha cuenta las semanas seguidas **por fecha**, como la racha: restar milisegundos entre dos lunes da 7 días ± 1 h si entre ellos hay cambio de hora, y la partía en dos. «Mejor M» solo sale cuando hay alguna semana cumplida: en la primera sesión, «mejor 0» al lado de «0 semanas cumplidas» no dice nada, y la pantalla de fin se queda con «1 sesión en total» (§11: los estados vacíos invitan). `rp_streak` se sigue guardando igual, pero de él solo se muestra el total de sesiones.
 
@@ -650,7 +650,9 @@ de fin, y ninguno decía qué se había superado.
   propia bajo el valor: al lado no cabía junto a «32.5 kg × 6 · reserva 2» a 360 px. §9 y §12.
 - **Qué se superó** (`prKind`): «Peso máximo», «Mejor 1RM est.» o «Más reps con X kg» («Más reps»
   sin carga), contra las mismas series anteriores que `isPR`. La pantalla de fin lo repite bajo el
-  nombre del ejercicio.
+  nombre del ejercicio. El nivel (`prLevel`, el que decide el aviso flotante) se mide contra esas
+  mismas series: antes solo contra el historial, y una serie ligera tras otra fuerte de hoy salía
+  de nivel 2, con aviso, mientras su etiqueta decía «Más reps con X kg».
 - **Cada récord guarda su número de serie** (`i`, 0 la primera) y su tipo (`kind`) en
   `rp_session.pr`, y de ahí en `rp_history[].pr`. La marca va por número: dos series iguales que
   baten la marca solo cuentan la primera; por peso y reps se habrían pintado las dos. Sin

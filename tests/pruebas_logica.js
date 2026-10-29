@@ -996,5 +996,22 @@
       expect(app.texto("#toast")).toBe("Récord en "+app.w.shortName(PECHO)+": 32.5 kg × 8");
       await app.espera(400);
       app.reiniciarMemoria();});
+    /* el nivel se mide contra lo mismo que la etiqueta: historial y las
+       series de hoy antes de esta. 30 x 10 (e1RM 40) bate el historial (38)
+       pero no a la 32.5 x 8 de hoy (41,2): mas reps, nivel 1, sin aviso */
+    test("una serie ligera tras otra fuerte que bate el historial es nivel 1, sin aviso flotante",async app=>{limpio(app,base());
+      app.w.openRoutine("gym_empuje");app.w.startRoutine(PECHO);
+      sinAviso(app);app.ev("curW=32.5;curReps=8");app.w.logSet();
+      expect(app.texto("#toast")).toBe("Récord en "+app.w.shortName(PECHO)+": 32.5 kg × 8");
+      await app.espera(400);app.w.skipRest();
+      sinAviso(app);app.ev("curW=30;curReps=10");app.w.logSet();
+      const lvls=()=>app.leer("rp_session").pr.map(p=>[p.w,p.reps,p.i,p.lvl,p.kind]);
+      expect(lvls()).toEqual([[32.5,8,0,2,"Peso máximo"],[30,10,1,1,"Más reps con 30 kg"]]);
+      expect(app.texto("#toast")).toBe("");
+      await app.espera(400);app.w.skipRest();
+      /* sin la fuerte (borrada), los records rehechos la suben a nivel 2 */
+      app.w.delSet(PECHO,"s",-1,0,-1);
+      expect(lvls()).toEqual([[30,10,0,2,"Mejor 1RM est."]]);
+      app.reiniciarMemoria();});
   });
 })();
