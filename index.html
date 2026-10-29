@@ -2758,9 +2758,12 @@ function suggestLoad(id,k){const e=EX[id]||{},kk=k!=null?k:curRoutine,d=dose(kk,
   if(t&&!t.nuevo)return {w:loaded?t.w:0,reps:t.reps,why:t.why,target:t};
   const ll=lastLog(id);
   /* primera vez: con el salto declarado, el peso real que no pasa del de
-     arranque, y nunca menos de una placa (startKg:0 sigue siendo sin peso) */
-  const ini=d.startKg!=null?d.startKg:10;
-  if(!ll)return {w:loaded?(ini>0?Math.max(incFor(id,kk),roundDownTo(id,ini,kk)):ini):0,reps:tgt,why:"Objetivo del programa: "+tgt+" repeticiones"};
+     arranque, y nunca menos de una placa (startKg:0 sigue siendo sin peso).
+     Con la lista de mancuernas, la mas pesada que no pasa del arranque, o la
+     mas ligera si ninguna cabe: nunca una que no hay */
+  const ini=d.startKg!=null?d.startKg:10,lst=availDB(id,kk);
+  if(!ll)return {w:loaded?(ini>0?(lst?(lst.filter(v=>v<=ini+1e-9).pop()||lst[0])
+      :Math.max(incFor(id,kk),roundDownTo(id,ini,kk))):ini):0,reps:tgt,why:"Objetivo del programa: "+tgt+" repeticiones"};
   const first=ll.sets[0],sets=d.sets||ll.sets.length;
   const todas=ll.sets.length>=sets&&ll.sets.every(x=>(x.reps||0)>=tgt);
   if(loaded&&todas){const w=nextW(id,first.w||0,1,kk);
@@ -2890,13 +2893,17 @@ function durSince(t){if(!t)return 0;const m=Math.round((Date.now()-t)/60000);ret
    1,25 se veia 1.3 y corregir solo las reps guardaba ese 1.3 (HU-57) */
 function fmtW(w){return String(Math.round((+w||0)*100)/100);}
 function plural(n,sing,pl){return (Math.abs(n)===1)?sing:pl;}
-function adjW(d){const s=steps[stepi],l=availDB(s.id);
+function adjW(d){const s=steps[stepi],ld=availDB(s.id,curRoutine),l=ld&&!availDB(s.id)?[0].concat(ld):ld;
   /* d solo dice hacia donde. Con mancuernas declaradas, los botones saltan a
-     la siguiente que existe; con el salto de la maquina declarado (v36), al
-     multiplo siguiente o anterior; sin nada declarado, 2,5 kg como siempre */
-  if(l){const c=curW||0,n=d>0?l.filter(x=>x>c+1e-9)[0]:l.filter(x=>x<c-1e-9).pop();curW=n!=null?n:c;}
-  else if(incFor(s.id,curRoutine))curW=nextW(s.id,curW||0,d,curRoutine);
-  else curW=Math.max(0,Math.round((curW+(d>0?2.5:-2.5))*100)/100);pintaW();}
+     la siguiente que existe (en casa, tambien en la silla, la zancada y los
+     gemelos, que pueden ir sin peso: 0 es su suelo); con el salto de la
+     maquina declarado (v36), al multiplo siguiente o anterior; sin nada
+     declarado, 2,5 kg como siempre. curW en numero: un peso guardado como
+     texto se concatenaba */
+  const c=Number(curW)||0;
+  if(l){const n=d>0?l.filter(x=>x>c+1e-9)[0]:l.filter(x=>x<c-1e-9).pop();curW=n!=null?n:c;}
+  else if(incFor(s.id,curRoutine))curW=nextW(s.id,c,d,curRoutine);
+  else curW=Math.max(0,Math.round((c+(d>0?2.5:-2.5))*100)/100);pintaW();}
 /* el peso del guiado se ve igual al pintar la serie, al tocar −/+, al
    escribirlo y al cambiar las series: solo el numero, como renderStep. Con
    la unidad, "102.5 kg" parte la fila en dos lineas en un movil de 390 px */
@@ -3673,7 +3680,11 @@ function warmupHTML(id,w){const e=EX[id]||{};if(e.load!==true||!(w>=8))return ""
   const r=ROUTINES[curRoutine]||{},warm=r.warm||[],
     first=effList(curRoutine).find(x=>EX[x]&&EX[x].load===true&&warm.indexOf(x)<0&&EX[x].tag!=="calent");
   if(first!==id)return "";
-  const l=availDB(id),inc=incFor(id,curRoutine),st=w>=20?2.5:1,rd=x=>l?(l.filter(v=>v<=x+1e-9).pop()||l[0])
+  const l=availDB(id,curRoutine),inc=incFor(id,curRoutine),st=w>=20?2.5:1;
+  /* sin ningun peso real por debajo del de hoy (no pasa de una placa) no hay
+     aproximacion: saldria igual o mas pesada que la serie de trabajo */
+  if(inc&&inc>=w)return "";
+  const rd=x=>l?(l.filter(v=>v<=x+1e-9).pop()||l[0])
     :inc?Math.max(inc,roundDownTo(id,x,curRoutine)):Math.max(st,Math.round(x/st)*st);
   return `<div class="qwhy warmup">${ic("flame","xs")} Antes de la primera serie, aproximación (no se registra): 1×10 con ${fmtW(rd(w*.5))} kg · 1×5 con ${fmtW(rd(w*.7))} kg</div>`;}
 function editExNote(id){const all=loadNotes(),v=prompt("Nota para "+shortName(id)+" (se verá cada vez que hagas este ejercicio). Déjala vacía para borrarla.",all[id]||"");
@@ -3937,7 +3948,8 @@ function loadStep(w){return progStep(w);}
    ejercicio no se hace con ellas o no se declararon (gimnasio: rack completo).
    Se hacen con ellas los de mancuerna y, si se pasa una rutina de casa (k),
    todo lo que en ella lleva carga: sentarse con una al pecho, la zancada, los
-   gemelos. Sin k (botones del guiado, aproximacion) solo los de mancuerna */
+   gemelos. Sin k solo los de mancuerna. Los botones −/+, la aproximacion y
+   el chip del salto del guiado pasan la rutina (curRoutine) */
 function availDB(id,k){const z=ZONAS[id]||{},
     casa=!!k&&(ROUTINES[k]||{}).group==="Casa"&&(EX[id]||{}).load===true;
   if(z.eq!=="mancuerna"&&!casa)return null;
@@ -3981,11 +3993,11 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
      sobre una articulacion que avisa es justo lo que no hay que hacer */
   const pain=loadPain()[id]||[];
   if(pain.indexOf(ll.date)>=0){const f0=ll.sets[0]||{},rep=pain.filter(d=>d>=dOffset(28)).length>=2;
-    return {w:f0.w||0,reps:f0.reps||rng[0],dolor:true,
+    return {w:Number(f0.w)||0,reps:Number(f0.reps)||rng[0],dolor:true,
       why:rep?"Molestia repetida en este ejercicio: no subas y plantéate cambiarlo por otro"
              :"La vez pasada anotaste molestia: mismo peso y sin forzar"};}
   /* w0 en numero: un peso guardado como texto (una copia editada a mano) se
-     sumaba como texto, "8"+1 = "81", y con la lista "8" proponia bajar */
+     sumaba como texto, "30"+2.5 = 302,5 kg, y con la lista "8" proponia bajar */
   const trabajo=ll.sets,tope=trabajo.every(x=>(x.reps||0)>=rng[1]),
         completo=trabajo.length>=(d.sets||trabajo.length),first=trabajo[0],w0=Number(first.w)||0;
   /* Con mancuernas propias (Ajustes) manda la lista real, no un salto teorico.

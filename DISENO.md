@@ -468,11 +468,15 @@ mancuernas se quedaba pidiendo más repeticiones para siempre.
   `availDB(id,k)` les da la lista cuando `k` es de casa, y el salto es a la siguiente que existe:
   de 1 a 2 tras tope+2, y con la de 3, la más pesada, se estira («Ya usas tu mancuerna más
   pesada»). Sin peso todavía, al llenar el rango se coge la más ligera de la lista. Fuera de casa
-  los gemelos siguen siendo de máquina y siguen el salto teórico; los botones −/+ del guiado y la
-  aproximación llaman a `availDB` sin rutina y no cambian.
+  los gemelos siguen siendo de máquina y siguen el salto teórico. Los botones −/+ del guiado y la
+  aproximación también pasan la rutina: en casa con la lista saltan entre sus mancuernas, y en
+  lo que no es de mancuerna (silla, zancada, gemelos) el suelo es 0, porque se puede hacer sin
+  peso. Antes la propuesta salía de la lista y los botones sumaban 2,5 kg (de 6 a 8,5).
 - **Un peso guardado como texto ya no se concatena.** Importar comprueba que `rp_logs` sea un
-  objeto, no el tipo de cada `w`, así que una copia editada a mano puede traer `"8"`: sumaba
-  `"8"+1` = 81 kg, y con la lista proponía bajar a la de 6. `todayTarget` lo pasa a número.
+  objeto, no el tipo de cada `w`, así que una copia editada a mano puede traer `"30"`: al llenar
+  el rango sumaba `"30"+2,5` = 302,5 kg, y con la lista un `"8"` proponía bajar a la de 6.
+  `todayTarget` lo pasa a número, también con la molestia anotada (de ahí iba tal cual a los
+  −/+, que daban 82,5 o NaN); y los −/+ pasan a número lo que tengan delante.
 - **Lo que no cambia:** la primera vez, la molestia anotada (congela aunque tope+2 esté lleno),
   el ejercicio que aún va sin peso (de 0 kg sube a 1, como antes; con lista, a la más ligera) y
   las series de menos (no sube). Sin claves nuevas ni cambios en la forma de `rp_logs`.
@@ -498,15 +502,17 @@ Pesos que existen en cada máquina:
     Con 40 kg en saltos de 5 (12,5 %): 40 × 14 y luego 45. Nunca 42,5.
   - Los −/+ van al múltiplo siguiente o anterior; un 42,5 tecleado sube a 45 y baja a 40.
   - La aproximación redondea **hacia abajo** a un múltiplo (60 kg en saltos de 5: 30 y 40), nunca
-    por debajo de una placa. La primera vez, el peso de arranque también; `startKg:0` sigue sin peso.
+    por debajo de una placa. Si el peso de hoy no pasa de una placa (9 kg en saltos de 10) no hay
+    aproximación: saldría igual o más pesada que la serie. La primera vez, el peso de arranque
+    también baja al múltiplo; `startKg:0` sigue sin peso. Con lista, la primera vez es la más
+    pesada de la lista que no pasa del arranque, o la más ligera si ninguna cabe.
   - Lo tecleado no se redondea, ni al cambiar el salto después.
   - Un solo sitio dice el salto: `stepFor(id,w)`, el declarado o el de siempre; `roundDownTo(id,w)`
     da el peso real de abajo. Con mancuernas en Ajustes manda la lista y el chip no sale.
   - Con los ligeros que vuelven a subir (arriba): en casa con la lista, lo que lleva carga se hace
     con mancuernas y manda la lista aunque el ejercicio tenga salto de máquina guardado. Los
     gemelos son de máquina en el gimnasio (allí su salto manda) y de mancuerna en casa (allí ni
-    chip ni salto: la propuesta, la primera vez, los −/+ y la aproximación quedan como sin
-    `rp_inc`). Por eso `incFor`, `stepFor`, `roundDownTo` y `nextW` aceptan la rutina, igual que
+    chip ni salto: la propuesta, la primera vez, los −/+ y la aproximación siguen la lista). Por eso `incFor`, `stepFor`, `roundDownTo` y `nextW` aceptan la rutina, igual que
     `availDB(id,k)`.
   - Sin `rp_inc` (datos de v35) todo sigue igual. Clave nueva y sin migración: si falta es `{}`.
     Viaja en la copia por prefijo, e importar exige que sea un objeto.

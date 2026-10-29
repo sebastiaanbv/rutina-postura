@@ -223,7 +223,8 @@
         why:"La vez pasada anotaste molestia: mismo peso y sin forzar"});});
     test("todayTarget con el peso guardado como texto: suma, no concatena",app=>{
       /* importar valida que rp_logs sea un objeto, no el tipo de cada w: una
-         copia editada a mano puede traer "8". Antes salia "8"+1 = 81 kg */
+         copia editada a mano puede traer "8". En v35 "30"+2.5 salia 302,5 kg;
+         con la subida de los ligeros (HU-07) "8"+1 habria sido 81 */
       limpio(app,{rp_logs:{elevaciones_laterales:[reg(3,"gym_empuje",veces(4,"8",22))]}});
       expect(tt(app,"elevaciones_laterales","gym_empuje")).toEqual({w:9,reps:12,subeCarga:true,
         why:"Llegaste a 22 reps: sube a 9 kg y vuelve a 12"});
@@ -315,6 +316,66 @@
       app.sembrar({});
       expect(app.w.warmupHTML("jalon_pecho",60)).toContain("1×10 con 30 kg · 1×5 con 42.5 kg");
       app.reiniciarMemoria();});
+    test("warmupHTML: si el peso de hoy no pasa de una placa no hay aproximacion (nunca mas pesada que la serie)",app=>{
+      limpio(app,{rp_inc:{jalon_pecho:10}});app.ev("curRoutine='gym_tiron'");
+      expect(app.w.warmupHTML("jalon_pecho",9)).toBe("");
+      expect(app.w.warmupHTML("jalon_pecho",8)).toBe("");
+      expect(app.w.warmupHTML("jalon_pecho",10)).toBe("");
+      expect(app.w.warmupHTML("jalon_pecho",15)).toContain("1×10 con 10 kg · 1×5 con 10 kg");
+      app.reiniciarMemoria();});
+    test("en casa con la lista, −/+ y aproximacion de lo que no es de mancuerna solo dan pesos de la lista",app=>{
+      const k0=app.ev("curRoutine");
+      limpio(app,{rp_prefs:{pesosDB:[2,4,6,8]}});app.ev("curRoutine='salud_fuerza_a'");
+      /* sentarse con una mancuerna al pecho: la propuesta ya salia de la lista
+         y los botones sumaban 2,5 (6 → 8,5, 6 → 3,5) */
+      expect(ajusta(app,"sentadilla_silla",6,1)).toBe(8);
+      expect(ajusta(app,"sentadilla_silla",6,-1)).toBe(4);
+      expect(ajusta(app,"sentadilla_silla",8,1)).toBe(8);
+      /* se puede hacer sin peso: 0 es su suelo, y de 0 se sube a la mas ligera */
+      expect(ajusta(app,"sentadilla_silla",2,-1)).toBe(0);
+      expect(ajusta(app,"sentadilla_silla",0,-1)).toBe(0);
+      expect(ajusta(app,"sentadilla_silla",0,1)).toBe(2);
+      expect(ajusta(app,"zancada_estatica",4,1)).toBe(6);
+      expect(ajusta(app,"elevacion_pantorrilla",4,-1)).toBe(2);
+      /* los de mancuerna, como en v35: la mas ligera es el suelo */
+      expect(ajusta(app,"press_hombro_db",2,-1)).toBe(2);
+      app.sembrar({rp_prefs:{pesosDB:[3,5,8]}});
+      expect(app.w.warmupHTML("sentadilla_silla",8)).toContain("1×10 con 3 kg · 1×5 con 5 kg");
+      /* en el gimnasio los gemelos son de maquina: la lista no manda */
+      app.sembrar({rp_prefs:{pesosDB:[2,4,6,8]}});app.ev("curRoutine='gym_empuje'");
+      expect(ajusta(app,"elevacion_pantorrilla",6,1)).toBe(8.5);
+      app.ev("steps=[];stepi=0;curW=null;curRoutine="+JSON.stringify(k0));app.reiniciarMemoria();});
+    test("suggestLoad primera vez con la lista: la mas pesada que no pasa del arranque, o la mas ligera",app=>{
+      limpio(app,{rp_prefs:{pesosDB:[2,4,6]}});
+      expect(sug(app,"peso_muerto_rumano_db","salud_fuerza_b").w).toBe(2);
+      expect(sug(app,"remo_db","salud_fuerza_b").w).toBe(2);
+      expect(sug(app,"elevaciones_laterales","salud_fuerza_b").w).toBe(2);
+      expect(sug(app,"extension_triceps_db","salud_fuerza_b").w).toBe(2);
+      app.sembrar({rp_prefs:{pesosDB:[1.25,2.5,3.75]}});
+      expect(sug(app,"elevaciones_laterales","salud_fuerza_b").w).toBe(1.25);
+      expect(sug(app,"peso_muerto_rumano_db","salud_fuerza_b").w).toBe(2.5);
+      /* startKg:0 sigue siendo sin peso */
+      expect(sug(app,"sentadilla_silla","salud_fuerza_a").w).toBe(0);
+      /* con la lista de la madre (1-2-3) todo arranque existe: lo mismo que en v35 */
+      app.sembrar({rp_prefs:{pesosDB:[1,2,3]}});
+      expect(["peso_muerto_rumano_db","remo_db","elevaciones_laterales","extension_triceps_db"]
+        .map(id=>sug(app,id,"salud_fuerza_b").w)).toEqual([3,2,1,1]);
+      expect(["press_hombro_db","elevacion_pantorrilla"].map(id=>sug(app,id,"salud_fuerza_a").w)).toEqual([2,2]);});
+    test("molestia anotada con el peso guardado como texto: numero, y los −/+ suman",app=>{
+      const k0=app.ev("curRoutine");
+      limpio(app,{rp_pain:{press_hombro_db:[F.fecha(3)]},rp_logs:{press_hombro_db:[reg(3,"salud_fuerza_a",veces(2,"8",10))]}});
+      const t=tt(app,"press_hombro_db","salud_fuerza_a");
+      expect([t.w,t.reps,t.dolor]).toEqual([8,10,true]);
+      expect(typeof t.w).toBe("number");
+      expect(sug(app,"press_hombro_db","salud_fuerza_a").w).toBe(8);
+      /* aunque llegue texto al guiado, −/+ no concatenan: antes 82,5 y NaN */
+      app.ev("curRoutine='salud_fuerza_a'");
+      expect(ajusta(app,"press_hombro_db",'"8"',1)).toBe(10.5);
+      expect(ajusta(app,"press_hombro_db",'"8"',-1)).toBe(5.5);
+      app.sembrar({rp_prefs:{pesosDB:[2,4,6,8,10]}});
+      expect(ajusta(app,"press_hombro_db",'"8"',1)).toBe(10);
+      expect(ajusta(app,"press_hombro_db",'"8"',-1)).toBe(6);
+      app.ev("steps=[];stepi=0;curW=null;curRoutine="+JSON.stringify(k0));app.reiniciarMemoria();});
     test("stepFor y roundDownTo: el salto declarado o el de siempre; un valor raro no cuenta",app=>{
       limpio(app,{rp_inc:{jalon_pecho:4.5,pec_deck:"5",remo_maquina:-5,curl_barra:0,pec_deck_inverso:null}});
       expect(app.w.stepFor("jalon_pecho",40)).toBe(4.5);
