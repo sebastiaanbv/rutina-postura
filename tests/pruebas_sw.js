@@ -49,7 +49,10 @@
       async match(req){const g=m.get(dir(req));return g?new Response(g.cuerpo,{status:g.status}):undefined;},
       async add(u){const r=await net.fetch(u);if(!r.ok)throw new TypeError("add: "+r.status);await c.put(u,r);},
       async addAll(us){const rs=await Promise.all(us.map(u=>net.fetch(u)));
-        if(rs.some(r=>!r.ok))throw new TypeError("addAll: alguna fallo");await Promise.all(rs.map((r,i)=>c.put(us[i],r)));}};
+        if(rs.some(r=>!r.ok))throw new TypeError("addAll: alguna fallo");await Promise.all(rs.map((r,i)=>c.put(us[i],r)));},
+      /* lo que usa «Buscar actualización» en la app */
+      async keys(){return Array.from(m.keys()).map(u=>({url:u}));},
+      async delete(req){return m.delete(dir(req));}};
       return c;}
     return {async open(n){if(!cajas.has(n))cajas.set(n,caja());return cajas.get(n);},
       async match(req){for(const c of cajas.values()){const r=await c.match(req);if(r)return r;}},
@@ -60,7 +63,7 @@
 
   /* sw.js cargado en la caja e instalado con la red respondiendo "v35 <ruta>":
      un telefono que ya tiene la app guardada. {sinCopia:true} lo deja con la
-     cache vacia, como justo despues de "Buscar actualizacion" */
+     cache vacia, como en la primera visita o si el navegador la desaloja */
   async function montar(o){o=o||{};
     if(fuente==null)fuente=await fetch("../sw.js",{cache:"no-store"}).then(r=>r.text());
     const h={},rel=reloj(),net=red(),cs=almacen(net);
@@ -214,12 +217,14 @@
       expect(s.rel.plazos()).toHaveLength(0);
       expect(s.pedir("https://www.youtube.com/embed/x","navigate").respondio).toBe(false);});
 
-    /* «Buscar actualización» vacia todas las caches y, si sw.js no cambio, no
-       hay install que las llene: solo se volvia a guardar ./ (y figuras.js al
+    /* «Buscar actualización» vacia las caches y, si sw.js no cambio, no hay
+       install que las llene: solo se volvia a guardar ./ (y figuras.js al
        pedirla la app). El manifest y los iconos se quedaban sin copia y la
-       siguiente apertura sin red los echaba en falta */
+       siguiente apertura sin red los echaba en falta. Aqui, con la cache
+       vacia del todo (y la app pidiendo sus figuras al worker): lo que pasa
+       en la primera visita o si el navegador desaloja la cache */
     const modoDe=a=>a==="./"||a==="index.html"?"navigate":a.endsWith(".webmanifest")?"cors":"no-cors";
-    test("tras «Buscar actualización», la primera apertura con red vuelve a guardar todo ASSETS, y la siguiente sin red lo tiene",async()=>{
+    test("con la caché vacía, la primera apertura con red vuelve a guardar todo ASSETS, y la siguiente sin red lo tiene",async()=>{
       const s=await montar({sinCopia:true});
       expect(s.assets).toContain("manifest.webmanifest");expect(s.assets).toContain("icon-192-v25.png");
       s.net.modo=d=>d.ok(new Response("v36 "+new URL(d.url).pathname));
@@ -281,12 +286,51 @@
       finally{removeEventListener("unhandledrejection",h);}
       expect(rech).toEqual([]);});
 
+    /* el caso de Chromium de verdad: en la recarga que hace el boton, el
+       <script src=figuras.js> sale de la memoria de la pestana y NO pasa por
+       el service worker, asi que nadie lo volvia a guardar y la siguiente
+       apertura sin red se quedaba sin ilustraciones (FIGS sin definir). Por
+       eso aqui la app no pide figuras.js al worker: el boton la conserva.
+       Es la forceUpdate de la app sobre la cache del worker en su caja */
+    test("«Buscar actualización» conserva figuras.js: la siguiente apertura sin red tiene las ilustraciones aunque la app no las pida al worker",async app=>{
+      const s=await montar(),w=app.w;
+      const fig=await s.cs.lee("figuras.js");
+      expect(fig).toBe("v35 /rutina/figuras.js");
+      /* las direcciones de la caja (https://app.prueba/rutina/...) pasan a las
+         de la app (su carpeta en el arnes) y vuelven */
+      const raizSW=new URL(".",SW).href,raizApp=new URL(".",w.location.href).href;
+      const aApp=u=>raizApp+u.slice(raizSW.length),aSW=u=>raizSW+u.slice(raizApp.length);
+      w.caches.keys=()=>s.cs.keys();
+      w.caches.delete=k=>s.cs.delete(k);
+      w.caches.open=async k=>{const c=await s.cs.open(k);
+        return {keys:async()=>(await c.keys()).map(r=>({url:aApp(r.url)})),
+          delete:r=>c.delete(aSW(typeof r==="string"?new URL(r,w.location.href).href:r.url))};};
+      w.navigator.serviceWorker.getRegistrations=()=>Promise.resolve([{update:()=>Promise.resolve()}]);
+      const recarga=app.cargo();await w.forceUpdate(null);await recarga;await app.listo();
+      /* se fue todo lo demas: la app se vuelve a pedir a la red */
+      for(const a of s.assets)expect([a,await s.cs.lee(a)]).toEqual([a,null]);
+      expect(await s.cs.lee("figuras.js")).toBe(fig);
+      /* la recarga, con red: la navegacion y lo que completa() eche en falta */
+      s.net.modo=d=>d.ok(new Response("v36 "+new URL(d.url).pathname));
+      const ev=s.pedir("./");expect(await texto(ev)).toBe("v36 /rutina/");await fin(ev);
+      /* sin volver a bajar los 2 MB */
+      expect(s.net.pedidas.map(d=>d.url)).not.toContain(dir("figuras.js"));
+      /* la siguiente apertura, sin red: todo, figuras incluidas */
+      s.net.modo=d=>d.no(new TypeError("Failed to fetch"));
+      const ev2=s.pedir("./");expect(await texto(ev2)).toBe("v36 /rutina/");await fin(ev2);
+      for(const a of s.assets){const e=s.pedir(a,modoDe(a));
+        expect([a,await texto(e)]).toEqual([a,"v36 "+new URL(dir(a)).pathname]);}
+      const ef=s.pedir("figuras.js","no-cors");
+      expect(await texto(ef)).toBe(fig);});
+
     test("«Buscar actualización» vacía la caché y recarga la app",async app=>{
       /* CacheStorage y los registros son dobles dentro de la app (ver arriba
          el tiempo virtual); se van solos con la recarga */
       const w=app.w,cajas=new Set(["mi-rutina-v33","mi-rutina-vieja"]),buscadas=[];
       w.caches.keys=()=>Promise.resolve(Array.from(cajas));
       w.caches.delete=k=>Promise.resolve(cajas.delete(k));
+      /* cajas sin figuras.js: se borran enteras */
+      w.caches.open=()=>Promise.resolve({keys:()=>Promise.resolve([]),delete:()=>Promise.resolve(false)});
       w.navigator.serviceWorker.getRegistrations=()=>Promise.resolve([{update:()=>{buscadas.push(1);return Promise.resolve();}}]);
       app.$('.nav .tab[data-v="settings"]').click();
       const b=app.$$("#settings button").find(x=>x.textContent.indexOf("Buscar actualización")>=0);

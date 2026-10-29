@@ -4052,7 +4052,17 @@ function wipe(){
   sessionLog={};sessionLogKey=null;calSel=null;
   renderSettings();renderHome();toast("Listo, este dispositivo quedó en blanco.");}
 
-async function forceUpdate(b){if(b&&b.textContent!=null)b.textContent="Actualizando…";try{if("serviceWorker" in navigator){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.update().catch(()=>{})));}if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}}catch(e){}setTimeout(()=>location.reload(),300);}
+/* "Buscar actualizacion" vacia las caches para que la app se vuelva a pedir,
+   salvo figuras.js: no cambia nunca (si cambia, cambia de nombre; ver sw.js) y
+   no hay quien la vuelva a guardar. En la recarga, Chromium la saca de la
+   memoria de la pestana sin pasar por el service worker, y si sw.js no cambio
+   no hay install: la siguiente apertura sin red se quedaba sin figuras. La
+   caja que la tiene se queda solo con ella; las demas se borran enteras */
+async function vaciarCaches(){const fig=new URL("figuras.js",location.href).href;
+  await Promise.all((await caches.keys()).map(async k=>{const c=await caches.open(k),rs=await c.keys();
+    if(!rs.some(r=>r.url===fig))return caches.delete(k);
+    return Promise.all(rs.filter(r=>r.url!==fig).map(r=>c.delete(r)));}));}
+async function forceUpdate(b){if(b&&b.textContent!=null)b.textContent="Actualizando…";try{if("serviceWorker" in navigator){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.update().catch(()=>{})));}if(window.caches)await vaciarCaches();}catch(e){}setTimeout(()=>location.reload(),300);}
 /* ---------- NAV / PWA ---------- */
 /* ===== boton atras del dispositivo: navegar dentro de la app ===== */
 function pushHist(st){try{history.pushState(st,"");}catch(e){}}

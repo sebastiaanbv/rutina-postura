@@ -869,7 +869,7 @@ pantalla se quedaba en blanco hasta que el navegador se rendía (en Chromium, m�
   hasta tenerlo completo. Con buena red no cambia nada: llega la versión nueva y se guarda. Con la
   red caída del todo la copia sigue saliendo en el acto, sin esperar el plazo.
 - **Sin copia se espera a la red**, como antes: en la primera visita y justo después de «Buscar
-  actualización», que vacía la caché. Por eso ese botón sigue trayendo la última versión aunque la
+  actualización», que vacía la caché (todo menos `figuras.js`). Por eso ese botón sigue trayendo la última versión aunque la
   red tarde.
 - **Tras «Buscar actualización» la caché vuelve a tener todo** (arreglado al cerrar v36; ya pasaba
   en v35). El botón vacía todas las cachés y recarga; si `sw.js` no cambió no hay install que las
@@ -879,9 +879,19 @@ pantalla se quedaba en blanco hasta que el navegador se rendía (en Chromium, m�
   Ahora cada apertura (`completa`, en el `waitUntil` de la navegación) mira que `ASSETS` siga
   entero y trae solo lo que falte, cada archivo por su lado y con su `catch`: lo que no llega se
   intenta en la apertura siguiente. Con la caché entera no pide nada. No trae lo que esa misma
-  apertura ya va a guardar ni `figuras.js`, que la app pide al cargar y se guarda en su primera
-  descarga buena: pedirla también ahí serían 2 MB dos veces. Sirve igual si el navegador
-  desaloja parte de la caché.
+  apertura ya va a guardar ni `figuras.js`: pedirla también ahí serían 2 MB dos veces. Sirve
+  igual si el navegador desaloja parte de la caché.
+- **«Buscar actualización» conserva `figuras.js`** (arreglado al cerrar v36). Se contaba con que
+  la app la pidiera al recargar y el service worker la guardara en su primera descarga buena,
+  pero en Chromium de verdad no pasa: en esa recarga el `<script src=figuras.js>` sale de la
+  memoria de la pestaña y no llega al service worker, así que se quedaba sin copia y una apertura
+  posterior sin red se quedaba sin ilustraciones (`FIGS` sin definir, «falla figuras.js»). Como
+  `figuras.js` no cambia nunca (si cambia, cambia de nombre), `vaciarCaches` la deja donde está:
+  la caché que la tiene se queda solo con ella y las demás se borran enteras. Así tampoco se
+  vuelven a bajar sus 2 MB. Si falta por otra causa (falló en install, el navegador la desalojó),
+  la rama *cache-first* la guarda en su primera descarga buena, que en una apertura nueva sí pasa
+  por el service worker. Un teléfono que pulse el botón con el `index.html` de v35 aún la borra;
+  la recupera la primera apertura en frío con red.
 - **Sin copia y sin red, un error de red limpio.** En la rama *cache-first* (iconos, `figuras.js`)
   la descarga fallida llegaba a `respondWith` como promesa rechazada y salía «Uncaught (in
   promise) TypeError: Failed to fetch»; ahora responde `Response.error()`. Y guardar las figuras
@@ -906,8 +916,11 @@ pantalla se quedaba en blanco hasta que el navegador se rendía (en Chromium, m�
   virtual de la CI: el cuerpo atascado se comprueba solo con microtareas, porque mientras sigue
   abierto Chrome congela los temporizadores y la corrida no terminaba, y en la app la caché y los
   registros son dobles, porque los de verdad tardan tiempo real y perdían contra el tope de 20 s.
-  Al cerrar v36, en el mismo archivo: tras vaciar la caché, la primera apertura con red vuelve a
+  Al cerrar v36, en el mismo archivo: con la caché vacía, la primera apertura con red vuelve a
   guardar todo `ASSETS` y las figuras, cada uno una sola vez, y la siguiente sin red lo sirve todo;
+  y el `forceUpdate` de la app, aplicado a la caché del service worker en su caja, conserva
+  `figuras.js` sin que la app la pida al worker: tras la recarga con red no se vuelve a bajar y
+  la siguiente apertura sin red tiene todo `ASSETS` y las figuras;
   con la caché entera no se pide nada más; un icono que no llega se reintenta en la apertura
   siguiente; sin copia ni red, iconos y figuras reciben `Response.error()`; y un `put` de las
   figuras que falla no deja promesas sin capturar. La prueba de «sin copia, se espera a la red»

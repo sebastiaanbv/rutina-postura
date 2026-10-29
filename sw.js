@@ -5,7 +5,8 @@ const CACHE = "mi-rutina-v33";
    asi que va cache-first y se descarga UNA vez (1,96 MB, 0,62 comprimido).
    Si algun dia se tocan las figuras hay que CAMBIARLES EL NOMBRE (figuras-2.js,
    aqui y en index.html): subir CACHE ya no basta, porque install reutiliza el
-   figuras.js que haya en cualquier cache. */
+   figuras.js que haya en cualquier cache, y "Buscar actualizacion" (forceUpdate
+   en index.html) la conserva al vaciar las caches. */
 const ASSETS = ["./", "index.html",
   "manifest.webmanifest", "icon-192-v25.png", "icon-512-v25.png",
   "icon-maskable-512-v25.png", "icon-mono-512-v25.png",
@@ -31,15 +32,17 @@ self.addEventListener("install", e => {
       .then(() => self.skipWaiting())
   );
 });
-/* "Buscar actualizacion" vacia todas las caches y recarga. Si sw.js no
-   cambio, no hay install que las vuelva a llenar: solo se guardaba lo que se
-   pedia (./ y figuras.js), y el manifest y los iconos se quedaban sin copia
-   hasta que algo los pidiera, asi que la siguiente apertura sin red los
+/* "Buscar actualizacion" vacia las caches, todo menos figuras.js, y recarga.
+   Si sw.js no cambio, no hay install que las vuelva a llenar: solo se
+   guardaba lo que se pedia (./), y el manifest y los iconos se quedaban sin
+   copia hasta que algo los pidiera, asi que la siguiente apertura sin red los
    echaba en falta. Cada apertura mira que ASSETS siga entero y trae solo lo
    que falte, cada uno por su lado: lo que no llega se intenta en la
    siguiente. No trae lo que esta misma apertura ya va a guardar, ni
-   figuras.js, que la app pide al cargar y se guarda en su primera descarga
-   buena (abajo): pedirla tambien aqui serian 2 MB dos veces */
+   figuras.js: el boton no la borra (en esa recarga Chromium la saca de la
+   memoria de la pestana sin pasar por aqui, y nadie la volvia a guardar), y
+   si falta porque fallo en install, se guarda en su primera descarga buena
+   (abajo); pedirla tambien aqui serian 2 MB dos veces */
 function completa(req) {
   return caches.open(CACHE).then(c => Promise.all(ASSETS.map(a => {
     if (new URL(a, location.href).href === req.url) return;
