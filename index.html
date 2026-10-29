@@ -277,7 +277,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .exstart{background:var(--primary-tint);color:var(--primary-ink);border:none}
   .exadd{background:var(--sunk);color:var(--mut);border:1px solid var(--line);font-size:var(--t-lg);font-weight:var(--w-bold)}
   .setok{background:var(--primary);color:var(--on-primary);font-size:var(--t-sm);
-    border-radius:10px;padding:6px 10px;margin-left:6px}
+    border-radius:10px;padding:6px 8px;margin-left:6px}
 
   /* pastillas */
   .badge,.chip,.mchip,.delta,.zonatag{font-size:var(--t-2xs);font-weight:var(--w-bold);
@@ -345,10 +345,19 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
      ancho en em, con la letra del campo (nunca menos de 16 px, ver
      --t-campo): con la letra grande el campo crece con su cifra. 3,3 em y
      sin relleno a los lados: con los 16 px, a 320 px cabe la X de 44 sin
-     partir la fila (con 3,6 em se partia) y "142.5" cabe entero; un
-     "102.75" se desplaza dentro del campo */
+     partir la fila (con 3,6 em se partia) y "142.5" cabe entero tambien
+     en DejaVu Sans, de las letras sans mas anchas (50,6 de 52,8 px); un
+     "102.75" se desplaza dentro del campo.
+     Los dos campos, la × y el visto van en un flex con 2 px entre ellos, y
+     no como texto con espacios: el ancho de un espacio y de la × depende de
+     la letra, y con DejaVu Sans la fila de editar pasaba 0,2 px de su sitio
+     a 320 px, el visto bajaba de linea y la fila crecia 30 px bajo el dedo.
+     Asi, con la letra de serie, cabe en una linea con cualquier letra sans
+     razonable (sobran 6 px con DejaVu, 10 con Inter). Con la letra grande no
+     cabe y se reparte: el visto baja, sin pisar la X. */
   .setin{width:3.3em;min-height:44px;font-size:var(--t-campo);padding:5px 0}
   .setline[data-editing]{padding-top:0;padding-bottom:0}
+  .setline[data-editing] .v{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) 2px}
   /* el campo pide su sitio (10 em el de texto, 8 el de la hora) y el boton se
      queda al lado mientras quepa; con la letra grande baja a su propia linea
      en vez de recortar "07:00" o el "Peso de hoy (kg)" del campo */
@@ -1094,7 +1103,12 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .field{border-radius:var(--r-lg);padding:16px;margin-bottom:var(--s3)}
   .field .fl{font-weight:var(--w-bold);font-size:var(--t-base);margin-bottom:3px}
   .field .fh{color:var(--mut);font-size:var(--t-sm);line-height:1.5}
-  .switch{display:flex;align-items:center;gap:var(--s3)}
+  /* el texto pide 8 em y lo de al lado se queda a su derecha mientras quepa:
+     el selector de tema (Claro, Oscuro, Auto) a 320 px y al 130 % se salia
+     de la tarjeta con una letra ancha (DejaVu Sans), y ahora baja a su propia
+     linea, a la derecha. Un interruptor de 48 px no baja nunca. */
+  .switch{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s3)}
+  .switch>div:first-child{flex:1 1 8em;min-width:0}
   .toggle{width:48px;height:28px;border-radius:var(--r-pill);background:var(--line2);
     position:relative;cursor:pointer;flex:0 0 auto;transition:.2s}
   .toggle.on{background:var(--primary)}
@@ -2310,7 +2324,7 @@ function mergeCustom(){const all=loadCustom();Object.keys(all).forEach(id=>{cons
   if(c.zona&&MUSCGOAL[c.zona]!=null)MUSC[id]={[c.zona]:1};else delete MUSC[id];});}
 function zonaLabel(z){return MUSCNAME[z]||ZNAME[z]||z;}
 function openAddEx(k){pushHist({ov:"swap"});$("swapTitle").textContent="Agregar ejercicio";
-  $("swapBody").innerHTML=`<input id="addq" class="addsearch" type="search" placeholder="Buscar en el catálogo…" oninput="addExList('${k}')" aria-label="Buscar ejercicio">
+  $("swapBody").innerHTML=`<input id="addq" class="addsearch" type="search" placeholder="Buscar ejercicio…" oninput="addExList('${k}')" aria-label="Buscar ejercicio">
     <div class="planopt addnew" onclick="openCustomForm('${k}')" role="button" tabindex="0"><div class="em">${ic("plus")}</div>
       <div style="flex:1;min-width:0"><div>Crear ejercicio propio</div><div class="optsub">Uno que no esté en la lista: nombre, series y músculo</div></div></div>
     <div id="addList" class="planbody" style="padding:0"></div>`;
@@ -2339,14 +2353,14 @@ function openCustomForm(k,id){const c=id?(loadCustom()[id]||{}):{},t=c.type||"re
   $("swapTitle").textContent=id?"Editar ejercicio":"Nuevo ejercicio";
   $("swapBody").innerHTML=`<div class="cxf">
     <label>Nombre<input id="cx_name" maxlength="60" value="${esc(c.name||"")}" placeholder="Ej. Remo en T" autocomplete="off"></label>
-    <label>Cómo se cuenta<select id="cx_type" onchange="cxType()">${opt("reps","Repeticiones",t)+opt("reps_side","Repeticiones por lado",t)
+    <label>Cómo se cuenta<select id="cx_type" onchange="cxType()">${opt("reps","Repeticiones",t)+opt("reps_side","Reps por lado",t)
       +opt("hold","Tiempo (segundos)",t)+opt("hold_side","Tiempo por lado",t)}</select></label>
     <div class="row3"><label>Series<input id="cx_sets" type="number" inputmode="numeric" min="1" max="10" value="${c.sets||3}"></label>
       <label id="cx_amtl"><span>${hold?"Segundos":"Repeticiones"}</span><input id="cx_amt" type="number" inputmode="numeric" min="1" value="${hold?(c.holdSec||30):(c.reps||10)}"></label>
       <label>Descanso (s)<input id="cx_rest" type="number" inputmode="numeric" min="0" step="15" value="${c.rest!=null?c.rest:60}"></label></div>
     <label class="ck" id="cx_loadl"${hold?' style="display:none"':''}><input id="cx_load" type="checkbox"${(id?c.load:true)?" checked":""}> Lleva peso (registrar kg)</label>
     <label>Músculo principal<select id="cx_zona">${opt("","Sin especificar",c.zona||"")+CXZONAS.map(z=>opt(z,zonaLabel(z),c.zona||"")).join("")}</select></label>
-    <label>Aparato<select id="cx_eq">${opt("","Ninguno / peso corporal",c.eq||"")+Object.keys(EQ).map(q=>opt(q,EQ[q][1],c.eq||"")).join("")}</select></label>
+    <label>Aparato<select id="cx_eq">${opt("","Sin aparato",c.eq||"")+Object.keys(EQ).map(q=>opt(q,EQ[q][1],c.eq||"")).join("")}</select></label>
     <label>Pasos o notas <span class="optsub">(uno por línea, opcional)</span><textarea id="cx_steps" rows="3" maxlength="600">${esc((c.steps||[]).join("\n"))}</textarea></label>
     <button class="btn" onclick="saveCustom('${k}'${id?`,'${id}'`:""})">${ic("check","sm")} ${id?"Guardar cambios":"Crear y agregar a la rutina"}</button>
     ${id?`<button class="minibtn danger" onclick="delCustom('${k}','${id}')">Borrar este ejercicio</button>`:""}
