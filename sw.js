@@ -76,7 +76,7 @@ self.addEventListener("fetch", e => {
   const req = e.request;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // videos de YouTube -> red normal
-  // La app (index.html) va network-first: así las actualizaciones se ven al instante.
+  // La app (index.html) va red primero con plazo (ver redPrimero): con buena red la versión nueva se ve al instante; con mala, en la siguiente apertura.
   /* el manifest tambien va por red primero: es donde vive el set de iconos,
      y con cache-first un cambio ahi tardaria en verse o no se veria */
   if (req.mode === "navigate" || url.pathname.endsWith("/") ||
