@@ -139,8 +139,9 @@ px de una letra:
   nunca se recorta un texto que da información ni se encoge la letra.
 - **Las pruebas comprueban invariantes**, no px ni líneas de una letra: nada se solapa ni se
   sale, la cifra va entre − y + donde «142.5» cabe con su aire, el aviso usa su 86 % antes de
-  partirse. Y la CI se corre con tres perfiles de letra: Inter (estrecha), DejaVu Sans (ancha, la
-  de la CI de GitHub) y Roboto (Android). Cómo, en `tests/README.md`.
+  partirse y, si su texto cabe en el sitio que le deja, va en una línea. Y la CI se corre con
+  tres perfiles de letra: Inter (estrecha), DejaVu Sans (ancha, la de la CI de GitHub) y Roboto
+  (Android). Cómo, en `tests/README.md`.
 
 **Lo que no es CSS también crece.** Las etiquetas de las curvas son `<text>` de SVG y no heredan
 los `rem`: `chart()` las escala con `letraK()` —texto base entre 14— y agranda en la misma medida
@@ -1126,8 +1127,12 @@ escala estaba en px y la raíz fijada a 14.
     con su aire, medido con la letra que pinta (antes, «desde 412 px»); la cifra que se desplaza
     dentro del campo es la primera de 1002.5, 10002.5… que no cabe con esa letra (con Roboto
     «1002.5» cabía); el aviso usa su 86 % antes de partirse y se parte en las líneas que pide su
-    largo (antes, «en una línea» y «menos de 2,5 líneas»); y de una lista se miran todas las
-    opciones, no solo la elegida. Lo que se sigue exigiendo en una línea con cualquier letra es
+    largo (antes, «en una línea» y «menos de 2,5 líneas»). Ese largo se compara con el sitio
+    que el aviso deja al texto (su contenido menos el icono, los huecos y el botón): si cabe,
+    una línea; si no, las que pide más una. Medido contra la caja del propio texto, como se hizo
+    primero, un texto metido en una columna del 40 % dentro de una píldora del 86 % cuadraba
+    (cinco líneas, y las pruebas en verde); así falla con las tres letras. Y de una lista se
+    miran todas las opciones, no solo la elegida. Lo que se sigue exigiendo en una línea con cualquier letra es
     la fila de corregir una serie a 320 px con la letra de serie, porque partirse la hacía crecer
     bajo el dedo. Las pruebas que fallaban con DejaVu fallan si se vuelve a la reserva fija de
     4,94 em (en DejaVu, pegada; en Roboto, apilada donde cabía) o al aviso centrado con

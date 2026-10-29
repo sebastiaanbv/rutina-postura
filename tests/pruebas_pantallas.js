@@ -779,17 +779,28 @@
        partirse, y se parte en las lineas que pide su largo. Que quepa o no
        depende de la letra (con DejaVu Sans, «Salto quitado: vuelven los de
        siempre» no cabe a 320 px), asi que se mide con la que pinta: el largo
-       del texto en una sola linea y las lineas que ocupa. Devuelve los
+       del texto en una sola linea y las lineas que ocupa. El largo se compara
+       con el sitio que el aviso deja al texto (su contenido menos el icono,
+       los huecos y el boton), no con lo que mide el texto: medido contra su
+       propia caja, un texto metido en una columna estrecha dentro de una
+       pildora del 86 % cuadraba (5 lineas en una columna de 40 %). Con el
+       texto entero en ese sitio, una linea; si no, las que pide mas una (el
+       corte va por palabras). max es el ancho declarado. Devuelve los
        problemas */
-    function usaElAncho(app,el){const w=app.w,s=el.querySelector(".tmsg"),out=[],txt="«"+el.textContent.trim()+"»";
+    function usaElAncho(app,el,max){const w=app.w,s=el.querySelector(".tmsg"),out=[],txt="«"+el.textContent.trim()+"»";
       const cs=w.getComputedStyle(s),linea=parseFloat(cs.lineHeight)||parseFloat(cs.fontSize)*1.45;
-      const lineas=Math.round(s.getBoundingClientRect().height/linea),ancho=s.getBoundingClientRect().width;
+      const lineas=Math.round(s.getBoundingClientRect().height/linea);
       const rg=app.doc.createRange();s.style.whiteSpace="nowrap";rg.selectNodeContents(s);
       const entero=rg.getBoundingClientRect().width;s.style.whiteSpace="";
-      const max=w.innerWidth*0.86,caja=el.getBoundingClientRect().width;
-      if(caja>max+0.5)out.push(txt+": el aviso mide "+caja.toFixed(1)+" px, mas del 86 % ("+max.toFixed(1)+")");
+      const ce=w.getComputedStyle(el),hijos=[...el.children],
+        resto=hijos.filter(h=>h!==s).reduce((a,h)=>{const c=w.getComputedStyle(h);
+          return a+h.getBoundingClientRect().width+parseFloat(c.marginLeft)+parseFloat(c.marginRight);},0),
+        util=el.clientWidth-parseFloat(ce.paddingLeft)-parseFloat(ce.paddingRight)-resto-(parseFloat(ce.columnGap)||0)*(hijos.length-1);
+      if(max==null)max=w.innerWidth*0.86;const caja=el.getBoundingClientRect().width;
+      if(caja>max+0.5)out.push(txt+": el aviso mide "+caja.toFixed(1)+" px, mas de lo que declara ("+max.toFixed(1)+")");
       if(lineas>1&&caja<max-1)out.push(txt+": en "+lineas+" lineas con "+caja.toFixed(1)+" px de los "+max.toFixed(1)+" que tiene");
-      if(lineas>Math.ceil(entero/ancho)+1)out.push(txt+": "+lineas+" lineas para "+entero.toFixed(0)+" px de texto en "+ancho.toFixed(0));
+      const pide=entero<=util+0.5?1:Math.ceil(entero/util)+1;
+      if(lineas>pide)out.push(txt+": "+lineas+" lineas para "+entero.toFixed(0)+" px de texto con "+util.toFixed(0)+" px de sitio (pide "+pide+")");
       return out;}
     /* el aviso centrado con left:50% solo tenia media pantalla para encoger:
        los avisos nuevos se partian en 2-5 lineas, y el parche de nowrap
