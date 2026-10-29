@@ -412,7 +412,8 @@ Qué se superó, en este orden: **Peso máximo** (más kilos que nunca en ese ej
 
 ## 13. Qué falta
 
-- **RPE y notas por serie.** Convertiría el registro en algo que se puede releer.
+- **Notas por serie.** Convertiría el registro en algo que se puede releer. El RPE que iba con
+  ellas ya está: reps en reserva por serie desde v35 (`s.rir`).
 - **Tipografía incrustada.** El motivo ya no es estético: `--w-bold` es 800 y buena parte de
   los Roboto instalados en Android no tienen ese peso, así que el navegador lo aproxima a 700
   y la pareja 700/800 que sostiene toda la jerarquía de §3 puede desaparecer en ese teléfono.
@@ -423,33 +424,35 @@ Qué se superó, en este orden: **Peso máximo** (más kilos que nunca en ese ej
   **Trampa al implementarlo:** `caches.addAll` es atómico, así que el `.woff2` tiene que ir en
   un `cache.add()` aparte con `catch`. Si entra en `ASSETS` y su descarga falla, el service
   worker no se instala y la app pierde el offline por completo.
-- **Superseries antagonistas.** Es la palanca con respaldo para recortar el tiempo de sesión
-  sin tocar descansos: los tres días quedaron en 62-68 min tras la revisión de programa de v30. Necesita un flag de «par» entre dos
-  ejercicios que alterne series y cuente el descanso solo al cerrar el par. El especialista que
-  revisó las rutinas en v27 la señaló otra vez, y para el bloque secundario en concreto.
-- ~~Superseries~~: **descartadas por el usuario** (2026-09-23). No volver a proponerlas.
 - **Usar las reps en reserva en la progresión.** v35 ya las registra (`s.rir`); falta que
   `todayTarget` las lea (p. ej. reserva 0 en todas las series → no subir aunque se llene el rango).
 
 **De la comparación con apps líderes (2026-09-23)** — Strong, Hevy, Alpha Progression, RP
-Hypertrophy, Boostcamp, JEFIT. Ordenado por valor para estos dos usuarios:
-1. ~~Pesos disponibles~~ → cerrado en v35 para mancuernas y en v36 para máquinas (salto de
-   placa de cada una, chip «Salto» del guiado).
-2. ~~Aviso de molestia articular~~ → cerrado en v35.
-3. ~~Series de aproximación~~ → cerrado en v35.
-4. ~~Medidas corporales~~ → cerrado en v35, con curva de la medida principal (cintura en salud,
-   brazo en masa) desde 3 medidas.
-5. **Descarga de una semana** (Alpha Progression, RP, Boostcamp): salida al radar de estancamiento. M.
-6. ~~Resumen mensual~~ → cerrado en v35 (sin desglose por músculo todavía).
-7. **Fotos de progreso** (Hevy, JEFIT). M: van en IndexedDB, no en localStorage ni en el JSON.
+Hypertrophy, Boostcamp, JEFIT. Ordenado por valor para estos dos usuarios, queda:
+1. **Descarga de una semana** (Alpha Progression, RP, Boostcamp): salida al radar de estancamiento. M.
+2. **Fotos de progreso** (Hevy, JEFIT). M: van en IndexedDB, no en localStorage ni en el JSON.
+
+Ya cerrado de esa lista: pesos disponibles (v35 para mancuernas; v36 para máquinas, con el salto
+de placa de cada una y el chip «Salto» del guiado), aviso de molestia articular, series de
+aproximación, medidas corporales (con curva de la medida principal desde 3 medidas: cintura en
+salud, brazo en masa) y resumen mensual (sin desglose por músculo todavía), todo en v35.
 
 Descartado tras la comparación: calculadora de discos (no usan barra), mapa de recuperación de
 Fitbod (aporta poco con PPL 3×), insignias y logros.
 
 ### Cerrado en v36
 
-Red de seguridad de los datos. La prioridad del dueño es no perder datos nunca, y hasta v35 eso
-dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma de una clave.
+Sprint 1, «Datos honestos»: que lo que la app propone, guarda y cuenta sea verdad —la carga que
+vuelve a subir, pesos que existen, el récord en su serie, una sola racha— y que un toque de más,
+una señal mala o la letra grande no lo estropeen. Entran la red de seguridad de los datos (HU-03)
+y las trece historias del sprint, cada una con su entrada y en el orden en que se integraron.
+Los arreglos de la revisión cruzada no van aparte: están dentro de la entrada de la historia que
+tocan, que ya cuenta el comportamiento final. Al final, qué hace falta para publicarla.
+Fuera de la app y sin cambiarla: el arnés de pruebas (`tests/`, HU-02), las pruebas en cada PR con
+GitHub Actions (HU-05) y los informes de `docs/` (benchmark de apps, HU-01; API de Claude, HU-06).
+
+Red de seguridad de los datos (HU-03). La prioridad del dueño es no perder datos nunca, y hasta v35
+eso dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma de una clave.
 
 - **Versión de esquema** (`rp_schema`). Los datos no decían en qué forma estaban guardados, así
   que cambiar una clave obligaba a adivinar al leerla. Ahora un bloque en `<head>` corre antes que
@@ -493,7 +496,8 @@ dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma d
   curso, y teléfono lleno simulado (`setItem` que lanza `QuotaExceededError`) al anotar, al
   finalizar, al empezar otra rutina y al importar.
 
-Dos fallos que encontró el arnés de pruebas y que estaban anotados como `test.skip`:
+Arreglos que encontró el arnés (HU-57): dos fallos que estaban anotados como `test.skip` y, al
+revisarlos, el peso con centésimas:
 
 - **Un descanso de 0 s ya no se convierte en 15.** `buildSteps` rellenaba con `d.rest||15` en
   los aguantes y `d.rest||10` en los de por lado, y `estMinutes` con `d.rest||30` en todo, así que
@@ -522,8 +526,8 @@ Dos fallos que encontró el arnés de pruebas y que estaban anotados como `test.
   pintar, con − y +, al escribirlo y al cambiar las series. En `tests/pruebas_datos.js`, mancuernas
   de 1,25 y 3,75 kg en Ajustes, el guiado, corregir la serie y la corrección desde Historial.
 
-Los ejercicios ligeros vuelven a subir de peso. Por debajo de 25 kg la progresión sin lista de
-mancuernas se quedaba pidiendo más repeticiones para siempre.
+Los ejercicios ligeros vuelven a subir de peso (HU-07). Por debajo de 25 kg la progresión sin lista
+de mancuernas se quedaba pidiendo más repeticiones para siempre.
 
 - **El 10 % decide cuándo se sube, no si se sube.** `loadStep` devolvía 0 cuando el salto pasaba
   del 10 % del peso de trabajo, y por debajo de 25 kg siempre pasa (1 kg sobre 8 es un 12,5 %;
@@ -567,7 +571,7 @@ mancuernas se quedaba pidiendo más repeticiones para siempre.
   del gimnasio con salto teórico, pesos guardados como texto, el guiado mostrando «sube a
   9 kg», y los juegos de datos de v35 sin escrituras ni claves nuevas.
 
-Pesos que existen en cada máquina:
+Pesos que existen en cada máquina (HU-08):
 
 - **Salto de placa por máquina** (chip «Salto» del guiado, `rp_inc`). La propuesta sumaba 2,5 kg
   (1 o 2 por debajo de 20) aunque la polea fuera de 5 en 5: decía 42,5 donde solo hay 40 y 45, y
@@ -599,9 +603,9 @@ Pesos que existen en cada máquina:
     quitar, lo tecleado se guarda tal cual, gemelos en el gimnasio y en casa) y
     `pruebas_datos.js` (ida y vuelta de la copia con `rp_inc`, copia con otra forma).
 
-Una sola racha en toda la app:
+Una sola racha en toda la app: semanas cumplidas (HU-11).
 
-- **Una sola racha: semanas cumplidas** (HU-11). Inicio contaba semanas cumplidas, pero la
+- **La misma cifra en cada pantalla.** Inicio contaba semanas cumplidas, pero la
   pantalla de fin y «Listo por hoy» enseñaban la llama con «N días seguidos» y Progreso decía
   «Racha de N días»: dos rachas que se contradecían en la misma sesión. Ahora todas salen de
   `weekStats()` (§12): la pantalla de fin cambia la llama por el anillo de Inicio con «Esta semana:
@@ -631,9 +635,9 @@ Una sola racha en toda la app:
     copia de ida y vuelta, datos de v35 sin meta congelada en las semanas viejas, y la racha que
     cruza los cambios de hora de Europa, EE. UU., Chile y Australia, con `Fixtures.cambioHora`).
 
-Un toque, una serie:
+Un doble toque no duplica la serie (HU-78):
 
-- **Un doble toque no duplica la serie.** «Registrar serie» se convierte en visto 300 ms antes
+- **Un toque, una serie.** «Registrar serie» se convierte en visto 300 ms antes
   del descanso, pero seguía aceptando toques: uno de más en esa ventana, frecuente con prisa o
   con guantes, metía otra serie igual en la sesión —y al finalizar, en `rp_logs`, con su volumen
   y su recuento— y lanzaba `afterAction` dos veces: en la última serie de un ejercicio, eso se
@@ -656,9 +660,9 @@ Un toque, una serie:
   Queda abierto «Serie completada», el botón de los ejercicios que no se registran: no anota
   nada, pero un doble toque sin descanso detrás todavía puede saltarse un paso.
 
-Mirar otra rutina no cierra la que está a medias. Con Empuje a medias, tocar una fila, su play o
-su visto en Tirón cerraba Empuje sola (`startSess` → `finishSession` «auto») y la guardaba como
-terminada sin preguntar; y entrar al guiado solo para mirar ya creaba `rp_session`.
+Mirar otra rutina no cierra la que está a medias (HU-63). Con Empuje a medias, tocar una fila, su
+play o su visto en Tirón cerraba Empuje sola (`startSess` → `finishSession` «auto») y la guardaba
+como terminada sin preguntar; y entrar al guiado solo para mirar ya creaba `rp_session`.
 
 - **La sesión nace con lo primero que se registra** (`ensureSess`): la primera serie, el primer
   visto o el temporizador, no la entrada. `startRoutine` ya no llama a `startSess`, y `touchSess`
@@ -696,9 +700,9 @@ terminada sin preguntar; y entrar al guiado solo para mirar ya creaba `rp_sessio
   guiado y volver pasa por el primer visto; la otra sesión sin cerrar y el recorrido de pantallas
   con una rutina de casa a medias, por la hoja.
 
-Los ejercicios que faltan, antes de cerrar:
+Avisar de los ejercicios que faltan antes de cerrar la sesión (HU-09):
 
-- **Aviso de lo que falta antes de cerrar** (HU-09, idea de RP Hypertrophy, Fitbod y Hevy).
+- **Aviso de lo que falta** (idea de RP Hypertrophy, Fitbod y Hevy).
   Llegar al final del guiado cerraba la sesión como «Completada» aunque faltaran ejercicios:
   empezar por el cuarto dejaba los tres primeros sin hacer y sin aviso. Ahora el final
   (`advance` y `guidedSkipExercise` → `alFinal`) cuenta los pendientes —sin series hoy, sin
@@ -768,7 +772,7 @@ de fin, y ninguno decía qué se había superado.
   «Guardada · 1 de 14 ejercicios», no «Completada»: con HU-09 eso es lo que dice el final con
   ejercicios sin hacer.
 
-Borrar una serie se puede deshacer. La X de cada serie del guiado borraba de un toque, sin
+Borrar una serie se puede deshacer (HU-54). La X de cada serie del guiado borraba de un toque, sin
 confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se tocaba en 18 px de alto.
 
 - **«Serie borrada · Deshacer»** durante siete segundos (`DESHACER_MS`). Deshacer la vuelve a
@@ -823,9 +827,9 @@ confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se toca
   clásica ocupa 15 px y el iframe se ensancha lo que mida), también en una serie récord; el aviso
   con su rol, su voz y el contraste del rojo en los dos temas; y con teclado.
 
-La app abre aunque la señal sea mala. `index.html` iba *network-first* sin más: con la red caída
-salía la copia en el acto, pero con señal mala la petición ni responde ni falla, y la pantalla se
-quedaba en blanco hasta que el navegador se rendía (en Chromium, más de 20 s sin nada).
+La app abre aunque la señal sea mala (HU-53). `index.html` iba *network-first* sin más: con la red
+caída salía la copia en el acto, pero con señal mala la petición ni responde ni falla, y la
+pantalla se quedaba en blanco hasta que el navegador se rendía (en Chromium, más de 20 s sin nada).
 
 - **Red primero con plazo** (`ESPERA_RED`, 3 s en `sw.js`). Si en ese tiempo la red no ha traído
   el archivo **entero**, sale la copia guardada y la descarga sigue detrás: si termina, se guarda
@@ -856,7 +860,7 @@ quedaba en blanco hasta que el navegador se rendía (en Chromium, más de 20 s s
   abierto Chrome congela los temporizadores y la corrida no terminaba, y en la app la caché y los
   registros son dobles, porque los de verdad tardan tiempo real y perdían contra el tope de 20 s.
 
-Tocar un aviso devuelve a la app. `sw.js` no escuchaba `notificationclick`: tocar «Descanso
+Tocar un aviso devuelve a la app (HU-12). `sw.js` no escuchaba `notificationclick`: tocar «Descanso
 terminado» con el teléfono bloqueado cerraba el aviso y nada más, y había que buscar la app para
 volver a la serie.
 
@@ -882,7 +886,7 @@ volver a la serie.
   instalando el service worker. Hasta ahora cada `sw.js` nuevo las volvía a pedir a la red, y
   eran 2 MB si la caché HTTP del teléfono ya no las tenía. La contrapartida: **subir `CACHE` ya no
   renueva las figuras**; si algún día se tocan, hay que cambiarle el nombre al archivo
-  (`figuras-2.js`, en `index.html` y en `sw.js`). `CACHE` sigue en v33.
+  (`figuras-2.js`, en `index.html` y en `sw.js`). `CACHE` no cambia (abajo, «Publicar v36»).
 - **Pruebas** en `tests/pruebas_avisos.js`: `sw.js` tal cual con dobles de `self`, `caches`,
   `clients` y `fetch` —install con las figuras ya guardadas, sin guardar, sin red y con 404;
   `notificationclick` con y sin ventana, de descanso y de recordatorio, y con una ventana de otra
@@ -892,7 +896,7 @@ volver a la serie.
   de ayer y con datos de v35. Queda abierta la prueba a mano en un Android con la app instalada:
   el arnés no registra el service worker.
 
-Progreso carga más rápido:
+Progreso carga más rápido (HU-56):
 
 - **Progreso lee el historial una vez por pintado.** Cada análisis —el índice de fuerza y su
   curva de 12 semanas, sobrecarga, estancamiento, récords, series por músculo y el resumen del
@@ -1001,6 +1005,32 @@ escala estaba en px y la raíz fijada a 14.
   salen los títulos de una sola palabra («Calendario») y el botón «Registrar rutina». Para eso
   está el pellizco. No se ha probado en un teléfono real: las pruebas simulan la letra del
   sistema agrandando la raíz, que es lo que hacen `text-scale` y `-apple-system-body`.
+
+Publicar v36: `VERSION` pasa a «v36 · pesos reales, récords, racha y deshacer», y **`CACHE`
+se queda en `mi-rutina-v33`**: no hace falta subirlo para que un teléfono con v35 reciba v36
+entera.
+
+- **De lo que guarda el service worker, solo cambia `index.html`.** Contra lo publicado como v35,
+  `manifest.webmanifest`, los iconos, `favicon.ico` y `figuras.js` son byte a byte los mismos, y
+  `index.html` no pide ningún archivo nuevo. Lo que se sirve *cache-first* (iconos, `figuras.js`)
+  sigue siendo correcto.
+- **`index.html` se renueva solo.** Va por red primero: con buena red, la primera apertura ya trae
+  v36 y la guarda —todavía con el service worker de v35, que es red primero sin plazo—; con señal
+  mala, sale la copia de v35 y v36 llega en la siguiente apertura (HU-53).
+- **`sw.js` cambió, y con eso basta para instalar el nuevo**: el navegador lo compara byte a byte.
+  Su install vuelve a pedir todo `ASSETS` y pisa `./` e `index.html` en la misma caché, copia
+  `figuras.js` de donde ya está sin tocar la red, y `skipWaiting` + `clients.claim` lo ponen al
+  mando sin esperar a cerrar la app. Desde ahí rigen el plazo de 3 s y el `notificationclick`.
+- **Subirlo no arreglaría nada.** Solo tiraría copias que ya no estorban (las de una dirección
+  con `?algo`; sin copia propia se cae primero a `./`), y el install volvería a guardar las mismas
+  respuestas. Ni siquiera renovaría las figuras: desde HU-12 se copian de la caché
+  anterior (§15). Mientras conviven las dos versiones tampoco se rompe nada: v36 con el service
+  worker de v35 se comporta como v35 al tocar un aviso, y v35 con el de v36 no conoce `#retomar` y
+  abre como siempre.
+
+Cuándo sí habría que subirlo: si un archivo de `ASSETS` cambiara de contenido sin cambiar de nombre
+(los iconos llevan `-v25` para no tener que hacerlo) o si cambiara la forma de lo guardado en la
+caché. Las figuras no: se renombran.
 
 ### Cerrado en v35
 
@@ -1305,6 +1335,10 @@ Y una segunda auditoría de las rutinas de gimnasio, esta vez del programa y no 
   buscarla en un catálogo abierto o dejar el mapa — **no dibujarla**.
 - **Animar el mapa corporal.** El movimiento lo llevan las ilustraciones. El mapa es geometría
   estática y ahí se queda: su valor es justamente que no tiene nada que pueda salir mal.
+- **Superseries, también las antagonistas:** descartadas por el usuario (2026-09-23). No volver a
+  proponerlas. Eran la palanca con respaldo para recortar el tiempo de sesión sin tocar descansos
+  (los tres días quedaron en 62-68 min tras la revisión de programa de v30), y el especialista que
+  revisó las rutinas en v27 las señaló para el bloque secundario; la decisión es del usuario.
 - **Mecánicas de gamificación competitivas:** tablas de clasificación, comparación con otros,
   puntos canjeables e insignias por presentarse. Para un usuario único no tienen sentido, y los
   leaderboards son el elemento más asociado a efectos motivacionales negativos.
