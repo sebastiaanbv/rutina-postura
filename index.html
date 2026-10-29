@@ -1009,6 +1009,9 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .ovhead{display:flex;align-items:center;gap:var(--s3);padding:14px;border-bottom:1px solid var(--line)}
   .ovhead .t{font-weight:var(--w-bold);font-size:var(--t-md);flex:1;overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap}
+  /* la hoja de conflicto (HU-63) pone ahi "Tienes <rutina> a medias": cortado,
+     se perdia justo "a medias". Los demas titulos de esta hoja son cortos */
+  #planTitle{white-space:normal}
   .ovhead .x{cursor:pointer;font-size:20px;color:var(--mut);width:40px;height:40px;
     display:flex;align-items:center;justify-content:center}
   .planbody{padding:var(--s3) var(--s3) calc(var(--s4) + env(safe-area-inset-bottom));

@@ -727,4 +727,24 @@
       expect(app.doc.activeElement).toBe(app.$("#sl_press_banca_db_2 .v"));
       app.reiniciarMemoria();});
   });
+  /* HU-63: el titulo de la hoja de conflicto, «Tienes <rutina> a medias», se
+     cortaba con elipsis justo en «a medias» (todas las rutinas de la madre a
+     320 px, y con letra grande tambien a 375). Ahora salta de linea */
+  escenario("Pantallas · hoja de conflicto a 320 px (madre)",F.madre,()=>{
+    test("el título «Tienes … a medias» no se corta con ninguna rutina, a 320 y a 375 con letra grande",app=>{
+      const raiz=app.doc.documentElement,cortados=[];
+      try{app.frame.style.width="320px";anchoUtil(app,320);
+        expect(app.leer("rp_session").key).toBe("salud_fuerza_b");
+        app.w.openRoutine("salud_fuerza_a");app.w.startRoutine();
+        expect(app.$("#planov").classList.contains("show")).toBe(true);
+        const t=app.$("#planTitle");
+        expect(t.textContent).toBe("Tienes "+app.ev("ROUTINES").salud_fuerza_b.name+" a medias");
+        for(const [ancho,md] of [[320,null],[375,"19.5px"]]){anchoUtil(app,ancho);
+          if(md)raiz.style.setProperty("--t-md",md);
+          Object.keys(app.ev("ROUTINES")).forEach(k=>{t.textContent="Tienes "+app.ev("ROUTINES")[k].name+" a medias";
+            if(t.scrollWidth>t.clientWidth)cortados.push(ancho+" "+k);});}}
+      finally{raiz.style.removeProperty("--t-md");app.frame.style.width="400px";}
+      expect(cortados).toEqual([]);
+      app.reiniciarMemoria();});
+  });
 })();

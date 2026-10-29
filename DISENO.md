@@ -590,7 +590,9 @@ terminada sin preguntar; y entrar al guiado solo para mirar ya creaba `rp_sessio
   hoy de otra rutina con algo hecho y la que solo vive en memoria porque no cupo. La abren
   `startRoutine` (fila, figura, play, Empezar) y `toggleCheck` al marcar. «Guardar y empezar» es
   el único sitio que cierra una sesión a medias de hoy para empezar otra
-  (`finishSession(o,"switch")`); la rama «auto» queda para las de otros días.
+  (`finishSession(o,"switch")`); la rama «auto» queda para las de otros días. Su título,
+  «Tienes X a medias», salta de línea en vez de cortarse con «…»: a 320 px (y con letra grande a
+  375) se perdía justo «a medias» en seis de las nueve rutinas, todas las de casa entre ellas.
 - **Teléfono lleno al guardar:** sale el aviso de siempre («…sigue abierta sin guardar. Libera
   espacio y finalízala») y las dos quedan como estaban. Si la otra está entera en `rp_session`, se
   sigue a la nueva solo en memoria, como hasta ahora, y mientras esta tenga series no se vuelve a
