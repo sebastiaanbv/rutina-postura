@@ -325,8 +325,9 @@ otro aviso —el recordatorio— abre Inicio.
   Borrar una serie no pide confirmación: **se deshace** (v36). Es el único aviso con botón, y el
   aviso sigue siendo la región viva (`role="status"`) que ya existía, así que «Serie borrada» se
   lee sin mover el foco; si se borró con teclado, el foco pasa a «Deshacer», y al caducar vuelve a
-  la acción del guiado. Solo el botón recibe toques —el resto del aviso sigue sin tapar lo de
-  debajo— y escondido no se enfoca ni se pulsa.
+  la acción del guiado. A la vista, el aviso entero recibe los toques: ninguno lo atraviesa hasta
+  un control que tape. Tocar el de Deshacer fuera del botón no hace nada; el aviso sin botón se
+  cierra. Escondido no se enfoca ni se pulsa.
 - **Movimiento**: `prefers-reduced-motion` respetado.
 - **Zoom y letra del sistema.** El viewport deja **ampliar con pellizco**: sin `maximum-scale` ni
   `user-scalable=no`, que lo bloqueaban en Android. Y la letra del sistema entra por `1rem` (§3).
@@ -806,6 +807,21 @@ confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se toca
   calcular cada vez que la página se desplaza o la ventana cambia de tamaño (`recolocaAviso`):
   calculada una sola vez, al desplazar en esos 7 s «Registrar serie» o el «+» podían pasar bajo
   Deshacer. Los avisos sin botón siguen abajo, donde siempre.
+- **Nada atraviesa el aviso.** Solo el botón recibía toques (`pointer-events:none` en el resto):
+  tocar el texto o la X roja de «Serie borrada» activaba lo que hubiera debajo sin que se viera
+  —con los datos del dueño a 320, 360 y 375 px, el chip «¿De cuánto sube?»; con los de la madre a
+  320 px y letra al 130 %, «Una serie menos», que guardaba otra dosis en `rp_doses`—. Los avisos
+  sin botón también tapaban controles (en la rutina, «Empezar» o «Finalizar rutina») y dejaban
+  pasar el toque. Ahora el aviso a la vista se queda todos los toques (`.toast.show`). Tocar el de
+  Deshacer fuera del botón no hace nada, para no perder el Deshacer por rozar el texto; el aviso
+  sin botón se cierra (`toastToca`) y el toque siguiente ya llega a lo de debajo. Como lo que
+  tapa no se puede tocar en esos 7 s, `colocaAviso` busca antes un hueco donde **el aviso
+  entero** no tape ningún control, y solo si no lo hay, uno donde no lo tape el botón, como antes.
+  Pruebas en `tests/pruebas_pantallas.js`: se toca el aviso punto a punto como el dedo
+  (`elementFromPoint` y un clic en lo que devuelve), con y sin botón, a 320, 360 y 375 px y letra
+  al 100 y al 130 %, y con los datos del dueño en la prensa: todo cae en el aviso, nada cambia en
+  los datos y el Deshacer sigue a la vista. Las pruebas de dónde se coloca miden el botón, que es
+  lo que ya medían cuando solo él recibía toques.
 - **Se coloca con la página ya repintada.** `delSet` sacaba el aviso (y lo colocaba) antes de
   repintar el paso, así que el hueco se buscaba con la fila borrada todavía en su sitio: sin
   ella lo de debajo sube, y con los datos de la madre a 320 px y letra al 130 % el Deshacer

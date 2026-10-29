@@ -691,16 +691,88 @@
           fondos.forEach(f=>{expect(contraste(rojo,f)).toBeGreaterThan(4.5);
             expect(contraste(app.w.getComputedStyle(b).color,f)).toBeGreaterThan(4.5);
             expect(contraste(cs.color,f)).toBeGreaterThan(4.5);});
-          /* el boton se toca en 44 px; el resto del aviso no tapa lo de debajo */
+          /* el boton se toca en 44 px; el resto del aviso recibe el toque y
+             no lo deja pasar a lo que tapa (abajo, «nada atraviesa el aviso») */
           expect(zona(app,b)).toEqual(z44);
           const m=app.$("#toast .tmsg").getBoundingClientRect();
-          expect(el.contains(app.doc.elementFromPoint(m.left+m.width/2,m.top+m.height/2))).toBe(false);
+          expect(el.contains(app.doc.elementFromPoint(m.left+m.width/2,m.top+m.height/2))).toBe(true);
           /* un segundo borrado cambia el texto, y la region lo vuelve a leer */
           app.$("#sl_press_banca_db_1 .del").click();
           expect(app.texto("#toast .tmsg")).toBe("2 series borradas");voz(app.texto("#toast .tmsg"));
           app.$("#toast .tact").click();
           expect(app.texto("#toast")).toBe("2 series recuperadas");voz(app.texto("#toast"));}}
       finally{if(tema)raiz.setAttribute("data-theme",tema);else raiz.removeAttribute("data-theme");}
+      app.reiniciarMemoria();});
+    /* el aviso no recibia toques salvo en su boton: tocar el texto o la X roja
+       de «Serie borrada» activaba lo que hubiera debajo (con los datos del
+       dueno, el chip «¿De cuánto sube?»; con los de la madre a 320 px y letra
+       grande, «Una serie menos», que guardaba otra dosis sin que se viera).
+       Se toca el aviso entero, punto a punto, como el dedo: elementFromPoint
+       y un click en lo que devuelve. Nada sale del aviso ni cambia los datos */
+    function tocaAviso(app){const el=app.$("#toast"),r=el.getBoundingClientRect(),b=el.querySelector(".tact"),fuera=[];
+      const zb=b&&b.getBoundingClientRect(),enBoton=(x,y)=>zb&&x>zb.left-24&&x<zb.right+24&&y>zb.top-24&&y<zb.bottom+24;
+      /* la pildora: las esquinas que el borde redondeado deja fuera no son
+         aviso (el navegador respeta el border-radius al decidir que se toca) */
+      const rad=Math.min(r.height/2,parseFloat(app.w.getComputedStyle(el).borderTopLeftRadius)||0);
+      const enPildora=(x,y)=>{const dx=Math.max(r.left+rad-x,x-(r.right-rad),0),dy=Math.max(r.top+rad-y,y-(r.bottom-rad),0);
+        return dx*dx+dy*dy<(rad-1.5)*(rad-1.5)||!dx||!dy;};
+      for(let y=r.top+1;y<r.bottom-1;y+=4)for(let x=r.left+1;x<r.right-1;x+=4){
+        if(enBoton(x,y)||!enPildora(x,y))continue;
+        const e=app.doc.elementFromPoint(x,y);
+        if(!e||!el.contains(e)){const c=e&&e.closest("button,[role=button],input,summary,a");
+          const q=c?"«"+(c.getAttribute("aria-label")||c.textContent.trim().slice(0,25))+"»":e?String(e.className||e.tagName):"nada";
+          if(fuera.indexOf(q)<0)fuera.push(q);}
+        else{e.dispatchEvent(new app.w.MouseEvent("click",{bubbles:true,cancelable:true,clientX:x,clientY:y}));if(!b)return fuera;}}   /* sin boton: el primer toque lo cierra */
+      return fuera;}
+    test("nada atraviesa el aviso: tocar su texto o su X no llega a lo que tapa, a 320, 360 y 375 px",app=>{
+      const raiz=app.doc.documentElement,datos=()=>Object.keys(app.w.localStorage).filter(k=>k!=="rp_session").sort()
+        .map(k=>k+"="+app.w.localStorage.getItem(k)).join("\n");
+      try{for(const ancho of [320,360,375])for(const pct of [100,130]){
+          app.frame.style.width=ancho+"px";raiz.style.fontSize=pct===100?"":pct+"%";
+          abrir(app);anchoUtil(app,ancho);
+          app.$("#sl_press_banca_db_2 .del").click();quieta(app);
+          expect(app.texto("#toast .tmsg")).toBe("Serie borrada");
+          const antes=datos(),dosis=app.w.dose("gym_empuje","press_banca_db").sets;
+          expect([ancho,pct,tocaAviso(app)]).toEqual([ancho,pct,[]]);
+          /* sigue a la vista, con su Deshacer, y nada cambio por debajo */
+          expect(app.$("#toast").classList.contains("show")).toBe(true);
+          expect(app.ev("deshacer")).toHaveLength(1);
+          expect(datos()).toBe(antes);
+          expect(app.w.dose("gym_empuje","press_banca_db").sets).toBe(dosis);
+          expect(app.ev("sessionLog").press_banca_db).toHaveLength(2);
+          app.$("#toast .tact").click();
+          expect(app.ev("sessionLog").press_banca_db).toHaveLength(3);
+          /* el aviso sin boton tampoco deja pasar el toque: lo cierra */
+          app.w.toast(app.w.ic("check","sm")+" Salto de 4.5 kg guardado");quieta(app);
+          const antes2=datos();
+          expect([ancho,pct,tocaAviso(app)]).toEqual([ancho,pct,[]]);
+          expect(app.$("#toast").classList.contains("show")).toBe(false);
+          expect(datos()).toBe(antes2);}}
+      finally{raiz.style.fontSize="";app.frame.style.width="400px";}
+      app.reiniciarMemoria();});
+    /* el caso encontrado: los datos del dueno en la prensa, con letra normal.
+       El aviso salia arriba y su texto caia sobre el chip «¿De cuánto sube?»
+       (en el arnes, sobre el peso: tocarlo abria el campo). Ahora busca un
+       hueco donde no tape ningun control y, si lo tapa, se queda el toque */
+    test("con los datos del dueño en la prensa, tocar el aviso no abre ni cambia nada, a 320, 360 y 375 px",app=>{
+      const conPrensa=()=>{const d=F.dueno(),ini=F.inicio(20);delete d.rp_inc;
+        d.rp_session={v:1,key:"gym_pierna",date:F.fecha(0),startedAt:ini,lastAt:ini,stepi:0,src:"guided",
+          log:{prensa_inclinada:[{w:200,reps:10,t:ini+60000}]}};return d;};
+      try{for(const ancho of [320,360,375]){app.frame.style.width=ancho+"px";
+          app.w.toastFuera();app.reiniciarMemoria();app.sembrar(conPrensa);
+          app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");anchoUtil(app,ancho);
+          const chip=app.$("#incchip");expect(chip.textContent).toBe("¿De cuánto sube?");
+          app.$("#guided .setline .del").scrollIntoView({block:"center"});
+          app.$("#guided .setline .del").click();quieta(app);
+          expect(app.texto("#toast .tmsg")).toBe("Serie borrada");
+          const antes=JSON.stringify(app.ev("sessionLog"));
+          expect([ancho,tocaAviso(app)]).toEqual([ancho,[]]);
+          expect(chip.getAttribute("aria-expanded")).toBe("false");
+          expect(app.$("#numin")).toBe(null);
+          expect(JSON.stringify(app.ev("sessionLog"))).toBe(antes);
+          expect(app.leer("rp_inc")).toBe(null);
+          expect(app.$("#toast").classList.contains("show")).toBe(true);}}
+      finally{app.frame.style.width="400px";}
       app.reiniciarMemoria();});
     /* el aviso centrado con left:50% solo tenia media pantalla para encoger:
        los avisos nuevos se partian en 2-5 lineas, y el parche de nowrap
@@ -742,14 +814,16 @@
           const filas=app.$$("#guided .sets .setline"),ult=filas[filas.length-1];
           expect(filas).toHaveLength(n);
           ult.scrollIntoView({block:"nearest"});ult.querySelector(".del").click();quieta(app);
-          const t=app.$("#toast"),tr=t.getBoundingClientRect();
+          const t=app.$("#toast"),tr=t.getBoundingClientRect(),bt=t.querySelector(".tact");
           expect(app.texto("#toast .tmsg")).toBe("Serie borrada");
           expect(tr.top).toBeGreaterThan(0);expect(tr.bottom).toBeLessThan(app.w.innerHeight);
+          /* el boton y su zona de 44 px (el resto del aviso se queda el toque
+             sin hacer nada: «nada atraviesa el aviso») */
           app.$$("#guided button,#guided [role=button],#guided input").forEach(c=>{const r=c.getBoundingClientRect();
             if(!r.width||r.bottom<0||r.top>app.w.innerHeight)return;
             for(let y=r.top+2;y<r.bottom-1;y+=4)for(let x=r.left+2;x<r.right-1;x+=4){
               const e=app.doc.elementFromPoint(x,y);
-              if(e&&t.contains(e)){pisados.push(w+"x"+h+" n="+n+" "+(c.className||c.tagName)+" "+c.textContent.trim().slice(0,20));return;}}});}}
+              if(e&&bt.contains(e)){pisados.push(w+"x"+h+" n="+n+" "+(c.className||c.tagName)+" "+c.textContent.trim().slice(0,20));return;}}});}}
       finally{app.frame.style.height="800px";app.frame.style.width="400px";}
       expect(pisados).toEqual([]);
       app.reiniciarMemoria();});
@@ -768,13 +842,13 @@
           expect(app.texto("#toast .tmsg")).toBe("Serie borrada");
           const max=app.doc.documentElement.scrollHeight-app.w.innerHeight;
           for(let y=0;y<=max;y+=12){app.w.scrollTo(0,y);app.w.dispatchEvent(new app.w.Event("scroll"));quieta(app);paradas++;
-            const t=app.$("#toast"),tr=t.getBoundingClientRect();
+            const t=app.$("#toast"),tr=t.getBoundingClientRect(),bt=t.querySelector(".tact");
             if(tr.top<0||tr.bottom>app.w.innerHeight)fuera.push(w+"x"+h+" n="+n+" y="+y);
             app.$$("#guided button,#guided [role=button],#guided input").forEach(c=>{const r=c.getBoundingClientRect();
               const x0=Math.max(r.left,tr.left)+1,x1=Math.min(r.right,tr.right)-1,y0=Math.max(r.top,tr.top,0)+1,y1=Math.min(r.bottom,tr.bottom)-1;
               if(!r.width||x0>=x1||y0>=y1)return;
               for(let yy=y0;yy<=y1;yy+=3)for(let x=x0;x<=x1;x+=3){const e=app.doc.elementFromPoint(x,yy);
-                if(e&&t.contains(e)){pisados.push(w+"x"+h+" n="+n+" y="+y+" "+(c.className||c.tagName)+" "+c.textContent.trim().slice(0,20));return;}}});}
+                if(e&&bt.contains(e)){pisados.push(w+"x"+h+" n="+n+" y="+y+" "+(c.className||c.tagName)+" "+c.textContent.trim().slice(0,20));return;}}});}
           app.w.scrollTo(0,0);}}
       finally{app.frame.style.height="800px";app.frame.style.width="400px";}
       expect(paradas).toBeGreaterThan(30);

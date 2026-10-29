@@ -476,15 +476,18 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     border-radius:var(--r-pill);padding:12px 20px;font-size:var(--t-sm);font-weight:var(--w-semi);
     z-index:70;display:flex;align-items:center;gap:9px;max-width:86vw;opacity:0;pointer-events:none;
     box-shadow:0 10px 30px -10px rgba(0,0,0,.5);transition:opacity .25s,transform .25s}
-  .toast.show{opacity:1;transform:translateY(0)}
+  /* a la vista, el aviso entero recibe los toques: si no, tocar su texto o
+     su icono activaba el control que tapa sin que se viera (v36, HU-54) */
+  .toast.show{opacity:1;transform:translateY(0);pointer-events:auto}
   /* el aviso con Deshacer en el guiado: bajo la barra del guiado (Paso
      anterior, Salir), sobre el nombre y la figura, que no son controles */
   .toast.arriba{bottom:auto;top:calc(66px + env(safe-area-inset-top));transform:translateY(-16px)}
   .toast.arriba.show{transform:translateY(0)}
   .toast .ic{color:var(--energy-hero);flex:0 0 auto}
   /* serie borrada (v36): la X en rojo, porque el ambar es logro, y el unico
-     boton que ha tenido un aviso. Solo el boton recibe toques: el resto sigue
-     sin tapar lo de debajo. Escondido no se enfoca ni se pulsa. Si no cabe
+     boton que ha tenido un aviso. Tocar el resto del aviso no hace nada (el
+     Deshacer sigue ahi); el aviso sin boton se cierra al tocarlo (toastToca).
+     Escondido no se enfoca ni se pulsa. Si no cabe
      en una linea (letra grande), se parte el texto y el boton se queda
      entero dentro del aviso: con nowrap se salia por la derecha. */
   .toast .ic.borrado{color:var(--danger-hero)}
@@ -1870,10 +1873,14 @@ function toast(html,ms,fin){const el=$("toast");if(!el)return;
 /* el aviso con boton, en el guiado, arriba, bajo la barra: abajo su boton
    caia sobre "Registrar serie", el + o "Nota fija", y un toque ahi deshacia.
    Si ahi tambien pisa un control (pagina desplazada hasta la ultima serie),
-   baja hasta el primer hueco libre; sin ninguno, donde siempre */
+   baja hasta el primer hueco libre. Primero busca uno donde el aviso entero
+   no tape ninguno: como se queda los toques, lo que tapa no se puede tocar
+   en esos 7 s (con los datos del dueno, el chip "¿De cuanto sube?"). Si no
+   lo hay, uno donde al menos el boton no caiga sobre un control; sin
+   ninguno, donde siempre */
 function colocaAviso(el,arriba){el.style.top="";el.classList.toggle("arriba",arriba);if(!arriba)return;
-  const cs=controlesGuiado();
-  for(let y=el.offsetTop,fin=innerHeight-el.offsetHeight;y<=fin;y+=8){el.style.top=y+"px";if(!avisoPisa(el,cs))return;}
+  const cs=controlesGuiado(),y0=el.offsetTop,fin=innerHeight-el.offsetHeight;
+  for(const entero of [true,false])for(let y=y0;y<=fin;y+=8){el.style.top=y+"px";if(!avisoPisa(el,cs,entero))return;}
   el.style.top="";el.classList.remove("arriba");}
 /* la pagina se mueve bajo el aviso: si en sus 7 s se desplaza, otro control
    ("Registrar serie", el +) puede pasar bajo el boton. Se vuelve a colocar
@@ -1895,13 +1902,24 @@ function controlesGuiado(){
     const r=c.getBoundingClientRect();let dx=0,dy=0;
     mov.forEach(m=>{if(m.t===c||m.t.contains(c)){dx+=m.x;dy+=m.y;}});
     return {w:r.width,l:r.left-dx,r:r.right-dx,t:r.top-dy,b:r.bottom-dy};});}
-/* si la zona de 44 px del boton del aviso cae sobre un control del guiado.
+/* si la zona de 44 px del boton del aviso cae sobre un control del guiado;
+   con entero, si la cae el aviso entero (con esa zona, que puede asomar).
    Con offset*, que no ven el translateY de la entrada del aviso */
-function avisoPisa(el,cs){const b=el.querySelector(".tact");if(!b)return false;
+function avisoPisa(el,cs,entero){const b=el.querySelector(".tact");if(!b)return false;
   const cx=el.offsetLeft+b.offsetLeft+b.offsetWidth/2,cy=el.offsetTop+b.offsetTop+b.offsetHeight/2,
     mx=Math.max(22,b.offsetWidth/2),my=Math.max(22,b.offsetHeight/2);
-  return (cs||controlesGuiado()).some(r=>r.w>0&&r.l<cx+mx&&r.r>cx-mx&&r.t<cy+my&&r.b>cy-my);}
+  let L=cx-mx,R=cx+mx,T=cy-my,B=cy+my;
+  if(entero){L=Math.min(L,el.offsetLeft);R=Math.max(R,el.offsetLeft+el.offsetWidth);
+    T=Math.min(T,el.offsetTop);B=Math.max(B,el.offsetTop+el.offsetHeight);}
+  return (cs||controlesGuiado()).some(r=>r.w>0&&r.l<R&&r.r>L&&r.t<B&&r.b>T);}
 function toastCierra(){const f=toastFin;toastFin=null;if(f)f();}
+/* el aviso a la vista se queda los toques (pointer-events en .toast.show):
+   nada de lo que tapa se activa sin verse. El que no tiene boton se cierra,
+   y el siguiente toque ya llega a lo de debajo; el de Deshacer sigue igual,
+   para no perder el Deshacer por rozar su texto */
+function toastToca(e){const el=e.currentTarget;if(toastFin||!el.classList.contains("show"))return;
+  clearTimeout(toastT);el.classList.remove("show");}
+document.getElementById("toast").addEventListener("click",toastToca);
 /* el aviso con boton es de su pantalla: al salir de ella se retira ya */
 function toastFuera(){if(!toastFin)return;clearTimeout(toastT);toastCierra();
   const el=$("toast");if(el)el.classList.remove("show");}
