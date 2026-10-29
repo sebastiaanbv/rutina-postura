@@ -1158,6 +1158,31 @@
       app.w.touchSess();
       expect(sinSello(app)).toEqual(antes.ses);
       app.reiniciarMemoria();});
+    test("teléfono lleno al borrar la única serie de un ejercicio: avisa que no cupo y la borrada no vuelve",app=>{
+      const s=conSerie(),log=s.rp_session.log;
+      log.press_banca_db=log.press_banca_db.slice(0,1);
+      log.press_hombro_db=[{w:12,reps:10,t:s.rp_session.startedAt+600000}];
+      abrir(app,s);
+      /* borrar encoge rp_session: el margen no la pararia, solo esa clave */
+      const libera=lleno(app,{solo:["rp_session"]});
+      try{borrar(app,0);
+        /* el «No cupo» queda encima del Deshacer, como al deshacer */
+        expect(app.texto("#toast")).toContain("No cupo en el teléfono");
+        /* en disco sigue la serie, pero la memoria manda: ya no cuenta */
+        expect(Object.keys(app.leer("rp_session").log)).toEqual(["press_banca_db","press_hombro_db"]);
+        expect(Object.keys(app.w.sessLog("gym_empuje"))).toEqual(["press_hombro_db"]);
+        expect(app.w.sessStats("gym_empuje").sets).toBe(1);
+        expect(filas(app)).toHaveLength(0);}
+      finally{libera();}
+      /* con espacio, ni la sesion ni el historial la recuperan */
+      app.w.touchSess();
+      expect(Object.keys(app.leer("rp_session").log)).toEqual(["press_hombro_db"]);
+      const res=app.w.finishSession("gym_empuje","guided");
+      expect(!!res&&!res.lleno).toBe(true);
+      expect(res.summary.sets).toBe(1);
+      expect(app.leer("rp_logs").press_banca_db).toBe(undefined);
+      expect(app.leer("rp_logs").press_hombro_db.slice(-1)[0].sets).toHaveLength(1);
+      app.reiniciarMemoria();});
     test("una serie ya guardada en rp_logs: borrar y deshacer deja rp_logs idéntico",app=>{
       const t=Date.now()-3600000,logs={press_banca_db:[
         {date:F.fecha(7),sets:[{w:20,reps:10,t:t-7*864e5}],k:"gym_empuje",t:t-7*864e5},

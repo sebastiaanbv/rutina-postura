@@ -1792,7 +1792,7 @@ function prRecalc(id){const sv=sessActive(curRoutine)?loadSess():null;if(!sv)ret
   const hoy=sessLog(curRoutine)[id]||[];
   /* con las series de memoria, como touchSess: si no cupo, que no quede en
      disco un pr numerado sobre otras series */
-  if(sessionLogKey===curRoutine)sv.log=sessionLog;
+  if(sessionLogKey===curRoutine)sv.log=logSinVacios();
   const pr=(sv.pr||[]).filter(p=>p.id!==id);
   hoy.forEach((x,i)=>{if(isPR(id,x.w,x.reps,i))pr.push(prEntry(id,x.w,x.reps,i));});
   /* sin records ni antes ni ahora la sesion sigue sin clave pr, como la deja
@@ -2642,7 +2642,7 @@ function touchSess(st){if(!curRoutine||!ROUTINES[curRoutine])return null;
   const s=enMemoria(curRoutine)?ensureSess(curRoutine,st==null?"check":"guided")
          :(sessActive(curRoutine)?loadSess():null);
   if(!s)return null;
-  if(sessionLogKey===curRoutine){s.log=sessionLog;
+  if(sessionLogKey===curRoutine){s.log=logSinVacios();
     /* sin saltados ni repaso la sesion queda igual que en v35 */
     if(sessSaltados.length)s.saltados=sessSaltados;else delete s.saltados;
     if(sessRepaso)s.repaso=sessRepaso;else delete s.repaso;}
@@ -2658,8 +2658,13 @@ function sessConflict(k){if(sessionLogKey&&sessionLogKey!==k&&enMemoria(sessionL
 function sessLog(k){const s=loadSess(),out={};
   const base=(s&&s.key===k)?(s.log||{}):{};
   Object.keys(base).forEach(id=>{if(base[id]&&base[id].length)out[id]=base[id];});
-  if(sessionLogKey===k)Object.keys(sessionLog).forEach(id=>{if(sessionLog[id]&&sessionLog[id].length)out[id]=sessionLog[id];});
+  /* un ejercicio vaciado en memoria (delSet) tambien manda: su serie borrada
+     puede seguir en disco si no cupo */
+  if(sessionLogKey===k)Object.keys(sessionLog).forEach(id=>{if(sessionLog[id]&&sessionLog[id].length)out[id]=sessionLog[id];else delete out[id];});
   return out;}
+/* lo que se escribe en rp_session: sin los ejercicios vaciados, que en
+   memoria quedan como [] para mandar sobre el disco */
+function logSinVacios(){const o={};Object.keys(sessionLog).forEach(id=>{if(sessionLog[id]&&sessionLog[id].length)o[id]=sessionLog[id];});return o;}
 function loadLogged(){return jget("rp_logged",{});}
 function loggedOn(t,k){const d=loadLogged()[t]||{};return d[k]||{};}
 function markLogged(t,k,ids){const all=loadLogged();all[t]=all[t]||{};all[t][k]=all[t][k]||{};
@@ -2779,11 +2784,16 @@ function delSet(id,src,ri,si,n){
   const ae=document.activeElement,foco=!!(ae&&ae.classList&&ae.classList.contains("del"));
   let x=null,rec=null,orden=null,pr=null;
   if(src==="s"){useSessionLog(curRoutine);const a=sessionLog[id];orden=Object.keys(sessionLog);pr=prFoto();
-    if(a){x=a.splice(si,1)[0];if(!a.length)delete sessionLog[id];}touchSess();prRecalc(id);}
+    /* vaciado se queda en memoria como []: con el telefono lleno la serie
+       sigue en disco, y el vacio manda sobre ella (sessLog, logSinVacios) */
+    if(a)x=a.splice(si,1)[0];}
   else{logsWrite(logs=>{const r=(logs[id]||[])[ri];if(!r||!r.sets)return;
     x=r.sets.splice(si,1)[0];if(!r.sets.length&&!r.checked){logs[id].splice(ri,1);rec=r;}});}
-  renderStep();
-  if(x)ofrecerDeshacer({id:id,src:src,ri:ri,si:si,x:x,rec:rec,k:curRoutine,orden:orden,pr:pr},foco);}
+  if(x)ofrecerDeshacer({id:id,src:src,ri:ri,si:si,x:x,rec:rec,k:curRoutine,orden:orden,pr:pr},foco);
+  /* se guarda despues del aviso, como en deshacerSerie: si no cabe, el de
+     "No cupo" queda encima. La fila se pinta ya con los records rehechos */
+  if(src==="s"){touchSess();prRecalc(id);}
+  renderStep();}
 /* los records de la sesion antes de borrar (HU-10), tal cual estan en
    rp_session: null si no tenia clave pr */
 function prFoto(){const sv=sessActive(curRoutine)?loadSess():null;return sv&&sv.pr?JSON.stringify(sv.pr):null;}
@@ -2794,7 +2804,7 @@ function prComoAntes(pila){const u=pila.find(x=>x.src==="s");if(!u)return;
   const sv=sessActive(curRoutine)?loadSess():null;if(!sv)return;
   const antes=u.pr==null?null:JSON.parse(u.pr),canon=p=>JSON.stringify((p||[]).map(x=>JSON.stringify(x)).sort());
   if(canon(sv.pr)!==canon(antes)||JSON.stringify(sv.pr||null)===JSON.stringify(antes))return;
-  if(sessionLogKey===curRoutine)sv.log=sessionLog;
+  if(sessionLogKey===curRoutine)sv.log=logSinVacios();
   if(antes)sv.pr=antes;else delete sv.pr;
   saveSess(sv);}
 function ofrecerDeshacer(u,foco){

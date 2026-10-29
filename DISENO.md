@@ -661,7 +661,12 @@ confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se toca
   pasa a «2 series borradas»; Deshacer devuelve las dos. Anotar otra mientras tanto no estorba: la
   borrada vuelve a su sitio y la nueva se queda, y deshacer en el descanso no saca del descanso.
   Salir del guiado o finalizar retira el aviso: una sesión cerrada no se reabre. Si al deshacer no
-  cabe en el teléfono, la serie vuelve a la memoria y queda encima el aviso de «No cupo».
+  cabe en el teléfono, la serie vuelve a la memoria y queda encima el aviso de «No cupo». Al
+  borrar, igual: se guarda después de sacar el Deshacer, así que si no cabe el «No cupo» queda
+  encima, y la borrada no vuelve aunque siga en `rp_session`. Un ejercicio que se queda sin series
+  sigue en memoria como `[]`, que manda sobre el disco (`sessLog`) y no se escribe
+  (`logSinVacios`): antes desaparecía de la memoria, ganaba la copia del disco y la serie borrada
+  llegaba a la pantalla de fin y a `rp_logs`.
 - **El aviso respeta §2, §10 y §11**: X en `--danger-hero` (el ámbar es logro), botón en
   `--hero-accent`, sin exclamaciones y con plural. `toast()` acepta un tercer argumento que se
   llama al cerrarse, por tiempo o porque otro aviso lo pisa; ahí caduca el Deshacer.
@@ -679,7 +684,8 @@ confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se toca
 - **Pruebas** en `tests/pruebas_datos.js`: borrar y deshacer deja `rp_session` (menos el sello
   `lastAt`), la memoria y la lista idénticas; sin deshacer, la serie no está ni al finalizar;
   doble toque; la única serie de un ejercicio; anotar otra y deshacer en el descanso; salir y
-  finalizar (con HU-09, «Guardada · 1 de 14 ejercicios»); teléfono lleno; una serie de `rp_logs`;
+  finalizar (con HU-09, «Guardada · 1 de 14 ejercicios»); teléfono lleno, al deshacer y al borrar
+  la única serie de un ejercicio; una serie de `rp_logs`;
   una serie récord, con récords en dos ejercicios. En `tests/pruebas_pantallas.js`: cifra, X,
   campos y visto con 44 px propios a 400 y 320 px de ancho útil (en CI la barra de desplazamiento
   clásica ocupa 15 px y el iframe se ensancha lo que mida), también en una serie récord; el aviso
