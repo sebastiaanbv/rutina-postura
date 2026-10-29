@@ -2,7 +2,11 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<!-- sin maximum-scale ni user-scalable=no: la persona puede ampliar con los dedos.
+     text-scale: la letra del sistema entra por la raiz (1rem) en vez de que el
+     navegador la aplique por su cuenta; por eso la escala de DISENO 3 va en rem. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="text-scale" content="scale">
 <meta name="theme-color" id="tc" content="#eef1f5">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,6 +16,33 @@
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" type="image/png" href="icon-192-v25.png" sizes="192x192">
 <title>Mi Rutina</title>
+<script>/* ==== ESQUEMA DE DATOS (v36) ==============================================
+   rp_schema dice en que forma estan guardadas las claves rp_*. Este bloque
+   corre ANTES que cualquier lectura, incluida la del tema de aqui abajo, y
+   lleva los datos hasta el esquema de esta version aplicando en orden las
+   migraciones que falten. Sin rp_schema = datos de v35 o anteriores, o un
+   telefono nuevo: esquema 0.
+   Para la siguiente migracion:
+   - va al FINAL de MIGRACIONES; SCHEMA es su largo y sube solo;
+   - solo toca localStorage con valores escritos en ella: corre antes de que
+     existan EX, ROUTINES o jget, y no debe cambiar si cambian ellos;
+   - tolera datos que ya estan en la forma nueva: una copia vieja importada
+     se mezcla con claves actuales del telefono;
+   - nunca borra lo que no sabe rehacer. Si lanza, rp_schema se queda en la
+     ultima que termino y se reintenta en el proximo arranque. */
+var MIGRACIONES=[
+  /* 1 · v36: declara el esquema que ya existia. No toca datos. */
+  function(){}
+];
+var SCHEMA=MIGRACIONES.length;
+function schemaGuardado(){var v;try{v=JSON.parse(localStorage.getItem("rp_schema"));}catch(e){v=0;}
+  return (typeof v==="number"&&v>=0&&v%1===0)?v:0;}
+/* idempotente: con los datos ya al dia no escribe nada. Datos de una version
+   MAS nueva (una vuelta atras de la cache) no se tocan. */
+function migrarDatos(){var n=schemaGuardado();
+  for(;n<MIGRACIONES.length;n++){MIGRACIONES[n]();localStorage.setItem("rp_schema",JSON.stringify(n+1));}
+  return n;}
+try{migrarDatos();}catch(e){}</script>
 <script>/* resuelve el tema antes de pintar: asi el CSS solo necesita UN bloque oscuro */
 try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   var _d=(_t==="dark")||(_t!=="light"&&matchMedia("(prefers-color-scheme:dark)").matches);
@@ -61,6 +92,9 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     --energy-strong:#a35a0c; --energy-on:#ffffff;
     --load:#6d5bc9; --load2:#5a49b0; --load-tint:#ece9fb; --load-ink:#3a2f6b;
     --danger:#c4443f; --danger-tint:#fbe9e8; --danger-ink:#a3322e;
+    /* rojo sobre --hero (aviso de serie borrada): --danger da 3,3:1 contra el
+       hero; este, 8,6:1 (y 5,5:1 contra el hero del tema oscuro) */
+    --danger-hero:#fca5a5;
     /* --- figuras y anillos (los SVG traen estos hex y se recolorean abajo) --- */
     --diagram-ink:#2b3648; --diagram-line:#cbd3de; --diagram-hi:#2563eb; --diagram-eye:#111827;
     /* el miembro lejano: en vista lateral los dos brazos en la misma tinta se
@@ -73,9 +107,21 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
        agujero, y azul profundo para que el boton primario se separe de ella. */
     --hero:linear-gradient(155deg,#141f36,#0b111d); --hero-tx:#ffffff; --hero-mut:#a8bdd6;
 
-    /* --- tipografía: 8 pasos, ni uno más --- */
-    --t-mega:50px; --t-display:30px; --t-xl:26px; --t-title:22px; --t-lg:20px; --t-md:16px;
-    --t-lead:15px; --t-base:14px; --t-sm:12.5px; --t-xs:11px; --t-2xs:10px;
+    /* --- tipografía: 11 pasos, ni uno más. En rem y no en px: 1rem es la
+           letra que pide el telefono (16 px de serie), asi que con la letra
+           del sistema al 130 % la escala entera crece igual y no se deforma.
+           Los px de DISENO 3 son los de la letra de serie. --fk solo cambia
+           en iOS: ver el bloque de -apple-system-body. --- */
+    --fk:1;
+    --t-mega:calc(3.125rem*var(--fk)); --t-display:calc(1.875rem*var(--fk));
+    --t-xl:calc(1.625rem*var(--fk)); --t-title:calc(1.375rem*var(--fk));
+    --t-lg:calc(1.25rem*var(--fk)); --t-md:calc(1rem*var(--fk));
+    --t-lead:calc(.9375rem*var(--fk)); --t-base:calc(.875rem*var(--fk));
+    --t-sm:calc(.78125rem*var(--fk)); --t-xs:calc(.6875rem*var(--fk)); --t-2xs:calc(.625rem*var(--fk));
+    /* los campos de texto: --t-md, pero nunca por debajo de 16 px. Por debajo,
+       iOS amplia la pantalla al enfocarlos, y desde que el viewport deja
+       ampliar ya no hay maximum-scale que lo impida. */
+    --t-campo:max(16px,var(--t-md));
     /* --- pesos: el texto normal deja de ir en negrita --- */
     --w-body:400; --w-med:600; --w-semi:700; --w-bold:800;
     /* --- espaciado --- */
@@ -103,7 +149,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     /* aqui el ambar es claro, asi que el boton lleva texto oscuro encima */
     --energy-strong:#fbbf24; --energy-on:#3a2a10;
     --load:#a78bfa; --load2:#8b6df0; --load-tint:#241a44; --load-ink:#c3b3fb;
-    --danger:#fca5a5; --danger-tint:#2a1414; --danger-ink:#fca5a5;
+    --danger:#fca5a5; --danger-tint:#2a1414; --danger-ink:#fca5a5; --danger-hero:#fca5a5;
     --diagram-ink:#cfe0f5; --diagram-line:#3a4b60; --diagram-hi:#60a5fa; --diagram-eye:#0a1020;
     --diagram-ink-far:#8298b0; --diagram-shadow:#1a2436;
     --diagram-bg:#101827; --ring-track:#243349;
@@ -121,9 +167,21 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   html,body{margin:0;padding:0;color:var(--tx);
     background:radial-gradient(1100px 460px at 50% -12%, var(--page-grad) 0%, var(--bg) 60%) fixed;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
-    font-size:var(--t-base);font-weight:var(--w-body);line-height:1.45;letter-spacing:-.01em;
+    font-weight:var(--w-body);line-height:1.45;letter-spacing:-.01em;
     -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;text-size-adjust:100%}
-  body{max-width:600px;margin:0 auto;min-height:100vh;min-height:100dvh;overflow-x:hidden}
+  /* la raiz NO lleva tamaño: si lo fijara, 1rem dejaria de ser la letra del
+     telefono y la escala no creceria nunca. El tamaño base va en body. */
+  body{max-width:600px;margin:0 auto;min-height:100vh;min-height:100dvh;overflow-x:hidden;
+    font-size:var(--t-base)}
+  /* iOS no pasa su tamaño de letra (Dynamic Type) a la web salvo por esta
+     fuente del sistema, que en la letra de serie mide 17 px y no 16: --fk
+     lo compensa para que de serie la escala mida lo mismo que en Android.
+     -webkit-touch-callout deja fuera a Safari de escritorio, donde la misma
+     fuente mide 13 px y encogeria la app. */
+  @supports (font:-apple-system-body) and (-webkit-touch-callout:none){
+    html{font:-apple-system-body}
+    :root{--fk:.9412}
+  }
   .app{padding:0 0 calc(92px + env(safe-area-inset-bottom))}
   .view{display:none;animation:fade .22s ease} .view.active{display:block}
   @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -182,15 +240,18 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     letter-spacing:-.01em;background:none;color:var(--tx)}
   .btn,.gbtn,.today-go{width:100%;display:block;border-radius:var(--r-md);
     background:var(--primary);color:var(--on-primary);box-shadow:var(--sh-raised)}
-  .btn{height:54px;padding:0;font-size:var(--t-md)}
-  .gbtn{height:52px;padding:0;font-size:var(--t-md);margin-top:var(--s3)}
-  .today-go{height:50px;padding:0;font-size:var(--t-md);margin-top:var(--s4)}
+  /* alto MINIMO y no alto fijo: con la letra grande una etiqueta larga
+     ("Empezar Casa — Fuerza A") pasa a dos lineas dentro del boton en vez
+     de salirse por abajo. Con la letra de serie miden lo mismo que antes. */
+  .btn{min-height:54px;padding:var(--s2) var(--s3);font-size:var(--t-md)}
+  .gbtn{min-height:52px;padding:var(--s2) var(--s3);font-size:var(--t-md);margin-top:var(--s3)}
+  .today-go{min-height:50px;padding:var(--s2) var(--s3);font-size:var(--t-md);margin-top:var(--s4)}
   .btn:active,.gbtn:active,.today-go:active{transform:translateY(1px)}
   .btn[disabled]{opacity:.45;box-shadow:none;cursor:default;transform:none}
   /* variantes apagadas */
   .btn.sec,.gbtn.sec,.gbtn.fin{background:var(--card);color:var(--tx);
     border:1px solid var(--line);box-shadow:none}
-  .gbtn.fin{color:var(--tx2);font-size:var(--t-base);height:46px}
+  .gbtn.fin{color:var(--tx2);font-size:var(--t-base);min-height:46px}
   .today-go.sec{background:rgba(255,255,255,.12);color:var(--hero-tx);box-shadow:none}
   /* el blanco estaba escrito a mano sobre un naranja: daba 3,4:1 en claro y
      2,2:1 en oscuro, y es el boton que sale en cada descanso de cada serie.
@@ -209,14 +270,14 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     border:1px solid var(--line);color:var(--tx2);font-size:var(--t-lg);display:flex;
     align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto}
   .sq{width:42px;height:42px;border-radius:var(--r-sm);background:var(--sunk);border:1px solid var(--line);
-    color:var(--primary-ink);font-size:22px;font-weight:var(--w-bold);display:flex;
+    color:var(--primary-ink);font-size:var(--t-title);font-weight:var(--w-bold);display:flex;
     align-items:center;justify-content:center;cursor:pointer}
   .exstart,.exadd{width:42px;height:42px;border-radius:var(--r-sm);display:flex;align-items:center;
     justify-content:center;flex:0 0 auto;cursor:pointer;font-size:var(--t-sm)}
   .exstart{background:var(--primary-tint);color:var(--primary-ink);border:none}
   .exadd{background:var(--sunk);color:var(--mut);border:1px solid var(--line);font-size:var(--t-lg);font-weight:var(--w-bold)}
   .setok{background:var(--primary);color:var(--on-primary);font-size:var(--t-sm);
-    border-radius:10px;padding:6px 10px;margin-left:6px}
+    border-radius:10px;padding:6px 8px;margin-left:6px}
 
   /* pastillas */
   .badge,.chip,.mchip,.delta,.zonatag{font-size:var(--t-2xs);font-weight:var(--w-bold);
@@ -240,25 +301,79 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
      interruptores 28 y el boton de confirmar una serie 30. Solo se amplian
      controles HOJA -- los que no llevan dentro otra cosa pulsable --, porque el
      pseudo-elemento se pone por encima y se tragaria el clic del hijo. */
-  .exck,.chip,.mchip,.setline .del,.calnav,
+  .exck,.chip,.mchip,.sets .v,.calnav,
   .sq,.exstart,.exadd,.ovhead .x,.minibtn,.vbtn,.setok,.calladd,.skip,
-  .themeseg button,.install button,.toggle,.mdel,.timepill .x{position:relative}
-  .exck:after,.chip:after,.mchip:after,.setline .del:after,.calnav:after,
+  .themeseg button,.install button,.toggle,.mdel,.timepill .x,.toast .tact{position:relative}
+  .exck:after,.chip:after,.mchip:after,.sets .v:after,.calnav:after,
   .sq:after,.exstart:after,.exadd:after,.ovhead .x:after,.minibtn:after,
   .vbtn:after,.setok:after,.calladd:after,.skip:after,
   .themeseg button:after,.install button:after,.toggle:after,.mdel:after,
-  .timepill .x:after{content:"";
+  .timepill .x:after,.toast .tact:after{content:"";
     position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
     min-width:44px;min-height:44px;width:100%;height:100%}
+  /* .sets: solo la cifra del guiado, que se toca para editar; la del resumen
+     de finalizar no es un control. Editando deja de ser hoja: dentro van los
+     campos y el visto. */
+  .setline[data-editing] .v:after{display:none}
+  /* Desde que el viewport deja ampliar, dos toques rapidos en - o + (o en
+     "Registrar serie") pueden leerse en iOS como doble toque para ampliar.
+     manipulation quita solo ese gesto y solo en los controles: el pellizco
+     sigue, y el doble toque sobre el texto tambien. */
+  button,[role="button"],[role="checkbox"],[role="switch"]{touch-action:manipulation}
 
   /* entradas numéricas */
   .numin,.setin,.addrow input,.bwrow input{background:var(--card);color:var(--tx);
     border:2px solid var(--primary);border-radius:10px;text-align:center;
     font-weight:var(--w-bold);font-variant-numeric:tabular-nums;-moz-appearance:textfield}
-  .numin{width:104px;font-size:24px;padding:2px 4px}
-  .setin{width:58px;font-size:var(--t-sm);padding:5px 2px}
-  .addrow input,.bwrow input{flex:1;min-width:0;text-align:left;background:var(--sunk);
-    border:1px solid var(--line);border-radius:var(--r-sm);padding:12px;font-size:var(--t-md);font-weight:var(--w-med)}
+  /* la cifra del stepper al escribirla ocupa el sitio del <b> al que
+     sustituye, con su letra y su alto (la letra por el 1.45 de interlinea de
+     body): entre - y + a lo que quede, o encima si la fila va apilada
+     (la consulta de .stepper .row). Asi la fila no cambia de forma al
+     abrir ni al cerrar el campo. Si cambiara, tocar "Registrar serie" o + con
+     el campo abierto se perderia: el campo pierde el foco al empezar el
+     toque, la cifra vuelve, lo de debajo se mueve y el toque acaba en otro
+     sitio. El borde va pintado por dentro y sin relleno: el sitio que la
+     fila reserva a la cifra es el de su texto, y con un borde de verdad un
+     "142.5" no cabria en el campo. Lo que sea mas largo se desplaza dentro
+     del campo. */
+  .numin{flex:1 1 0;min-width:0;height:1.45em;font-family:inherit;font-size:var(--t-xl);letter-spacing:calc(-1em/26);
+    padding:0;border:0;box-shadow:inset 0 0 0 2px var(--primary)}
+  /* con el foco, el anillo de siempre (seccion foco) sin perder el borde */
+  .numin:focus-visible{box-shadow:inset 0 0 0 2px var(--primary),var(--sh-focus)}
+  /* 44 de alto: van en la misma fila que la X de borrar. La fila pierde su
+     relleno vertical mientras se edita para no crecer mas que antes. El
+     ancho en em, con la letra del campo (nunca menos de 16 px, ver
+     --t-campo): con la letra grande el campo crece con su cifra. 3,3 em y
+     sin relleno a los lados: con los 16 px, a 320 px cabe la X de 44 sin
+     partir la fila (con 3,6 em se partia) y "142.5" cabe entero tambien
+     en DejaVu Sans, de las letras sans mas anchas (50,6 de 52,8 px); un
+     "102.75" se desplaza dentro del campo.
+     Los dos campos, la × y el visto van en un flex con 2 px entre ellos, y
+     no como texto con espacios: el ancho de un espacio y de la × depende de
+     la letra, y con DejaVu Sans la fila de editar pasaba 0,2 px de su sitio
+     a 320 px, el visto bajaba de linea y la fila crecia 30 px bajo el dedo.
+     Asi, con la letra de serie, cabe en una linea con cualquier letra sans
+     razonable (sobran 6 px con DejaVu, 10 con Inter). Con la letra grande,
+     hasta el 130 %, cabe porque la columna del numero pierde «Serie» (abajo);
+     mas alla se reparte: el visto baja, sin pisar la X. */
+  .setin{width:3.3em;min-height:44px;font-size:var(--t-campo);padding:5px 0}
+  .setline[data-editing]{padding-top:0;padding-bottom:0}
+  /* corrigiendo, la columna del numero se queda en el numero: «1», no
+     «Serie 1» (la fila es la misma y su sitio en la lista lo dice). Con la
+     letra grande los dos campos crecen con ella (3,3 em de --t-campo) y a
+     320 px, al 115 y al 130 %, con cualquier letra, no cabian con «Serie 1»
+     delante: el visto bajaba bajo el peso, la fila pasaba de 44 a 80 px bajo
+     el dedo y, con DejaVu Sans, «Serie 1» se partia en dos lineas. Sin la
+     palabra caben con 13 px de sobra en el peor caso (DejaVu, 320 px, 130 %) */
+  .setline[data-editing] .n{min-width:0}
+  .setline[data-editing] .np{display:none}
+  .setline[data-editing] .v{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) 2px}
+  /* el campo pide su sitio (10 em el de texto, 8 el de la hora) y el boton se
+     queda al lado mientras quepa; con la letra grande baja a su propia linea
+     en vez de recortar "07:00" o el "Peso de hoy (kg)" del campo */
+  .addrow input,.bwrow input{flex:1 1 10em;min-width:0;text-align:left;background:var(--sunk);
+    border:1px solid var(--line);border-radius:var(--r-sm);padding:12px;font-size:var(--t-campo);font-weight:var(--w-med)}
+  .addrow input{flex-basis:8em}
   .numin::-webkit-outer-spin-button,.numin::-webkit-inner-spin-button,
   .setin::-webkit-outer-spin-button,.setin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 
@@ -268,7 +383,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
      hay una superficie por BLOQUE y filas separadas por linea fina. */
 
   /* racha: una linea en vez de tres tarjetones */
-  .streak{display:flex;align-items:center;gap:9px;margin:var(--s3) var(--gut) 0;
+  .streak{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:var(--s3) var(--gut) 0;
     padding:13px 15px;background:var(--card);border-radius:var(--r-md);box-shadow:var(--sh-card)}
   .streak .fl{color:var(--energy);display:flex;align-items:center}
   .streak .n{font-size:var(--t-title);font-weight:var(--w-bold);line-height:1;letter-spacing:-.5px;
@@ -285,10 +400,18 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     border-right:1px dashed var(--line2);text-decoration:none}
   .streak .rt{margin-left:auto;font-size:var(--t-xs);color:var(--mut);font-weight:var(--w-med);text-align:right;line-height:1.35}
   .streak .rt b{color:var(--tx2);font-weight:var(--w-bold);font-variant-numeric:tabular-nums}
+  /* v36: con objetivo salud, segunda fila de la misma tarjeta con los dias de
+     postura. rt crece desde 0 para que la fila de arriba no salte a dos
+     lineas por culpa de la de abajo */
+  .streak .rt{flex:1 1 0}
+  .streak .stpost{flex:1 0 100%;border-top:1px solid var(--line);padding-top:9px;
+    font-size:var(--t-xs);color:var(--mut);font-weight:var(--w-med)}
+  .streak .stpost b{color:var(--tx2);font-weight:var(--w-bold);font-variant-numeric:tabular-nums}
 
   /* la semana pasa de siete tarjetas a un riel */
   .week{display:flex;margin:var(--s3) var(--gut) 0;background:var(--card);
-    border-radius:var(--r-md);box-shadow:var(--sh-card);overflow:hidden;padding:0;gap:0}
+    border-radius:var(--r-md);box-shadow:var(--sh-card);overflow:hidden;padding:0;gap:0;
+    container-type:inline-size}
   .week .day{flex:1;min-width:0;border-radius:0;box-shadow:none;background:none;border:none;
     border-left:1px solid var(--line);padding:10px 2px 9px}
   .week .day:first-child{border-left:none}
@@ -305,14 +428,28 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   :root[data-theme="dark"] .rlist .rcard:first-child{border-top:none}
 
   /* anillo de avance de la rutina */
-  .rring{width:46px;height:46px;position:relative;flex:0 0 auto}
-  .rring svg{transform:rotate(-90deg);display:block}
+  /* 46/14 em son los 46 px de siempre con la letra de serie; con la letra
+     grande el anillo crece con su cifra y "12/12" no pisa el trazo */
+  .rring{width:calc(46em/14);height:calc(46em/14);position:relative;flex:0 0 auto}
+  .rring svg{transform:rotate(-90deg);display:block;width:100%;height:100%}
   .rring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     font-size:var(--t-xs);font-weight:var(--w-bold);font-variant-numeric:tabular-nums;color:var(--tx2)}
 
   /* ejercicios: una superficie por bloque y filas dentro */
   .exgroup{margin:0 0 var(--s3);background:var(--card);border-radius:var(--r-lg);
-    box-shadow:var(--sh-card);overflow:hidden}
+    box-shadow:var(--sh-card);overflow:hidden;container-type:inline-size}
+  /* La columna del nombre es lo que sobra de la fila: 175 px fijos (circulo,
+     miniatura, boton, huecos y relleno), 205 en la fila "siguiente" con su
+     figura de 76. Las consultas van en em del propio bloque, asi que miden
+     ancho y tamaño de letra a la vez.
+     - La figura grande vuelve a 46 px cuando no deja ni los 7 em de
+       "Calentamiento", la etiqueta mas larga sin espacios: a 320 px pasaba
+       de su columna ya con la letra de serie.
+     - Con poco ancho PARA la letra que hay (por debajo de 20 em: 320 a 390 px
+       con la letra al 130 %) las figuras se van y el nombre gana 57 px. Con la
+       letra de serie no salta nunca: haria falta una pantalla de 312 px o menos. */
+  @container (max-width:calc(205px + 7em)){.ex .diag.big{width:46px;height:46px;padding:5px;border-radius:12px}}
+  @container (max-width:20em){.ex .diag{display:none}}
   :root[data-theme="dark"] .exgroup{border:1px solid var(--line)}
   .exgroup .blockt{margin:0;padding:10px 14px;background:var(--sunk);
     border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px}
@@ -334,28 +471,65 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.96)}to{opacity:1;transform:none}}
   @keyframes ckpop{0%{transform:scale(.4)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
   @keyframes flash{from{background:var(--primary-tint)}to{background:transparent}}
-  @keyframes drawring{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
+  @keyframes drawring{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:var(--fin,0)}}
   .setline.pop{animation:pop .24s ease-out}
   .ex.checked .exck .ic{animation:ckpop .32s cubic-bezier(.2,1.4,.4,1)}
   .ex.justdone{animation:flash .6s ease-out}
-  .setline.pr{background:var(--energy-tint);border-color:var(--energy)}
+  .setline.pr{background:var(--energy-tint);border-color:var(--energy);flex-wrap:wrap;row-gap:2px}
   .setline.pr .n{color:var(--energy-ink)}
-  .prtag{margin-left:auto;color:var(--energy-ink);display:flex;align-items:center;gap:4px;
-    font-size:var(--t-2xs);font-weight:var(--w-bold);text-transform:uppercase;letter-spacing:.6px}
+  /* que se supero va en su propia linea, bajo el valor: a 360 px no cabe al
+     lado de "32.5 kg × 6 · reserva 2" sin partir los dos */
+  /* no es un control: la X de 44 px (HU-54) baja 10 px por su linea, y sin
+     esto la marca, pintada despues, se quedaba ese trozo del toque */
+  .prtag{flex-basis:100%;padding-left:calc(var(--t-sm)*52/12.5 + var(--s2));color:var(--energy-ink);display:flex;align-items:center;gap:4px;
+    font-size:var(--t-2xs);font-weight:var(--w-bold);text-transform:uppercase;letter-spacing:.6px;pointer-events:none}
 
-  /* aviso flotante: la unica pieza que faltaba para poder celebrar algo */
-  .toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom));
-    transform:translateX(-50%) translateY(16px);background:var(--hero);color:var(--hero-tx);
+  /* aviso flotante: la unica pieza que faltaba para poder celebrar algo.
+     Centrado con left/right 0 y margen auto, no con left:50%: asi solo
+     tenia media pantalla para encoger, y el max-width de 86 % nunca se
+     alcanzaba ("Salto quitado: vuelven los de siempre" en tres lineas a
+     320 px, el de record en cinco) */
+  .toast{position:fixed;left:0;right:0;margin:0 auto;width:max-content;box-sizing:border-box;
+    bottom:calc(80px + env(safe-area-inset-bottom));
+    transform:translateY(16px);background:var(--hero);color:var(--hero-tx);
     border-radius:var(--r-pill);padding:12px 20px;font-size:var(--t-sm);font-weight:var(--w-semi);
-    z-index:70;display:flex;align-items:center;gap:9px;max-width:86%;opacity:0;pointer-events:none;
+    z-index:70;display:flex;align-items:center;gap:9px;max-width:86vw;opacity:0;pointer-events:none;
     box-shadow:0 10px 30px -10px rgba(0,0,0,.5);transition:opacity .25s,transform .25s}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  /* a la vista, el aviso entero recibe los toques: si no, tocar su texto o
+     su icono activaba el control que tapa sin que se viera (v36, HU-54) */
+  .toast.show{opacity:1;transform:translateY(0);pointer-events:auto}
+  /* el aviso con Deshacer en el guiado: bajo la barra del guiado (Paso
+     anterior, Salir), sobre el nombre y la figura, que no son controles */
+  .toast.arriba{bottom:auto;top:calc(66px + env(safe-area-inset-top));transform:translateY(-16px)}
+  .toast.arriba.show{transform:translateY(0)}
   .toast .ic{color:var(--energy-hero);flex:0 0 auto}
+  /* serie borrada (v36): la X en rojo, porque el ambar es logro, y el unico
+     boton que ha tenido un aviso. Tocar el resto del aviso no hace nada (el
+     Deshacer sigue ahi); el aviso sin boton se cierra al tocarlo (toastToca).
+     Escondido no se enfoca ni se pulsa. Si no cabe
+     en una linea (letra grande), se parte el texto y el boton se queda
+     entero dentro del aviso: con nowrap se salia por la derecha. */
+  .toast .ic.borrado{color:var(--danger-hero)}
+  .toast .tmsg{min-width:0}
+  .toast .tact{flex:0 0 auto;background:none;border:none;padding:0;margin-left:var(--s1);font:inherit;
+    font-weight:var(--w-bold);color:var(--hero-accent);cursor:pointer;visibility:hidden}
+  .toast.show .tact{visibility:visible;pointer-events:auto}
+  .toast .tact:focus-visible{box-shadow:0 0 0 2px var(--hero-accent)}
+  /* el aviso con boton llega hasta 8 px del borde, no al 86 %: con una
+     letra ancha (DejaVu Sans) «Serie borrada» y «Deshacer» piden 287 px al
+     130 % y a 320 px el 86 % son 275. Partido, «Serie / borrada» dejaba un
+     hueco antes de Deshacer y el aviso pasaba de 48 a 71 px de alto, sin
+     sitio en el guiado donde no tapara un control (v36, HU-54). En % y no
+     en vw: fijo, el % es de la ventana sin la barra de scroll, y en un
+     ordenador con barra de 15 px el aviso no llega al borde */
+  .toast.conboton{max-width:calc(100% - 2*var(--s2))}
 
   /* pantalla de fin */
   .done .hero{margin:0 auto var(--s4);width:104px;height:104px;display:block}
-  .donesum{display:flex;gap:var(--s2);margin:var(--s5) 0 0}
-  .donesum div{flex:1;background:var(--card);border-radius:var(--r-md);padding:12px 6px;box-shadow:var(--sh-card)}
+  /* tres cajas iguales mientras quepan; si "12450" o "EJERCICIOS" no caben
+     (letra grande a 320 px), la tercera baja a su linea en vez de desbordar */
+  .donesum{display:flex;flex-wrap:wrap;gap:var(--s2);margin:var(--s5) 0 0}
+  .donesum div{flex:1 1 0;min-width:max-content;background:var(--card);border-radius:var(--r-md);padding:12px 6px;box-shadow:var(--sh-card)}
   :root[data-theme="dark"] .donesum div{border:1px solid var(--line)}
   .donesum b{display:block;font-size:var(--t-title);font-weight:var(--w-bold);
     font-variant-numeric:tabular-nums;line-height:1.15}
@@ -364,12 +538,22 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .doneprs{margin:var(--s4) 0 0;text-align:left}
   .doneprs .h{font-size:var(--t-2xs);font-weight:var(--w-bold);color:var(--energy-ink);
     text-transform:uppercase;letter-spacing:1.1px;display:flex;align-items:center;gap:6px;margin-bottom:var(--s2)}
-  .doneprs .r{display:flex;gap:10px;font-size:var(--t-sm);padding:9px 12px;background:var(--energy-tint);
+  .doneprs .r{display:flex;align-items:center;gap:10px;font-size:var(--t-sm);padding:9px 12px;background:var(--energy-tint);
     border-radius:var(--r-sm);margin-bottom:6px;color:var(--energy-ink);font-weight:var(--w-semi)}
   .doneprs .r b{margin-left:auto;font-variant-numeric:tabular-nums}
-  .donest{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:var(--s5);
+  /* que se supero (v36): mismo rotulo que la etiqueta de la serie */
+  .doneprs .r .k{display:block;margin-top:2px;font-size:var(--t-2xs);font-weight:var(--w-bold);
+    text-transform:uppercase;letter-spacing:.6px}
+  /* la semana, con el mismo anillo de Inicio: el avance es primario; solo
+     "Semana cumplida" va en ambar, porque eso si es un logro. Con letra
+     grande en 320 px la cifra no cabe al lado y baja entera a la linea de
+     abajo, en vez de partirse en "2 de" / "3" */
+  .donest{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:9px;margin-top:var(--s5);
+    font-weight:var(--w-bold);font-size:var(--t-base)}
+  .donest .wkring{display:inline-flex}
+  .donest .n{font-size:var(--t-display);letter-spacing:-1px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .doneok{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:var(--s2);
     color:var(--energy-ink);font-weight:var(--w-bold);font-size:var(--t-base)}
-  .donest .n{font-size:var(--t-display);letter-spacing:-1px;font-variant-numeric:tabular-nums}
 
   /* ============================ iconos ============================
      Un solo trazo para toda la app: rejilla 24, grosor 2, remates
@@ -429,6 +613,12 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .day .d{font-size:var(--t-xs);font-weight:var(--w-bold);color:var(--mut)}
   .day .tag{font-size:var(--t-2xs);font-weight:var(--w-semi);margin-top:4px;color:var(--mut);
     line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* Cada dia lleva el nombre y el icono de su rutina, y se ve uno de los dos.
+     Siete columnas a 320 px con la letra al 130 % dejaban "Em…", "De…": con
+     el riel por debajo de 19 em de su letra, la columna no da ni para cuatro
+     letras y el icono de la rutina dice mas. Con la letra de serie no salta. */
+  .day .tag .ic{display:none}
+  @container (max-width:19em){.day .tag .tx{display:none} .day .tag .ic{display:inline-block;vertical-align:-3px}}
   /* el dia de hoy se marca con el tinte del riel (.week .day.on), no tambien
      con un anillo: dos senales para lo mismo se leen como un error */
   .day.on .d{color:var(--primary-ink)}
@@ -447,7 +637,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     align-items:center;cursor:pointer;transition:transform .15s;border-radius:var(--r-lg)}
   .rcard:active{transform:scale(.99)}
   .rcard .em{width:48px;height:48px;border-radius:15px;display:flex;align-items:center;
-    justify-content:center;font-size:22px;flex:0 0 auto;background:var(--primary-tint);color:var(--primary-ink)}
+    justify-content:center;font-size:var(--t-title);flex:0 0 auto;background:var(--primary-tint);color:var(--primary-ink)}
   .rcard .em.n{background:var(--accent-tint);color:var(--accent-ink)}
   .rcard .em.g{background:var(--load-tint);color:var(--load-ink)}
   .rcard .t{flex:1;min-width:0}
@@ -465,7 +655,11 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .exwrap{margin:6px var(--gut)}
   .ex{margin-bottom:var(--s2);overflow:hidden;border-radius:var(--r-lg)}
   .ex .top{display:flex;gap:11px;align-items:center;padding:12px;cursor:pointer}
-  .ex .nm{font-weight:var(--w-semi);font-size:var(--t-lead);line-height:1.2;letter-spacing:-.2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  /* el nombre se lee entero: el recorte a dos lineas, con la letra grande o a
+     320 px, dejaba "Colgado con…" y partia "Caminadora" sin aviso. Una palabra
+     que no cabe se parte con guion donde el idioma lo permite. */
+  .ex .nm{font-weight:var(--w-semi);font-size:var(--t-lead);line-height:1.2;letter-spacing:-.2px;
+    overflow-wrap:anywhere;-webkit-hyphens:auto;hyphens:auto}
   .ex .meta{color:var(--mut);font-size:var(--t-sm);margin-top:3px}
   .badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
   /* la miniatura de 46 px era ilegible por aritmetica: el SVG mide ~255
@@ -704,8 +898,9 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   /* la figura ejecuta el ejercicio: los dos fotogramas apilados y fundidos,
      con meseta en cada extremo para que se lea la postura y no sea un parpadeo */
   /* --- micro-interaccion (v25) --- */
-  /* el boton se convierte en visto antes de que entre el descanso */
-  .gbtn.go.done{background:var(--primary2);transform:scale(.985)}
+  /* el boton se convierte en visto antes de que entre el descanso, y en esos
+     300 ms un segundo toque no lo atraviesa (v36: duplicaba la serie) */
+  .gbtn.go.done{background:var(--primary2);transform:scale(.985);pointer-events:none}
   /* el descanso: pantalla propia, con el mismo anillo que el sosten */
   .stage.isrest{padding-top:var(--s5)}
   .ring.rest #rarc{transition:stroke-dashoffset .25s linear}
@@ -734,22 +929,58 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
 
   /* steppers: el ancla visual de la pantalla */
   .logrow{display:flex;gap:var(--s2);margin-top:var(--s1)}
-  .stepper{flex:1;border-radius:var(--r-md);padding:12px 10px}
+  .stepper{flex:1;border-radius:var(--r-md);padding:12px 10px;container-type:inline-size}
   .stepper .lab{text-align:center}
-  .stepper .row{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
-  .stepper .row b{font-size:var(--t-xl);font-weight:var(--w-bold);letter-spacing:-1px;cursor:pointer}
-  .stepper .row b small{font-size:var(--t-sm);font-weight:var(--w-med);color:var(--mut)}
+  .stepper .row{display:flex;align-items:center;justify-content:space-between;gap:var(--s2) var(--s1);margin-top:6px}
+  /* los botones miden 42 px siempre: si la cifra no cabe, no son ellos los
+     que encogen (un "142.5" los dejaba en 37 y pegados a la cifra) */
+  .stepper .row .sq{flex:0 0 42px}
+  /* -1 px con la letra de serie; en em para que la cifra crezca entera con la
+     letra y la consulta de abajo la mida igual a cualquier tamaño */
+  .stepper .row b{flex:1 1 0;min-width:0;font-size:var(--t-xl);font-weight:var(--w-bold);letter-spacing:calc(-1em/26);cursor:pointer;text-align:center}
+  /* Entre los dos botones de 42 px quedan 34 px a 320 de ancho: un "57.5" no
+     cabia ya con la letra de serie y, pegado a los botones, empujaba el
+     stepper de las reps fuera del margen; al 130 % pasaba hasta con un "12".
+     La cifra va entre - y + si cabe con 4 px de aire a cada lado (92 px con
+     los botones) la mas larga que puede tener, "142.5" (las reps de tres
+     cifras ocupan menos); si no, sube a su propia linea y los botones quedan
+     debajo, en los extremos. Lo decide solo el ancho del stepper y su letra,
+     nunca la cifra de cada momento: si la forma dependiera de la cifra, al
+     pasar de 97.5 a 100 con + (o de 9 a 10 reps) la fila se apilaria entre un
+     toque y el siguiente, y el segundo toque, en el mismo sitio, caeria en la
+     cifra o en la fila de debajo. La cifra ocupa todo el hueco entre los
+     botones (flex 1 1 0), asi que su caja tampoco cambia con el largo. Los
+     steppers de una fila miden lo mismo y cambian juntos.
+     Lo que mide "142.5" depende de la letra del telefono, no solo de su
+     tamaño: 4,94 em del stepper en Inter, 5,5 en DejaVu Sans, 4,4 en Roboto.
+     Un numero fijo de em calibrado con una letra dejaba la cifra pegada a los
+     botones con otra mas ancha. Por eso la consulta no esta aqui: la escribe
+     reservaCifra() en <style id="cifraReserva"> con "142.5" medido en
+     #cifraRef, una cifra invisible con la letra, el peso y el espaciado de la
+     del stepper. Va en em del stepper, asi que sigue al tamaño de letra; y
+     se vuelve a medir si la cifra de referencia cambia de ancho. */
+  #cifraRef{position:absolute;left:0;top:0;visibility:hidden;pointer-events:none;
+    container-type:normal;padding:0;width:max-content}
+  #cifraRef .row b{flex:none}
   .last{margin:var(--s3) 0 var(--s1)}
   .last.tap{cursor:pointer}
   .gchart{margin:var(--s2) 0 0;display:none}
   .gchart.show{display:block}
   .sets{margin:var(--s3) 0 0;display:flex;flex-direction:column;gap:6px}
   .setline{display:flex;align-items:center;gap:var(--s2);font-size:var(--t-sm);padding:9px 11px}
-  .setline .n{color:var(--mut);font-weight:var(--w-bold);width:52px}
+  /* «Serie 1» no se parte: la columna mide al menos sus 52 px de la letra de
+     serie y crece si la letra es mas ancha (DejaVu Sans a 320 px desde el
+     115 %: «Serie / 1» en dos lineas) */
+  .setline .n{color:var(--mut);font-weight:var(--w-bold);min-width:calc(52em/12.5);white-space:nowrap;flex:0 0 auto}
   .setline .v{font-weight:var(--w-semi);cursor:pointer}
   .setline .ck{margin-left:auto;color:var(--primary-ink);font-weight:var(--w-bold)}
-  .setline .del{margin-left:auto;color:var(--mut);font-size:var(--t-base);
-    font-weight:var(--w-bold);cursor:pointer;padding:2px 4px;line-height:1}
+  /* La X mide 44 de caja, no de pseudo-elemento: la zona ampliada de 23 px
+     se metia 10 px a la izquierda, por encima del hueco, y a 320 px de ancho
+     se comia el borde del visto de guardar (le dejaba 39). Con caja, el flex
+     garantiza el hueco con lo de al lado. Los margenes negativos la dejan
+     donde estaba y la fila no crece. */
+  .setline .del{margin:-12px -11px -12px auto;width:44px;height:44px;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;color:var(--mut);cursor:pointer}
   .setline .ck~.del{margin-left:var(--s2)}
 
   /* temporizadores */
@@ -764,9 +995,11 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
 
   /* pantalla final */
   .done{text-align:center;padding:46px var(--s5)}
-  .done .em{font-size:60px}
+  .gtop+.done{padding-top:var(--s3)}
   .done h2{font-size:var(--t-xl);margin:var(--s3) 0 var(--s1);font-weight:var(--w-bold);letter-spacing:-.6px}
   .done .big{font-size:var(--t-mega);font-weight:var(--w-bold);color:var(--primary-ink);margin:var(--s4) 0 0}
+  /* aviso de pendientes: la misma lista que la hoja de finalizar */
+  .done .finlist{text-align:left;margin:var(--s5) 0 var(--s2)}
 
   /* ==================== CALENDARIO E HISTORIAL ==================== */
   .sect{padding:6px var(--gut) var(--s5)}
@@ -774,7 +1007,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .calhead{display:flex;align-items:center;gap:var(--s2);margin-bottom:var(--s2)}
   .calhead .m{flex:1;text-align:center;font-weight:var(--w-bold);font-size:var(--t-md);text-transform:capitalize}
   .calnav{width:38px;height:38px;border-radius:var(--r-sm);border:1px solid var(--line);
-    background:var(--sunk);color:var(--tx2);font-size:17px;display:flex;
+    background:var(--sunk);color:var(--tx2);font-size:var(--t-md);display:flex;
     align-items:center;justify-content:center;cursor:pointer}
   .calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
   .calgrid .wd{text-align:center;font-size:var(--t-2xs);font-weight:var(--w-bold);color:var(--mut);padding:2px 0 4px}
@@ -804,7 +1037,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .hitem .dot.g{background:var(--load-tint);color:var(--load-ink)}
   .hitem .dot{width:38px;height:38px;border-radius:12px;background:var(--primary-tint);
     color:var(--primary-ink);display:flex;align-items:center;justify-content:center;
-    font-size:18px;flex:0 0 auto}
+    font-size:var(--t-lg);flex:0 0 auto}
   .hitem .nm{font-weight:var(--w-semi);font-size:var(--t-base)}
   .hitem .dt{color:var(--mut);font-size:var(--t-sm);margin-top:2px;text-transform:capitalize}
   .hitem .dt2{font-size:var(--t-xs);color:var(--mut);font-weight:var(--w-med);margin-top:3px}
@@ -840,7 +1073,8 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .daydet.open{display:block}
   .ddrow{display:flex;gap:var(--s3);font-size:var(--t-sm);padding:9px 0;border-top:1px solid var(--line)}
   .ddrow:first-child{border-top:none}
-  .ddrow .dn{flex:1;font-weight:var(--w-med);min-width:0}
+  /* un nombre largo se parte dentro de su columna y no por encima de las series */
+  .ddrow .dn{flex:1;font-weight:var(--w-med);min-width:0;overflow-wrap:anywhere;-webkit-hyphens:auto;hyphens:auto}
   .ddrow .dv{color:var(--mut);font-weight:var(--w-semi);text-align:right}
   .empty{color:var(--mut);text-align:center;font-size:var(--t-sm);padding:36px 10px;line-height:1.65}
 
@@ -858,23 +1092,27 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .chartcard{margin:0 0 var(--s2);border-radius:var(--r-lg);padding:14px 12px 8px}
   .chartcard .ct{font-size:var(--t-base);font-weight:var(--w-bold);margin:0 2px 2px}
   .callout{margin:0 0 var(--s3)}
-  .bwrow{display:flex;gap:var(--s2);margin-top:var(--s3)}
+  .bwrow{display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s3)}
   .bwrow .minibtn{margin-top:0;flex:0 0 auto}
   .mbars{display:flex;flex-direction:column;gap:9px}
   .mrow{display:flex;align-items:center;gap:9px}
-  .mrow .mn{flex:0 0 84px;font-size:var(--t-xs);font-weight:var(--w-med);color:var(--tx2);
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* 84/11 em son los 84 px de antes con la letra de serie; con la grande la
+     columna crece con ella y "Hombro posterior" pasa a dos lineas en vez de
+     quedarse en "Hombro p…" */
+  .mrow .mn{flex:0 0 calc(84em/11);font-size:var(--t-xs);font-weight:var(--w-med);color:var(--tx2);
+    line-height:1.2;overflow-wrap:anywhere}
   .mrow .mtrack{flex:1;height:10px;background:var(--sunk);border-radius:var(--r-pill);
     position:relative;overflow:hidden;min-width:0}
   .mrow .mfill{position:absolute;left:0;top:0;bottom:0;border-radius:var(--r-pill);background:var(--primary)}
   .mrow .mfill.mid{background:var(--rest)} .mrow .mfill.low{background:var(--danger)}
   .mrow .mgoal{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--line2);z-index:2}
-  .mrow .mv{flex:0 0 26px;text-align:right;font-size:var(--t-xs);font-weight:var(--w-bold)}
-  .prrow{display:flex;align-items:baseline;gap:var(--s2);padding:9px 0;border-top:1px solid var(--line)}
-  .prrow .prn{flex:1;min-width:0;font-size:var(--t-sm);font-weight:var(--w-med);
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mrow .mv{flex:0 0 calc(26em/11);text-align:right;font-size:var(--t-xs);font-weight:var(--w-bold)}
+  /* el nombre del ejercicio es el dato: en vez de recortarlo con "…", la marca
+     y la fecha bajan a una segunda linea cuando no caben al lado */
+  .prrow{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px var(--s2);padding:9px 0;border-top:1px solid var(--line)}
+  .prrow .prn{flex:1 1 10em;min-width:0;font-size:var(--t-sm);font-weight:var(--w-med);overflow-wrap:anywhere}
   .prrow .prv{font-size:var(--t-sm);font-weight:var(--w-bold);color:var(--energy-ink)}
-  .prrow .prd{font-size:var(--t-xs);color:var(--mut);flex:0 0 auto}
+  .prrow .prd{font-size:var(--t-xs);color:var(--mut);flex:0 0 auto;margin-left:auto}
   .heat{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:3px;margin-top:var(--s3);direction:ltr}
   .heat i{display:block;width:100%;aspect-ratio:1/1;border-radius:3px;background:var(--sunk)}
   .heat i.h-g{background:var(--primary)} .heat i.h-c{background:var(--primary-tint)}
@@ -886,7 +1124,12 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .field{border-radius:var(--r-lg);padding:16px;margin-bottom:var(--s3)}
   .field .fl{font-weight:var(--w-bold);font-size:var(--t-base);margin-bottom:3px}
   .field .fh{color:var(--mut);font-size:var(--t-sm);line-height:1.5}
-  .switch{display:flex;align-items:center;gap:var(--s3)}
+  /* el texto pide 8 em y lo de al lado se queda a su derecha mientras quepa:
+     el selector de tema (Claro, Oscuro, Auto) a 320 px y al 130 % se salia
+     de la tarjeta con una letra ancha (DejaVu Sans), y ahora baja a su propia
+     linea, a la derecha. Un interruptor de 48 px no baja nunca. */
+  .switch{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s3)}
+  .switch>div:first-child{flex:1 1 8em;min-width:0}
   .toggle{width:48px;height:28px;border-radius:var(--r-pill);background:var(--line2);
     position:relative;cursor:pointer;flex:0 0 auto;transition:.2s}
   .toggle.on{background:var(--primary)}
@@ -905,9 +1148,9 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .timepill{border-radius:var(--r-pill);padding:8px 13px;font-size:var(--t-base);
     font-weight:var(--w-semi);display:flex;align-items:center;gap:var(--s2)}
   .timepill span.x{color:var(--mut);cursor:pointer;font-weight:var(--w-bold)}
-  .addrow{display:flex;gap:var(--s2);margin-top:var(--s3)}
+  .addrow{display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s3)}
   .addrow button{background:var(--primary);color:var(--on-primary);border-radius:var(--r-sm);
-    padding:0 18px;font-size:var(--t-base)}
+    padding:0 18px;font-size:var(--t-base);min-height:44px}
 
   /* ========================== OVERLAYS ========================== */
   #planov,#swapov,#finov{position:fixed;inset:0;background:rgba(4,8,12,.55);display:none;
@@ -921,10 +1164,15 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .ovhead{display:flex;align-items:center;gap:var(--s3);padding:14px;border-bottom:1px solid var(--line)}
   .ovhead .t{font-weight:var(--w-bold);font-size:var(--t-md);flex:1;overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap}
-  .ovhead .x{cursor:pointer;font-size:20px;color:var(--mut);width:40px;height:40px;
+  /* la hoja de conflicto (HU-63) pone ahi "Tienes <rutina> a medias": cortado,
+     se perdia justo "a medias". Los demas titulos de esta hoja son cortos */
+  #planTitle{white-space:normal}
+  .ovhead .x{cursor:pointer;font-size:var(--t-lg);color:var(--mut);width:40px;height:40px;
     display:flex;align-items:center;justify-content:center}
   .planbody{padding:var(--s3) var(--s3) calc(var(--s4) + env(safe-area-inset-bottom));
     display:flex;flex-direction:column;gap:7px}
+  /* la hoja de conflicto nombra dos rutinas en un boton: puede ir a dos lineas */
+  #planBody .btn{height:auto;min-height:54px;padding:var(--s2) var(--s4);line-height:1.25}
   .planopt{display:flex;align-items:center;gap:11px;padding:12px;cursor:pointer;
     font-weight:var(--w-med);font-size:var(--t-base);color:var(--tx);background:var(--card2)}
   .planopt .em{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;
@@ -939,14 +1187,16 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     color:var(--primary-ink);font:inherit;font-weight:var(--w-bold);font-size:var(--t-base);cursor:pointer}
   .addsearch,.cxf input:not([type=checkbox]),.cxf select,.cxf textarea{width:100%;box-sizing:border-box;
     background:var(--sunk);color:var(--tx);border:1px solid var(--line);border-radius:var(--r-sm);
-    padding:11px 12px;font:inherit;font-size:16px;font-weight:var(--w-med)}
+    padding:11px 12px;font:inherit;font-size:var(--t-campo);font-weight:var(--w-med)}
   .planopt.addnew .em{background:var(--primary);color:#fff}
   #addList .blockt{font-size:var(--t-sm);font-weight:var(--w-bold);color:var(--mut);margin:10px 2px 2px}
   .cxf{display:flex;flex-direction:column;gap:var(--s3)}
   .cxf label{display:flex;flex-direction:column;gap:5px;font-size:var(--t-sm);font-weight:var(--w-bold);color:var(--mut)}
   .cxf label.ck{flex-direction:row;align-items:center;gap:10px;color:var(--tx);font-size:var(--t-base);font-weight:var(--w-med)}
   .cxf label.ck input{width:22px;height:22px;accent-color:var(--primary)}
-  .cxf .row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s2)}
+  /* tres columnas mientras quepa "Repeticiones" (6,5 em); con la letra grande
+     a 320 px la tercera baja de fila en vez de pisar a la de al lado */
+  .cxf .row3{display:grid;grid-template-columns:repeat(auto-fit,minmax(6.5em,1fr));gap:var(--s2)}
   .cxf .row3 label{justify-content:flex-end}
   .cxf textarea{min-height:76px;resize:vertical}
   .cxf .minibtn{margin-top:0}
@@ -968,6 +1218,12 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .rirb{min-width:44px;height:36px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card2);
     color:var(--tx);font:inherit;font-weight:var(--w-bold);cursor:pointer}
   .rirb.on{background:var(--primary);border-color:var(--primary);color:#fff}
+  /* chip "Salto" bajo el peso y sus opciones (v36) */
+  .incchip{display:block;margin:8px auto 0;font-family:inherit}
+  .incchip.add{border-style:dashed;background:transparent;color:var(--mut)}
+  .incpick{margin:10px 0 2px;font-size:var(--t-sm);color:var(--mut);font-weight:var(--w-semi)}
+  .incpick .mchips{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:6px 0 0}
+  .incpick .mchip{font-family:inherit;padding:5px 0}
   .msum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   .mscell{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:var(--r-sm);background:var(--sunk)}
   .mscell b{font-size:var(--t-lg);font-variant-numeric:tabular-nums}
@@ -977,11 +1233,11 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .bwlist summary{cursor:pointer;color:var(--primary-ink);font-weight:var(--w-bold);padding:6px 0}
   .medrow{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:var(--t-sm)}
   .medrow>span:first-child{flex:1;font-weight:var(--w-semi)}
-  .medrow b{font-variant-numeric:tabular-nums}
+  .medrow b{font-variant-numeric:tabular-nums;white-space:nowrap}
   .medgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-top:12px}
   .medgrid label{display:flex;flex-direction:column;gap:4px;font-size:var(--t-xs);font-weight:var(--w-bold);color:var(--mut)}
   .medgrid input{width:100%;box-sizing:border-box;background:var(--sunk);color:var(--tx);border:1px solid var(--line);
-    border-radius:var(--r-sm);padding:10px;font:inherit;font-size:16px;font-weight:var(--w-med)}
+    border-radius:var(--r-sm);padding:10px;font:inherit;font-size:var(--t-campo);font-weight:var(--w-med)}
   .exnote.pain{background:var(--danger-tint);color:var(--danger-ink);border-color:var(--danger)}
   .exnote.pain u{color:inherit;text-decoration:underline}
   .ddfix{border:1px solid var(--line);background:var(--card);color:var(--primary-ink);border-radius:var(--r-sm);
@@ -995,7 +1251,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .finsum .fs b{display:block;font-size:var(--t-lg);font-weight:var(--w-bold);line-height:1.2}
   .finsum .fs span{font-size:var(--t-2xs);letter-spacing:.6px}
   .finlist{display:flex;flex-direction:column;gap:6px;margin:0 0 var(--s4)}
-  .setline.fin .n{width:auto;flex:1;color:var(--tx);font-weight:var(--w-med)}
+  .setline.fin .n{width:auto;min-width:0;white-space:normal;flex:1;color:var(--tx);font-weight:var(--w-med)}
   .setline.fin .v{color:var(--mut);font-weight:var(--w-semi);font-size:var(--t-sm);text-align:right}
   .finempty{padding:16px 14px;text-align:center;font-size:var(--t-sm);color:var(--mut);
     font-weight:var(--w-med);margin:0 0 var(--s4);line-height:1.5}
@@ -1014,6 +1270,9 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .toggle:focus-visible,.rcard:focus-visible,.ex .top:focus-visible{
     outline:none;box-shadow:var(--sh-focus);border-radius:10px}
 </style>
+<!-- la consulta del stepper (seccion steppers): reservaCifra() la reescribe con
+     "142.5" medido en la letra real; hasta entonces, una reserva holgada -->
+<style id="cifraReserva">@container (max-width:calc(92px + 5.6em)){.stepper .row{flex-wrap:wrap} .stepper .row>b,.stepper .row>.numin{order:-1;flex:1 0 100%}}</style>
 </head>
 <body>
 <div class="app">
@@ -1030,6 +1289,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
       <span class="fl"><svg class="ic sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c.7 2.8 3.7 3.9 3.7 7.6a3.7 3.7 0 1 1-7.4 0c0-1.8.9-2.9 1.9-3.7.2 1.9 1 2.1 1.8 1.9 0-2.8-.9-3.7 0-5.8z"/></svg></span>
       <span class="n" id="stCount">0</span><span class="lb" id="stCountL">semanas cumplidas</span>
       <span class="rt" id="stWeek"></span>
+      <div class="stpost" id="stPost" hidden></div>
     </div>
     <div id="weekCard"></div>
     <div id="routines"></div>
@@ -1081,6 +1341,8 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+<!-- la cifra mas larga del stepper, invisible, con su letra: la mide reservaCifra() -->
+<div id="cifraRef" class="stepper" aria-hidden="true"><div class="row"><b>142.5</b></div></div>
 
 <div id="finov">
   <div class="ovcard" role="dialog" aria-modal="true" aria-labelledby="finTitle">
@@ -1591,7 +1853,7 @@ const SECDOSE={
 const TAG={calent:["Calentamiento","b-calent"],diario:["Diario","b-diario"],carga:["Carga 3–4×/sem","b-carga"],opcional:["Opcional","b-opcional"],propio:["Tuyo","b-opcional"]};
 const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
-const VERSION="v35 · corregir series, notas y avisos de copia";
+const VERSION="v36 · pesos reales, récords, racha y deshacer";
 /* ==== [S5] ICONOS =========================================================
    Solo el interior del <svg>; ic() lo envuelve. Rejilla 24x24, sin relleno
    salvo los marcados .solid. */
@@ -1641,39 +1903,230 @@ const RICON={postura_completa:"posture",postura_movilidad:"mobility",cuello_rost
   salud_fuerza_a:"legs",salud_fuerza_b:"pull",salud_equilibrio:"mobility"};
 function routIcon(k){const r=ROUTINES[k];
   return RICON[k]||((r&&r.cls==="n")?"neck":(r&&r.cls==="g")?"dumbbell":"posture");}
-/* aviso flotante */
-let toastT=null;
-function toast(html,ms){const el=$("toast");if(!el)return;
-  el.innerHTML=html;el.classList.add("show");
-  clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("show"),ms||2600);}
+/* aviso flotante. fin (v36) es para el aviso con boton: se llama al cerrarse,
+   por tiempo o porque otro aviso lo pisa, y ahi caduca lo que el boton hacia */
+let toastT=null,toastFin=null;
+function toast(html,ms,fin){const el=$("toast");if(!el)return;
+  toastCierra();
+  /* el icono va aparte y el texto en UN solo hijo: suelto, cada <b> era otra
+     columna del flex y con la letra grande el aviso se partia en dos. El
+     aviso con boton ya llega asi (icono, .tmsg y el boton) */
+  const m=/^\s*(<svg[\s\S]*?<\/svg>)\s*([\s\S]*)$/.exec(html);
+  el.innerHTML=/class="tmsg"/.test(html)?html:m?m[1]+'<span class="tmsg">'+m[2]+"</span>":'<span class="tmsg">'+html+"</span>";
+  el.classList.add("show");el.classList.toggle("conboton",!!el.querySelector(".tact"));toastFin=fin||null;
+  colocaAviso(el,!!fin&&inGuided());
+  clearTimeout(toastT);toastT=setTimeout(()=>{toastCierra();el.classList.remove("show");},ms||2600);}
+/* el aviso con boton, en el guiado, arriba, bajo la barra: abajo su boton
+   caia sobre "Registrar serie", el + o "Nota fija", y un toque ahi deshacia.
+   Si ahi tambien pisa un control (pagina desplazada hasta la ultima serie),
+   baja hasta el primer hueco libre. Primero busca uno donde el aviso entero
+   no tape ninguno: como se queda los toques, lo que tapa no se puede tocar
+   en esos 7 s (con los datos del dueno, el chip "¿De cuanto sube?"). Si no
+   lo hay, de los sitios donde al menos el boton no cae sobre un control, el
+   que menos tapa; sin ninguno, donde siempre.
+   Se busca primero bajo la barra y, si ahi no hay hueco, tambien por encima,
+   hasta el borde de la pantalla: con la pagina desplazada la barra ya no
+   esta y ese trozo es pagina como cualquier otro. Y si centrado no cabe en
+   ningun sitio, se prueba algo movido a un lado (hasta 8 px del borde). Con
+   una letra mas ancha que Inter (DejaVu Sans) las series de "122.5 kg × 12
+   · reserva 3" van en dos lineas, el aviso es mas ancho y a 320x568 no
+   quedaba hueco: el aviso volvia abajo y Deshacer caia sobre «Registrar
+   serie». Los huecos estaban encima, entre el stepper y el chip del salto,
+   o a 8 px a la izquierda, donde Deshacer deja de rozar las X.
+   Las posiciones se prueban con cuentas, sin mover el aviso: mover y medir
+   cada una obligaria a maquetar cientos de veces en cada desplazamiento.
+   En vertical no se prueba de 8 en 8 sino cada sitio donde el aviso (con la
+   zona de 44 px del boton), o solo esa zona, toca justo el borde de un
+   control, por debajo o por encima: un hueco libre empieza y acaba siempre
+   en uno de esos bordes o en los extremos, asi que si lo hay se encuentra.
+   De 8 en 8 se saltaba los huecos justos: con los datos de la madre a
+   320x568 y letra al 115 % (Roboto), borrando la primera serie, el aviso
+   cabia entre «¿Molestia…?» y el + de «Series» en 6 px de recorrido, ninguno
+   de los probados, y tapaba la serie 1.
+   quieto (al desplazar la pagina): sin hueco para el aviso entero, se queda
+   donde estaba en la pantalla mientras Deshacer siga libre. Buscando cada vez
+   el sitio que menos tapa, el aviso perseguia a ese control: con seis series
+   a 320x568 tapaba la cifra de la serie 2 (la mas corta) en cualquier punto
+   del recorrido, y desplazar no la sacaba de debajo. Quieto, la pagina pasa
+   por debajo y lo tapado sale al desplazar lo que mide el aviso. Y si tiene
+   que moverse (Deshacer caeria sobre un control), primero busca un sitio que
+   no tape lo que acaba de tapar: si no, en la lista de series el unico sitio
+   donde cabe Deshacer es junto a la cifra corta y volvia a ella. */
+let avisoBajo=[];
+/* lo que no es control pero el aviso no debe tapar si hay donde ponerlo: la
+   barra del guiado (cuanto llevas) y los rotulos PESO, REPS y SERIES. Sin
+   el suyo, «− 2 +» no dice que cuenta: buscando solo entre controles, el
+   primer hueco bajo la barra caia a menudo justo encima del stepper de
+   series, sobre su rotulo, con el sitio libre un poco mas abajo */
+const ROTULOS="#guided .gtop,#guided .stepper .lab";
+function colocaAviso(el,arriba,quieto){
+  const antes=quieto&&el.classList.contains("arriba")&&el.style.top?{x:el.offsetLeft,y:el.offsetTop,top:el.style.top,l:el.style.left,r:el.style.right}:null;
+  if(!antes)avisoBajo=[];
+  el.style.top="";el.style.left=el.style.right="";el.classList.toggle("arriba",arriba);if(!arriba)return;
+  const b=el.querySelector(".tact"),cs=controlesGuiado(),cr=cs.concat(controlesGuiado(ROTULOS)),y0=el.offsetTop,x0=el.offsetLeft,h=el.offsetHeight,fin=Math.floor(innerHeight-el.getBoundingClientRect().height);
+  el.style.top="calc(var(--s2) + env(safe-area-inset-top))";const tope=el.offsetTop;
+  const lado=Math.max(0,Math.min(x0,document.documentElement.clientWidth-x0-el.offsetWidth)-8);
+  const dxs=[0];for(let d=8;d<=lado;d+=8)dxs.push(-d,d);
+  const pon=(dx,y)=>{el.style.top=y+"px";if(dx){el.style.left=dx+"px";el.style.right=(-dx)+"px";}};
+  /* lo que ocupa por encima y por debajo de su top el aviso con la zona del
+     boton (entero) y la zona sola. Y donde el aviso solo empieza o deja de
+     tapar un control a lo alto: ahi cambia la superficie que tapa, y la
+     menor (abajo) cae en uno de esos sitios */
+  const by=b?b.offsetTop+b.offsetHeight/2:0,my=b?Math.max(22,b.offsetHeight/2):0,
+    arr=Math.min(0,by-my),aba=Math.max(h,by+my),ys=[y0,tope,fin];
+  cr.forEach(r=>{if(r.w>0)ys.push(Math.ceil(r.b-arr),Math.floor(r.t-aba),Math.ceil(r.b-by+my),Math.floor(r.t-by-my),
+    Math.round(r.t),Math.round(r.b-h),Math.round(r.t-h),Math.round(r.b));});
+  const bajan=[...new Set(ys.filter(y=>y>=y0&&y<=fin))].sort((p,q)=>p-q),
+    suben=[...new Set(ys.filter(y=>y<y0&&y>=tope))].sort((p,q)=>q-p);
+  const todas=bajan.concat(suben);
+  for(const c of [cr,cs])for(const dx of dxs)for(const y of todas)if(!avisoPisa(el,c,true,b,x0+dx,y)){avisoBajo=[];return pon(dx,y);}
+  const bajo=(x,y)=>cs.filter(r=>r.w>0&&r.l<x+el.offsetWidth&&r.r>x&&r.t<y+el.offsetHeight&&r.b>y).map(r=>r.el);
+  if(antes&&antes.y>=tope&&antes.y<=fin&&!avisoPisa(el,cs,false,b,antes.x,antes.y)){
+    el.style.top=antes.top;el.style.left=antes.l;el.style.right=antes.r;avisoBajo=bajo(antes.x,antes.y);return;}
+  /* sin hueco para el aviso entero: de los sitios donde al menos el boton
+     no cae sobre un control, el que menos superficie de controles tapa (lo
+     tapado no se puede tocar en esos 7 s); a igualdad, el primero. Al
+     desplazar, antes los que no tapan nada de lo que tapaba */
+  let mejor=null;
+  for(const dx of dxs)for(const y of todas)if(!avisoPisa(el,cs,false,b,x0+dx,y)){
+    const t=avisoTapa(el,cs,x0+dx,y),rep=bajo(x0+dx,y).some(c=>avisoBajo.indexOf(c)>=0)?1:0;
+    if(!mejor||rep<mejor.rep||rep===mejor.rep&&t<mejor.t-0.5)mejor={t:t,rep:rep,dx:dx,y:y};}
+  if(mejor){avisoBajo=bajo(x0+mejor.dx,mejor.y);return pon(mejor.dx,mejor.y);}
+  avisoBajo=[];el.style.top="";el.classList.remove("arriba");}
+/* la superficie de controles que tapa el aviso en x,y */
+function avisoTapa(el,cs,x,y){const R=x+el.offsetWidth,B=y+el.offsetHeight;
+  return cs.reduce((a,r)=>a+(r.w>0?Math.max(0,Math.min(r.r,R)-Math.max(r.l,x))*Math.max(0,Math.min(r.b,B)-Math.max(r.t,y)):0),0);}
+/* la pagina se mueve bajo el aviso: si en sus 7 s se desplaza, otro control
+   ("Registrar serie", el +) puede pasar bajo el boton. Se vuelve a colocar
+   con cada desplazamiento o cambio de tamano de la ventana */
+function recolocaAviso(quieto){const el=$("toast");
+  if(el&&toastFin&&el.classList.contains("show")&&inGuided())colocaAviso(el,true,quieto===true);}
+addEventListener("scroll",()=>recolocaAviso(true),{passive:true});addEventListener("resize",()=>recolocaAviso());
+/* las cajas de los controles del guiado donde se quedan quietos. El paso
+   recien pintado (borrar una serie) entra 8 px mas abajo (stageIn): medido a
+   media entrada, el hueco que se encontraba dejaba el Deshacer sobre un
+   control al terminar. Se descuenta el desplazamiento de lo que se esta
+   moviendo, una vez por colocacion */
+function controlesGuiado(sel){
+  const mov=(document.getAnimations?document.getAnimations():[]).filter(a=>{const t=a.effect&&a.effect.target;
+      return t&&t.closest&&t.closest("#guided")&&a.playState==="running"&&isFinite(a.effect.getComputedTiming().endTime);})
+    .map(a=>{const t=a.effect.target,m=getComputedStyle(t).transform,d=m&&m!=="none"?new DOMMatrix(m):null;
+      return {t:t,x:d?d.m41:0,y:d?d.m42:0};});
+  return Array.prototype.map.call(document.querySelectorAll(sel||"#guided button,#guided [role=button],#guided input,#guided summary,#guided a"),c=>{
+    const r=c.getBoundingClientRect();let dx=0,dy=0;
+    mov.forEach(m=>{if(m.t===c||m.t.contains(c)){dx+=m.x;dy+=m.y;}});
+    return {w:r.width,l:r.left-dx,r:r.right-dx,t:r.top-dy,b:r.bottom-dy,el:c};});}
+/* si la zona de 44 px del boton del aviso cae sobre un control del guiado;
+   con entero, si la cae el aviso entero (con esa zona, que puede asomar).
+   Con el aviso en x,y (o donde esta) y offset*, que no ven el translateY de
+   la entrada del aviso */
+function avisoPisa(el,cs,entero,b,x,y){b=b||el.querySelector(".tact");if(!b)return false;
+  if(x==null){x=el.offsetLeft;y=el.offsetTop;}
+  const cx=x+b.offsetLeft+b.offsetWidth/2,cy=y+b.offsetTop+b.offsetHeight/2,
+    mx=Math.max(22,b.offsetWidth/2),my=Math.max(22,b.offsetHeight/2);
+  let L=cx-mx,R=cx+mx,T=cy-my,B=cy+my;
+  if(entero){L=Math.min(L,x);R=Math.max(R,x+el.offsetWidth);
+    T=Math.min(T,y);B=Math.max(B,y+el.offsetHeight);}
+  return (cs||controlesGuiado()).some(r=>r.w>0&&r.l<R&&r.r>L&&r.t<B&&r.b>T);}
+function toastCierra(){const f=toastFin;toastFin=null;if(f)f();}
+/* el aviso a la vista se queda los toques (pointer-events en .toast.show):
+   nada de lo que tapa se activa sin verse. El que no tiene boton se cierra,
+   y el siguiente toque ya llega a lo de debajo; el de Deshacer sigue igual,
+   para no perder el Deshacer por rozar su texto. El click de su boton
+   tambien sube hasta aqui, y para entonces deshacerSerie() ya ha puesto
+   «Serie recuperada», sin boton: no es un toque en ESE aviso y no lo cierra */
+function toastToca(e){const el=e.currentTarget;if(toastFin||!el.classList.contains("show"))return;
+  if(e.target.closest&&e.target.closest(".tact"))return;
+  clearTimeout(toastT);el.classList.remove("show");}
+document.getElementById("toast").addEventListener("click",toastToca);
+/* el aviso con boton es de su pantalla: al salir de ella se retira ya */
+function toastFuera(){if(!toastFin)return;clearTimeout(toastT);toastCierra();
+  const el=$("toast");if(el)el.classList.remove("show");}
 /* record personal: una serie es record si ninguna anterior la domina en peso
-   Y repeticiones a la vez. Es la misma regla que ya usa el panel de progreso. */
-function isPR(id,w,reps){w=w||0;reps=reps||0;if(!reps)return false;
-  const recs=loadLogs()[id]||[],ses=sessLog(curRoutine)[id]||[];
-  if(!recs.length&&!ses.length)return false;
+   Y repeticiones a la vez. Es la misma regla que ya usa el panel de progreso
+   (prFeed), con sus mismas excepciones: el calentamiento no cuenta, y la
+   primera vez que se registra un ejercicio solo marca el punto de partida.
+   Hasta v35 las dos contaban distinto en esos dos casos.
+   i: cuantas series de hoy cuentan como anteriores (todas si no viene) */
+function isPR(id,w,reps,i){w=w||0;reps=reps||0;if(!reps||warmIds()[id])return false;
+  const recs=loadLogs()[id]||[],hoy=sessLog(curRoutine)[id]||[],ses=i==null?hoy:hoy.slice(0,i);
+  if(!recs.length)return false;
   let dom=false;
   const rev=st=>{(st||[]).forEach(x=>{if((x.w||0)>=w&&(x.reps||0)>=reps)dom=true;});};
   recs.forEach(r=>rev(r.sets));rev(ses);
   return !dom;}
+/* que se supero, para nombrarlo en la propia serie y en la pantalla de fin.
+   Contra las mismas series anteriores que isPR, y en este orden: el peso
+   nuevo se entiende sin explicar nada; el e1RM, con el guardarrail del rango
+   (bestE1) y el margen de prLevel; si no, son mas reps con ese peso. */
+function prKind(id,w,reps,i){w=w||0;reps=reps||0;
+  const hoy=sessLog(curRoutine)[id]||[],prev=[];
+  (loadLogs()[id]||[]).forEach(r=>(r.sets||[]).forEach(x=>prev.push(x)));
+  (i==null?hoy:hoy.slice(0,i)).forEach(x=>prev.push(x));
+  if(w>0&&prev.every(x=>(x.w||0)<w))return "Peso máximo";
+  if(w>0&&reps>=repRange(id)[0]&&e1rm(w,reps)>bestE1(id,{sets:prev})*1.005)return "Mejor 1RM est.";
+  return w>0?"Más reps con "+fmtW(w)+" "+((EX[id]||{}).unit||"kg"):"Más reps";}
 /* Tres niveles, porque celebrar todo igual devalua la senal: un logro trivial
    no construye nada. El de rango es el fuerte, porque es el que dispara la
-   subida de carga de la sesion siguiente. */
-function prLevel(id,w,reps){const rng=repRange(id),recs=loadLogs()[id]||[];
-  let mejorE1=0;recs.forEach(r=>{mejorE1=Math.max(mejorE1,bestE1(id,r));});
+   subida de carga de la sesion siguiente. Contra las mismas series
+   anteriores que prKind (historial y las de hoy antes de la i): medido solo
+   contra el historial, una serie ligera tras otra fuerte salia de nivel 2,
+   con aviso flotante, y su etiqueta decia "Mas reps con X kg". */
+function prLevel(id,w,reps,i){const rng=repRange(id),hoy=sessLog(curRoutine)[id]||[],prev=[];
+  (loadLogs()[id]||[]).forEach(r=>(r.sets||[]).forEach(x=>prev.push(x)));
+  (i==null?hoy:hoy.slice(0,i)).forEach(x=>prev.push(x));
+  const mejorE1=bestE1(id,{sets:prev});
   const e1=(reps>=rng[0])?e1rm(w||0,reps):0;
   if(e1>0&&e1>mejorE1*1.005)return 2;                    /* nuevo maximo de e1RM */
   return 1;}                                             /* mejor para esas reps */
-function markPR(id,w,reps){const sv=loadSess();if(!sv)return;
-  const lvl=prLevel(id,w,reps);
-  sv.pr=sv.pr||[];sv.pr.push({id:id,w:w,reps:reps,lvl:lvl});saveSess(sv);
+/* i: numero de la serie en la sesion (0 la primera). Con el, la marca va a
+   esa serie y no a todas las que pesen y repitan lo mismo. Los pr de v35 no
+   lo traen, ni kind: se leen igual, solo que sin etiqueta. */
+function prEntry(id,w,reps,i){return {id:id,w:w,reps:reps,lvl:prLevel(id,w,reps,i),i:i,kind:prKind(id,w,reps,i)};}
+/* ejercicios cuyo record no cupo en rp_session: solo vivia en el objeto que
+   se iba a escribir y se perdia para siempre. Se rehacen desde las series
+   (prRecalc) en cuanto estas caben (touchSess), o al finalizar */
+let prSinGuardar={};
+/* solo en la sesion de esta rutina: con la de otra abierta (HU-63, no cupo
+   al cambiar) el record no se apunta en la ajena */
+function markPR(id,w,reps,i){const sv=sessActive(curRoutine)?loadSess():null;
+  if(!sv){if(enMemoria(curRoutine))prSinGuardar[id]=1;return;}
+  const p=prEntry(id,w,reps,i),lvl=p.lvl;
+  /* con las series de memoria, como prRecalc: el pr va numerado sobre ellas.
+     Sin duplicar el que ya hubiera rehecho touchSess para esta serie */
+  if(sessionLogKey===curRoutine)sv.log=logSinVacios();
+  sv.pr=(sv.pr||[]).filter(q=>!(q.id===id&&q.i===i));sv.pr.push(p);sv.lastAt=Date.now();
+  /* si no cabe, el aviso de "No cupo" no lo tapa el de record */
+  if(!jset("rp_session",sv)){prSinGuardar[id]=1;avisoLleno();return;}
   const e=EX[id]||{},u=e.unit||"kg",marca=(w>0)?fmtW(w)+" "+u+" \u00d7 "+reps:reps+" reps";
-  /* nivel 1 no lanza aviso flotante: se ve en la propia serie y ya */
-  if(lvl>=2)toast(ic("trophy","sm")+" R\u00e9cord en "+esc(shortName(id))+": <b>"+marca+"</b>");}
+  /* nivel 1 no lanza aviso flotante: se ve en la propia serie y ya. Con
+     un aviso con boton a la vista (Deshacer, HU-54) tampoco el de nivel 2:
+     lo cerraria y la serie borrada ya no se podria recuperar */
+  if(lvl>=2&&!toastFin)toast(ic("trophy","sm")+" R\u00e9cord en "+esc(shortName(id))+": <b>"+marca+"</b>");}
+/* borrar o corregir una serie de hoy rehace los records de ese ejercicio:
+   cada serie se vuelve a medir contra el historial y las anteriores. Sin
+   esto la marca seguia en una serie borrada, o en una que ya no lo es, y
+   llegaba asi a la pantalla de fin y al historial. Sin aviso flotante.
+   Como markPR, solo en la sesion de hoy de esta rutina (HU-63) */
+function prRecalc(id){const sv=sessActive(curRoutine)?loadSess():null;if(!sv)return;
+  /* con las series de memoria, como touchSess: si no cupo, que no quede en
+     disco un pr numerado sobre otras series */
+  if(sessionLogKey===curRoutine)sv.log=logSinVacios();
+  const pr=prDeHoy(sv.pr,id);
+  /* sin records ni antes ni ahora la sesion sigue sin clave pr, como la deja
+     markPR: borrar una serie y deshacerlo (HU-54) la deja identica */
+  if(pr.length||sv.pr)sv.pr=pr;
+  sv.lastAt=Date.now();
+  if(jset("rp_session",sv))delete prSinGuardar[id];else{prSinGuardar[id]=1;avisoLleno();}}
+/* los records de pr con los de id rehechos desde sus series de hoy */
+function prDeHoy(pr,id){const out=(pr||[]).filter(p=>p.id!==id);
+  (sessLog(curRoutine)[id]||[]).forEach((x,i)=>{if(isPR(id,x.w,x.reps,i))out.push(prEntry(id,x.w,x.reps,i));});
+  return out;}
 /* ==== fin [S5] ============================================================ */
 let curRoutine=null, steps=[], stepi=0, tId=null, actx=null, remTimers=[];
 const $=id=>document.getElementById(id);
 function show(v){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$(v).classList.add("active");
-  if(v==="guided")requestWake();else{releaseWake();clearRestNotif();}
+  if(v==="guided")requestWake();else{releaseWake();clearRestNotif();toastFuera();}
   document.querySelectorAll(".nav .tab").forEach(t=>{const on=t.dataset.v===v;if(on)t.setAttribute("aria-current","page");else t.removeAttribute("aria-current");});
   const main=["home","history","progress","settings"].includes(v);$("nav").classList.toggle("hide",!main);
   document.querySelectorAll(".nav .tab").forEach(a=>a.classList.toggle("on",a.dataset.v===v));window.scrollTo(0,0);}
@@ -1706,7 +2159,10 @@ function beep(){try{actx=actx||new (window.AudioContext||window.webkitAudioConte
   try{if(navigator.vibrate)navigator.vibrate([120,60,120]);}catch(e){}}
 function prime(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();}catch(e){}}
 let tickFn=null,tEnds=0,restEnds=0;
-function clearTimer(){if(tId){clearInterval(tId);tId=null;}tickFn=null;}
+/* tambien la confirmacion de 300 ms de logSet: salir, retroceder o saltar
+   en esa ventana la cancela, como si se saliera durante el descanso */
+function clearTimer(){if(tId){clearInterval(tId);tId=null;}tickFn=null;
+  if(serieTO){clearTimeout(serieTO);serieTO=null;}}
 /* al volver del segundo plano el navegador frena los intervalos: se recalcula
    contra el reloj en vez de ir restando de uno en uno */
 document.addEventListener("visibilitychange",function(){
@@ -1732,8 +2188,32 @@ try{matchMedia("(prefers-color-scheme:dark)").addEventListener("change",()=>{if(
    postura diaria y tres dias de gimnasio, 200 sesiones son unos cinco meses,
    y lo mas viejo se borraba sin avisar. Con estos caben años. */
 const HISTMAX=2000,LOGMAX=1000;
-function jget(k,d){try{return JSON.parse(localStorage.getItem(k))??d;}catch(e){return d;}}
+/* lo guardado tiene que tener la forma del valor por defecto (lista, objeto,
+   texto): un rp_history que fuera un objeto dejaba la app en blanco con
+   loadHist().forEach. Solo se lee distinto; lo guardado sigue ahi, y la copia
+   lo exporta tal cual, hasta que algo se escribe encima. */
+function jget(k,d){try{const v=JSON.parse(localStorage.getItem(k));if(v==null)return d;
+  if(d!=null&&(typeof v!==typeof d||Array.isArray(v)!==Array.isArray(d)))return d;
+  return v;}catch(e){return d;}}
 function jset(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}
+/* foto cruda de unas claves y vuelta atras, para escrituras que van juntas:
+   o entran todas o el almacenamiento queda como estaba */
+function fotoClaves(ks){const o={};ks.forEach(k=>{try{o[k]=localStorage.getItem(k);}catch(e){o[k]=null;}});return o;}
+function volverA(foto){Object.keys(foto).forEach(k=>{try{if(localStorage.getItem(k)===foto[k])return;
+  if(foto[k]==null)localStorage.removeItem(k);else localStorage.setItem(k,foto[k]);}catch(e){}});}
+/* jset ya devolvia false con el telefono lleno, pero nadie lo miraba: la
+   serie se veia anotada y al cerrar la app desaparecia */
+function avisoLleno(){toast("No cupo en el teléfono: lo de esta sesión sigue en pantalla, pero no quedó guardado. Libera espacio antes de cerrar la app.",7000);}
+/* forma de cada clave conocida, para validar una copia antes de importarla */
+const FORMAS={rp_history:"lista",rp_plan:"lista",rp_bw:"lista",rp_medidas:"lista",
+  rp_logs:"obj",rp_custom:"obj",rp_extras:"obj",rp_swaps:"obj",rp_doses:"obj",rp_checks:"obj",rp_logged:"obj",
+  rp_pain:"obj",rp_notes:"obj",rp_inc:"obj",rp_prefs:"obj",rp_streak:"obj",rp_weekgoal:"obj",rp_rem:"obj",rp_session:"obj",
+  rp_theme:"texto",rp_lastexport:"texto",rp_schema:"num"};
+function formaOK(k,v){const f=FORMAS[k];if(!f||v==null)return true;
+  if(f==="lista")return Array.isArray(v);
+  if(f==="obj")return typeof v==="object"&&!Array.isArray(v);
+  if(f==="num")return typeof v==="number"&&v>=0&&v%1===0;
+  return typeof v==="string";}
 function ds(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function today(){return ds(new Date());}
 /* "AAAA-MM-DD" a medianoche LOCAL. new Date("2026-09-23") la lee como UTC, y
@@ -1749,8 +2229,10 @@ function completeDay(){const s=loadStreak(),t=today();if(s.last!==t){s.count=(s.
    descanso planificado. Con un split de 3 dias eso castiga exactamente lo que
    el programa pide. Ninguna de las cuatro apps de fuerza de referencia usa
    racha diaria, y por este motivo.
-   Se cuenta por semanas cerradas: la semana en curso nunca resta, solo se
-   muestra como progreso. El historico de la racha diaria no se borra. */
+   Se cuenta por semanas cerradas: la semana en curso nunca resta, y suma en
+   cuanto se cumple la meta. Desde v36 es la UNICA racha que se ve (Inicio,
+   pantalla de fin, "Listo por hoy", Progreso y Ajustes). rp_streak se sigue
+   escribiendo igual: su total alimenta "N sesiones en total". */
 /* ojo: mas abajo ya existe un weekStart(off) que devuelve una cadena y toma un
    desplazamiento de semanas. Estas se llaman distinto para no pisarlo. */
 function wkMonday(d){const x=new Date(d);x.setHours(0,0,0,0);
@@ -1762,6 +2244,11 @@ function gymSessionsByWeek(){const m={};
     if(r.exTotal&&r.exDone/r.exTotal<0.6)return;
     const k=wkKey(new Date(r.iso));m[k]=(m[k]||0)+1;});
   return m;}
+/* dias de esta semana (lunes a hoy) con alguna rutina que no es de fuerza:
+   la misma cuenta que el bloque "Postura y cuello" de Progreso */
+function posturaSemana(){const desde=wkKey(new Date()),dias={};
+  histRows().forEach(r=>{if(GYMKEYS.indexOf(r.key)<0&&r.date>=desde)dias[r.date]=1;});
+  return Object.keys(dias).length;}
 function weekGoal(){const p=loadPlan();
   const n=p.filter(v=>v&&GYMKEYS.indexOf(v)>=0).length;
   return n||3;}
@@ -1777,12 +2264,17 @@ function weekStats(){const m=gymSessionsByWeek(),goal=weekGoal(),hoy=new Date();
   for(;;){cur.setDate(cur.getDate()-7);const k=ds(cur);
     if((m[k]||0)>=gOf(k))racha++;else break;
     if(racha>200)break;}
+  /* la semana cumplida cuenta ya: si no, la pantalla de fin diria "Semana
+     cumplida" y Inicio seguiria con el numero de antes */
+  if(hechas>=goal)racha++;
   let mejor=racha;const keys=Object.keys(m).sort();
   if(keys.length){let run=0,prev=null;
     keys.forEach(k=>{if(m[k]<gOf(k)){run=0;prev=k;return;}
-      const d=new Date(k+"T00:00:00");
-      if(prev){const pd=new Date(prev+"T00:00:00");
-        run=((d-pd)/86400000===7&&m[prev]>=gOf(prev))?run+1:1;}else run=1;
+      /* seguidas si k es el lunes siguiente a prev, por fecha como en la
+         racha de arriba: restar milisegundos daba 7 dias +-1 h cuando entre
+         los dos lunes habia cambio de hora, y la mejor racha se partia */
+      if(prev){const sig=dlocal(prev);sig.setDate(sig.getDate()+7);
+        run=(ds(sig)===k&&m[prev]>=gOf(prev))?run+1:1;}else run=1;
       prev=k;mejor=Math.max(mejor,run);});}
   return {goal:goal,hechas:hechas,racha:racha,mejor:mejor,
     semanaOK:hechas>=goal,total:Object.keys(m).length};}
@@ -1793,18 +2285,22 @@ function recordSession(key,name,sum,when){const h=loadHist(),d=when?new Date(whe
     time:String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
   if(sum){e.sets=sum.sets;e.vol=sum.vol;e.exDone=sum.exDone;e.exTotal=sum.exTotal;e.dur=sum.dur;e.ids=sum.ids;
     if(sum.pr&&sum.pr.length)e.pr=sum.pr;}
-  h.unshift(e);jset("rp_history",h.slice(0,HISTMAX));return e;}
+  h.unshift(e);return jset("rp_history",h.slice(0,HISTMAX))?e:null;}
 
 /* ---------- HOME ---------- */
 function renderHome(){
-  const s=loadStreak(),w=weekStats();
+  const w=weekStats();
   $("stCount").textContent=w.racha;
   $("stCountL").textContent=plural(w.racha,"semana cumplida","semanas cumplidas");
   /* el anillo de la semana en curso: el gradiente de meta tira mas cuanto mas
      cerca esta el objetivo, y la semana viva nunca resta */
   $("stWeek").innerHTML=`<span class="wkring">${ringSVG(w.goal?w.hechas/w.goal:0,26,3.5)}</span>`
     +`<b>${w.hechas} de ${w.goal}</b> esta semana`;
-  renderTodayCard(s);renderWeek();
+  /* con objetivo salud la postura va aparte: no cuenta para la meta de
+     fuerza, y en ella lo que importa es la frecuencia */
+  const sp=$("stPost"),salud=goalPref()==="salud";sp.hidden=!salud;
+  sp.innerHTML=salud?`Postura: <b>${posturaSemana()} de 7</b> días esta semana`:"";
+  renderTodayCard(w);renderWeek();
   let h=backupNag();
   GROUPS.forEach(g=>{
     h+=`<div class="grouptitle">${g.title}</div><div class="rlist">`;
@@ -1825,7 +2321,9 @@ function daysSinceExport(){const l=jget("rp_lastexport",null);
   return l?Math.round((dlocal(today())-dlocal(l))/86400000):null;}
 function backupNag(){if(loadHist().length<5)return "";const d=daysSinceExport();
   if(d!=null&&d<14)return "";
-  return `<div class="bknag">${ic("alert","sm")}<div style="flex:1">${d==null?"Aún no tienes copia de seguridad.":"Tu última copia es de hace "+d+" días."}
+  /* el texto pide 12 em: con menos, el boton baja a su linea y el aviso no se
+     queda en una columna de dos palabras por renglon */
+  return `<div class="bknag">${ic("alert","sm")}<div style="flex:1 1 12em">${d==null?"Aún no tienes copia de seguridad.":"Tu última copia es de hace "+d+" días."}
     Si pierdes o cambias el teléfono, sin ella se pierde tu progreso.</div>
     <button class="minibtn" onclick="exportData()">${ic("down","sm")} Hacer copia</button></div>`;}
 
@@ -1898,7 +2396,7 @@ function mergeCustom(){const all=loadCustom();Object.keys(all).forEach(id=>{cons
   if(c.zona&&MUSCGOAL[c.zona]!=null)MUSC[id]={[c.zona]:1};else delete MUSC[id];});}
 function zonaLabel(z){return MUSCNAME[z]||ZNAME[z]||z;}
 function openAddEx(k){pushHist({ov:"swap"});$("swapTitle").textContent="Agregar ejercicio";
-  $("swapBody").innerHTML=`<input id="addq" class="addsearch" type="search" placeholder="Buscar en el catálogo…" oninput="addExList('${k}')" aria-label="Buscar ejercicio">
+  $("swapBody").innerHTML=`<input id="addq" class="addsearch" type="search" placeholder="Buscar ejercicio…" oninput="addExList('${k}')" aria-label="Buscar ejercicio">
     <div class="planopt addnew" onclick="openCustomForm('${k}')" role="button" tabindex="0"><div class="em">${ic("plus")}</div>
       <div style="flex:1;min-width:0"><div>Crear ejercicio propio</div><div class="optsub">Uno que no esté en la lista: nombre, series y músculo</div></div></div>
     <div id="addList" class="planbody" style="padding:0"></div>`;
@@ -1927,14 +2425,14 @@ function openCustomForm(k,id){const c=id?(loadCustom()[id]||{}):{},t=c.type||"re
   $("swapTitle").textContent=id?"Editar ejercicio":"Nuevo ejercicio";
   $("swapBody").innerHTML=`<div class="cxf">
     <label>Nombre<input id="cx_name" maxlength="60" value="${esc(c.name||"")}" placeholder="Ej. Remo en T" autocomplete="off"></label>
-    <label>Cómo se cuenta<select id="cx_type" onchange="cxType()">${opt("reps","Repeticiones",t)+opt("reps_side","Repeticiones por lado",t)
+    <label>Cómo se cuenta<select id="cx_type" onchange="cxType()">${opt("reps","Repeticiones",t)+opt("reps_side","Reps por lado",t)
       +opt("hold","Tiempo (segundos)",t)+opt("hold_side","Tiempo por lado",t)}</select></label>
     <div class="row3"><label>Series<input id="cx_sets" type="number" inputmode="numeric" min="1" max="10" value="${c.sets||3}"></label>
       <label id="cx_amtl"><span>${hold?"Segundos":"Repeticiones"}</span><input id="cx_amt" type="number" inputmode="numeric" min="1" value="${hold?(c.holdSec||30):(c.reps||10)}"></label>
       <label>Descanso (s)<input id="cx_rest" type="number" inputmode="numeric" min="0" step="15" value="${c.rest!=null?c.rest:60}"></label></div>
     <label class="ck" id="cx_loadl"${hold?' style="display:none"':''}><input id="cx_load" type="checkbox"${(id?c.load:true)?" checked":""}> Lleva peso (registrar kg)</label>
     <label>Músculo principal<select id="cx_zona">${opt("","Sin especificar",c.zona||"")+CXZONAS.map(z=>opt(z,zonaLabel(z),c.zona||"")).join("")}</select></label>
-    <label>Aparato<select id="cx_eq">${opt("","Ninguno / peso corporal",c.eq||"")+Object.keys(EQ).map(q=>opt(q,EQ[q][1],c.eq||"")).join("")}</select></label>
+    <label>Aparato<select id="cx_eq">${opt("","Sin aparato",c.eq||"")+Object.keys(EQ).map(q=>opt(q,EQ[q][1],c.eq||"")).join("")}</select></label>
     <label>Pasos o notas <span class="optsub">(uno por línea, opcional)</span><textarea id="cx_steps" rows="3" maxlength="600">${esc((c.steps||[]).join("\n"))}</textarea></label>
     <button class="btn" onclick="saveCustom('${k}'${id?`,'${id}'`:""})">${ic("check","sm")} ${id?"Guardar cambios":"Crear y agregar a la rutina"}</button>
     ${id?`<button class="minibtn danger" onclick="delCustom('${k}','${id}')">Borrar este ejercicio</button>`:""}
@@ -2036,7 +2534,7 @@ function routineList(k,r,ctx){const b=routineBuckets(k),cal=b.cal,ent=b.ent,se=b
     +`<button class="addexbtn" onclick="openAddEx('${k}')">${ic("plus","sm")} Agregar ejercicio</button>`;}
 function openRoutine(k,noPush){curRoutine=k;if(!noPush)pushHist({v:"routine",k:k});
   const r=ROUTINES[k];
-  if(sessActive(k)){const sv=loadSess();sessionLog=(sv&&sv.log)||{};sessionLogKey=k;}
+  if(sessActive(k))joinSessionLog(k,loadSess());
   const ctx={chk:checksFor(k),swaps:r.swaps||{},extras:r.extras||[],on:extrasOn(k),LOGS:loadLogs(),i:0};
   $("routine").innerHTML=routineHead(k,r)+routineList(k,r,ctx)+`</div>`+routineCTA(k);
   show("routine");
@@ -2060,15 +2558,18 @@ function loadChecks(){return jget("rp_checks",{});}
 function checksOn(t,rk){const d=loadChecks()[t]||{};return d[rk]||{};}
 function checksFor(rk){return checksOn(today(),rk);}
 function isChecked(rk,id){return !!checksFor(rk)[id];}
-function markCheck(rk,id,val){const all=loadChecks(),t=today();all[t]=all[t]||{};all[t][rk]=all[t][rk]||{};
-  if(val===false)delete all[t][rk][id];else all[t][rk][id]=true;jset("rp_checks",all);
+function markCheck(rk,id,val){if(val!==false)ensureSess(rk,"check");
+  const all=loadChecks(),t=today();all[t]=all[t]||{};all[t][rk]=all[t][rk]||{};
+  if(val===false)delete all[t][rk][id];else all[t][rk][id]=true;if(!jset("rp_checks",all))avisoLleno();
   if(curRoutine===rk)updateRoutineProgress();}
+/* HU-63: marcar en otra rutina con una a medias pregunta antes */
 function toggleCheck(id,i){const cur=isChecked(curRoutine,id);
-  if(!cur)startSess(curRoutine,"check");
-  markCheck(curRoutine,id,!cur);
-  const el=$("ex_"+i);if(el){el.classList.toggle("checked",!cur);const ck=el.querySelector(".exck");
-    if(ck)ck.setAttribute("aria-checked",!cur?"true":"false");}
-  if(!cur&&el){el.classList.add("justdone");setTimeout(()=>el.classList.remove("justdone"),650);}
+  if(!cur){const o=sessConflict(curRoutine);if(o){openConflict(o,{id:id,i:i});return;}}
+  marcarFila(id,i,!cur);}
+function marcarFila(id,i,val){markCheck(curRoutine,id,val);
+  const el=$("ex_"+i);if(el){el.classList.toggle("checked",val);const ck=el.querySelector(".exck");
+    if(ck)ck.setAttribute("aria-checked",val?"true":"false");}
+  if(val&&el){el.classList.add("justdone");setTimeout(()=>el.classList.remove("justdone"),650);}
   updateNextEx();updateRoutineCTA();}
 function routineProgressText(k){const l=effList(k),c=checksFor(k);let n=0;l.forEach(id=>{if(c[id])n++;});
   return `${n} de ${l.length} ${plural(n,"hecho","hechos")} hoy`;}
@@ -2393,44 +2894,115 @@ function panelZona(id){
 let sessionLog={}, curW=null, curReps=null, restR=0, planDay=0;
 
 /* ==== [S1] SESION PERSISTIDA =================================================
-   rp_session = {v,key,date,startedAt,lastAt,stepi,src,log:{exId:[{w,reps,t}]}}
+   rp_session = {v,key,date,startedAt,lastAt,stepi,src,log:{exId:[{w,reps,t}]},
+                 saltados?:[exId],repaso?:[exId],
+                 pr:[{id,w,reps,lvl,i,kind}]}   (i y kind desde v36; ver markPR)
    Su ausencia significa "sin sesion activa": los datos antiguos migran solos.
+   saltados y repaso (v36) son opcionales: sin ellos, lista vacia, asi que una
+   sesion de v35 sirve tal cual y no hace falta migracion. saltados = los que
+   se saltaron a proposito en el guiado ("hoy no lo hago"); repaso = los
+   pendientes que se estan haciendo tras el aviso del final.
    rp_logged  = {fecha:{rutina:{exId:1}}} ejercicios ya volcados a rp_logs hoy,
    para que cerrar dos veces el mismo dia no duplique los marcados con visto. */
-let sessCommitted=0, sessionLogKey=null;
+let sessCommitted=0, sessionLogKey=null, sessSaltados=[], sessRepaso=null;
 /* sessionLog vive en memoria; sessionLogKey dice de que rutina es, para que
-   cambiar de rutina no arrastre series de la anterior */
-function useSessionLog(k){if(sessionLogKey!==k){sessionLog={};sessionLogKey=k;}return sessionLog;}
+   cambiar de rutina no arrastre series de la anterior. sessSaltados y
+   sessRepaso son de la misma rutina y siguen las mismas reglas */
+function useSessionLog(k){if(sessionLogKey!==k){sessionLog={};sessSaltados=[];sessRepaso=null;prSinGuardar={};sessionLogKey=k;}return sessionLog;}
+/* volver a la rutina o al guiado: disco + memoria, y la memoria manda (la
+   misma regla que sessLog). Con el telefono lleno la serie solo vive en
+   memoria; pisarla con la copia de rp_session, o con {}, la perdia. */
+function joinSessionLog(k,s){const mia=sessionLogKey===k,mem=mia?sessionLog:{},d=(s&&s.key===k)?s:{};
+  sessionLog=Object.assign({},d.log||{},mem);if(!mia)prSinGuardar={};
+  sessSaltados=idsDe(d.saltados).concat(mia?sessSaltados:[]).filter((x,i,a)=>a.indexOf(x)===i);
+  if(!(mia&&sessRepaso))sessRepaso=idsDe(d.repaso).length?idsDe(d.repaso):null;
+  sessionLogKey=k;return sessionLog;}
+function idsDe(v){return Array.isArray(v)?v.filter(x=>typeof x==="string"):[];}
 function loadSess(){try{const s=jget("rp_session",null);
   if(!s||typeof s!=="object"||s.v!==1||!s.key||!ROUTINES[s.key]||!s.date)return null;
   if(!s.log||typeof s.log!=="object")s.log={};
   return s;}catch(e){return null;}}
-function saveSess(s){if(!s)return null;s.lastAt=Date.now();jset("rp_session",s);return s;}
+/* si no cabe, la serie sigue en memoria (sessionLog) y en pantalla: se avisa
+   para que no cierre la app creyendo que quedo guardada */
+function saveSess(s){if(!s)return null;s.lastAt=Date.now();if(!jset("rp_session",s))avisoLleno();return s;}
 function clearSess(){try{localStorage.removeItem("rp_session");}catch(e){}}
 function sessActive(k){const s=loadSess();return !!(s&&s.key===k&&s.date===today());}
+/* hay series de k en memoria; con el telefono lleno pueden no estar en disco */
+function enMemoria(k){return !!k&&sessionLogKey===k&&Object.keys(sessionLog).some(id=>sessionLog[id]&&sessionLog[id].length);}
+/* las que estan en memoria pero no en rp_session: no cupieron */
+function soloEnMemoria(k){if(!enMemoria(k))return false;
+  const s=loadSess(),d=(s&&s.key===k&&s.date===today()&&s.log)||{};
+  return Object.keys(sessionLog).some(id=>JSON.stringify(sessionLog[id])!==JSON.stringify(d[id]||[]));}
+function avisoAbierta(k){toast("No cupo en el teléfono: la sesión de "+esc(ROUTINES[k].name)+" sigue abierta sin guardar. Libera espacio y finalízala.",7000);}
+/* cierra la sesion guardada, con su fecha, para dejar sitio a otra. Si no
+   cupo se queda donde esta: borrarla perderia sus series. */
+function closeSess(){const s=loadSess();if(!s)return true;
+  let r=null;try{if(sessStats(s.key,s.date).exDone)r=finishSession(s.key,s.date===today()?"switch":"auto");}catch(e){}
+  if(r&&r.lleno){avisoAbierta(s.key);return false;}
+  clearSess();return true;}
+/* abre la sesion de key cerrando la anterior. Solo la llama ensureSess
+   (HU-63): antes tambien startRoutine y toggleCheck, y mirar otra rutina
+   cerraba sola la que estaba a medias. Sin sesion nueva, lo de ahora vive
+   en memoria. */
 function startSess(key,src){let s=loadSess();
   if(s&&s.key===key&&s.date===today())return s;
-  if(s){try{if(sessStats(s.key,s.date).exDone)finishSession(s.key,"auto");}catch(e){}clearSess();}
-  s={v:1,key:key,date:today(),startedAt:Date.now(),lastAt:Date.now(),stepi:0,src:src||"check",log:{}};
+  if(!closeSess())return null;
+  /* startedAt es tambien su identidad para finishSession (sessCommitted): la
+     nueva nunca lleva el de la ultima cerrada, aunque nazca en el mismo
+     milisegundo. Desde HU-63 un visto crea la sesion, y cerrar una y marcar
+     en otra rutina en el mismo milisegundo daba la segunda por ya guardada */
+  const t0=Math.max(Date.now(),sessCommitted+1);
+  s={v:1,key:key,date:today(),startedAt:t0,lastAt:t0,stepi:0,src:src||"check",log:{}};
   jset("rp_session",s);return s;}
+/* perezosa (HU-63): la sesion nace con lo primero que se registra (serie,
+   visto o temporizador), no al mirar. La de otra rutina a medias hoy no se
+   cierra aqui: eso lo decide quien entrena en la hoja de conflicto. Solo si
+   ya eligio guardarla y no cupo (las series de key estan en memoria) se
+   reintenta. La de otro dia se guarda con su fecha, como siempre. */
+function ensureSess(key,src){const s=loadSess();
+  if(s&&s.key===key&&s.date===today())return s;
+  if(s&&s.date===today()&&!enMemoria(key)){let ab=0;try{ab=sessStats(s.key).exDone;}catch(e){}
+    if(ab)return null;}
+  return startSess(key,src);}
+/* sin series en memoria no crea nada, solo pone al dia la que ya hubiera:
+   abrir el guiado y salir no deja rastro */
 function touchSess(st){if(!curRoutine||!ROUTINES[curRoutine])return null;
-  let s=loadSess();
-  if(!s||s.key!==curRoutine||s.date!==today())s=startSess(curRoutine,st==null?"check":"guided");
+  const s=enMemoria(curRoutine)?ensureSess(curRoutine,st==null?"check":"guided")
+         :(sessActive(curRoutine)?loadSess():null);
   if(!s)return null;
-  if(sessionLogKey===curRoutine)s.log=sessionLog;
-  if(st!=null)s.stepi=st;return saveSess(s);}
+  if(sessionLogKey===curRoutine){s.log=logSinVacios();
+    /* sin saltados ni repaso la sesion queda igual que en v35 */
+    if(sessSaltados.length)s.saltados=sessSaltados;else delete s.saltados;
+    if(sessRepaso)s.repaso=sessRepaso;else delete s.repaso;}
+  if(st!=null)s.stepi=st;saveSess(s);
+  /* records que no cupieron: con las series ya en disco se rehacen de ellas */
+  const pend=Object.keys(prSinGuardar);
+  if(pend.length&&sessionLogKey===curRoutine&&!soloEnMemoria(curRoutine))pend.forEach(prRecalc);
+  return s;}
+/* HU-63: la rutina a medias hoy que registrar en k cerraria, o null. Solo
+   lee. Cuenta la de rp_session y la que solo vive en memoria porque no cupo.
+   Con las series de k ya en memoria es que se eligio cambiar y la anterior
+   no cupo: no se vuelve a preguntar. */
+function sessConflict(k){if(sessionLogKey&&sessionLogKey!==k&&enMemoria(sessionLogKey))return sessionLogKey;
+  const s=loadSess();if(!s||s.key===k||s.date!==today()||enMemoria(k))return null;
+  try{return sessStats(s.key).exDone?s.key:null;}catch(e){return null;}}
 /* vista combinada memoria + disco: la memoria manda en el ejercicio que toca */
 function sessLog(k){const s=loadSess(),out={};
   const base=(s&&s.key===k)?(s.log||{}):{};
   Object.keys(base).forEach(id=>{if(base[id]&&base[id].length)out[id]=base[id];});
-  if(sessionLogKey===k)Object.keys(sessionLog).forEach(id=>{if(sessionLog[id]&&sessionLog[id].length)out[id]=sessionLog[id];});
+  /* un ejercicio vaciado en memoria (delSet) tambien manda: su serie borrada
+     puede seguir en disco si no cupo */
+  if(sessionLogKey===k)Object.keys(sessionLog).forEach(id=>{if(sessionLog[id]&&sessionLog[id].length)out[id]=sessionLog[id];else delete out[id];});
   return out;}
+/* lo que se escribe en rp_session: sin los ejercicios vaciados, que en
+   memoria quedan como [] para mandar sobre el disco */
+function logSinVacios(){const o={};Object.keys(sessionLog).forEach(id=>{if(sessionLog[id]&&sessionLog[id].length)o[id]=sessionLog[id];});return o;}
 function loadLogged(){return jget("rp_logged",{});}
 function loggedOn(t,k){const d=loadLogged()[t]||{};return d[k]||{};}
 function markLogged(t,k,ids){const all=loadLogged();all[t]=all[t]||{};all[t][k]=all[t][k]||{};
   ids.forEach(id=>{all[t][k][id]=1;});
   const keep={};Object.keys(all).sort().slice(-14).forEach(d=>{keep[d]=all[d];});
-  jset("rp_logged",keep);}
+  return jset("rp_logged",keep);}
 /* resumen de lo que hay SIN registrar todavia */
 function sessStats(k,date){const t=date||today(),s=loadSess();
   const log=sessLog(k),ck=checksOn(t,k),done=loggedOn(t,k),list=effList(k);
@@ -2450,15 +3022,28 @@ function finishSession(k,from){
   const st=sessStats(k,dOver||today());
   if(!st.exDone)return null;
   clearTimer();
+  /* todo o nada (v36): series, vistos volcados, racha e historial entran
+     juntos. Si alguno no cabe en el telefono se deshace lo escrito y la
+     sesion sigue entera, en rp_session y en memoria, para volver a
+     finalizar. Antes rp_session se borraba igual y las series se perdian. */
+  /* records que no cupieron en rp_session: se rehacen desde las series antes
+     de guardarlas, que despues ya cuentan como historial */
+  const pend=(k===curRoutine&&sessionLogKey===k)?Object.keys(prSinGuardar):[];
+  let prMem=null;if(pend.length){prMem=(mine&&mine.pr)||[];pend.forEach(id=>{prMem=prDeHoy(prMem,id);});}
+  const foto=fotoClaves(["rp_logs","rp_logged","rp_streak","rp_history"]);
   const sum=persistSession(k,dOver,startedAt);
-  sum.pr=(mine&&mine.pr)?mine.pr:[];
+  if(!sum){volverA(foto);return {lleno:true};}
+  sum.pr=prMem||((mine&&mine.pr)?mine.pr:[]);
   let streak=dOver?null:completeDay();
-  recordSession(k,ROUTINES[k].name,sum,startedAt||null);
+  if(!recordSession(k,ROUTINES[k].name,sum,startedAt||null)){volverA(foto);return {lleno:true};}
   /* una sesion de ayer cerrada hoy entra al historial con su fecha: la racha
      se recalcula desde ahi, o se quedaba corta hasta tocar el calendario */
   if(dOver)streak=recalcStreak();
+  if(sessionLogKey===k){sessionLog={};sessionLogKey=null;prSinGuardar={};}
   sessCommitted=startedAt||Date.now();
-  clearSess();
+  /* solo la propia: la de otra rutina que no cupo al empezar esta sigue
+     en rp_session con sus series; borrarla aqui la perdia sin avisar */
+  if(mine)clearSess();
   return {streak:streak,summary:sum,rescued:!!dOver};}
 /* ==== fin [S1] ============================================================ */
 const DOW=["L","M","X","J","V","S","D"], DOWLONG=["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
@@ -2484,10 +3069,16 @@ function suggestLoad(id,k){const e=EX[id]||{},kk=k!=null?k:curRoutine,d=dose(kk,
   const t=todayTarget(kk,id);
   if(t&&!t.nuevo)return {w:loaded?t.w:0,reps:t.reps,why:t.why,target:t};
   const ll=lastLog(id);
-  if(!ll)return {w:loaded?(d.startKg!=null?d.startKg:10):0,reps:tgt,why:"Objetivo del programa: "+tgt+" repeticiones"};
+  /* primera vez: con el salto declarado, el peso real que no pasa del de
+     arranque, y nunca menos de una placa (startKg:0 sigue siendo sin peso).
+     Con la lista de mancuernas, la mas pesada que no pasa del arranque, o la
+     mas ligera si ninguna cabe: nunca una que no hay */
+  const ini=d.startKg!=null?d.startKg:10,lst=availDB(id,kk);
+  if(!ll)return {w:loaded?(ini>0?(lst?(lst.filter(v=>v<=ini+1e-9).pop()||lst[0])
+      :Math.max(incFor(id,kk),roundDownTo(id,ini,kk))):ini):0,reps:tgt,why:"Objetivo del programa: "+tgt+" repeticiones"};
   const first=ll.sets[0],sets=d.sets||ll.sets.length;
   const todas=ll.sets.length>=sets&&ll.sets.every(x=>(x.reps||0)>=tgt);
-  if(loaded&&todas){const w=Math.round((first.w+progStep(first.w))*10)/10;
+  if(loaded&&todas){const w=nextW(id,first.w||0,1,kk);
     return {w:w,reps:tgt,why:"Completaste las "+sets+" series: toca subir a "+fmtW(w)+" "+u};}
   if(loaded)return {w:first.w,reps:first.reps,why:"Mismo peso que la vez pasada · apunta a "+tgt+" reps"};
   const r=(first.reps>=tgt)?first.reps+1:tgt;
@@ -2507,25 +3098,94 @@ function editSet(id,src,ri,si,n,idx){const line=$("sl_"+id+"_"+idx);if(!line||li
   const v=line.querySelector(".v");if(!v)return;
   line.dataset.editing="1";
   const e=EX[id]||{},loaded=e.load===true,cur=setValue(id,src,ri,si);
-  v.innerHTML=(loaded?`<input class="setin" id="se_w" type="number" inputmode="decimal" step="0.5" min="0" value="${fmtW(cur.w)}"> × `:"")
+  v.innerHTML=(loaded?`<input class="setin" id="se_w" type="number" inputmode="decimal" step="any" min="0" value="${fmtW(cur.w)}"> × `:"")
     +`<input class="setin" id="se_r" type="number" inputmode="numeric" step="1" min="1" value="${cur.reps}">`
     +`<button class="setok" onclick="event.stopPropagation();saveSet('${id}','${src}',${ri},${si},${n})">${ic("check","xs")}</button>`;
   const f=$(loaded?"se_w":"se_r");if(f){f.focus();try{f.select();}catch(x){}
     f.addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();saveSet(id,src,ri,si,n);}});}}
 function saveSet(id,src,ri,si,n){
   const w=parseFloat(($("se_w")||{}).value),r=parseInt(($("se_r")||{}).value,10);
-  const nw=isNaN(w)?null:Math.max(0,Math.round(w*10)/10),nr=isNaN(r)?null:Math.max(1,r);
+  const nw=isNaN(w)?null:Math.max(0,Math.round(w*100)/100),nr=isNaN(r)?null:Math.max(1,r);
   if(src==="s"){useSessionLog(curRoutine);const a=sessionLog[id];
-    if(a&&a[si]){if(nw!=null)a[si].w=nw;if(nr!=null)a[si].reps=nr;}touchSess();}
+    if(a&&a[si]){if(nw!=null)a[si].w=nw;if(nr!=null)a[si].reps=nr;}touchSess();prRecalc(id);}
   else logsWrite(logs=>{const rec=(logs[id]||[])[ri];
     if(rec&&rec.sets&&rec.sets[si]){if(nw!=null)rec.sets[si].w=nw;if(nr!=null)rec.sets[si].reps=nr;}});
   renderStep();}
+/* Borrar una serie es un toque, y con prisa y las manos sudadas un toque
+   fallido la borraba sin aviso, y con ella records, 1RM e indice de fuerza.
+   No pide confirmacion (DISENO 10 guarda confirm() para lo grave): se
+   deshace. Lo que se borra con el aviso a la vista se apila -- un doble
+   toque en la X se lleva dos series, porque la de abajo sube a su sitio -- y
+   Deshacer lo devuelve todo, en orden inverso y cada serie a su indice. */
+const DESHACER_MS=7000;
+let deshacer=[];
 function delSet(id,src,ri,si,n){
-  if(src==="s"){useSessionLog(curRoutine);const a=sessionLog[id];
-    if(a){a.splice(si,1);if(!a.length)delete sessionLog[id];}touchSess();}
+  const ae=document.activeElement,foco=!!(ae&&ae.classList&&ae.classList.contains("del"));
+  let x=null,rec=null,orden=null,pr=null;
+  if(src==="s"){useSessionLog(curRoutine);const a=sessionLog[id];orden=Object.keys(sessionLog);pr=prFoto();
+    /* vaciado se queda en memoria como []: con el telefono lleno la serie
+       sigue en disco, y el vacio manda sobre ella (sessLog, logSinVacios) */
+    if(a)x=a.splice(si,1)[0];}
   else{logsWrite(logs=>{const r=(logs[id]||[])[ri];if(!r||!r.sets)return;
-    r.sets.splice(si,1);if(!r.sets.length&&!r.checked)logs[id].splice(ri,1);});}
-  renderStep();}
+    x=r.sets.splice(si,1)[0];if(!r.sets.length&&!r.checked){logs[id].splice(ri,1);rec=r;}});}
+  if(x)ofrecerDeshacer({id:id,src:src,ri:ri,si:si,x:x,rec:rec,k:curRoutine,orden:orden,pr:pr},foco);
+  /* se guarda despues del aviso, como en deshacerSerie: si no cabe, el de
+     "No cupo" queda encima. La fila se pinta ya con los records rehechos */
+  if(src==="s"){touchSess();prRecalc(id);}
+  renderStep();
+  /* el aviso se coloco con la pagina de antes de borrar: sin la fila (y,
+     si era la ultima, sin el ejercicio) lo de debajo sube, y el Deshacer
+     podia quedar sobre el + de "Series". Se vuelve a colocar sobre la de ahora */
+  recolocaAviso();}
+/* los records de la sesion antes de borrar (HU-10), tal cual estan en
+   rp_session: null si no tenia clave pr */
+function prFoto(){const sv=sessActive(curRoutine)?loadSess():null;return sv&&sv.pr?JSON.stringify(sv.pr):null;}
+/* al deshacer, los records se rehacen con prRecalc; si salen los mismos que
+   antes del primer borrado, vuelven tal cual estaban, en su orden (rehacer
+   pone al final los del ejercicio devuelto) y sin clave pr si no la habia */
+function prComoAntes(pila){const u=pila.find(x=>x.src==="s");if(!u)return;
+  const sv=sessActive(curRoutine)?loadSess():null;if(!sv)return;
+  const antes=u.pr==null?null:JSON.parse(u.pr),canon=p=>JSON.stringify((p||[]).map(x=>JSON.stringify(x)).sort());
+  if(canon(sv.pr)!==canon(antes)||JSON.stringify(sv.pr||null)===JSON.stringify(antes))return;
+  if(sessionLogKey===curRoutine)sv.log=logSinVacios();
+  if(antes)sv.pr=antes;else delete sv.pr;
+  saveSess(sv);}
+function ofrecerDeshacer(u,foco){
+  /* toast() cierra el aviso anterior, y con el vacia la pila: se rehace antes */
+  const pila=deshacer.concat([u]),n=pila.length;
+  toast(ic("close","sm borrado")+'<span class="tmsg">'+(n===1?"Serie borrada":n+" series borradas")+'</span>'
+    +'<button type="button" class="tact" onclick="deshacerSerie()">Deshacer</button>',DESHACER_MS,()=>{
+      deshacer=[];
+      /* el boton se esconde: el foco no se pierde, vuelve a la accion del guiado */
+      if($("toast").contains(document.activeElement))enfocarGuiado();});
+  deshacer=pila;
+  /* quien borro con teclado o lector de pantalla sigue en el boton: el foco
+     estaba en una X que ya no existe */
+  if(foco){const b=$("toast").querySelector(".tact");if(b)b.focus();}}
+/* sin desplazar: con el dedo el foco no se ve, y la pantalla no debe saltar */
+function enfocarGuiado(){const b=document.querySelector("#guided.active .gbtn");if(b)b.focus({preventScroll:true});}
+function deshacerSerie(){const pila=deshacer;deshacer=[];if(!pila.length)return;
+  const foco=$("toast").contains(document.activeElement);let n=0;const ids=[];
+  pila.slice().reverse().forEach(u=>{
+    if(u.src==="s"){if(sessionLogKey!==u.k)return;   /* la sesion ya se cerro */
+      /* si se habia ido su ultima serie, el ejercicio vuelve a su puesto: el
+         orden de la sesion es el de rp_session y el del historial */
+      if(!sessionLog[u.id]){const o=Object.assign({},sessionLog);Object.keys(o).forEach(k=>{delete sessionLog[k];});
+        u.orden.concat(Object.keys(o)).forEach(k=>{if(!(k in sessionLog)&&(k===u.id||o[k]))sessionLog[k]=k===u.id?[]:o[k];});}
+      const a=sessionLog[u.id];a.splice(Math.min(u.si,a.length),0,u.x);if(ids.indexOf(u.id)<0)ids.push(u.id);}
+    else logsWrite(logs=>{const a=logs[u.id]||(logs[u.id]=[]);
+      if(u.rec){u.rec.sets=[u.x];a.splice(Math.min(u.ri,a.length),0,u.rec);}
+      else{const r=a[u.ri];if(r&&r.sets)r.sets.splice(Math.min(u.si,r.sets.length),0,u.x);}});
+    n++;});
+  /* el foco lo pone deshacer al final: el aviso que se va ya no lo mueve */
+  if(n){toastFin=null;toast(ic("check","sm")+" "+(n===1?"Serie recuperada":n+" series recuperadas"));}else toastFuera();
+  /* se guarda despues del aviso: si no cabe, el de "No cupo" queda encima.
+     Los records siguen a sus series (HU-10): se rehacen los de cada
+     ejercicio devuelto, y la serie se pinta despues, ya con su marca */
+  if(ids.length){touchSess();ids.forEach(prRecalc);prComoAntes(pila);}
+  const s=steps[stepi],u0=pila[0];
+  if(inGuided()&&s&&document.querySelector("#guided .logrow")&&pila.some(u=>u.id===s.id))renderStep();
+  if(foco){const l=$("sl_"+u0.id+"_"+u0.si),v=l&&l.querySelector(".v");if(v)v.focus();else enfocarGuiado();}}
 /* ==== fin [S2] ============================================================ */
 function persistSession(k,dateOverride,startedAt){
   const logs=loadLogs(),t=dateOverride||today(),merged=sessLog(k),list=effList(k);
@@ -2539,42 +3199,92 @@ function persistSession(k,dateOverride,startedAt){
      evolucion nunca tendria datos para quien entrena marcando la lista */
   list.forEach(id=>{if(ck[id]&&!ids[id]&&!done[id]){push(id,{date:t,sets:[],k:k,t:stamp,checked:true});ids[id]=1;}});
   const all=Object.keys(ids);
-  if(all.length){jset("rp_logs",logs);markLogged(t,k,all);}
-  if(sessionLogKey===k){sessionLog={};sessionLogKey=null;}
+  /* null = no cupo: finishSession deshace y la memoria (sessionLog) no se toca */
+  if(all.length&&!(jset("rp_logs",logs)&&markLogged(t,k,all)))return null;
   return {sets:sets,vol:Math.round(vol),exDone:all.length,exTotal:list.length,
     dur:dateOverride?0:durSince(startedAt),ids:all};}
 /* una sesion de mas de 4 h es una que se quedó abierta: mejor no dar duracion */
 function durSince(t){if(!t)return 0;const m=Math.round((Date.now()-t)/60000);return (m>0&&m<=240)?m:0;}
-function fmtW(w){return (Math.round(w*10)%10===0)?String(Math.round(w)):Number(w).toFixed(1);}
+/* hasta centesimas y sin ceros de mas: 100, 102.5, 1.25. Con una decima,
+   1,25 se veia 1.3 y corregir solo las reps guardaba ese 1.3 (HU-57) */
+function fmtW(w){return String(Math.round((+w||0)*100)/100);}
 function plural(n,sing,pl){return (Math.abs(n)===1)?sing:pl;}
-function adjW(d){const s=steps[stepi],l=availDB(s.id);
-  /* con mancuernas declaradas, los botones saltan a la siguiente que existe */
-  if(l){const c=curW||0,n=d>0?l.filter(x=>x>c+1e-9)[0]:l.filter(x=>x<c-1e-9).pop();curW=n!=null?n:c;}
-  else curW=Math.max(0,Math.round((curW+d)*10)/10);const el=$("lw");if(el)el.innerHTML=fmtW(curW)+' <small>'+(s.unit||'kg')+'</small>';}
+function adjW(d){const s=steps[stepi],ld=availDB(s.id,curRoutine),l=ld&&!availDB(s.id)?[0].concat(ld):ld;
+  /* d solo dice hacia donde. Con mancuernas declaradas, los botones saltan a
+     la siguiente que existe (en casa, tambien en la silla, la zancada y los
+     gemelos, que pueden ir sin peso: 0 es su suelo); con el salto de la
+     maquina declarado (v36), al multiplo siguiente o anterior; sin nada
+     declarado, 2,5 kg como siempre. curW en numero: un peso guardado como
+     texto se concatenaba */
+  const c=Number(curW)||0;
+  if(l){const n=d>0?l.filter(x=>x>c+1e-9)[0]:l.filter(x=>x<c-1e-9).pop();curW=n!=null?n:c;}
+  else if(incFor(s.id,curRoutine))curW=nextW(s.id,c,d,curRoutine);
+  else curW=Math.max(0,Math.round((c+(d>0?2.5:-2.5))*100)/100);pintaW();}
+/* el peso del guiado se ve igual al pintar la serie, al tocar −/+, al
+   escribirlo y al cambiar las series: solo el numero, como renderStep. Con
+   la unidad, "102.5 kg" parte la fila en dos lineas en un movil de 390 px.
+   La forma de la fila no depende de la cifra (DISENO 10): cambiarla no
+   mueve nada */
+function pintaW(){const el=$("lw");if(el)el.textContent=fmtW(curW);}
+/* La reserva de la cifra del stepper (CSS, seccion steppers): "142.5" medido
+   en #cifraRef con la letra del telefono, en em del stepper. Asi apilar o no
+   lo deciden el ancho, la letra y su tamaño, como antes, pero con la letra que
+   de verdad pinta la cifra y no con la que se calibro. +1 px de holgura: el
+   ancho del texto no crece exactamente en proporcion con la letra (los px se
+   redondean distinto a cada tamaño) y la consulta en em lo escala hasta que
+   se vuelve a medir. Nunca mira la cifra de ahora: #cifraRef dice siempre
+   "142.5". */
+function reservaCifra(){const ref=$("cifraRef"),st=$("cifraReserva");if(!ref||!st)return;
+  const w=ref.querySelector("b").getBoundingClientRect().width,em=parseFloat(getComputedStyle(ref).fontSize);
+  if(!(w>0&&em>0))return;
+  const css="@container (max-width:calc(92px + "+((w+1)/em).toFixed(3)+"em)){.stepper .row{flex-wrap:wrap} "
+    +".stepper .row>b,.stepper .row>.numin{order:-1;flex:1 0 100%}}";
+  if(st.textContent!==css)st.textContent=css;}
+reservaCifra();
+/* otra letra o el tamaño de letra del sistema cambian el ancho de "142.5" */
+if(typeof ResizeObserver!=="undefined")new ResizeObserver(reservaCifra).observe(document.querySelector("#cifraRef b"));
 function adjR(d){curReps=Math.max(1,curReps+d);const el=$("lr");if(el)el.textContent=curReps;}
-function logSet(){const s=steps[stepi];useSessionLog(curRoutine);
+/* Doble toque (v36): un segundo toque durante la confirmacion volvia a entrar
+   aqui y metia otra serie y otro afterAction. Una serie por paso pintado
+   (renderStep abre el candado) y nunca dos a menos de SERIE_MS: con reducir
+   movimiento no hay confirmacion y, sin descanso detras, el ejercicio
+   siguiente se pinta en el acto bajo el mismo dedo. Reloj monotono: con
+   Date.now(), atrasar la hora del telefono dejaria el boton muerto. */
+const SERIE_MS=300;let serieAbierta=true,serieT=-Infinity,serieTO=null,pintadoT=-Infinity;
+/* y no solo "Registrar serie": sin confirmacion, el segundo toque caia en lo
+   que se pinta debajo (Saltar descanso, Molestia, Nota fija), que marcaba
+   dolor o saltaba el descanso. Tras pintar en el acto (pintadoT), ningun
+   control de #guided recibe toques durante SERIE_MS. En captura, antes del
+   onclick de cada control; con la confirmacion no hace falta: el boton
+   esta deshabilitado y la pantalla nueva llega despues */
+$("guided").addEventListener("click",e=>{if(performance.now()-pintadoT<SERIE_MS){e.stopPropagation();e.preventDefault();}},true);
+function logSet(){if(!serieAbierta||performance.now()-serieT<SERIE_MS)return;
+  serieAbierta=false;serieT=performance.now();
+  const s=steps[stepi];useSessionLog(curRoutine);
   const w=(s.load===true?curW:0),pr=isPR(s.id,w,curReps);
   const rec={w:w,reps:curReps,t:Date.now()};if(curRir!=null)rec.rir=curRir;curRir=null;
   (sessionLog[s.id]=sessionLog[s.id]||[]).push(rec);
   touchSess(stepi);
   try{if(navigator.vibrate)navigator.vibrate(18);}catch(x){}
-  if(pr)markPR(s.id,w,curReps);
+  if(pr)markPR(s.id,w,curReps,sessionLog[s.id].length-1);
   /* Son veinte o treinta pulsaciones por sesion y hasta ahora la unica senal de
      que habia pasado algo era una vibracion de 18 ms, que con el movil apoyado
      en el banco no se nota. El boton se convierte en visto y solo entonces
-     entra el descanso: 300 ms de confirmacion antes de cambiar de pantalla. */
+     entra el descanso: 300 ms de confirmacion antes de cambiar de pantalla.
+     Mientras confirma no acepta otro toque: deshabilitado y, por CSS, sin
+     pointer-events. */
   const b=document.querySelector("#guided .gbtn.go");
   if(b&&!matchMedia("(prefers-reduced-motion:reduce)").matches){
-    b.classList.add("done");b.innerHTML=ic("check","sm")+" Serie registrada";
-    setTimeout(afterAction,300);
-  }else afterAction();}
+    b.classList.add("done");b.disabled=true;b.innerHTML=ic("check","sm")+" Serie registrada";
+    serieTO=setTimeout(()=>{serieTO=null;afterAction();},SERIE_MS);
+  }else{pintadoT=serieT;afterAction();}}
 function editNum(which){const isW=which==="w",el=$(isW?"lw":"lr");if(!el)return;
   const val=isW?curW:curReps;
-  el.outerHTML=`<input id="numin" class="numin" type="number" inputmode="decimal" step="${isW?"0.5":"1"}" min="0" value="${val}">`;
+  el.outerHTML=`<input id="numin" class="numin" type="number" inputmode="decimal" step="${isW?"any":"1"}" min="0" value="${val}">`;
   const i=$("numin");if(!i)return;i.focus();try{i.select();}catch(e){}
   let done=false;
   const commit=()=>{if(done)return;done=true;const v=parseFloat(i.value);
-    if(!isNaN(v)&&v>=0){if(isW)curW=Math.round(v*10)/10;else curReps=Math.max(1,Math.round(v));}
+    if(!isNaN(v)&&v>=0){if(isW)curW=Math.round(v*100)/100;else curReps=Math.max(1,Math.round(v));}
     const s=steps[stepi];
     i.outerHTML=isW?`<b id="lw" onclick="editNum('w')" role="button" tabindex="0" aria-label="Escribir el peso exacto" title="Toca para escribir el peso exacto">${fmtW(curW)}</b>`
                    :`<b id="lr" onclick="editNum('r')" role="button" tabindex="0" aria-label="Escribir las repeticiones" title="Toca para escribir las repeticiones">${curReps}</b>`;};
@@ -2584,7 +3294,8 @@ function loadPlan(){return jget("rp_plan",[null,null,null,null,null,null,null]);
 function planShort(v){if(v==="rest")return "Descanso";if(v&&ROUTINES[v]){let n=ROUTINES[v].name;if(n.indexOf("—")>=0)n=n.split("—")[1].trim();return n.replace(/^Tren\s+/i,"");}return "+";}
 function renderWeek(){const p=loadPlan();let h=`<div class="wkhead"><div class="t">Tu semana</div></div><div class="week">`;
   for(let d=0;d<7;d++){const v=p[d],cls=["day"];if(d===todayDow())cls.push("on");if(v==="rest")cls.push("rest");else if(v&&ROUTINES[v])cls.push("d-"+routColor(v));
-    h+=`<div class="${cls.join(' ')}" onclick="openPlan(${d})" role="button" tabindex="0" aria-label="Editar ${DOWLONG[d]}"><div class="d">${DOW[d]}</div><div class="tag">${esc(planShort(v))}</div></div>`;}
+    const icn=v==="rest"?"moon":(v&&ROUTINES[v])?routIcon(v):"plus";
+    h+=`<div class="${cls.join(' ')}" onclick="openPlan(${d})" role="button" tabindex="0" aria-label="Editar ${DOWLONG[d]}"><div class="d">${DOW[d]}</div><div class="tag"><span class="tx">${esc(planShort(v))}</span>${ic(icn,"xs")}</div></div>`;}
   h+=`</div>`;
   /* DISENO 9: un estado vacio explica que hacer. Sin plan, el riel eran siete
      "+" sin decir para que servian, y de el dependen la meta semanal, la racha
@@ -2597,16 +3308,22 @@ function openPlan(d){pushHist({ov:"plan"});planDay=d;$("planTitle").textContent=
   h+=`<div class="planopt" onclick="setPlan(null)" role="button" tabindex="0"><div class="em none">${ic("close")}</div>Sin asignar</div>`;
   $("planBody").innerHTML=h;$("planov").classList.add("show");}
 function closePlan(){history.back();}
-function setPlan(v){const p=loadPlan();p[planDay]=v;jset("rp_plan",p);closePlan();renderWeek();renderTodayCard(loadStreak());}
+function setPlan(v){const p=loadPlan();p[planDay]=v;jset("rp_plan",p);closePlan();renderWeek();renderTodayCard();}
 function bestSet(sets){let b=null;(sets||[]).forEach(x=>{if(!b||x.w>b.w)b=x;});return b;}
 /* acepta [numero,...] (espaciado uniforme, como antes) o [{date,v},...],
    que reparte los puntos por fecha real: un parón de tres semanas se ve */
 function dmLabel(d){const p=String(d).split("-");return p.length>2?(+p[2])+"/"+(+p[1]):String(d);}
+/* cuanto crece la letra sobre la de serie (14 px de texto normal): las
+   etiquetas de la curva son SVG y no heredan la escala en rem del CSS */
+function letraK(){const f=parseFloat(getComputedStyle(document.body).fontSize);return f>0?f/14:1;}
 function chart(data,unit,opt){opt=opt||{};
   if(!data||!data.length)return "";
   const dated=(typeof data[0]==="object"&&data[0]!==null);
   const vals=dated?data.map(d=>+d.v||0):data.map(v=>+v||0);
-  const n=vals.length,w=300,h=opt.h||(dated?118:104),padL=6,padR=6,padT=14,padB=dated?26:16;
+  /* con la letra grande las etiquetas crecen y el margen que las aloja
+     tambien; el alto de la curva en si no cambia */
+  const k=letraK(),padB0=dated?26:16,padT=14*k,padB=padB0*k;
+  const n=vals.length,w=300,h=(opt.h||(dated?118:104))+padT-14+padB-padB0,padL=6,padR=6;
   const min=Math.min.apply(null,vals),max=Math.max.apply(null,vals),rng=(max-min)||1;
   let ts=null,span=0;
   if(dated){ts=data.map(d=>{const p=String(d.date).split("-");return new Date(+p[0],(+p[1]||1)-1,+p[2]||1).getTime();});
@@ -2625,12 +3342,13 @@ function chart(data,unit,opt){opt=opt||{};
   const iMax=vals.indexOf(max);
   const dots=vals.map((v,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="${i===n-1?4:2.6}" fill="var(--primary)"/>`).join("");
   const rec=(n>1&&max>min)?`<circle cx="${X(iMax).toFixed(1)}" cy="${Y(max).toFixed(1)}" r="6" fill="none" stroke="var(--primary)" stroke-width="1.5" opacity=".5"/>`:"";
-  const lab=(v,y)=>`<text x="${w-padR}" y="${y}" text-anchor="end" font-size="10" font-weight="700" fill="var(--mut)">${fmtW(v)} ${unit}</text>`;
+  const f1=(10*k).toFixed(1),f2=(9.5*k).toFixed(1),yd=(h-5*k).toFixed(1);
+  const lab=(v,y)=>`<text x="${w-padR}" y="${y.toFixed(1)}" text-anchor="end" font-size="${f1}" font-weight="700" fill="var(--mut)">${fmtW(v)} ${unit}</text>`;
   let dl="";
-  if(dated&&n>1)dl=`<text x="${padL}" y="${h-5}" font-size="9.5" font-weight="700" fill="var(--mut)">${dmLabel(data[0].date)}</text>`
-    +`<text x="${w-padR}" y="${h-5}" text-anchor="end" font-size="9.5" font-weight="700" fill="var(--mut)">${dmLabel(data[n-1].date)}</text>`;
-  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img" aria-label="Curva de evolución">${grid}${area}${base}${line}${rec}${dots}
-    ${lab(max,padT-4)}${lab(min,h-padB+11)}${dl}</svg>`;}
+  if(dated&&n>1)dl=`<text x="${padL}" y="${yd}" font-size="${f2}" font-weight="700" fill="var(--mut)">${dmLabel(data[0].date)}</text>`
+    +`<text x="${w-padR}" y="${yd}" text-anchor="end" font-size="${f2}" font-weight="700" fill="var(--mut)">${dmLabel(data[n-1].date)}</text>`;
+  return `<svg viewBox="0 0 ${w} ${h.toFixed(1)}" width="100%" height="${h.toFixed(1)}" role="img" aria-label="Curva de evolución">${grid}${area}${base}${line}${rec}${dots}
+    ${lab(max,padT-4*k)}${lab(min,h-padB+11*k)}${dl}</svg>`;}
 function volumeByDate(){const logs=loadLogs(),m={};
   Object.keys(logs).forEach(id=>logs[id].forEach(r=>{let v=0;(r.sets||[]).forEach(x=>{v+=(x.w||0)*(x.reps||0);});if(v>0)m[r.date]=(m[r.date]||0)+v;}));
   return Object.keys(m).sort().map(d=>({date:d,v:m[d]}));}
@@ -2660,17 +3378,28 @@ function importData(input){const f=input&&input.files&&input.files[0];if(!f)retu
   r.onload=()=>{try{const d=JSON.parse(r.result);const store=(d&&d.store)?d.store:d;
     if(!store||typeof store!=="object")throw 0;
     const ks=Object.keys(store).filter(k=>k.indexOf("rp_")===0);if(!ks.length)throw 0;
-    if(!confirm("Esto reemplazará tus datos actuales con los del archivo. ¿Continuar?")){input.value="";return;}
     /* cada valor tiene que ser texto JSON valido: un objeto crudo se guardaba
-       como "[object Object]" y esa clave quedaba en blanco */
-    const vals={};ks.forEach(k=>{let v=store[k];if(typeof v!=="string")v=JSON.stringify(v);JSON.parse(v);vals[k]=v;});
+       como "[object Object]" y esa clave quedaba en blanco. Y con la forma
+       de siempre (v36): un rp_history que fuera un objeto entraba y la app ya
+       no abria. Se valida ANTES de preguntar, no despues de aceptar. */
+    const vals={};ks.forEach(k=>{let v=store[k];if(typeof v!=="string")v=JSON.stringify(v);
+      if(!formaOK(k,JSON.parse(v)))throw 0;vals[k]=v;});
+    /* esta version no sabe leer datos de una mas nueva */
+    if(vals.rp_schema!=null&&JSON.parse(vals.rp_schema)>SCHEMA){
+      toast("Esta copia es de una versión más nueva de la app. Actualízala en Ajustes y vuelve a importarla.",7000);input.value="";return;}
+    if(!confirm("Esto reemplazará tus datos actuales con los del archivo. ¿Continuar?")){input.value="";return;}
     /* foto de lo que hay: si el telefono se queda sin espacio a mitad, se
        vuelve atras entero en vez de dejar datos a medias */
     const prev={};Object.keys(localStorage).filter(k=>k.indexOf("rp_")===0).forEach(k=>prev[k]=localStorage.getItem(k));
-    try{ks.forEach(k=>localStorage.setItem(k,vals[k]));}
+    try{ks.forEach(k=>localStorage.setItem(k,vals[k]));
+      /* sin rp_schema la copia es de v35 o anterior: el esquema vuelve a 0 y
+         se migra aqui mismo, dentro de la vuelta atras */
+      if(vals.rp_schema==null)localStorage.removeItem("rp_schema");
+      migrarDatos();}
     catch(err){Object.keys(localStorage).filter(k=>k.indexOf("rp_")===0).forEach(k=>localStorage.removeItem(k));
       Object.keys(prev).forEach(k=>{try{localStorage.setItem(k,prev[k]);}catch(e){}});
-      toast("No cupo en el teléfono: tus datos quedaron como estaban.");input.value="";return;}
+      toast(err&&err.name==="QuotaExceededError"?"No cupo en el teléfono: tus datos quedaron como estaban."
+        :"No se pudo importar la copia: tus datos quedaron como estaban.");input.value="";return;}
     toast("Datos importados. Recargando…");setTimeout(()=>location.reload(),1100);
   }catch(e){toast("Ese archivo no es una copia válida.");input.value="";}};
   r.readAsText(f);}
@@ -2706,12 +3435,19 @@ function renderFinish(){const k=curRoutine,r=ROUTINES[k];if(!r)return;
     <button class="btn sec" onclick="closeFinish()">${finRescue?"Ahora no":"Seguir entrenando"}</button>
     <button class="gbtn fin" onclick="discardSession()">Descartar sin guardar</button>`;
   $("finBody").innerHTML=h;}
-function confirmFinish(){const k=curRoutine,res=finishSession(k,"sheet");finRescue=null;
+function confirmFinish(){const k=curRoutine,res=finishSession(k,"sheet");
+  /* no cupo: la hoja se queda abierta con la sesion intacta para reintentar */
+  if(res&&res.lleno){toast("No cupo en el teléfono: la sesión sigue abierta con tus series. Libera espacio y vuelve a finalizar.",7000);return;}
+  finRescue=null;
   $("finov").classList.remove("show");history.back();
   if(res){renderHome();if($("routine").classList.contains("active"))openRoutine(k,true);}}
 function discardSession(){if(!confirm("Se borrará lo registrado en esta sesión sin guardarlo. ¿Seguro?"))return;
   /* la sesion se lee ANTES de borrarla: si no, un rescate de ayer limpiaba los vistos de hoy */
-  const k=curRoutine,s=loadSess();sessionLog={};sessionLogKey=null;clearSess();
+  const k=curRoutine,s=loadSess();
+  /* solo lo de esta rutina: la sesion abierta de otra (la que no cupo al
+     empezar esta) no se toca */
+  if(sessionLogKey===k){sessionLog={};sessionLogKey=null;}
+  if(s&&s.key===k)clearSess();
   const all=loadChecks();const t=(finRescue&&s&&s.date)?s.date:today();
   if(all[t]&&all[t][k]){delete all[t][k];jset("rp_checks",all);}
   finRescue=null;$("finov").classList.remove("show");history.back();
@@ -2723,16 +3459,18 @@ function resumeSessionCheck(){try{const s=loadSess();if(!s||s.date===today())ret
 /* ---------- VIDEO OVERLAY ---------- */
 
 /* ---------- BUILD STEPS ---------- */
+/* el descanso va tal cual sale de dose(), que ya pone el de por defecto:
+   un ||15 aqui convertia en 15 s el descanso de 0 que eligio la persona */
 function buildSteps(k){const out=[],list=effList(k),total=list.length;
   list.forEach((id,idx)=>{const e=EX[id],d=dose(k,id),
     base={id,name:e.name,steps:e.steps,tag:e.tag,caveat:!!e.caveat,exI:idx+1,exN:total,load:e.load,unit:e.unit||"kg"};
     if(e.type==="reps"||e.type==="reps_side"){for(let s=1;s<=d.sets;s++)out.push(Object.assign({},base,{kind:"count",reps:d.reps,perSide:e.type==="reps_side",setNo:s,side:"",
       label:`Serie ${s} de ${d.sets}`+(e.type==="reps_side"?" · cada lado":""),restAfter:s<d.sets?d.rest:0,first:s===1}));}
     else if(e.type==="hold"){for(let s=1;s<=d.sets;s++)out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,setNo:s,side:"",
-      label:`Mantén ${s} de ${d.sets}`,restAfter:s<d.sets?(d.rest||15):0,first:s===1}));}
+      label:`Mantén ${s} de ${d.sets}`,restAfter:s<d.sets?d.rest:0,first:s===1}));}
     else if(e.type==="hold_side"){for(let s=1;s<=d.sets;s++){
       out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,setNo:s,side:"izq",label:`Serie ${s}/${d.sets} · Izquierdo`,restAfter:0,first:s===1}));
-      out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,setNo:s,side:"der",label:`Serie ${s}/${d.sets} · Derecho`,restAfter:s<d.sets?(d.rest||10):0,first:false}));}}
+      out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,setNo:s,side:"der",label:`Serie ${s}/${d.sets} · Derecho`,restAfter:s<d.sets?d.rest:0,first:false}));}}
     /* cardio: un solo paso cronometrado y sin descanso detras. Es la caminadora,
        que sube la temperatura pero no ensaya ningun patron de movimiento. */
     else if(e.type==="cardio"){out.push(Object.assign({},base,{kind:"timer",seconds:d.holdSec,setNo:1,side:"",
@@ -2740,19 +3478,118 @@ function buildSteps(k){const out=[],list=effList(k),total=list.length;
   });return out;}
 
 /* ---------- GUIDED ---------- */
-function startRoutine(from){prime();pushHist({v:"guided",k:curRoutine});
-  const s=startSess(curRoutine,"guided");
-  sessionLog=(s&&s.log)?s.log:{};sessionLogKey=curRoutine;
+/* HU-63: con otra rutina a medias, tocar una fila, su play o Empezar pregunta
+   antes en la hoja de conflicto */
+function startRoutine(from){const o=sessConflict(curRoutine);
+  if(o){openConflict(o,{from:from||null});return;}
+  pushHist({v:"guided",k:curRoutine});enterGuided(from);}
+/* entrar no crea sesion: nace con lo primero que se registra. Solo une la de
+   hoy de esta rutina con la memoria. Una de otro dia no se puede continuar:
+   se guarda con su fecha al entrar, como antes de HU-63 */
+function enterGuided(from){prime();const s0=loadSess();if(s0&&s0.date!==today())closeSess();
+  const s=sessActive(curRoutine)?loadSess():null;
+  joinSessionLog(curRoutine,s);
   curW=null;curReps=null;steps=buildSteps(curRoutine);stepi=0;
-  if(from){const i=steps.findIndex(x=>x.id===from);if(i>=0)stepi=i;}
+  if(from){const i=steps.findIndex(x=>x.id===from);if(i>=0)stepi=i;
+    /* empezar por otro que no falta deja el repaso de pendientes: vuelve el orden de siempre */
+    if(sessRepaso&&sessRepaso.indexOf(from)<0)sessRepaso=null;}
   else if(s&&s.stepi>0&&s.stepi<steps.length)stepi=s.stepi;
+  /* repasando: si lo de stepi ya no falta (visto desde la lista), al
+     siguiente que falte. Fuera de la rama de s.stepi: puede ser el paso 0 */
+  if(!from&&sessRepaso&&steps[stepi]&&pendientes(curRoutine).indexOf(steps[stepi].id)<0){const j=sigPendiente();if(j<steps.length)stepi=j;}
   show("guided");renderStep();}
+
+/* ---- HU-63: hoja de conflicto ----
+   Tocar una fila, su play o su visto en otra rutina cerraba sola la que
+   estaba a medias (finishSession "auto") y la guardaba como terminada sin
+   preguntar. Ninguna de las dos opciones borra nada; la accion que abrio la
+   hoja se reintenta al elegir guardar. */
+let conflicto=null;
+function openConflict(o,act){const k=curRoutine,st=sessStats(o),a=esc(ROUTINES[o].name),b=esc(ROUTINES[k].name);
+  conflicto={o:o,k:k,act:act};pushHist({ov:"plan"});
+  $("planTitle").textContent="Tienes "+ROUTINES[o].name+" a medias";
+  $("planBody").innerHTML=`<div class="finhead">${ic(routIcon(o),"sm")} ${a} · ${st.exDone} de ${st.exTotal} ${plural(st.exDone,"hecho","hechos")}`
+    +(st.sets?` · ${st.sets} ${plural(st.sets,"serie","series")}`:"")+`</div>
+    <div class="finempty">Para empezar ${b}, ${a} se guarda como terminada con lo que llevas. Si solo querías mirar, vuelve: no se pierde nada.</div>
+    <button class="btn" onclick="conflictBack()">${ic("left","sm")} Volver a ${a}</button>
+    <button class="btn sec" onclick="conflictSave()">${ic("flag","sm")} Guardar ${a} y empezar ${b}</button>`;
+  $("planov").classList.add("show");}
+/* vuelve a la que estaba a medias tal como estaba */
+function conflictBack(){const c=conflicto;conflicto=null;if(!c)return;
+  $("planov").classList.remove("show");
+  try{history.replaceState({v:"routine",k:c.o},"");}catch(e){}
+  openRoutine(c.o,true);}
+/* el unico sitio que cierra una sesion a medias de hoy para empezar otra.
+   Si no cupo, avisa y las dos quedan como estaban; se sigue a la nueva solo
+   en memoria (como antes), salvo que la anterior tenga series que solo viven
+   en memoria: cambiar de rutina las perderia, y la hoja se queda. */
+function conflictSave(){const c=conflicto;if(!c)return;
+  const res=finishSession(c.o,"switch");
+  /* por el visto, la hoja tambien se queda: un visto no tiene memoria donde
+     esperar, y marcarlo taparia el aviso de que la otra no se guardo */
+  if(res&&res.lleno){avisoAbierta(c.o);if(c.act.id!=null||soloEnMemoria(c.o))return;}
+  conflicto=null;curRoutine=c.k;
+  if(c.act.id!=null){marcarFila(c.act.id,c.act.i,true);closePlan();return;}
+  $("planov").classList.remove("show");
+  try{history.replaceState({v:"guided",k:c.k},"");}catch(e){}
+  enterGuided(c.act.from);}
 /* salir ya no destruye nada: la sesion vive en localStorage y se cierra
    desde el boton "Finalizar rutina" de la pantalla de la rutina */
-function guidedExit(){clearTimer();clearRestNotif();releaseWake();touchSess(stepi);history.back();}
-function guidedBack(){clearTimer();if(stepi>0){stepi--;renderStep();}else{guidedExit();}}
+function guidedExit(){const st=pasoTrasSerie();clearTimer();clearRestNotif();releaseWake();touchSess(st);history.back();}
+/* el paso que se guarda al salir: con la serie ya registrada (confirmando o
+   en el descanso) es el siguiente, no el que ya esta anotado; si no, retomar
+   (#retomar, recarga) volveria a pedir la misma serie */
+function pasoTrasSerie(){return (serieTO||document.querySelector("#guided .gbtn.rest"))&&stepi+1<steps.length?stepi+1:stepi;}
+/* en el paso 0 sale sin parar antes el reloj: guidedExit mira serieTO para
+   guardar el paso que viene si la serie se acaba de anotar */
+function guidedBack(){if(stepi>0){clearTimer();stepi--;renderStep();}else{guidedExit();}}
 function guidedSkipExercise(){clearTimer();const cur=steps[stepi].id;let i=stepi;while(i<steps.length&&steps[i].id===cur)i++;
-  if(i>=steps.length)finish();else{stepi=i;renderStep();}}
+  /* saltar a proposito es "hoy no lo hago": no sale como pendiente al final */
+  useSessionLog(curRoutine);if(sessSaltados.indexOf(cur)<0)sessSaltados.push(cur);
+  if(sessRepaso)i=sigPendiente();
+  touchSess(Math.min(i,steps.length-1));
+  if(i>=steps.length)alFinal();else{stepi=i;renderStep();}}
+/* ==== PENDIENTES AL FINAL (v36) ==========================================
+   Llegar al final del guiado cerraba la sesion como "Completada" aunque
+   faltaran ejercicios: empezar por el cuarto dejaba los tres primeros sin
+   hacer y sin aviso. Ahora, si falta alguno, se dice cuales y se elige:
+   hacerlos ahora (el guiado va de pendiente en pendiente, sin pasar otra vez
+   por los hechos) o terminar asi (se guarda igual, como "Guardada · X de Y").
+   Pendiente = sin series hoy, sin visto y sin saltar a proposito. */
+function pendientes(k){const ck=checksFor(k),log=sessLog(k),done=loggedOn(today(),k),
+    salt=(sessionLogKey===k)?sessSaltados:[];
+  return effList(k).filter(id=>!ck[id]&&!log[id]&&!done[id]&&salt.indexOf(id)<0);}
+/* primer paso del siguiente pendiente del repaso; al acabarlos, el final */
+function sigPendiente(){const p=pendientes(curRoutine),
+    id=(sessRepaso||[]).filter(x=>p.indexOf(x)>=0&&steps.some(st=>st.id===x))[0];
+  if(!id){sessRepaso=null;return steps.length;}
+  return steps.findIndex(st=>st.id===id);}
+function alFinal(){clearTimer();const k=curRoutine,p=pendientes(k);
+  if(!p.length){finish();return;}
+  /* si sale del aviso sin elegir, "Continuar" lleva a lo que falta y no al
+     ultimo paso, que ya esta hecho */
+  const i=steps.findIndex(st=>st.id===p[0]);
+  if(i>=0){useSessionLog(k);sessRepaso=p;touchSess(i);}
+  const filas=p.map(id=>`<div class="setline fin" data-ex="${id}"><span class="n">${esc(shortName(id))}</span><span class="v">${metaOf(EX[id],dose(k,id))}</span></div>`).join("");
+  /* con su Salir: sin barra, solo el atras del sistema salia sin elegir, y
+     una app instalada en iOS no lo tiene */
+  $("guided").innerHTML=`<div class="gtop"><div class="pbar"><i style="width:100%"></i></div><div class="icbtn" onclick="salirAviso()" role="button" tabindex="0" aria-label="Salir" title="Salir (se guarda solo)">${ic("close")}</div></div><div class="done">
+    <h2 tabindex="-1">${p.length===1?"Te falta 1 ejercicio":"Te faltan "+p.length+" ejercicios"}</h2>
+    <p class="mut">Llegaste al final sin hacer ${plural(p.length,"este","estos")}. Si terminas así, se guarda lo que hiciste.</p>
+    <div class="finlist">${filas}</div>
+    <button class="gbtn go" onclick="hacerPendientes()">${ic("play","sm solid")} ${plural(p.length,"Hacerlo ahora","Hacerlos ahora")}</button>
+    <button class="gbtn sec" onclick="finish()">${ic("flag","sm")} Terminar así</button></div>`;
+  /* el foco no se queda en BODY: el lector lee el aviso */
+  const h=document.querySelector("#guided h2");if(h)h.focus({preventScroll:true});}
+/* salir del aviso sin elegir: la sesion queda abierta en el primer pendiente,
+   que alFinal ya guardo. Sin touchSess(stepi), como guidedExit: stepi sigue
+   en el ultimo paso, ya hecho */
+function salirAviso(){clearTimer();clearRestNotif();releaseWake();history.back();}
+function hacerPendientes(){const p=pendientes(curRoutine),i=p.length?steps.findIndex(st=>st.id===p[0]):-1;
+  if(i<0){finish();return;}
+  useSessionLog(curRoutine);sessRepaso=p;stepi=i;gInfoOpen=null;gVidOn=false;
+  touchSess(stepi);renderStep();}
+/* ==== fin pendientes ===================================================== */
 
 /* ficha de "como se hace": figura, avisos, pasos y video. Va DEBAJO de la
    accion y plegada si ya has hecho el ejercicio tres veces o mas. */
@@ -2816,7 +3653,7 @@ function reanclar(prev){const w=curW,r=curReps;
   touchSess(stepi);renderStep();
   const ahora=steps[stepi];
   if(ahora&&ahora.id===prev.id){
-    if(w!=null){curW=w;const lw=$("lw");if(lw)lw.innerHTML=fmtW(curW)+' <small>'+(ahora.unit||'kg')+'</small>';}
+    if(w!=null){curW=w;pintaW();}
     if(r!=null){curReps=r;const lr=$("lr");if(lr)lr.textContent=curReps;}}}
 function frame(inner,opt){opt=opt||{};const s=steps[stepi],prog=Math.round(stepi/steps.length*100);
   const conFicha=(opt.info!==false);
@@ -2830,7 +3667,8 @@ function frame(inner,opt){opt=opt||{};const s=steps[stepi],prog=Math.round(stepi
     ${conFicha?fichaEjercicio(s):""}
     ${conFicha?`<button class="skip" onclick="guidedSkipExercise()">Saltar ejercicio ${ic("skip","xs")}</button>`:""}</div>`;}
 
-function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){curW=null;curReps=null;curRir=null;}
+/* keep: repintar el mismo paso sin volver a la propuesta (cambiar el salto) */
+function renderStep(keep){clearTimer();serieAbierta=true;const s=steps[stepi];let inner;if(s.first&&!keep){curW=null;curReps=null;curRir=null;}
   if(s.kind==="count"){
     if(s.load===true||s.load===false){
       /* una sola rama para con carga y sin carga: antes eran dos casi
@@ -2841,10 +3679,16 @@ function renderStep(){clearTimer();const s=steps[stepi];let inner;if(s.first){cu
       const valor=x=>(cargado?(fmtW(x.w)+' '+s.unit+' × '+x.reps):(x.reps+' reps'))+(x.rir!=null?' <small>· reserva '+(x.rir>=3?'3+':x.rir)+'</small>':'');
       const lastTxt=ll?('La última vez: '+ll.sets.map(x=>cargado?(fmtW(x.w)+'×'+x.reps):(x.reps+' reps')).join(', '))
                      :(cargado?'Primera vez — registra tu peso':'Primera vez — registra tus repeticiones');
-      const setsTxt=ds.map((x,i)=>`<div class="setline" id="sl_${s.id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${valor(x)}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie">${ic("close","xs")}</span></div>`).join("");
-      const pesoStep=cargado?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-2.5)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" role="button" tabindex="0" aria-label="Escribir el peso exacto" title="Toca para escribir el peso exacto">${fmtW(curW)}</b><button class="sq" onclick="adjW(2.5)" aria-label="Subir peso">+</button></div></div>`:'';
+      /* el record se ve en su propia serie, por su numero (i): dos series
+         iguales que baten la marca solo cuentan la primera. Solo de la
+         sesion de hoy de esta rutina, la misma en la que apunta markPR */
+      const sv=sessActive(curRoutine)?loadSess():null,prs=(sv&&sv.pr)||[];
+      const prDe=i=>prs.find(p=>p.id===s.id&&p.i===i);
+      const setsTxt=ds.map((x,i)=>{const pr=prDe(i);
+        return `<div class="setline${pr?" pr":""}" id="sl_${s.id}_${i}"><span class="n"><span class="np">Serie </span>${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${valor(x)}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie ${i+1}">${ic("close","xs")}</span>${pr?`<span class="prtag">${ic("trophy","xs")} ${esc(pr.kind||"Récord")}</span>`:""}</div>`;}).join("");
+      const pesoStep=cargado?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-1)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" role="button" tabindex="0" aria-label="Escribir el peso exacto" title="Toca para escribir el peso exacto">${fmtW(curW)}</b><button class="sq" onclick="adjW(1)" aria-label="Subir peso">+</button></div>${incChipHTML(s.id)}</div>`:'';
       const repsStep=`<div class="stepper"${cargado?'':' style="max-width:220px;margin:0 auto"'}><div class="lab">${cargado?'Reps':'Repeticiones'}</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" role="button" tabindex="0" aria-label="Escribir las repeticiones" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>`;
-      inner=`<div class="logrow">${pesoStep}${repsStep}</div>${cargado?rirHTML():""}
+      inner=`<div class="logrow">${pesoStep}${repsStep}</div>${cargado?incPickHTML(s.id):""}${cargado?rirHTML():""}
       <div class="last tap" onclick="toggleGChart('${s.id}')" role="button" tabindex="0" aria-label="Ver la curva de este ejercicio">${lastTxt}${spark(s.id)}</div>
       <div id="gchart" class="gchart"></div>
       ${sg.why?`<div class="qwhy">${ic("bulb","xs")} ${esc(sg.why)}</div>`:''}
@@ -2897,7 +3741,8 @@ function toggleGVid(){const b=$("gvid");if(!b)return;gVidOn=!gVidOn;if(gVidOn){$
    cambie a mitad de cuenta cuando baja de 120. */
 function fmtDur(sec,total){return (total!=null?total:sec)>=120
   ? Math.floor(sec/60)+":"+String(sec%60).padStart(2,"0") : String(sec);}
-function startTimer(){const s=steps[stepi],C=2*Math.PI*90,btn=$("startT");if(btn)btn.style.display="none";
+function startTimer(){ensureSess(curRoutine,"guided");
+  const s=steps[stepi],C=2*Math.PI*90,btn=$("startT");if(btn)btn.style.display="none";
   tEnds=Date.now()+s.seconds*1000;const arc=$("arc");
   const upd=()=>{const r=Math.max(0,Math.ceil((tEnds-Date.now())/1000)),tv=$("tv");
     if(tv)tv.textContent=fmtDur(r,s.seconds);
@@ -2915,6 +3760,9 @@ function nextStepLabel(){const n=steps[stepi+1];if(!n)return "Ultima serie";
   return (mismo?"Sigue: ":"Después: ")+n.label.replace(" · cada lado","")+
     (mismo?"":" · "+n.name);}
 function renderRest(sec){clearTimer();restR=sec;restEnds=Date.now()+sec*1000;
+  /* mientras descansa, el paso guardado es la serie que viene: el aviso de fin
+     de descanso (#retomar) abre ahi. Solo hay descanso con otra serie detras */
+  touchSess(Math.min(stepi+1,steps.length-1));
   clearRestNotif();scheduleRestNotif(sec*1000);
   const C=(2*Math.PI*90).toFixed(1);
   $("guided").innerHTML=frame(`<div class="phaselab">Descanso</div>
@@ -2939,40 +3787,63 @@ function advance(){clearTimer();const prev=steps[stepi];stepi++;
      el primer toque de "Ver video" del ejercicio siguiente no abria nada */
   if(prev&&(stepi>=steps.length||steps[stepi].id!==prev.id)){gInfoOpen=null;gVidOn=false;}
   if(prev&&(stepi>=steps.length||steps[stepi].id!==prev.id))markCheck(curRoutine,prev.id,true);
+  /* repasando pendientes: del que acabas al primer paso del siguiente que falte */
+  if(sessRepaso&&prev&&(stepi>=steps.length||steps[stepi].id!==prev.id))stepi=sigPendiente();
   touchSess(Math.min(stepi,steps.length-1));
-  if(stepi>=steps.length)finish();else renderStep();}
+  if(stepi>=steps.length)alFinal();else renderStep();}
 /* ilustracion de la pantalla de fin: fuera de la rejilla de 24, se dibuja
-   sola al entrar */
-function doneHero(){const r=44,C=(2*Math.PI*r).toFixed(1);
-  return `<svg class="hero" viewBox="0 0 104 104" style="--len:${C}">
+   sola al entrar. Con una sesion a medias (f < 1) el anillo se queda en lo
+   hecho: el avance se ve sin leer */
+function doneHero(f){const r=44,C=(2*Math.PI*r).toFixed(1),fin=(f!=null&&f<1)?(C*(1-Math.max(0,f))).toFixed(1):"0";
+  return `<svg class="hero" viewBox="0 0 104 104" style="--len:${C}${fin!=="0"?";--fin:"+fin:""}">
     <circle cx="52" cy="52" r="${r}" fill="none" stroke="var(--line)" stroke-width="7"/>
     <circle cx="52" cy="52" r="${r}" fill="none" stroke="var(--primary)" stroke-width="7" stroke-linecap="round"
-      stroke-dasharray="${C}" stroke-dashoffset="0" transform="rotate(-90 52 52)"
+      stroke-dasharray="${C}" stroke-dashoffset="${fin}" transform="rotate(-90 52 52)"
       style="animation:drawring .75s ease-out"/>
     <path d="M34 53l12 12 24-26" fill="none" stroke="var(--primary)" stroke-width="7"
       stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
-function finish(){clearTimer();const res=finishSession(curRoutine,"guided");
-  const s=(res&&res.streak)||loadStreak(),sum=res&&res.summary,nom=ROUTINES[curRoutine].name;
+function finish(){clearTimer();toastFuera();
+  /* la semana de antes de guardar: "Semana cumplida" sale en la sesion que
+     la cumple, no en las que vienen despues esa misma semana. Los pendientes
+     tambien se cuentan ANTES de cerrar: con pendientes (el aviso dijo
+     "Terminar asi") nunca sale "Completada" */
+  const ya=weekStats().semanaOK,pend=pendientes(curRoutine).length,res=finishSession(curRoutine,"guided");
+  /* no cupo: nada de "Completada". Las series siguen en memoria y en
+     rp_session hasta que se pueda guardar */
+  if(res&&res.lleno){$("guided").innerHTML=`<div class="done"><h2>No cupo en el teléfono</h2>
+    <p class="mut">Tus series siguen aquí, sin guardar. Libera espacio en el teléfono y vuelve a intentarlo; no cierres la app mientras tanto.</p>
+    <button class="gbtn go" style="margin-top:22px" onclick="finish()">Intentar de nuevo</button></div>`;return;}
+  const s=(res&&res.streak)||loadStreak(),w=weekStats(),sum=res&&res.summary,nom=ROUTINES[curRoutine].name;
+  /* sin nada guardado (pendientes tras "Terminar asi", o todo saltado)
+     nunca sale "Completada": no se hizo nada */
+  if(!sum){$("guided").innerHTML=`<div class="done"><h2>${esc(nom)}</h2>
+    <p class="mut">Nada nuevo que guardar: en esta sesión no hay series ni ejercicios marcados.</p>
+    <button class="gbtn go" style="margin-top:22px" onclick="exitToHome()">Volver al inicio</button></div>`;return;}
+  /* sin ninguna semana cumplida "Mejor racha: 0 semanas" no dice nada: solo
+     el total de sesiones */
   const prs=(sum&&sum.pr)||[];
   const prHTML=prs.length?`<div class="doneprs"><div class="h">${ic("trophy","xs")} ${prs.length===1?"Récord personal":prs.length+" récords personales"}</div>`
-    +prs.map(p=>`<div class="r"><span>${esc(shortName(p.id))}</span><b>${(p.w>0)?fmtW(p.w)+" "+((EX[p.id]&&EX[p.id].unit)||"kg")+" × "+p.reps:p.reps+" reps"}</b></div>`).join("")+`</div>`:"";
-  $("guided").innerHTML=`<div class="done">${doneHero()}
+    +prs.map(p=>`<div class="r"><span>${esc(shortName(p.id))}${p.kind?`<small class="k">${esc(p.kind)}</small>`:""}</span><b>${(p.w>0)?fmtW(p.w)+" "+((EX[p.id]&&EX[p.id].unit)||"kg")+" × "+p.reps:p.reps+" reps"}</b></div>`).join("")+`</div>`:"";
+  $("guided").innerHTML=`<div class="done">${doneHero(pend?sum.exDone/sum.exTotal:1)}
     <h2>${esc(nom)}</h2>
-    <p class="mut">Completada${sum&&sum.dur?" en "+sum.dur+" min":""}</p>
+    <p class="mut">${pend?"Guardada · "+sum.exDone+" de "+sum.exTotal+" "+plural(sum.exTotal,"ejercicio","ejercicios")
+      :"Completada"+(sum&&sum.dur?" en "+sum.dur+" min":"")}</p>
     ${sum?`<div class="donesum">
       <div><b>${sum.exDone}</b><span>${plural(sum.exDone,"ejercicio","ejercicios")}</span></div>
       <div><b>${sum.sets}</b><span>${plural(sum.sets,"serie","series")}</span></div>
       ${sum.vol>0?`<div><b>${fmtW(sum.vol)}</b><span>kg movidos</span></div>`:""}</div>`:""}
     ${prHTML}
-    <div class="donest">${ic("flame","lg")}<span class="n">${s.count}</span>${plural(s.count,"día seguido","días seguidos")}</div>
-    <p class="donesub">Mejor racha ${s.best} · ${s.total} ${plural(s.total,"sesión","sesiones")} en total</p>
+    <div class="donest"><span class="wkring" aria-hidden="true">${ringSVG(w.goal?w.hechas/w.goal:0,34,4.5)}</span>Esta semana: <span class="n">${w.hechas} de ${w.goal}</span></div>
+    ${w.semanaOK&&!ya?`<div class="doneok">${ic("flame","xs")} Semana cumplida · ${w.racha} ${plural(w.racha,"seguida","seguidas")}</div>`:""}
+    <p class="donesub">${w.mejor?`Mejor racha: ${w.mejor} ${plural(w.mejor,"semana","semanas")} · `:""}${s.total} ${plural(s.total,"sesión","sesiones")} en total</p>
     <button class="gbtn go" style="margin-top:22px" onclick="exitToHome()">Volver al inicio</button></div>`;beep();}
 function exitToHome(){sessionLog={};sessionLogKey=null;stepi=0;history.back();}
 
 /* ---------- HISTORY ---------- */
 /* tarjeta Hoy */
 function suggestion(){return ROUTINES["postura_movilidad"]?"postura_movilidad":GROUPS[0].keys[0];}
-function renderTodayCard(s){const idx=histIndex(),done=idx[today()]||[],p=loadPlan(),pv=p[todayDow()];
+/* w: weekStats() si ya se calculo; la racha que se ve es la de semanas */
+function renderTodayCard(w){const idx=histIndex(),done=idx[today()]||[],p=loadPlan(),pv=p[todayDow()];
   let sk=(pv&&pv!=="rest"&&ROUTINES[pv])?pv:suggestion(),sug=ROUTINES[sk],tc;
   /* una sesion a medias manda sobre todo lo demas: si no, queda invisible */
   const sv=loadSess();
@@ -2985,8 +3856,10 @@ function renderTodayCard(s){const idx=histIndex(),done=idx[today()]||[],p=loadPl
   if(pv==="rest"&&!done.length){tc=`<div class="today"><div class="kick">Hoy</div><div class="tt">${ic("moon","sm")} Día de descanso</div>
     <div class="mt">Hoy toca recuperar. Si quieres, haz algo suave.</div>
     <button class="today-go sec" onclick="openRoutine('${suggestion()}')">Entrenar igual</button></div>`;}
-  else if(done.length){tc=`<div class="today"><div class="kick">Hoy</div><div class="tt">${ic("checkc","sm")} ¡Listo por hoy!</div>
-    <div class="mt">Completaste ${esc(done[done.length-1].name)} · ${ic("flame","xs")} ${s.count||0} ${plural(s.count||0,"día seguido","días seguidos")}</div>
+  else if(done.length){w=w||weekStats();
+    /* "mejor 0" al lado de "0 semanas" no dice nada: sale cuando hay alguna */
+    tc=`<div class="today"><div class="kick">Hoy</div><div class="tt">${ic("checkc","sm")} ¡Listo por hoy!</div>
+    <div class="mt">Completaste ${esc(done[done.length-1].name)} · ${ic("flame","xs")} ${w.racha} ${plural(w.racha,"semana cumplida","semanas cumplidas")}${w.mejor?" · mejor "+w.mejor:""}</div>
     <button class="today-go sec" onclick="openRoutine('${sk}')">Hacer otra rutina</button></div>`;}
   else{tc=`<div class="today"><div class="kick">Hoy</div><div class="tt">${esc(sug.name)}</div>
     <div class="mt">${esc(sug.desc)}</div>
@@ -3131,6 +4004,28 @@ function rirHTML(){return `<div class="rirrow" role="group" aria-label="Repetici
   +[0,1,2,3].map(n=>`<button type="button" class="rirb${curRir===n?" on":""}" onclick="setRir(${n})" aria-pressed="${curRir===n}">${n===3?"3+":n}</button>`).join("")+`</div>`;}
 function setRir(n){curRir=curRir===n?null:n;
   document.querySelectorAll("#guided .rirb").forEach((b,i)=>{const on=curRir===i;b.classList.toggle("on",on);b.setAttribute("aria-pressed",String(on));});}
+/* ---- chip "Salto" (v36) ----
+   Bajo el peso: de cuanto en cuanto sube esta maquina. Se dice una vez y
+   queda en rp_inc. No sale sin carga ni con mancuernas declaradas en
+   Ajustes: ahi la lista ya dice que pesos existen. Tampoco en casa con la
+   lista, en lo que alli se hace con mancuernas (availDB con la rutina). */
+function incChipHTML(id){if(availDB(id,curRoutine))return "";const v=incFor(id,curRoutine);
+  return `<button type="button" class="chip incchip${v?"":" add"}" id="incchip" onclick="toggleIncPick()" aria-expanded="false" aria-controls="incpick">${v?"Salto "+fmtW(v)+" kg":"¿De cuánto sube?"}</button>`;}
+function incPickHTML(id){if(availDB(id,curRoutine))return "";const v=incFor(id,curRoutine);
+  return `<div class="incpick" id="incpick" role="group" aria-label="De cuánto en cuánto sube el peso" hidden><span>De cuánto en cuánto sube, en kg${v?" (toca el marcado para quitarlo)":""}</span><div class="mchips">`
+    +SALTOS.map(x=>`<button type="button" class="mchip${v===x?" on":""}" onclick="setInc(${x})" aria-pressed="${v===x}">${fmtW(x)}</button>`).join("")+`</div></div>`;}
+function toggleIncPick(){const p=$("incpick"),b=$("incchip");if(!p)return;p.hidden=!p.hidden;
+  if(b)b.setAttribute("aria-expanded",String(!p.hidden));}
+/* tocar el salto marcado lo quita. La propuesta que nadie toco se rehace con
+   el salto nuevo; lo movido con -/+ o tecleado se queda como esta */
+function setInc(v){const s=steps[stepi];if(!s)return;const all=loadInc(),sg=suggestLoad(s.id),quita=all[s.id]===v;
+  if(quita)delete all[s.id];else all[s.id]=v;
+  if(!jset("rp_inc",all)){toast("No cupo en el teléfono: el salto no quedó guardado.");return;}
+  if(curW===sg.w)curW=null;if(curReps===sg.reps)curReps=null;
+  renderStep(true);
+  /* el foco vuelve al chip: con teclado no se pierde al repintar */
+  const c=$("incchip");if(c)try{c.focus({preventScroll:true});}catch(e){}
+  toast(quita?"Salto quitado: vuelven los de siempre":`${ic("check","sm")} Salto de ${fmtW(v)} kg guardado`);}
 /* ---- molestia articular (v35) ----
    RP Hypertrophy pregunta por dolor articular tras cada ejercicio. Aqui es un
    toque: se guarda la fecha en rp_pain y la sugerencia de la proxima vez no
@@ -3144,12 +4039,20 @@ function togglePain(id){const all=loadPain(),a=(all[id]||[]).slice(),i=a.indexOf
 /* ---- series de aproximacion (v35) ----
    Solo en el primer ejercicio con carga de la rutina, que es el pesado y el
    que calienta la articulacion. 50 % × 10 y 70 % × 5, redondeado a pesos
-   reales. No se registran: son preparacion, no trabajo. */
+   reales: la mancuerna que hay o, con el salto de la maquina declarado, su
+   multiplo de abajo (v36). No se registran: son preparacion, no trabajo. */
 function warmupHTML(id,w){const e=EX[id]||{};if(e.load!==true||!(w>=8))return "";
   const r=ROUTINES[curRoutine]||{},warm=r.warm||[],
     first=effList(curRoutine).find(x=>EX[x]&&EX[x].load===true&&warm.indexOf(x)<0&&EX[x].tag!=="calent");
   if(first!==id)return "";
-  const l=availDB(id),st=w>=20?2.5:1,rd=x=>l?(l.filter(v=>v<=x+1e-9).pop()||l[0]):Math.max(st,Math.round(x/st)*st);
+  const l=availDB(id,curRoutine),inc=incFor(id,curRoutine),st=w>=20?2.5:1;
+  /* sin ningun peso real por debajo del de hoy (no pasa de una placa) no hay
+     aproximacion: saldria igual o mas pesada que la serie de trabajo (salto
+     declarado o mancuerna mas ligera de la lista) */
+  if(inc&&inc>=w)return "";
+  if(l&&l[0]>=w)return "";
+  const rd=x=>l?(l.filter(v=>v<=x+1e-9).pop()||l[0])
+    :inc?Math.max(inc,roundDownTo(id,x,curRoutine)):Math.max(st,Math.round(x/st)*st);
   return `<div class="qwhy warmup">${ic("flame","xs")} Antes de la primera serie, aproximación (no se registra): 1×10 con ${fmtW(rd(w*.5))} kg · 1×5 con ${fmtW(rd(w*.7))} kg</div>`;}
 function editExNote(id){const all=loadNotes(),v=prompt("Nota para "+shortName(id)+" (se verá cada vez que hagas este ejercicio). Déjala vacía para borrarla.",all[id]||"");
   if(v==null)return;const t=v.trim().slice(0,200);if(t)all[id]=t;else delete all[id];jset("rp_notes",all);
@@ -3163,7 +4066,7 @@ function openSetEdit(id,ri){const r=(loadLogs()[id]||[])[ri];if(!r)return;
   $("planTitle").textContent=shortName(id)+" · "+p[2]+"/"+p[1];
   $("planBody").innerHTML=`<div class="cxf" id="sefix" data-w="${conPeso?1:0}">
     ${(r.sets||[]).map((s,i)=>`<div class="sefrow"><b>${i+1}</b>
-      ${conPeso?`<label>kg<input type="number" inputmode="decimal" step="0.5" min="0" value="${fmtW(s.w||0)}"></label>`:""}
+      ${conPeso?`<label>kg<input type="number" inputmode="decimal" step="any" min="0" value="${fmtW(s.w||0)}"></label>`:""}
       <label>${e.type&&e.type.indexOf("hold")===0?"seg":"reps"}<input type="number" inputmode="numeric" step="1" min="0" value="${s.reps||0}"></label>
       <button type="button" class="minibtn danger" onclick="this.parentNode.remove()" aria-label="Quitar serie ${i+1}">${ic("close","sm")}</button></div>`).join("")}
     <button class="btn" onclick="saveSetEdit('${id}',${ri})">${ic("check","sm")} Guardar corrección</button>
@@ -3246,7 +4149,8 @@ function renderSettings(){const r=loadRem();
     <div class="field"><div class="fl">Créditos</div>
       <div class="fh">Las figuras de los ejercicios son de <a class="ytlink" target="_blank" rel="noopener" href="https://github.com/bryllim/workout-guide">workout-guide</a>, de Bryl Lim, derivadas de Everkinetic, bajo licencia <a class="ytlink" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. El resto de la app es código propio bajo MIT.</div></div>`;
   $("setBody").innerHTML=b;renderTimes();markThemeSeg();
-  const s=loadStreak(),h=loadHist();$("dataInfo").textContent=`Guardado: ${s.total||0} sesiones · ${h.length} en historial · racha ${s.count||0}.`;}
+  const s=loadStreak(),h=loadHist(),w=weekStats();
+  $("dataInfo").textContent=`Guardado: ${s.total||0} ${plural(s.total||0,"sesión","sesiones")} · ${h.length} en historial · racha ${w.racha} ${plural(w.racha,"semana","semanas")}.`;}
 function renderTimes(){const r=loadRem();$("timeList").innerHTML=r.times.length?r.times.map((t,i)=>
   `<div class="timepill">${t} <span class="x" onclick="delTime(${i})" role="button" tabindex="0" aria-label="Quitar la hora ${t}">${ic("close","xs")}</span></div>`).join(""):'<div class="fh">Añade una hora y te avisaré ese día a esa hora.</div>';}
 function addTime(){const v=$("newTime").value;if(!v)return;const r=loadRem();if(!r.times.includes(v)){r.times.push(v);r.times.sort();jset("rp_rem",r);renderTimes();scheduleRem();}}
@@ -3275,23 +4179,46 @@ function wipe(){
   if(!confirm("Esto borra TODO de este dispositivo: racha, historial, pesos registrados, vistos, plan semanal, peso corporal y recordatorios.\n\n¿Seguro? Exporta antes tu copia de seguridad si no quieres perderlo."))return;
   if(!confirm("Última confirmación: no hay vuelta atrás."))return;
   Object.keys(localStorage).filter(k=>k.indexOf("rp_")===0).forEach(k=>localStorage.removeItem(k));
+  /* en blanco pero en el esquema de hoy: sin esto, lo que se anote antes de
+     recargar pasaria por las migraciones como si fuera de v35 */
+  try{migrarDatos();}catch(e){}
   sessionLog={};sessionLogKey=null;calSel=null;
   renderSettings();renderHome();toast("Listo, este dispositivo quedó en blanco.");}
 
-async function forceUpdate(b){if(b&&b.textContent!=null)b.textContent="Actualizando…";try{if("serviceWorker" in navigator){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.update().catch(()=>{})));}if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}}catch(e){}setTimeout(()=>location.reload(),300);}
+/* "Buscar actualizacion" vacia las caches para que la app se vuelva a pedir,
+   salvo figuras.js: no cambia nunca (si cambia, cambia de nombre; ver sw.js) y
+   no hay quien la vuelva a guardar. En la recarga, Chromium la saca de la
+   memoria de la pestana sin pasar por el service worker, y si sw.js no cambio
+   no hay install: la siguiente apertura sin red se quedaba sin figuras. La
+   caja que la tiene se queda solo con ella; las demas se borran enteras */
+async function vaciarCaches(){const fig=new URL("figuras.js",location.href).href;
+  await Promise.all((await caches.keys()).map(async k=>{const c=await caches.open(k),rs=await c.keys();
+    if(!rs.some(r=>r.url===fig))return caches.delete(k);
+    return Promise.all(rs.filter(r=>r.url!==fig).map(r=>c.delete(r)));}));}
+async function forceUpdate(b){if(b&&b.textContent!=null)b.textContent="Actualizando…";try{if("serviceWorker" in navigator){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.update().catch(()=>{})));}if(window.caches)await vaciarCaches();}catch(e){}setTimeout(()=>location.reload(),300);}
 /* ---------- NAV / PWA ---------- */
 /* ===== boton atras del dispositivo: navegar dentro de la app ===== */
 function pushHist(st){try{history.pushState(st,"");}catch(e){}}
-function renderState(s){clearTimer();s=s||{v:"home"};
+function renderState(s){if(serieTO)touchSess(pasoTrasSerie());clearTimer();s=s||{v:"home"};
   if(s.v==="routine"&&s.k&&ROUTINES[s.k]){openRoutine(s.k,true);}
   else if(s.v==="guided"&&s.k&&ROUTINES[s.k]){resumeGuided(s.k);}
   else{var v=s.v||"home";show(v);if(v==="home")renderHome();if(v==="history")renderHistory();if(v==="progress")renderProgress();if(v==="settings")renderSettings();}}
 /* volver al guiado sin perder la sesion (recarga o avance del historial) */
 function resumeGuided(k){curRoutine=k;const sess=loadSess();
-  sessionLog=(sess&&sess.key===k&&sess.log)?sess.log:{};sessionLogKey=k;
+  joinSessionLog(k,sess);
   steps=buildSteps(k);if(!steps.length){openRoutine(k,true);return;}
-  stepi=(sess&&sess.stepi>0&&sess.stepi<steps.length)?sess.stepi:0;
+  stepi=(sess&&sess.key===k&&sess.stepi>0&&sess.stepi<steps.length)?sess.stepi:0;
   curW=null;curReps=null;show("guided");renderStep();}
+/* tocar el aviso de fin de descanso con la app cerrada la abre con #retomar
+   (sw.js, notificationclick). Con una sesion viva de hoy se vuelve al guiado
+   en el paso guardado; sin ella, o de otro dia, se queda en Inicio. La pila
+   queda Inicio > rutina > guiado, como al entrar a mano, para que salir lleve
+   a la rutina y no fuera de la app; y la marca se quita de la URL. */
+function retomarDesdeAviso(){if(location.hash!=="#retomar")return false;
+  try{history.replaceState({v:"home"},"",location.pathname+location.search);}catch(e){}
+  const s=loadSess();if(!s||s.date!==today())return false;
+  pushHist({v:"routine",k:s.key});pushHist({v:"guided",k:s.key});
+  resumeGuided(s.key);return true;}
 window.addEventListener("popstate",function(e){
   var fv=$("finov");if(fv&&fv.classList.contains("show")){fv.classList.remove("show");finRescue=null;return;}
   var pv=$("planov");if(pv&&pv.classList.contains("show")){pv.classList.remove("show");return;}
@@ -3302,7 +4229,7 @@ function estMinutes(key){var r=ROUTINES[key];if(!r)return 0;var sec=0;
     if(e.type==="cardio"){sec+=(d.holdSec||0)+10;return;}
     var sets=d.sets||1,side=(e.type==="reps_side"||e.type==="hold_side")?2:1,work;
     if(e.type==="hold"||e.type==="hold_side"){work=(d.holdSec||30)*side;}else{work=(d.reps||10)*3.5*side;}
-    sec+=sets*work+(sets>1?(sets-1)*(d.rest||30):0)+15;});
+    sec+=sets*work+(sets>1?(sets-1)*d.rest:0)+15;});
   return Math.max(1,Math.round(sec/60));}
 document.querySelectorAll(".nav .tab").forEach(a=>a.onclick=()=>{const v=a.dataset.v;if(!$(v).classList.contains("active"))pushHist({v:v});show(v);if(v==="home")renderHome();if(v==="history")renderHistory();if(v==="progress")renderProgress();if(v==="settings")renderSettings();});
 let deferred=null;
@@ -3388,16 +4315,21 @@ function repRange(id){const e=EX[id]||{},r=e.reps||10;
   if(r<=8)return [6,10];
   if(r<=12)return [8,12];
   return [12,20];}
-/* Tope del 10% sobre el peso de trabajo, que es el limite alto del rango que
-   maneja la NSCA (2,5-10%). Un 5% seria mas conservador pero bloquearia casi
-   todo: el escalon minimo real de una mancuerna es 2,5 kg, que sobre 47,5 kg
-   ya es un 5,3%. Por encima del tope no se sube carga, se estira el rango de
-   repeticiones, que da la misma hipertrofia (Plotkin 2022). */
-function loadStep(w){const s=w<10?1:(w<20?2:2.5);
-  return (w>0&&s/w>0.10)?0:s;}
+/* Salto de carga de la progresion doble: la tabla de progStep, sin corte.
+   Hasta v35 devolvia 0 si el salto pasaba del 10% del peso de trabajo (el
+   limite alto de la NSCA, 2,5-10%), y por debajo de 25 kg eso no dejaba subir
+   nunca: el rango se estiraba para siempre. El 10% sigue mandando, pero en
+   todayTarget decide CUANDO se sube, no SI se sube. */
+function loadStep(w){return progStep(w);}
 /* mancuernas que hay en casa (v35, rp_prefs.pesosDB), ordenadas; null si el
-   ejercicio no es de mancuerna o no se declararon (gimnasio: rack completo) */
-function availDB(id){const z=ZONAS[id];if(!z||z.eq!=="mancuerna")return null;
+   ejercicio no se hace con ellas o no se declararon (gimnasio: rack completo).
+   Se hacen con ellas los de mancuerna y, si se pasa una rutina de casa (k),
+   todo lo que en ella lleva carga: sentarse con una al pecho, la zancada, los
+   gemelos. Sin k solo los de mancuerna. Los botones −/+, la aproximacion y
+   el chip del salto del guiado pasan la rutina (curRoutine) */
+function availDB(id,k){const z=ZONAS[id]||{},
+    casa=!!k&&(ROUTINES[k]||{}).group==="Casa"&&(EX[id]||{}).load===true;
+  if(z.eq!=="mancuerna"&&!casa)return null;
   const l=loadPrefs().pesosDB;return (l&&l.length)?l:null;}
 /* "1 2 3", "1, 2, 3", "1,2,3" y "1,5 2 3": con espacios la coma es decimal;
    sin espacios, la coma separa */
@@ -3406,6 +4338,30 @@ function savePesosDB(){const raw=(($("pesosDB")||{}).value||"").trim(),
   const l=[...new Set(parts.map(x=>parseFloat(x)).filter(x=>isFinite(x)&&x>0&&x<200))].sort((a,b)=>a-b);
   const p=loadPrefs();if(l.length)p.pesosDB=l;else delete p.pesosDB;jset("rp_prefs",p);renderSettings();
   toast(l.length?`${ic("check","sm")} Mancuernas: ${l.map(fmtW).join(", ")} kg`:"Sin lista: se usan los saltos normales de gimnasio");}
+/* ---- salto de placa por maquina (v36, rp_inc) ----
+   {exId: kg}. Cada maquina sube de lo que sube su placa (5 kg una polea, 4,5
+   otra, 7 un pec deck) y el salto teorico de 2,5 proponia pesos que no se
+   pueden poner. Se declara una vez desde el chip "Salto" del guiado y desde
+   entonces los pesos que existen son los multiplos de ese salto. Sin
+   declarar, todo sigue como antes. Clave nueva: si falta es {}, sin migracion. */
+const SALTOS=[1,2,2.5,4.5,5,7,10];
+function loadInc(){return jget("rp_inc",{});}
+/* salto declarado para ese ejercicio, o 0 si no hay. Con mancuernas
+   declaradas en Ajustes manda la lista, que ya dice que pesos existen. Con la
+   rutina (k), como availDB: en casa lo que lleva carga se hace con esas
+   mancuernas, y el salto de la maquina del gimnasio (los gemelos) no cuenta */
+function incFor(id,k){if(availDB(id,k))return 0;const v=loadInc()[id];
+  return (typeof v==="number"&&isFinite(v)&&v>0)?v:0;}
+/* la funcion unica del salto: el declarado o, sin declarar, el de siempre */
+function stepFor(id,w,k){return incFor(id,k)||progStep(w||0);}
+/* el peso real mas alto que no pasa de w. Sin salto declarado no se sabe que
+   pesos hay, y w se queda como esta */
+function roundDownTo(id,w,k){const s=incFor(id,k);if(!s)return w;
+  return Math.round(Math.floor((w+1e-6)/s)*s*100)/100;}
+/* el siguiente peso real por encima (dir>0) o por debajo de w. Con un peso
+   tecleado fuera de la escala (42,5 en saltos de 5) sube a 45 y baja a 40 */
+function nextW(id,w,dir,k){const b=roundDownTo(id,w,k),s=stepFor(id,w,k);
+  return Math.max(0,Math.round((dir>0?b+s:(b<w-1e-6?b:b-s))*100)/100);}
 /* Objetivo de hoy: una meta de proceso resoluble hoy, no un resultado lejano. */
 function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)return null;
   const rng=repRange(id),d=dose(k,id),ll=lastLog(id);
@@ -3414,16 +4370,18 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
      sobre una articulacion que avisa es justo lo que no hay que hacer */
   const pain=loadPain()[id]||[];
   if(pain.indexOf(ll.date)>=0){const f0=ll.sets[0]||{},rep=pain.filter(d=>d>=dOffset(28)).length>=2;
-    return {w:f0.w||0,reps:f0.reps||rng[0],dolor:true,
+    return {w:Number(f0.w)||0,reps:Number(f0.reps)||rng[0],dolor:true,
       why:rep?"Molestia repetida en este ejercicio: no subas y plantéate cambiarlo por otro"
              :"La vez pasada anotaste molestia: mismo peso y sin forzar"};}
+  /* w0 en numero: un peso guardado como texto (una copia editada a mano) se
+     sumaba como texto, "30"+2.5 = 302,5 kg, y con la lista "8" proponia bajar */
   const trabajo=ll.sets,tope=trabajo.every(x=>(x.reps||0)>=rng[1]),
-        completo=trabajo.length>=(d.sets||trabajo.length),first=trabajo[0];
+        completo=trabajo.length>=(d.sets||trabajo.length),first=trabajo[0],w0=Number(first.w)||0;
   /* Con mancuernas propias (Ajustes) manda la lista real, no un salto teorico.
-     Con 1-2-3 kg cualquier salto pasa del 10% y la regla general no dejaba
-     subir nunca: aqui se sube cuando el rango ESTIRADO tambien se llena. */
+     Con 1-2-3 kg cualquier salto pasa del 10%: se sube cuando el rango
+     ESTIRADO tambien se llena, y con la mas pesada solo se estira. */
   const disp=availDB(id);
-  if(e.load===true&&disp&&completo&&tope){const w0=first.w||0,next=disp.filter(x=>x>w0+1e-9)[0];
+  if(e.load===true&&disp&&completo&&tope){const next=disp.filter(x=>x>w0+1e-9)[0];
     if(next==null)return {w:w0,reps:rng[1]+2,extiende:true,
       why:"Ya usas tu mancuerna más pesada: estira a "+(rng[1]+2)+" reps"};
     const suave=w0>0&&(next-w0)/w0<=0.10,lleno=trabajo.every(x=>(x.reps||0)>=rng[1]+2);
@@ -3431,14 +4389,37 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
       why:"Sube a tu mancuerna de "+fmtW(next)+" kg y vuelve a "+rng[0]+" reps"};
     return {w:w0,reps:rng[1]+2,extiende:true,
       why:"Tu siguiente mancuerna ("+fmtW(next)+" kg) es un salto grande: antes llega a "+(rng[1]+2)+" reps"};}
-  if(e.load===true&&tope&&completo){const inc=loadStep(first.w||0);
-    if(inc>0){const w=Math.round((first.w+inc)*10)/10;
+  /* Con el salto de la maquina declarado (v36), la misma regla sobre sus
+     multiplos: salto suave (<=10%) se sube al llenar el rango; salto grande,
+     al llenar tambien el estirado. Nunca un peso que no se puede poner. En
+     casa con la lista manda la lista (abajo), aunque haya salto guardado. */
+  const salto=incFor(id,k);
+  if(e.load===true&&salto&&completo&&tope){const next=nextW(id,w0,1,k),
+      suave=w0>0&&(next-w0)/w0<=0.10,lleno=trabajo.every(x=>(x.reps||0)>=rng[1]+2);
+    if(suave||lleno)return {w:next,reps:rng[0],subeCarga:true,
+      why:(suave?"Llenaste el rango entero":"Llegaste a "+(rng[1]+2)+" reps")+": sube a "+fmtW(next)+" kg y vuelve a "+rng[0]};
+    return {w:w0,reps:rng[1]+2,extiende:true,
+      why:"El siguiente peso que existe ("+fmtW(next)+" kg) es un salto grande: antes llega a "+(rng[1]+2)+" reps"};}
+  /* Sin lista, el salto teorico. Si es de hasta el 10% se sube al llenar el
+     rango; si es mayor (todo lo que pesa menos de 25 kg) primero se estira a
+     tope+2 y se sube cuando ese tambien se llena: la misma regla que con la
+     lista. Un 5% seria mas conservador pero bloquearia casi todo: 2,5 kg
+     sobre 47,5 ya es un 5,3%. Estirar da la misma hipertrofia (Plotkin 2022).
+     En casa con la lista declarada, lo que lleva carga sin ser de mancuerna
+     (availDB con k) tambien se hace con ellas: el salto es a la siguiente de
+     la lista, nunca a una que no hay, y con la mas pesada solo se estira. */
+  if(e.load===true&&tope&&completo){const l=availDB(id,k),
+        sig=l?l.filter(x=>x>w0+1e-9)[0]:null,inc=l?sig-w0:loadStep(w0);
+    if(l&&sig==null)return {w:w0,reps:rng[1]+2,extiende:true,
+      why:"Ya usas tu mancuerna más pesada: estira a "+(rng[1]+2)+" reps"};
+    const suave=w0<=0||inc/w0<=0.10,lleno=trabajo.every(x=>(x.reps||0)>=rng[1]+2);
+    if(suave||lleno){const w=l?sig:Math.round((w0+inc)*100)/100;
       return {w:w,reps:rng[0],subeCarga:true,
-        why:"Llenaste el rango entero: sube a "+fmtW(w)+" kg y vuelve a "+rng[0]};}
-    return {w:first.w,reps:rng[1]+2,extiende:true,
+        why:(suave?"Llenaste el rango entero":"Llegaste a "+(rng[1]+2)+" reps")+": sube a "+fmtW(w)+" kg y vuelve a "+rng[0]};}
+    return {w:w0,reps:rng[1]+2,extiende:true,
       why:"El salto de peso sería más del 10%: estira el rango a "+(rng[1]+2)+" reps"};}
   const objetivo=Math.min(rng[1],Math.max(rng[0],(first.reps||rng[0])+1));
-  return {w:first.w||0,reps:objetivo,
+  return {w:w0,reps:objetivo,
     why:"La vez pasada "+(first.reps||0)+": hoy "+objetivo+" con el mismo peso"};}
 /* Mejor serie de una sesion, en e1RM. Guardarrail: si las reps caen por debajo
    del minimo del rango no cuenta como progreso, aunque el e1RM salga mayor.
@@ -3446,7 +4427,7 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
 function bestE1(id,rec){const rng=repRange(id);let b=0;
   (rec.sets||[]).forEach(s=>{if((s.reps||0)<rng[0])return;
     b=Math.max(b,e1rm(s.w||0,s.reps||0));});return b;}
-function overloadIndex(days){const logs=loadLogs(),warm=warmIds(),from=dOffset(days||7);
+function overloadIndex(days,LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),from=dOffset(days||7);
   let prog=0,tot=0;const detalle=[];
   Object.keys(logs).forEach(id=>{if(warm[id])return;
     const recs=logs[id].filter(r=>r.sets&&r.sets.length);
@@ -3458,7 +4439,7 @@ function overloadIndex(days){const logs=loadLogs(),warm=warmIds(),from=dOffset(d
     detalle.push({id:id,ok:ok,hoy:hoy,antes:antes});});
   return {prog:prog,total:tot,pct:tot?Math.round(prog/tot*100):0,detalle:detalle};}
 /* Estancado: 3 sesiones sin superar el mejor e1RM de las ultimas 8 semanas. */
-function stalled(){const logs=loadLogs(),warm=warmIds(),from=dOffset(56),out=[];
+function stalled(LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),from=dOffset(56),out=[];
   Object.keys(logs).forEach(id=>{if(warm[id])return;
     const recs=logs[id].filter(r=>r.sets&&r.sets.length&&r.date>=from);
     if(recs.length<4)return;
@@ -3469,7 +4450,7 @@ function stalled(){const logs=loadLogs(),warm=warmIds(),from=dOffset(56),out=[];
   return out;}
 
 /* --- indice de fuerza (e1RM normalizado, base 100) --- */
-function strengthIdx(cut){const logs=loadLogs(),warm=warmIds(),vals=[];
+function strengthIdx(cut,LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),vals=[];
   Object.keys(logs).forEach(id=>{const e=EX[id];if(!e||e.load!==true||warm[id])return;
     const recs=logs[id].filter(r=>!cut||r.date<=cut);if(recs.length<3)return;
     const pts=[];recs.forEach(r=>{let best=0;(r.sets||[]).forEach(s=>{if((s.w||0)>0&&s.reps<=12){const v=e1rm(s.w,s.reps);if(v>best)best=v;}});
@@ -3481,7 +4462,7 @@ function strengthIdx(cut){const logs=loadLogs(),warm=warmIds(),vals=[];
     if(last.date<ds(d21))return;
     vals.push(100*last.v/base);});
   return vals.length?{idx:vals.reduce((a,b)=>a+b,0)/vals.length,n:vals.length}:null;}
-function strengthSpark(){const out=[];for(let w=11;w>=0;w--){const r=strengthIdx(dOffset(w*7));if(r)out.push(r.idx);}return out;}
+function strengthSpark(LOGS){const out=[];for(let w=11;w>=0;w--){const r=strengthIdx(dOffset(w*7),LOGS);if(r)out.push(r.idx);}return out;}
 
 /* --- peso corporal --- */
 function loadBW(){return jget("rp_bw",[]).slice().sort((a,b)=>a.date<b.date?-1:1);}
@@ -3532,7 +4513,7 @@ function bwRate(arr){const pts=[];for(let i=27;i>=0;i--){const d=dOffset(i),m=ma
 
 /* --- series por musculo --- */
 function weekStart(off){const d=new Date();const dow=(d.getDay()+6)%7;d.setDate(d.getDate()-dow-7*off);return ds(d);}
-function muscleSets(fromDate,toDate){const logs=loadLogs(),warm=warmIds(),m={};
+function muscleSets(fromDate,toDate,LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),m={};
   Object.keys(logs).forEach(id=>{const f=MUSC[id];if(!f)return;
     logs[id].forEach(r=>{if(r.date<fromDate||r.date>toDate)return;
       const n=(r.sets||[]).filter(s=>(s.reps||0)>=1).length;if(!n)return;
@@ -3541,7 +4522,7 @@ function muscleSets(fromDate,toDate){const logs=loadLogs(),warm=warmIds(),m={};
   return m;}
 
 /* --- records (dominancia de Pareto) --- */
-function prFeed(days){const logs=loadLogs(),warm=warmIds(),out=[],from=dOffset(days);
+function prFeed(days,LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),out=[],from=dOffset(days);
   Object.keys(logs).forEach(id=>{const e=EX[id];if(!e||warm[id])return;
     const recs=logs[id].slice().sort((a,b)=>a.date<b.date?-1:1);const prev=[];
     recs.forEach((r,ri)=>{(r.sets||[]).forEach(s=>{
@@ -3580,12 +4561,12 @@ function bars(items){let h='<div class="mbars">';
 const MESES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 function monthSummary(rows,logs){const t=new Date(),dia=t.getDate(),
     cur=ds(t).slice(0,7),pd=new Date(t.getFullYear(),t.getMonth()-1,1),prev=ds(pd).slice(0,7),
-    inM=(d,m)=>d&&d.slice(0,7)===m&&+d.slice(8,10)<=dia;
+    inM=(d,m)=>d&&d.slice(0,7)===m&&+d.slice(8,10)<=dia,feed=prFeed(70,logs);
   const calc=m=>{let ses=0,fz=0,sets=0,vol=0;
     rows.forEach(r=>{if(inM(r.date,m)){ses++;if(GYMKEYS.indexOf(r.key)>=0)fz++;}});
     Object.keys(logs).forEach(id=>(logs[id]||[]).forEach(r=>{if(!inM(r.date,m))return;
       (r.sets||[]).forEach(s=>{sets++;vol+=(s.w||0)*(s.reps||0);});}));
-    const prs=prFeed(70).filter(p=>inM(p.date,m)).length;
+    const prs=feed.filter(p=>inM(p.date,m)).length;
     return {ses:ses,fz:fz,sets:sets,vol:vol,prs:prs};};
   const a=calc(cur),p=calc(prev);if(!a.ses&&!p.ses)return "";
   const cell=(v,pv,lab,fmt)=>{const d=v-pv,f=fmt||(x=>String(x));
@@ -3595,17 +4576,21 @@ function monthSummary(rows,logs){const t=new Date(),dia=t.getDate(),
     <div class="msum">${cell(a.ses,p.ses,plural(a.ses,"sesión","sesiones"))}${cell(a.sets,p.sets,plural(a.sets,"serie","series"))}${cell(a.vol,p.vol,"levantado",ton)}${cell(a.prs,p.prs,plural(a.prs,"récord","récords"))}</div>
     <div class="cs" style="margin-top:8px">Comparado con el 1-${dia} de ${MESES[pd.getMonth()]}${a.fz?" · "+a.fz+" "+plural(a.fz,"sesión","sesiones")+" de fuerza":""}.</div></div>`;}
 function renderProgress(){
+  /* rp_logs se lee y se parsea una sola vez por pintado: cada analisis recibe
+     este logs (LOGS, como exChart) y solo lo lee. Hasta v35 cada uno lo volvia
+     a leer, 25 veces por pintado. Un bloque nuevo usa este, no loadLogs(). */
   const s=loadStreak(),logs=loadLogs(),rows=histRows(),bw=loadBW();
   let b=monthSummary(rows,logs);
 
   /* 1 · indice de fuerza */
-  const now=strengthIdx(null),prev=strengthIdx(dOffset(28)),spark=strengthSpark();
+  const now=strengthIdx(null,logs),prev=strengthIdx(dOffset(28),logs),spark=strengthSpark(logs);
   b+='<div class="heroP">';
   if(now){const dlt=prev?Math.round(now.idx-prev.idx):null;
     b+='<div class="hkick">Índice de fuerza</div><div class="hbig">'+Math.round(now.idx)+'</div>';
     if(dlt!==null&&dlt!==0)b+='<span class="delta '+(dlt>0?'up':'down')+'">'+(dlt>0?'↑ +':'↓ ')+Math.abs(dlt)+' pts vs. hace 4 semanas</span>';
     b+='<div class="hsub">Base 100 = tus primeras sesiones · '+now.n+' ejercicios</div>';
-    if(spark.length>2)b+=chart(spark,"pts");
+    /* con una decima, como antes: fmtW ya pinta centesimas (HU-57) */
+    if(spark.length>2)b+=chart(spark.map(v=>Math.round(v*10)/10),"pts");
     const rate=bw.length?bwRate(bw):null;
     let verd="";
     if(!prev)verd="Aún faltan datos para comparar. Sigue registrando.";
@@ -3623,7 +4608,7 @@ function renderProgress(){
      progresando, no si hiciste mucho volumen. La banda objetivo va en 40-60%
      y no en 100% a proposito: progresar en todo cada semana no pasa, y poner
      la expectativa ahi solo produce sensacion de fracaso. */
-  const ov=overloadIndex(9);
+  const ov=overloadIndex(9,logs);
   b+='<div class="grouptitle">'+ic("up","xs")+' Sobrecarga de la semana</div>';
   if(ov.total<2){b+='<div class="empty" style="padding:18px 12px">Con dos sesiones del mismo ejercicio ya te digo en cuáles estás subiendo.</div>';}
   else{b+='<div class="chartcard">';
@@ -3638,7 +4623,7 @@ function renderProgress(){
     b+='</div>';}
 
   /* 1c · radar de estancamiento, con tres salidas y sin empujar a ninguna */
-  const st=stalled();
+  const st=stalled(logs);
   if(st.length){
     b+='<div class="grouptitle">'+ic("alert","xs")+' Estancado</div><div class="chartcard">';
     b+='<div class="cs" style="margin:0 0 8px">Tres sesiones sin superar tu mejor marca de las últimas ocho semanas. Elige tú:</div>';
@@ -3649,7 +4634,7 @@ function renderProgress(){
     b+='</div>';}
 
   /* 4 · records */
-  const prs=prFeed(30);
+  const prs=prFeed(30,logs);
   b+='<div class="grouptitle">'+ic("trophy","xs")+' Récords recientes</div>';
   if(!prs.length){b+='<div class="empty" style="padding:18px 12px">Cuando superes una marca anterior aparecerá aquí.</div>';}
   else{b+='<div class="chartcard"><div class="cs" style="margin:0 0 8px"><b>'+prs.length+'</b> récords en 30 días</div>';
@@ -3663,13 +4648,13 @@ function renderProgress(){
   /* con objetivo de salud el peso estable es el exito, no "vas lento para ganar masa" */
   if(rate&&goalPref()==="salud"){const est=Math.abs(rate.pct)<=0.25;
     b+='<div class="cthead"><div class="ct">'+fmtW(Math.round(rate.cur*10)/10)+' kg</div><span class="delta '+(est?"up":"down")+'">'
-      +(rate.kgw>=0?"+":"")+fmtW(Math.round(rate.kgw*100)/100)+' kg/sem</span></div>';
+      +(rate.kgw>=0?"+":"")+fmtW(Math.round(rate.kgw*10)/10)+' kg/sem</span></div>';
     b+='<div class="cs">'+(est?"Peso estable: justo lo que busca el mantenimiento.":(rate.pct>0?"Estás subiendo de peso.":"Estás bajando de peso."))+'</div>';
     const serie=[];for(let i=55;i>=0;i-=1){const m=ma7(bw,dOffset(i));if(m!=null)serie.push(Math.round(m*10)/10);}
     if(serie.length>2)b+=chart(serie,"kg");
   }else if(rate){const cls=(rate.pct>=0.25&&rate.pct<=0.5)?"up":((rate.pct<0||rate.pct>0.75)?"down":"");
     b+='<div class="cthead"><div class="ct">'+fmtW(Math.round(rate.cur*10)/10)+' kg</div><span class="delta '+(cls||"up")+'">'
-      +(rate.kgw>=0?"+":"")+fmtW(Math.round(rate.kgw*100)/100)+' kg/sem</span></div>';
+      +(rate.kgw>=0?"+":"")+fmtW(Math.round(rate.kgw*10)/10)+' kg/sem</span></div>';
     b+='<div class="cs">'+(rate.pct>=0.25&&rate.pct<=0.5?"Ritmo ideal para ganar masa limpia.":
       (rate.pct>0.75?"Vas muy rápido: buena parte será grasa.":(rate.pct<0?"Estás bajando de peso.":"Vas lento para ganar masa.")))+'</div>';
     const serie=[];for(let i=55;i>=0;i-=1){const m=ma7(bw,dOffset(i));if(m!=null)serie.push(Math.round(m*10)/10);}
@@ -3685,9 +4670,9 @@ function renderProgress(){
   b+=medidasHTML();
 
   /* 3 · por musculo */
-  const wk=muscleSets(weekStart(0),today());
+  const wk=muscleSets(weekStart(0),today(),logs);
   const m4={};for(let w=0;w<4;w++){const st=weekStart(w),en=w===0?today():(d=>{d.setDate(d.getDate()-1);return ds(d);})(dlocal(weekStart(w-1)));
-    const mm=muscleSets(st,en);Object.keys(mm).forEach(k=>{m4[k]=(m4[k]||0)+mm[k];});}
+    const mm=muscleSets(st,en,logs);Object.keys(mm).forEach(k=>{m4[k]=(m4[k]||0)+mm[k];});}
   const MG=muscGoal(),muscles=Object.keys(MG).filter(k=>(m4[k]||0)>0||(wk[k]||0)>0);
   b+='<div class="grouptitle">Series por músculo · esta semana</div>';
   if(!muscles.length){b+='<div class="empty" style="padding:18px 12px">Registra tus series de fuerza y aquí verás si cada músculo recibe suficiente trabajo.</div>';}
@@ -3714,9 +4699,10 @@ function renderProgress(){
     +'<div class="cs">Aquí lo que importa es la frecuencia, no la carga.</div></div>';
 
   /* 7 · racha */
-  b+='<div class="grouptitle">Tu historial</div><div class="chartcard"><div class="cs">Racha de '+(s.count||0)+' días · mejor '+(s.best||0)
-    +'<br>'+(s.total||0)+' sesiones · '+rows.filter(r=>GYMKEYS.indexOf(r.key)>=0).length+' de fuerza'
-    +'<br>'+Object.keys(logs).reduce((a,k)=>a+logs[k].reduce((x,r)=>x+(r.sets||[]).length,0),0)+' series registradas</div></div>';
+  const sem=weekStats(),nser=Object.keys(logs).reduce((a,k)=>a+logs[k].reduce((x,r)=>x+(r.sets||[]).length,0),0);
+  b+='<div class="grouptitle">Tu historial</div><div class="chartcard"><div class="cs">'+sem.racha+' '+plural(sem.racha,"semana cumplida","semanas cumplidas")+(sem.mejor?' · mejor '+sem.mejor:'')
+    +'<br>'+(s.total||0)+' '+plural(s.total||0,"sesión","sesiones")+' · '+rows.filter(r=>GYMKEYS.indexOf(r.key)>=0).length+' de fuerza'
+    +'<br>'+nser+' '+plural(nser,"serie registrada","series registradas")+'</div></div>';
 
   $("progBody").innerHTML=b;}
 
@@ -3728,7 +4714,7 @@ mergeCustom();applyTheme(loadTheme());renderHome();
   if(st&&st.v==="routine"&&st.k&&ROUTINES[st.k]){openRoutine(st.k,true);}
   else if(st&&st.v==="guided"&&st.k&&ROUTINES[st.k]){resumeGuided(st.k);}
   else if(st&&(st.v==="history"||st.v==="progress"||st.v==="settings")){show(st.v);if(st.v==="history")renderHistory();if(st.v==="progress")renderProgress();if(st.v==="settings")renderSettings();}
-  else{try{history.replaceState({v:"home"},"");}catch(e){}}
+  else if(!retomarDesdeAviso()){try{history.replaceState({v:"home"},"");}catch(e){}}
 })();
 resumeSessionCheck();
 scheduleRem();
