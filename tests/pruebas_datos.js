@@ -228,6 +228,40 @@
       expect(deHoy(app,"press_banca_db")).toEqual([["60x8"]]);
       expect(deHoy(app,sig)).toHaveLength(1);
       app.reiniciarMemoria();});
+    /* el segundo toque tampoco cae en otro control de lo que se pinta en el
+       acto: Molestia (marcaba dolor y congelaba la progresion), Nota fija
+       (abria un prompt) o Saltar descanso */
+    test("con reducir movimiento, el segundo toque no marca molestia ni abre la nota fija",async app=>{
+      const i0=await aLaSerie(app,{reducido:true,series:1}),sig=app.ev("steps["+(i0+1)+"].id");
+      const dolor=JSON.stringify(app.leer("rp_pain")),dialogos=app.w.__dialogos.length;
+      app.$("#guided .gbtn.go").click();
+      expect(app.ev("stepi")).toBe(i0+1);
+      const molestia=app.$$("#guided .exnote").find(b=>/Molestia/.test(b.textContent)),
+            nota=app.$$("#guided .exnote").find(b=>/Nota fija/.test(b.textContent));
+      expect(!!molestia&&!!nota).toBe(true);
+      molestia.click();nota.click();
+      expect(JSON.stringify(app.leer("rp_pain"))).toBe(dolor);
+      expect(app.w.__dialogos.length).toBe(dialogos);
+      expect(app.ev("stepi")).toBe(i0+1);
+      /* pasado el doble toque, los controles responden */
+      await app.espera(350);
+      app.$$("#guided .exnote").find(b=>/Molestia/.test(b.textContent)).click();
+      expect(app.leer("rp_pain")[sig]).toEqual([app.w.today()]);
+      app.w.togglePain(sig);
+      app.reiniciarMemoria();});
+    test("con reducir movimiento, el segundo toque no salta el descanso",async app=>{
+      const i0=await aLaSerie(app,{reducido:true});
+      app.$("#guided .gbtn.go").click();
+      const b=app.$("#guided .gbtn.rest"),fin=app.ev("restEnds");
+      expect(b).toBeTruthy();
+      b.click();
+      expect(app.ev("stepi")).toBe(i0);
+      expect(app.ev("restEnds")).toBe(fin);
+      expect(app.$("#guided .gbtn.rest")).toBe(b);
+      await app.espera(350);
+      app.$("#guided .gbtn.rest").click();
+      expect(app.ev("stepi")).toBe(i0+1);
+      cierraConUna(app);});
     test("tras el doble toque no hay claves nuevas y la copia va y vuelve idéntica",async app=>{
       await aLaSerie(app,{reducido:false});
       app.w.logSet();app.w.logSet();await descanso(app);

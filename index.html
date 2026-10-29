@@ -2922,7 +2922,14 @@ function adjR(d){curReps=Math.max(1,curReps+d);const el=$("lr");if(el)el.textCon
    movimiento no hay confirmacion y, sin descanso detras, el ejercicio
    siguiente se pinta en el acto bajo el mismo dedo. Reloj monotono: con
    Date.now(), atrasar la hora del telefono dejaria el boton muerto. */
-const SERIE_MS=300;let serieAbierta=true,serieT=-Infinity,serieTO=null;
+const SERIE_MS=300;let serieAbierta=true,serieT=-Infinity,serieTO=null,pintadoT=-Infinity;
+/* y no solo "Registrar serie": sin confirmacion, el segundo toque caia en lo
+   que se pinta debajo (Saltar descanso, Molestia, Nota fija), que marcaba
+   dolor o saltaba el descanso. Tras pintar en el acto (pintadoT), ningun
+   control de #guided recibe toques durante SERIE_MS. En captura, antes del
+   onclick de cada control; con la confirmacion no hace falta: el boton
+   esta deshabilitado y la pantalla nueva llega despues */
+$("guided").addEventListener("click",e=>{if(performance.now()-pintadoT<SERIE_MS){e.stopPropagation();e.preventDefault();}},true);
 function logSet(){if(!serieAbierta||performance.now()-serieT<SERIE_MS)return;
   serieAbierta=false;serieT=performance.now();
   const s=steps[stepi];useSessionLog(curRoutine);
@@ -2942,7 +2949,7 @@ function logSet(){if(!serieAbierta||performance.now()-serieT<SERIE_MS)return;
   if(b&&!matchMedia("(prefers-reduced-motion:reduce)").matches){
     b.classList.add("done");b.disabled=true;b.innerHTML=ic("check","sm")+" Serie registrada";
     serieTO=setTimeout(()=>{serieTO=null;afterAction();},SERIE_MS);
-  }else afterAction();}
+  }else{pintadoT=serieT;afterAction();}}
 function editNum(which){const isW=which==="w",el=$(isW?"lw":"lr");if(!el)return;
   const val=isW?curW:curReps;
   el.outerHTML=`<input id="numin" class="numin" type="number" inputmode="decimal" step="${isW?"any":"1"}" min="0" value="${val}">`;

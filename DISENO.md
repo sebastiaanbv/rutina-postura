@@ -565,6 +565,9 @@ Un toque, una serie:
   `logSet` admite una serie por paso pintado (`renderStep` abre el candado) y nunca dos a menos
   de 300 ms, con reloj monótono. Esto último es para «reducir movimiento»: sin confirmación y sin
   descanso detrás, el ejercicio siguiente se pinta en el acto y el segundo toque caía en su botón.
+  Y no solo en el suyo: caía también en «Saltar descanso», en «¿Molestia…?» (que anota dolor y
+  congela la progresión de la próxima sesión) o en «Nota fija». Así que, tras pintar en el acto,
+  ningún control de `#guided` recibe toques durante esos 300 ms (un oyente en captura).
   Sin claves nuevas ni cambio de forma: la copia va y vuelve igual. Pruebas en
   `tests/pruebas_datos.js` («Doble toque en «Registrar serie»»), con y sin reducir movimiento.
 - **Salir, retroceder o saltar en esos 300 ms cancela la confirmación.** El paso pendiente no se
