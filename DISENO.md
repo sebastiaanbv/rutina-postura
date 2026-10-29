@@ -431,11 +431,20 @@ Dos fallos que encontró el arnés de pruebas y que estaban anotados como `test.
 - **El peso del guiado se ve siempre igual.** Al entrar en la serie y al escribirlo salía «30»,
   pero tocar − o + y cambiar las series lo reescribían como «30 kg». Queda solo el número en los
   cuatro caminos (`pintaW()`), y sale la regla CSS de la unidad, que solo usaban esos dos.
+- **El peso se ve con hasta dos decimales, sin ceros de más** (`fmtW`: 100, 102.5, 1.25). Con una
+  décima, unas mancuernas de 1,25 kg salían «1.3» en Ajustes, en el guiado y en los campos de
+  corregir, y corregir solo las reps (en el guiado o desde Historial) guardaba ese 1.3, un peso
+  que no existe; volver a guardar las mancuernas en Ajustes también las cambiaba. Escribir el peso,
+  corregirlo y los saltos (`roundDownTo`, `nextW`, el de 2,5 kg) redondean a centésimas, como ya
+  hacía la corrección desde Historial, y los campos de peso aceptan cualquier decimal (`step="any"`).
+  Los pesos de siempre y los números de Progreso se ven igual; el cambio de peso por semana sigue
+  con una décima.
 - **Pruebas**: las dos que estaban omitidas pasan a ser normales (la del peso corre ahora en los
   tres juegos de datos, no solo en el del gimnasio), y se añaden el descanso 0 en aguantes por lado
   y en ejercicios propios, el descanso del programa sin cambios, los minutos estimados con
   descanso 0, la serie siguiente sin pantalla de descanso en el guiado, y el formato del peso al
-  pintar, con − y +, al escribirlo y al cambiar las series.
+  pintar, con − y +, al escribirlo y al cambiar las series. En `tests/pruebas_datos.js`, mancuernas
+  de 1,25 y 3,75 kg en Ajustes, el guiado, corregir la serie y la corrección desde Historial.
 
 Los ejercicios ligeros vuelven a subir de peso. Por debajo de 25 kg la progresión sin lista de
 mancuernas se quedaba pidiendo más repeticiones para siempre.

@@ -1259,4 +1259,42 @@
       expect(marcadas()).toEqual(["0","1"]);
       app.reiniciarMemoria();});
   });
+  /* HU-57: el peso se veia con una decima (1,25 → «1.3») y corregir solo las
+     reps reescribia el peso con lo que se veia: un peso que no existe */
+  escenario("Pesos con centésimas (mancuernas de 1,25 y 3,75 kg)",F.madre,()=>{
+    const EL="elevaciones_laterales";
+    test("Ajustes, guiado y corregir la serie conservan 1.25 y 3.75",async app=>{
+      app.$('.nav .tab[data-v="settings"]').click();
+      app.$("#pesosDB").value="1,25 2,5 3,75";app.w.savePesosDB();
+      expect(app.leer("rp_prefs").pesosDB).toEqual([1.25,2.5,3.75]);
+      expect(app.$("#pesosDB").value).toBe("1.25 2.5 3.75");
+      app.w.openRoutine("salud_fuerza_b");app.w.startRoutine(EL);
+      app.ev("curW=0");app.w.adjW(1);
+      expect(app.ev("curW")).toBe(1.25);
+      expect(app.texto("#lw")).toBe("1.25");
+      app.ev("curReps=15");app.w.logSet();
+      expect(app.ev("sessionLog")[EL][0].w).toBe(1.25);
+      await app.hasta(()=>app.$("#guided .isrest"),3000,"el descanso");app.w.skipRest();
+      expect(app.texto("#sl_"+EL+"_0 .v")).toContain("1.25 kg");
+      /* corregir solo las reps deja el peso tal cual */
+      app.w.editSet(EL,"s",-1,0,-1,0);
+      expect(app.$("#se_w").value).toBe("1.25");
+      app.$("#se_r").value="14";app.$("#sl_"+EL+"_0 .setok").click();
+      expect([app.ev("sessionLog")[EL][0].w,app.ev("sessionLog")[EL][0].reps]).toEqual([1.25,14]);
+      expect(app.leer("rp_session").log[EL][0].w).toBe(1.25);
+      /* escribirlo a mano tampoco lo redondea a la decima */
+      app.w.editNum("w");const i=app.$("#numin");i.value="3.75";i.dispatchEvent(new app.w.Event("blur"));
+      expect(app.ev("curW")).toBe(3.75);
+      expect(app.texto("#lw")).toBe("3.75");
+      app.reiniciarMemoria();});
+    test("la corrección desde Historial no cambia los pesos que no se tocan",app=>{
+      app.ev('logsWrite(l=>{l.elevaciones_laterales.slice(-1)[0].sets=[{w:3.75,reps:12},{w:1.25,reps:10}];})');
+      const ri=app.leer("rp_logs")[EL].length-1;
+      app.w.openSetEdit(EL,ri);
+      const ins=app.$$("#sefix .sefrow input");
+      expect(ins.map(x=>x.value)).toEqual(["3.75","12","1.25","10"]);
+      ins[3].value="11";app.w.saveSetEdit(EL,ri);
+      expect(app.leer("rp_logs")[EL][ri].sets.map(x=>[x.w,x.reps])).toEqual([[3.75,12],[1.25,11]]);
+      app.reiniciarMemoria();});
+  });
 })();
