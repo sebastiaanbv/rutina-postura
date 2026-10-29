@@ -5,13 +5,18 @@
    Formas (ver index.html):
    rp_logs     {exId:[{date:"AAAA-MM-DD",sets:[{w,reps,t,rir?}],k:rutina,t:selloInicio,checked?}]}
    rp_history  [{key,name,iso,day,date:"dd/mm/aaaa",time:"HH:MM",sets,vol,exDone,exTotal,dur,ids,pr?}] (nuevo primero)
-   rp_session  {v:1,key,date,startedAt,lastAt,stepi,src,log:{exId:[{w,reps,t}]},pr?}
+   rp_session  {v:1,key,date,startedAt,lastAt,stepi,src,log:{exId:[{w,reps,t}]},pr?,
+               saltados?:[exId],repaso?:[exId]} (las dos listas, v36; los juegos
+               de datos no las traen, como una sesion de v35)
+               pr = [{id,w,reps,lvl,i,kind}]; los de v35 no traen i ni kind
    rp_prefs    {goal:"masa"|"salud",pesosDB:[kg],chartMetric,keepAwake,restNotify}
    rp_plan     [7 x rutina|"rest"|null], lunes primero
    rp_custom   {u_xxx:{name,type,sets,reps|holdSec,rest,load,zona,eq,steps}}
    rp_extras   {rutina:[exId]}   rp_swaps {rutina:{original:alterno}}   rp_doses {rutina:{exId:{sets,reps,holdSec,rest}}}
    rp_checks   {fecha:{rutina:{exId:true}}}   rp_logged {fecha:{rutina:{exId:1}}}
    rp_pain     {exId:[fechas]}   rp_notes {exId:"texto"}
+   rp_inc      {exId:kg} (v36) salto de placa de cada maquina. Los juegos de
+               datos no lo traen, como un telefono de v35.
    rp_bw       [{date,kg}]   rp_medidas [{date,cintura,brazo,pecho,muslo,cadera}]
    rp_streak   {count,best,last,total}   rp_weekgoal {lunes:meta}   rp_rem {enabled,times}
    rp_theme    "auto"|"light"|"dark"   rp_lastexport "AAAA-MM-DD"
@@ -26,6 +31,10 @@ var Fixtures=(function(){
   function fecha(n){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-n);return ds(d);}
   /* un instante concreto de hace n dias, en hora local */
   function momento(n,h,m){const d=new Date();d.setDate(d.getDate()-n);d.setHours(h,m||0,0,0);return d;}
+  /* inicio (ms) de una sesion de hoy que empezo hace min minutos: nunca antes
+     de las 00:00 de hoy. Entre las 00:00 y las 00:min, ahora-min cae en ayer,
+     y una sesion con date de hoy que empezo ayer no la escribe nunca la app */
+  function inicio(min){return Math.max(momento(0,0,0).getTime(),Date.now()-min*60000);}
   /* entrada de rp_history igual a la que escribe recordSession */
   function entrada(key,nombre,d,sum){const e={key:key,name:nombre,iso:d.toISOString(),day:DIAS[d.getDay()],
       date:p2(d.getDate())+"/"+p2(d.getMonth()+1)+"/"+d.getFullYear(),time:p2(d.getHours())+":"+p2(d.getMinutes())};
@@ -107,7 +116,7 @@ var Fixtures=(function(){
       else if(dow===5)sesion(D,"salud_equilibrio","Casa — Equilibrio",n,[],
         ["marcha_sitio","equilibrio_unipodal","sentadilla_silla","flexiones_pared","dead_bug"],13);}
     const bw=[];for(let i=27;i>=0;i--)if(i%2===0)bw.push({date:fecha(i),kg:Math.round((64.2-((i*3)%4)*0.1)*10)/10});
-    const ini=momento(0,9,0).getTime()<Date.now()?momento(0,9,0).getTime():Date.now()-20*60000;
+    const ini=Math.min(momento(0,9,0).getTime(),inicio(20));
     Object.assign(D,{
       rp_prefs:{goal:"salud",pesosDB:[1,2,3]},
       rp_plan:["salud_fuerza_a",null,"salud_fuerza_b",null,"salud_equilibrio",null,"rest"],
@@ -123,6 +132,45 @@ var Fixtures=(function(){
       rp_lastexport:fecha(3)});
     return cerrar(D);}
 
+  /* ---- dos años de gimnasio: para medir Progreso con un historial largo ----
+     El mismo programa de dueno() durante 104 semanas. La carga va en bloques
+     de 12 semanas contados desde hoy hacia atras: cada uno empieza por debajo
+     del anterior (descarga) y acaba por encima, asi que el ultimo deja records
+     recientes. El curl se queda en 32 kg casi todo el segundo año y el radar
+     de estancamiento tiene algo que decir. Movilidad los martes y, ademas, el
+     dia 1 de cada mes: el resumen del mes compara el 1-hoy de este mes con el
+     del anterior, y asi siempre tiene sesiones, sea el dia que sea (tambien un
+     dia 1). Pesajes seis dias de cada siete y medidas cada tres semanas. */
+  function dosAnos(){
+    const D={rp_logs:{},rp_history:[],rp_logged:{}},N=728;
+    for(let n=N;n>=1;n--){const d=momento(n,18,30),dow=d.getDay(),q=Math.floor((n-1)/7),
+        sube=8-Math.floor(q/12)+Math.floor((11-q%12)/4),r=2-q%3;
+      if(dow===1)sesion(D,"gym_empuje","Empuje",n,[
+          ["press_banca_db",26+2.5*sube,4,8+r,2],["fondos_paralelas",0,3,10+r],
+          ["press_hombro_db",14+2*sube,3,9+r,1],["elevaciones_laterales",8+sube%3,3,14+r],
+          ["extension_triceps_polea",25+2.5*sube,3,13+r],["remo_maquina",50+2.5*sube,3,10]],
+        ["caminadora","circulos_brazos","wall_angels"],14);
+      else if(dow===3)sesion(D,"gym_tiron","Tirón",n,[
+          ["jalon_pecho",50+2.5*sube,4,9+r,2],["remo_maquina",55+2.5*sube,5,10],
+          ["curl_barra",20+2*Math.min(sube,6),3,9+r],["pec_deck",40+2.5*(sube%4),3,12]],
+        ["caminadora","gato_camello_pie"],17);
+      else if(dow===5)sesion(D,"gym_pierna","Pierna",n,[
+          ["hack_squat",60+5*sube,4,7+r,1],["prensa_inclinada",120+10*sube,3,10+r],
+          ["curl_femoral",35+2.5*sube,3,11+r],["extension_cuadriceps",40+2.5*sube,3,11+r]],
+        ["caminadora","sentadilla_aire"],16);
+      else if(dow===2||d.getDate()===1)sesion(D,"postura_movilidad","Postura — Movilidad",n,[],
+        ["gato_camello","wall_angels","chin_tuck","bird_dog"],9);}
+    const bw=[],med=[];
+    for(let i=N;i>=0;i--){const x=N-i;
+      if(i%7!==3)bw.push({date:fecha(i),kg:Math.round((70+0.006*x+((i*7)%5-2)*0.15)*10)/10});
+      if(i%21===0)med.push({date:fecha(i),brazo:Math.round((35+0.004*x)*10)/10,cintura:Math.round((81+0.002*x)*10)/10,pecho:Math.round((99+0.005*x)*10)/10});}
+    Object.assign(D,{
+      rp_prefs:{goal:"masa",chartMetric:"e1rm"},
+      rp_plan:["gym_empuje","postura_movilidad","gym_tiron",null,"gym_pierna","rest","rest"],
+      rp_bw:bw,rp_medidas:med,rp_checks:{},rp_weekgoal:{},
+      rp_theme:"dark",rp_lastexport:fecha(5)});
+    return cerrar(D);}
+
   /* ---- una sesion de ayer que nunca se cerro ---- */
   function sinCerrar(){const ini=momento(1,19,0).getTime();
     return {rp_history:[],rp_logs:{},
@@ -130,5 +178,38 @@ var Fixtures=(function(){
         log:{press_banca_db:[{w:30,reps:8,t:ini+600000},{w:30,reps:7,t:ini+780000}]}},
       rp_checks:{[fecha(1)]:{gym_empuje:{caminadora:true}}}};}
 
-  return {vacio:()=>({}),dueno:dueno,madre:madre,sinCerrar:sinCerrar,fecha:fecha,momento:momento,ds:ds};
+  /* ---- semanas que cruzan cambios de hora: fechas FIJAS, no desde hoy ----
+     Fuerza lunes, miercoles y viernes a las 12:00 UTC, que es el mismo dia en
+     cualquier zona entre UTC-11 y UTC+11:
+     - ocho semanas seguidas, del lunes 2 de marzo al domingo 26 de abril de
+       2026, que cruzan el cambio de hora de EE. UU. (8 mar), el de Europa
+       (29 mar) y el de Chile y Australia (5 abr);
+     - tres del 12 de octubre al 1 de noviembre, que cruzan el de Europa (25 oct);
+     - la del 2 de noviembre, tras el de EE. UU. (1 nov), con lunes y miercoles.
+     Con el reloj en el miercoles 4 de noviembre de 2026 (app.enZona): racha 3,
+     las de octubre (la semana en curso va 2 de 3), y mejor 8. */
+  function cambioHora(){const D={rp_history:[],rp_logs:{}};
+    const RUT=[["gym_empuje","Empuje"],["gym_tiron","Tirón"],["gym_pierna","Pierna"]];
+    function semana(a,m,d,n){for(let i=0;i<(n||3);i++){const x=new Date(Date.UTC(a,m-1,d+2*i,12,0));
+      D.rp_history.push({key:RUT[i][0],name:RUT[i][1],iso:x.toISOString(),day:DIAS[x.getUTCDay()],
+        date:p2(x.getUTCDate())+"/"+p2(x.getUTCMonth()+1)+"/"+x.getUTCFullYear(),time:"12:00",
+        sets:12,vol:3000,exDone:6,exTotal:6,dur:60,ids:[]});}}
+    for(let i=0;i<8;i++)semana(2026,3,2+7*i);
+    [12,19,26].forEach(d=>semana(2026,10,d));
+    semana(2026,11,2,2);
+    D.rp_history.reverse();   /* el mas nuevo primero */
+    return Object.assign(D,{rp_prefs:{goal:"masa"},
+      rp_plan:["gym_empuje",null,"gym_tiron",null,"gym_pierna","rest","rest"],
+      rp_weekgoal:{},rp_streak:{count:1,best:3,last:"2026-11-04",total:D.rp_history.length}});}
+
+  /* ---- dueno() con Empuje a medias hoy (HU-63): 3 de 14, dos de
+     calentamiento con visto y el press con sus tres series ---- */
+  function aMedias(){const D=dueno(),ini=inicio(25);
+    D.rp_session={v:1,key:"gym_empuje",date:fecha(0),startedAt:ini,lastAt:ini+1200000,stepi:0,src:"guided",
+      log:{press_banca_db:[{w:30,reps:8,t:ini+600000},{w:30,reps:8,t:ini+800000},{w:30,reps:7,t:ini+1000000}]}};
+    D.rp_checks={[fecha(0)]:{gym_empuje:{caminadora:true,circulos_brazos:true,press_banca_db:true}}};
+    return D;}
+
+  return {vacio:()=>({}),dueno:dueno,madre:madre,dosAnos:dosAnos,sinCerrar:sinCerrar,cambioHora:cambioHora,
+    aMedias:aMedias,fecha:fecha,momento:momento,inicio:inicio,ds:ds};
 })();

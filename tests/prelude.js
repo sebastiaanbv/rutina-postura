@@ -8,7 +8,11 @@
      deje en __respuestaConfirm / __respuestaPrompt.
    - descargas: un <a download> no baja nada; su contenido queda en __descargas.
    - service worker: no se registra, para que ninguna cache se meta entre
-     una corrida y la siguiente. */
+     una corrida y la siguiente.
+   - FileReader: mientras lee, retiene el reloj virtual de Chrome (run.py
+     --virtual-time-budget) con una peticion pendiente a /__retener que se
+     cancela al terminar. Sin esto el reloj no espera a la lectura, que corre
+     fuera del hilo principal, y los topes de las pruebas vencian antes. */
 (function(){
   var W=window,errores=W.__errores=[],avisos=W.__avisos=[];
   W.__dialogos=[];W.__descargas=[];W.__respuestaConfirm=false;W.__respuestaPrompt=null;
@@ -36,6 +40,13 @@
     /* la app revoca el blob a los 600 ms: se lee ya */
     fetch(this.href).then(function(r){return r.text();}).then(function(t){d.texto=t;})
       .catch(function(e){d.texto="";anota("descarga","no se pudo leer "+d.nombre+": "+e);});};
+  var FR=W.FileReader&&W.FileReader.prototype;
+  if(FR&&W.AbortController)["readAsText","readAsArrayBuffer","readAsDataURL","readAsBinaryString"].forEach(function(m){
+    var orig=FR[m];if(!orig)return;
+    FR[m]=function(){var ac=new AbortController();
+      fetch("/__retener?"+Date.now()+Math.random(),{signal:ac.signal,cache:"no-store"}).catch(function(){});
+      this.addEventListener("loadend",function(){ac.abort();},{once:true});
+      try{return orig.apply(this,arguments);}catch(e){ac.abort();throw e;}};});
   try{if(navigator.serviceWorker)navigator.serviceWorker.register=function(){
     return Promise.reject(new Error("service worker desactivado en pruebas"));};}catch(e){}
 })();

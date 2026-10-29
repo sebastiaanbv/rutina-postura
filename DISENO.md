@@ -73,7 +73,7 @@ la estructura de bloques.
 
 `--bg` página · `--card` tarjeta · `--card2` tarjeta destacada · `--sunk` caja hundida (dentro de una tarjeta) · `--line` separador · `--line2` separador fuerte.
 
-`--hero` es la superficie oscura invertida, la misma en los dos temas. Se usa **una vez por pantalla como máximo**: la tarjeta de hoy en Inicio, el índice de fuerza en Progreso. Su acento es `--hero-accent`, un verde claro que solo existe para ir sobre ella.
+`--hero` es la superficie oscura invertida, la misma en los dos temas. Se usa **una vez por pantalla como máximo**: la tarjeta de hoy en Inicio, el índice de fuerza en Progreso. Su acento es `--hero-accent`, un verde claro que solo existe para ir sobre ella. El rojo destructivo tiene su propio tono para ir encima, `--danger-hero` (v36): `--danger` da 3,3:1 contra el hero y este 8,6:1 (5,5:1 en oscuro). Hoy solo lo usa la X del aviso «Serie borrada».
 
 ### Familias de rutina
 
@@ -91,19 +91,61 @@ Un solo bloque `[data-theme="dark"]`. Cero media queries: el script de la cabece
 
 Once pasos, todos tokens. Ningún tamaño escrito a mano.
 
-| Token | px | Uso |
-|---|---|---|
-| `--t-mega` | 50 | Temporizador, racha final, índice de fuerza |
-| `--t-display` | 30 | Título de pantalla, título de la tarjeta de hoy |
-| `--t-xl` | 26 | Nombre del ejercicio en el guiado, cifra del stepper |
-| `--t-title` | 22 | Cifras destacadas |
-| `--t-lg` | 20 | Iconos grandes, cifras de estadística |
-| `--t-md` | 16 | Botones, campos de texto |
-| `--t-lead` | 15 | Nombre de rutina y de ejercicio en listas |
-| `--t-base` | 14 | Texto normal |
-| `--t-sm` | 12,5 | Metadatos, descripciones |
-| `--t-xs` | 11 | Etiquetas |
-| `--t-2xs` | 10 | Etiquetas en mayúsculas |
+**La escala va en `rem`, y los px de la tabla son los de la letra de serie.** `1rem` es la letra
+que pide el teléfono —16 px si nadie la toca—, así que cuando la persona sube la letra del sistema
+al 130 % la escala entera crece un 30 % y sigue siendo la misma escala: los once pasos guardan sus
+proporciones. Por eso `<html>` **no lleva tamaño propio** —si lo llevara, `1rem` dejaría de ser la
+letra del teléfono y nada crecería— y el texto base se pone en `body`. Cada token es
+`calc(N rem × --fk)`; `--fk` vale 1 salvo en iOS.
+
+| Token | px de serie | rem | Uso |
+|---|---|---|---|
+| `--t-mega` | 50 | 3,125 | Temporizador, racha final, índice de fuerza |
+| `--t-display` | 30 | 1,875 | Título de pantalla, título de la tarjeta de hoy |
+| `--t-xl` | 26 | 1,625 | Nombre del ejercicio en el guiado, cifra del stepper y su campo al escribirla |
+| `--t-title` | 22 | 1,375 | Cifras destacadas |
+| `--t-lg` | 20 | 1,25 | Iconos grandes, cifras de estadística |
+| `--t-md` | 16 | 1 | Botones, campos de texto |
+| `--t-lead` | 15 | 0,9375 | Nombre de rutina y de ejercicio en listas |
+| `--t-base` | 14 | 0,875 | Texto normal |
+| `--t-sm` | 12,5 | 0,78125 | Metadatos, descripciones |
+| `--t-xs` | 11 | 0,6875 | Etiquetas |
+| `--t-2xs` | 10 | 0,625 | Etiquetas en mayúsculas |
+
+**Cómo llega la letra del sistema.**
+- **Android:** `<meta name="text-scale" content="scale">` declara que la página está hecha para
+  crecer con la letra del sistema, y el navegador que la entiende la pasa a `1rem` en vez de
+  aplicarla por su cuenta (ampliando la página o inflando el texto sin que la maqueta se entere).
+- **iOS** no pasa su tamaño de letra (Dynamic Type) a la web salvo por la fuente
+  `-apple-system-body`, que va en `<html>` dentro de un `@supports`. Con la letra de serie mide
+  17 px y no 16: `--fk` (16/17 = 0,9412) lo compensa, y de serie la escala mide lo mismo que en
+  Android. La condición lleva `-webkit-touch-callout` para dejar fuera a Safari de escritorio,
+  donde esa fuente mide 13 px y encogería la app.
+- **Escritorio:** el ajuste de letra del navegador, que también cambia `1rem`.
+
+**`--t-campo`** es `--t-md` con suelo de 16 px, y es el tamaño de todo campo de texto. Por debajo
+de 16, iOS amplía la pantalla al enfocar el campo; antes lo impedía `maximum-scale=1`, que ya no
+está (§10). El campo de corregir una serie iba a 12,5 px.
+
+**El diseño no depende de una letra concreta.** La app pinta con la letra del sistema
+(`-apple-system, …, Roboto, system-ui, sans-serif`): SF en iOS, Roboto en Android, Segoe en
+Windows, y en Linux la que diga fontconfig —Inter en el contenedor donde se escribe, DejaVu Sans
+en la CI de GitHub—. De una a otra, el mismo texto mide hasta un 20 % más: «142.5» en la cifra
+del stepper son 62 px en Roboto, 69 en Inter y 77 en DejaVu Sans. Así que nada se calibra con los
+px de una letra:
+- **Lo que tiene que caber se mide con la letra que pinta**, no se escribe en em como si todas
+  midieran lo mismo. La reserva de la cifra del stepper la mide `reservaCifra()` (§10).
+- **Si algo no cabe con una letra ancha, la pieza se reparte o el texto se acorta** (§10, §11):
+  nunca se recorta un texto que da información ni se encoge la letra.
+- **Las pruebas comprueban invariantes**, no px ni líneas de una letra: nada se solapa ni se
+  sale, la cifra va entre − y + donde «142.5» cabe con su aire, el aviso usa su 86 % antes de
+  partirse y, si su texto cabe en el sitio que le deja, va en una línea. Y la CI se corre con
+  tres perfiles de letra: Inter (estrecha), DejaVu Sans (ancha, la de la CI de GitHub) y Roboto
+  (Android). Cómo, en `tests/README.md`.
+
+**Lo que no es CSS también crece.** Las etiquetas de las curvas son `<text>` de SVG y no heredan
+los `rem`: `chart()` las escala con `letraK()` —texto base entre 14— y agranda en la misma medida
+el margen que las aloja, para que las del pie no pisen las de la derecha.
 
 **Pesos:** `400` texto normal · `600` etiquetas · `700` nombres · `800` cifras y títulos. El error a evitar es el de antes: todo en 700-800, que deja la pantalla sin jerarquía y gritando.
 
@@ -176,17 +218,25 @@ en JS. El navegador lleva el tiempo, y apagarlas sigue siendo una decisión en u
 
 Nada dura más de medio segundo. Una celebración que se disfruta la primera vez estorba la trigésima.
 
+**Una confirmación no abre una ventana.** «Registrar serie» se queda 300 ms como visto antes del
+descanso; mientras tanto el botón está deshabilitado y sin `pointer-events`, y `logSet` no admite
+otra serie del mismo paso ni dos a menos de 300 ms (`SERIE_MS`). Con `prefers-reduced-motion` no
+hay confirmación y la pantalla siguiente se pinta en el acto, bajo el mismo dedo: por eso la
+guardia no depende de la animación.
+
 ---
 
 ## 8. Pantallas
 
 ### Inicio
-Manda la **tarjeta de hoy**: superficie oscura, título a 30 px, icono de la familia y una sola acción a ancho completo. Debajo, en tono descendente: la racha en **una línea** con la llama en ámbar, la semana como **riel continuo** con hoy resaltado, y las rutinas en **una tarjeta por familia** con filas, azulejo de color y duración a la derecha.
+Manda la **tarjeta de hoy**: superficie oscura, título a 30 px, icono de la familia y una sola acción a ancho completo. Debajo, en tono descendente: la racha en **una línea** con la llama en ámbar y el anillo de la semana, la semana como **riel continuo** con hoy resaltado (con la letra grande en un teléfono estrecho, cada día lleva el icono de su rutina; §10), y las rutinas en **una tarjeta por familia** con filas, azulejo de color y duración a la derecha.
+
+Con objetivo salud la tarjeta de la racha lleva una segunda fila, separada por línea fina: «Postura: N de 7 días esta semana», los días desde el lunes con alguna rutina que no está en `GYMKEYS`. La postura no cuenta para la meta de fuerza, y en ella lo que importa es la frecuencia, no la carga.
 
 Estados de la tarjeta de hoy: hoy toca · en curso (manda sobre todo) · ya entrenaste · día de descanso.
 
 ### Detalle de rutina
-Cabecera con título a 30 px y **anillo de avance**. Los ejercicios en **una tarjeta por bloque** (calentamiento · entrenamiento · bloque secundario · opcionales), cada uno una fila.
+Cabecera con título a 30 px y **anillo de avance**. Los ejercicios en **una tarjeta por bloque** (calentamiento · entrenamiento · bloque secundario · opcionales), cada uno una fila. El nombre se lee **entero**, sin recorte a dos líneas; con la letra grande en un teléfono estrecho las figuras de la lista se van para dejarle sitio (§10).
 
 La fila **no despliega nada**: tocarla entra al ejercicio. Hasta v26 abría un panel acordeón con los pasos, la figura, el vídeo, la curva y los ajustes — una vista previa que obligaba a mirar el ejercicio antes de hacerlo y partía cada dato en dos sitios. Ahora todo eso vive dentro, y la lista vuelve a ser lo que dice ser: una lista.
 
@@ -194,16 +244,32 @@ Un opcional que agregas con el `+` **sube al bloque de entrenamiento** y pasa a 
 
 Estados de la fila: pendiente · **siguiente** (filo verde y su botón de empezar en verde sólido; es lo único que destaca) · hecha (encoge: se ocultan meta y etiquetas, el mapa se atenúa, de 108 a 71 px).
 
+**Otra rutina a medias no se cierra sola.** Con una sesión de hoy a medias en otra rutina, tocar una fila, su figura, su play, su visto o «Empezar» no cambia nada: sale la hoja «Tienes Empuje a medias», con lo hecho («Empuje · 3 de 14 hechos · 3 series»), y dos botones con nombre. «Volver a Empuje» es el primario, porque lo normal es que solo se quería mirar, y abre su detalle tal cual. «Guardar Empuje y empezar Tirón» la guarda y repite el toque que abrió la hoja: dos toques en total. Ninguno borra; descartar sigue en la hoja de finalizar de esa rutina. Cerrar la hoja con ×, con atrás o recargando tampoco cambia nada.
+
 Abajo, barra fija con dos acciones: continuar y finalizar.
 
 ### Modo guiado
-Manda **la serie**: pastilla con "Serie 2 de 4", nombre del ejercicio, y los controles de peso y reps inmediatamente debajo. Bajo la acción, el **único ajuste que se edita a mano**: cuántas series. Arranca en la del programa, con "Sugeridas: N" debajo, y si la cambias ese texto se convierte en el botón para volver. La ficha de cómo se hace —mapa corporal, consejo, avisos, pasos y vídeo— va **después**, plegada, y viene cerrada si ya has hecho ese ejercicio tres veces o más.
+Manda **la serie**: pastilla con "Serie 2 de 4", nombre del ejercicio, y los controles de peso y reps inmediatamente debajo; si entre − y + no cabe la cifra más larga posible («142.5»), la cifra sube encima de ellos sea cual sea el peso (§10). Bajo la acción, el **único ajuste de la sesión que se edita a mano**: cuántas series. Arranca en la del programa, con "Sugeridas: N" debajo, y si la cambias ese texto se convierte en el botón para volver. La ficha de cómo se hace —mapa corporal, consejo, avisos, pasos y vídeo— va **después**, plegada, y viene cerrada si ya has hecho ese ejercicio tres veces o más.
+
+Bajo el peso, el chip **Salto**: de cuánto en cuánto sube esa máquina (1 · 2 · 2,5 · 4,5 · 5 · 7 · 10 kg). No es un ajuste de la sesión sino un dato de la máquina: se dice una vez por ejercicio, queda en `rp_inc`, y desde entonces la propuesta, los −/+ y la aproximación solo dan múltiplos de ese salto. Sin decirlo, el chip invita («¿De cuánto sube?», con borde discontinuo) y todo sigue como antes; las opciones se despliegan debajo de los dos controles y tocar la marcada la quita. Cambiarlo rehace la propuesta que nadie tocó, no lo movido con −/+ ni lo tecleado. No sale en ejercicios sin carga ni en mancuernas con lista en Ajustes: ahí la lista ya dice qué pesos existen. Tampoco en casa con esa lista en lo que allí se hace con mancuernas (los gemelos, que en el gimnasio son de máquina): el salto guardado en el gimnasio no cuenta en casa. **Lo que se teclea en el peso no se redondea nunca**: si la máquina lleva una placa suelta de 2,5, se escribe a mano.
+
+El peso del control es **solo el número**, y es el mismo al entrar en la serie, al tocar − o +, al escribirlo a mano y al cambiar las series: los cuatro caminos pintan con `fmtW(curW)` (`pintaW()` los que no rehacen la serie). Con la unidad, «102.5 kg» parte la fila en dos líneas en un móvil de 390 px; la unidad sigue en la línea de cada serie registrada.
 
 **El tiempo no se edita.** Descansos y sostenes los fija el programa: el criterio para ponerlos ya está tomado y ofrecer un stepper solo invita a deshacerlo sin datos. Cambiar las series, en cambio, responde a algo que solo sabes tú — cómo te sientes hoy y cuánto tiempo tienes.
 
+**Un descanso de 0 s es 0 s.** Lo traen los calentamientos encadenados y lo puede elegir la persona al crear un ejercicio propio: la serie siguiente entra directa, sin pantalla de descanso, y la duración estimada de la rutina no le suma nada. `dose()` ya pone el descanso por defecto cuando nadie lo declara, así que `buildSteps` y `estMinutes` lo usan tal cual, nunca con `||`.
+
 Subir o bajar series rehace la lista de pasos entera, así que `reanclar()` te devuelve a la misma serie del mismo ejercicio (o a la última que quede, si la recortaste) y conserva el peso y las reps que ya tenías marcados. No se puede bajar por debajo de lo ya registrado hoy ni por debajo de la serie en curso.
 
+Cada serie anotada queda en una línea bajo los controles: tocar la cifra la corrige en el sitio y la X la borra. **Borrar se deshace, no se confirma** (v36): sale «Serie borrada · Deshacer» siete segundos, y Deshacer la devuelve a su sitio. Es un toque que se repite en cada sesión, a veces con prisa: un `confirm()` en cada uno sería ruido, y sin vuelta atrás un toque fallido se llevaba récords, 1RM e índice de fuerza.
+
 El descanso es pantalla propia: contador y saltar. No hereda la ficha del ejercicio, y ya no lleva ±30 s — por lo mismo que el resto del tiempo no se edita; para adelantarlo está saltar.
+
+**Entrar no crea la sesión.** `rp_session` nace con lo primero que se registra —una serie, un visto o un temporizador—, así que abrir un ejercicio para mirarlo y salir no deja rastro ni pone la tarjeta de hoy «En curso».
+
+**El final avisa de lo que falta.** Si al acabar el último paso queda algún ejercicio **sin series ni visto** —por haber empezado a mitad de la lista, por ejemplo—, el guiado no cierra: sale «Te faltan N ejercicios», la lista de cuáles con su dosis y dos botones. **Hacerlos ahora** (el primario) va al primer paso del primero que falta y, al acabar cada uno, salta al siguiente que falte sin volver a pasar por lo hecho. **Terminar así** guarda igual que siempre y la pantalla final dice «Guardada · X de Y ejercicios», con el anillo parado en lo hecho. «Completada» queda para cuando no falta nada; sin pendientes, el final es el de siempre. Salir del aviso sin elegir (con su «Salir» o con el atrás del sistema) deja la sesión abierta, y «Continuar» lleva a lo que falta, no al último paso, que ya está hecho.
+
+**Saltar ejercicio es «hoy no lo hago».** El saltado no sale como pendiente en el aviso, pero tampoco cuenta como hecho en el «X de Y». Si ya tenía series, esas series se guardan y sí cuenta. Saltarlos todos no guarda nada, y el final lo dice («Nada nuevo que guardar»), no «Completada».
 
 ### Calendario
 Resumen del mes arriba, calendario, y las sesiones del día seleccionado con icono y color de familia. El detalle se despliega **dentro** de la tarjeta de su sesión.
@@ -211,6 +277,8 @@ La cabecera del día lleva **Registrar rutina**: elige el día y añade a mano u
 
 ### Progreso
 Un dato hero (índice de fuerza) y seis bloques con el mismo ritmo. Los récords van justo detrás del hero, porque son la recompensa, y en ámbar.
+
+Se pinta con **una sola lectura de `rp_logs`**: `renderProgress` lo lee y se lo pasa a cada análisis (`strengthIdx`, `strengthSpark`, `overloadIndex`, `stalled`, `prFeed`, `muscleSets`, `monthSummary`), que solo lo leen, nunca lo modifican. Un bloque nuevo recibe ese `logs`; no llama a `loadLogs()`. Sin el argumento, cada análisis lo lee él mismo, igual que `exChart`.
 
 ### Ajustes
 Cuatro secciones con título: apariencia · durante el entreno · recordatorios · datos.
@@ -225,8 +293,15 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
 | Siguiente | Filo verde en la fila + botón de empezar en verde sólido |
 | Hecho | Círculo relleno verde con visto blanco; la fila encoge |
 | Sesión en curso | Manda en la tarjeta de hoy; el CTA de la rutina dice "Continuar" |
-| Récord | Aviso flotante en ámbar al conseguirlo, y listado en la pantalla de fin |
+| Otra rutina a medias | Registrar en otra rutina abre la hoja «Tienes X a medias»: volver a ella o guardarla y empezar. Nada se cierra solo |
+| Récord | La serie se tiñe de ámbar y lleva debajo el trofeo y qué se superó; aviso flotante solo si es nuevo máximo de 1RM estimado; listado con su tipo en la pantalla de fin |
 | Vacío | Explica qué hacer para llenarlo, nunca "sin datos" a secas |
+
+**Tocar un aviso devuelve a la app donde estaba.** Si ya hay una ventana abierta se enfoca tal
+cual —la serie y el descanso siguen donde iban—; si no, se abre. El aviso de fin de descanso
+abre el guiado en el paso guardado cuando hay una sesión viva de hoy, con la pila Inicio › rutina
+› guiado, así que salir lleva a la rutina como al entrar a mano; sin esa sesión, Inicio. Cualquier
+otro aviso —el recordatorio— abre Inicio.
 
 ---
 
@@ -234,10 +309,19 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
 
 - **Contraste mínimo 4,5:1** para texto normal y 3:1 para texto grande, verificado **elemento a elemento** en las cinco pantallas y los dos temas. La verificación se repite en cada cambio visual y ninguno puede empeorarla.
 - **Áreas táctiles de 44 px.** Los controles pequeños conservan su tamaño visual y amplían la zona
-  pulsable con un pseudo-elemento. Cubre **19 familias de control**: hasta v32 cubría cinco, y la
+  pulsable con un pseudo-elemento. Cubre **20 familias de control**: hasta v32 cubría cinco, y la
   mitad de los botones se quedaba fuera —los `+`/`−` del guiado medían 42 px, los interruptores 28
   y el de confirmar una serie 30—. Solo se amplían controles **hoja**: el pseudo-elemento se pinta
   por encima y se tragaría el clic de un hijo pulsable.
+  **Lo que va junto a algo destructivo no puede pisarse con ello.** El pseudo-elemento crece hacia
+  los dos lados y puede quedar encima del vecino: la X de borrar una serie, de 23 px, se metía 10 px
+  a la izquierda, y a 320 px de ancho se comía el borde del visto de guardar. Desde v36 esa X mide
+  44 px **de caja**, con márgenes negativos para no mover el dibujo ni alargar la fila, y el flex
+  garantiza el hueco con lo de al lado. En la misma fila, la cifra que abre la edición se amplía
+  (medía 61×18) y los campos para corregirla miden 44 de alto. Se comprueba como lo ve el dedo, con
+  `elementFromPoint`, a 400 y a 320 px de ancho útil, también en una serie récord: la marca de
+  récord va en su propia línea bajo la cifra, la X baja 10 px por ella, y la marca no recibe
+  toques (`pointer-events:none`), así que no se queda ese trozo.
 - **Teclado**: todo lo que se comporta como botón es enfocable y responde a Enter y Espacio. Las
   pestañas son botones reales con `aria-current`. En v32 había **22 controles que eran `<div>` con
   `onclick` y ni `role` ni `tabindex`** —entre ellos la lista entera de rutinas de Inicio, el
@@ -246,14 +330,98 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
   propósito**, porque sería un segundo tabulador para la misma acción que ya hace el cuerpo de la
   fila.
 - **Lector de pantalla**: el visto es `role="checkbox"` con `aria-checked`; los tres interruptores
-  son `role="switch"` con `aria-checked`; el selector de métrica lleva `aria-pressed`; las tres
+  son `role="switch"` con `aria-checked`; el selector de métrica y las opciones del salto llevan
+  `aria-pressed`, y el chip que las abre, `aria-expanded`; las tres
   hojas superpuestas son `role="dialog"` con `aria-modal` y `aria-labelledby`; el progreso de la
   rutina y el descanso son `aria-live`; los iconos decorativos van con `aria-hidden`.
 - **Avisos**: los mensajes no destructivos salen por el `toast()` propio, no por `alert()`. Los
   cinco `confirm()` que quedan son todos destructivos —reemplazar datos al importar, descartar la
   sesión, quitar una rutina del calendario y las dos de borrarlo todo— y ahí el diálogo del
   sistema es una ventaja: cuesta más pulsarlo por accidente.
+  Borrar una serie no pide confirmación: **se deshace** (v36). Es el único aviso con botón, y el
+  aviso sigue siendo la región viva (`role="status"`) que ya existía, así que «Serie borrada» se
+  lee sin mover el foco; si se borró con teclado, el foco pasa a «Deshacer», y al caducar vuelve a
+  la acción del guiado. A la vista, el aviso entero recibe los toques: ninguno lo atraviesa hasta
+  un control que tape. Tocar el de Deshacer fuera del botón no hace nada; el aviso sin botón se
+  cierra. Escondido no se enfoca ni se pulsa.
 - **Movimiento**: `prefers-reduced-motion` respetado.
+- **Zoom y letra del sistema.** El viewport deja **ampliar con pellizco**: sin `maximum-scale` ni
+  `user-scalable=no`, que lo bloqueaban en Android. Y la letra del sistema entra por `1rem` (§3).
+  Las pantallas principales —Inicio, rutina, guiado con su descanso, fin, Calendario, Progreso,
+  Ajustes y las hojas— se comprueban a **320, 375 y 430 px, con la letra de serie y al 130 %**:
+  ningún texto cortado, que se salga de su caja o que pise otro texto o un botón
+  (`tests/pruebas_letra.js`). Reglas para que aguante:
+  - **Alto mínimo, no alto fijo**, en todo lo que lleva texto: un botón con una etiqueta larga
+    pasa a dos líneas dentro de sí mismo en vez de salirse por abajo.
+  - **Lo que acompaña al texto se mide en `em`**: el anillo de la cabecera, la columna de nombres
+    de las series por músculo, el campo de una serie. Con la letra de serie miden los mismos px.
+  - **El nombre de un ejercicio no se recorta nunca**: se parte con guion (`hyphens:auto`) si una
+    palabra no cabe. «…» solo donde el diseño lo decide —el riel de la semana, con el nombre
+    entero a un toque, y el título de una hoja—.
+  - **Cuando el texto no cabe, la pieza cambia de forma, no encoge la letra.** Son consultas de
+    contenedor en `em` del propio bloque, que miden a la vez el ancho y el tamaño de letra:
+    - **Riel de la semana** (por debajo de 19 em): cada día muestra el icono de su rutina en vez
+      de «Em…». Con la letra de serie no salta.
+    - **Lista de ejercicios**: la figura grande de la fila «siguiente» vuelve a 46 px cuando no
+      deja los 7 em de «Calentamiento» (a 320 px ya pasaba de su columna); por debajo de 20 em las
+      figuras se van y el nombre gana 57 px.
+    - **Stepper del guiado**: la cifra va entre − y + si cabe con 4 px de aire a cada lado
+      **la más larga que puede tener**, «142.5» (las reps de tres cifras ocupan menos); si no,
+      sube a su propia línea y los botones quedan debajo, en los extremos. Lo que mide «142.5»
+      depende de la letra del teléfono: 4,94 em del stepper en Inter, 5,5 en DejaVu Sans, 4,4 en
+      Roboto. Con los 4,94 em de Inter escritos a mano, en la CI de GitHub (DejaVu Sans) la cifra
+      quedaba pegada a los botones a 412 px. Así que la consulta no lleva un número fijo:
+      `reservaCifra()` mide «142.5» en `#cifraRef` —una cifra invisible con la letra, el peso y
+      el espaciado de la del stepper— y escribe la consulta en `<style id="cifraReserva">`, en
+      em del stepper y con 1 px de holgura; un `ResizeObserver` la vuelve a medir si la cifra de
+      referencia cambia de ancho (otra letra u otro tamaño). Antes de medir rige una reserva
+      holgada, 5,6 em. Los botones **no encogen nunca** (42 px), y la cifra ocupa todo el hueco
+      entre ellos. **La forma de la fila la deciden solo el ancho del stepper y su letra, nunca
+      la cifra**: ni la de cada momento ni la de su orden. Si dependiera de la cifra, al pasar
+      de 97.5 a 100 con + (o de 9 a 10 reps) la fila se apilaría entre un toque y el siguiente, y
+      el segundo toque, en el mismo sitio, abriría el campo o caería en la fila de la reserva.
+      Así −, cifra, + y «Registrar serie» tienen la misma posición y tamaño de «0» a «142.5» y
+      de 1 a 100 reps, al tocar + y − y al escribir. Los dos steppers de la fila miden lo mismo y
+      cambian juntos. Con la letra de serie la cifra va entre − y + desde unos 409 px con
+      Inter, 425 con DejaVu Sans y 395 con Roboto (a 320 no cabe con ninguna, a 430 con todas);
+      con la letra grande, desde más ancho. Apilar a 375-393 px también
+      con «20» cuesta una línea, pero es lo que garantiza que nada se mueva bajo el dedo. La
+      cifra va **sin unidad**, como ya la pintaba el paso al abrirse: «Peso» lo dice encima.
+    - **Al escribir la cifra nada se mueve bajo el dedo.** El campo (peso o reps) ocupa el sitio
+      de la cifra a la que sustituye —entre − y + o encima, como ella— con su letra y su alto, y
+      su borde va pintado por dentro para que «142.5» quepa entero; una cifra más larga se
+      desplaza dentro del campo. El motivo: el campo se cierra al perder el foco, y con un toque
+      en «Registrar serie» o en + lo pierde al **empezar** el toque. Si la fila cambiara de alto
+      en ese momento, lo de debajo se movería antes de levantar el dedo, el toque acabaría en
+      otro sitio y la serie no se registraría, sin aviso. Por eso abrir y cerrar el campo no
+      cambian la fila, y como la forma no depende de la cifra, un peso escrito de otro largo (de
+      97.5 a 100) tampoco.
+  - **Filas que se reparten**: la marca de un récord y su fecha, el botón junto a un campo o en
+    el aviso de copia, la tercera caja de la pantalla de fin, la tercera columna del ejercicio
+    propio, el selector de tema de Ajustes (su texto pide 8 em; con una letra ancha a 320 px y al
+    130 % el selector baja a su línea) y, pasado el 130 %, el visto de corregir una serie bajan
+    de línea antes que recortar o pisar.
+  - **Corregir una serie cabe en una línea con la letra de serie, con cualquier letra.** Los dos
+    campos, la × y el visto van en un flex con 2 px entre ellos, no como texto con espacios cuyo
+    ancho depende de la letra: con DejaVu Sans la fila pasaba 0,2 px de su sitio a 320 px, el
+    visto bajaba y la fila crecía 30 px bajo el dedo. Sobran 6 px con DejaVu y 10 con Inter.
+    **Y con la letra grande, hasta el 130 %**: los campos crecen con la letra (3,3 em de
+    `--t-campo`) y a 320 px, al 115 y al 130 %, con las tres letras, el visto bajaba bajo el
+    peso y la fila pasaba de 46 a 80 px justo al tocar la cifra (también a 360 px al 130 %).
+    Corrigiendo, la columna del número dice solo «1» en vez de «Serie 1» (su sitio en la lista
+    ya dice qué serie es): con DejaVu a 320 px y al 130 % sobran 13 px. Y «Serie 1» no se parte
+    nunca: la columna mide al menos sus 52 px de la letra de serie y crece con una letra más
+    ancha (con DejaVu, a 320 px desde el 115 %, iba en dos líneas). Prueba en
+    `tests/pruebas_pantallas.js` («corregir una serie con la letra grande…», a 320, 360 y 375 px,
+    al 100, 115 y 130 %, sin barras de scroll): la fila no pasa de 46 px, todo sigue en 44 y
+    nadie pisa la zona de nadie; con lo anterior fallaba con las tres letras (80 px, y la zona
+    del peso pisada por el visto).
+  - **Las opciones de una lista caben todas**, no solo la elegida: la persona puede elegir
+    cualquiera. «Ninguno / peso corporal» pasa a «Sin aparato» y «Repeticiones por lado» a «Reps
+    por lado», como el stepper (§11).
+  - **El doble toque no amplía sobre un control.** Botones, `role="button"`, el visto y los
+    interruptores llevan `touch-action:manipulation`: dos toques rápidos en − o + son dos toques,
+    no un zoom. El pellizco sigue en toda la página, y el doble toque sobre el texto también.
 - **Zonas seguras**: `env(safe-area-inset-top)` en las tres cabeceras y `inset-bottom` en la barra inferior y las hojas.
 
 ---
@@ -262,7 +430,7 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
 
 - **Mayúscula solo al principio.** "Finalizar rutina", no "Finalizar Rutina".
 - **Sin signos de exclamación** en texto de sistema. Se reservan para el momento de terminar una rutina.
-- **Plurales siempre correctos**: "1 día seguido", no "1 días seguidos". Hay un helper `plural()`; usarlo.
+- **Plurales siempre correctos**: "1 semana cumplida", no "1 semanas cumplidas". Hay un helper `plural()`; usarlo.
 - **El número primero, la unidad después**: "22,5 kg × 8", "3 de 10".
 - **Los estados vacíos invitan**, no se disculpan: "Registra tus series y aquí verás cómo evolucionas".
 - **Explicar el porqué cuando se propone algo**: "Completaste las 4 series: toca subir a 12 kg" en vez de solo el número.
@@ -277,14 +445,20 @@ Lo que se celebra, y cuánto dura. Nada pasa de medio segundo.
 |---|---|
 | Registras una serie | La línea entra con un gesto de 240 ms y avanza el contador |
 | Completas un ejercicio | El visto rebota, la fila destella medio segundo, encoge, y el anillo avanza |
-| Bates un récord | Aviso flotante en ámbar con el ejercicio y la marca |
-| Terminas la rutina | Ilustración que se dibuja sola, tres cifras, los récords conseguidos y la racha |
+| Bates un récord | La propia serie se pinta en ámbar con el trofeo y qué superaste. Si además es nuevo máximo de 1RM estimado, aviso flotante con el ejercicio y la marca |
+| Terminas la rutina | Ilustración que se dibuja sola, tres cifras, los récords conseguidos con su tipo y la semana: el anillo de Inicio con «Esta semana: N de M» y, si esa sesión la cumple, «Semana cumplida · R seguidas» en ámbar. Solo esa: las que vienen después la misma semana ya no lo repiten |
+| Terminas con ejercicios sin hacer | Antes, el aviso con lo que falta. Si terminas así, el anillo se dibuja solo hasta lo hecho y dice «Guardada · X de Y ejercicios»: nunca «Completada» |
 
-Un récord es una serie que **ninguna anterior domina en peso y repeticiones a la vez**. Es la misma regla del panel de progreso, así que las dos cuentan lo mismo.
+Un récord es una serie que **ninguna anterior domina en peso y repeticiones a la vez**. Es la misma regla del panel de progreso, con sus mismas excepciones —el calentamiento no cuenta, y la primera vez que se registra un ejercicio solo marca el punto de partida—, así que las dos cuentan lo mismo.
+
+Qué se superó, en este orden: **Peso máximo** (más kilos que nunca en ese ejercicio), **Mejor 1RM est.** (el 1RM estimado sube más de un 0,5 %, sin bajar del mínimo de reps del rango) o **Más reps con X kg**; sin carga, **Más reps**. Va en la serie y en la pantalla de fin, con el mismo rótulo. El aviso flotante sigue reservado al nivel 2 (nuevo máximo de 1RM estimado frente al historial y a las series anteriores de hoy): celebrar igual cada récord devalúa la señal.
+
+**Una sola racha: semanas cumplidas.** Toda la app —Inicio, pantalla de fin, «Listo por hoy», Progreso y Ajustes— cuenta la misma cifra, la de `weekStats()`: semanas seguidas con la meta de sesiones de fuerza cumplida. Una racha de días castigaba justo los descansos que pide un programa de tres días. La semana en curso nunca resta y **suma en cuanto se cumple**: si solo contaran las cerradas, la pantalla de fin diría «Semana cumplida · 6 seguidas» e Inicio seguiría en 5 hasta el lunes. El avance de la semana va en primario, como todo progreso; solo «Semana cumplida» va en ámbar, porque eso sí es un logro, y sale una vez por semana: celebrarlo en cada sesión que sobra lo gastaría (§7). La mejor racha cuenta las semanas seguidas **por fecha**, como la racha: restar milisegundos entre dos lunes da 7 días ± 1 h si entre ellos hay cambio de hora, y la partía en dos. «Mejor M» solo sale cuando hay alguna semana cumplida: en la primera sesión, «mejor 0» al lado de «0 semanas cumplidas» no dice nada, y la pantalla de fin se queda con «1 sesión en total» (§11: los estados vacíos invitan). `rp_streak` se sigue guardando igual, pero de él solo se muestra el total de sesiones.
 
 ## 13. Qué falta
 
-- **RPE y notas por serie.** Convertiría el registro en algo que se puede releer.
+- **Notas por serie.** Convertiría el registro en algo que se puede releer. El RPE que iba con
+  ellas ya está: reps en reserva por serie desde v35 (`s.rir`).
 - **Tipografía incrustada.** El motivo ya no es estético: `--w-bold` es 800 y buena parte de
   los Roboto instalados en Android no tienen ese peso, así que el navegador lo aproxima a 700
   y la pareja 700/800 que sostiene toda la jerarquía de §3 puede desaparecer en ese teléfono.
@@ -295,33 +469,35 @@ Un récord es una serie que **ninguna anterior domina en peso y repeticiones a l
   **Trampa al implementarlo:** `caches.addAll` es atómico, así que el `.woff2` tiene que ir en
   un `cache.add()` aparte con `catch`. Si entra en `ASSETS` y su descarga falla, el service
   worker no se instala y la app pierde el offline por completo.
-- **Superseries antagonistas.** Es la palanca con respaldo para recortar el tiempo de sesión
-  sin tocar descansos: los tres días quedaron en 62-68 min tras la revisión de programa de v30. Necesita un flag de «par» entre dos
-  ejercicios que alterne series y cuente el descanso solo al cerrar el par. El especialista que
-  revisó las rutinas en v27 la señaló otra vez, y para el bloque secundario en concreto.
-- ~~Superseries~~: **descartadas por el usuario** (2026-09-23). No volver a proponerlas.
 - **Usar las reps en reserva en la progresión.** v35 ya las registra (`s.rir`); falta que
   `todayTarget` las lea (p. ej. reserva 0 en todas las series → no subir aunque se llene el rango).
 
 **De la comparación con apps líderes (2026-09-23)** — Strong, Hevy, Alpha Progression, RP
-Hypertrophy, Boostcamp, JEFIT. Ordenado por valor para estos dos usuarios:
-1. ~~Pesos disponibles~~ → cerrado en v35 para mancuernas. Queda abierto para máquinas
-   (salto de placa real de cada máquina del gimnasio).
-2. ~~Aviso de molestia articular~~ → cerrado en v35.
-3. ~~Series de aproximación~~ → cerrado en v35.
-4. ~~Medidas corporales~~ → cerrado en v35, con curva de la medida principal (cintura en salud,
-   brazo en masa) desde 3 medidas.
-5. **Descarga de una semana** (Alpha Progression, RP, Boostcamp): salida al radar de estancamiento. M.
-6. ~~Resumen mensual~~ → cerrado en v35 (sin desglose por músculo todavía).
-7. **Fotos de progreso** (Hevy, JEFIT). M: van en IndexedDB, no en localStorage ni en el JSON.
+Hypertrophy, Boostcamp, JEFIT. Ordenado por valor para estos dos usuarios, queda:
+1. **Descarga de una semana** (Alpha Progression, RP, Boostcamp): salida al radar de estancamiento. M.
+2. **Fotos de progreso** (Hevy, JEFIT). M: van en IndexedDB, no en localStorage ni en el JSON.
+
+Ya cerrado de esa lista: pesos disponibles (v35 para mancuernas; v36 para máquinas, con el salto
+de placa de cada una y el chip «Salto» del guiado), aviso de molestia articular, series de
+aproximación, medidas corporales (con curva de la medida principal desde 3 medidas: cintura en
+salud, brazo en masa) y resumen mensual (sin desglose por músculo todavía), todo en v35.
 
 Descartado tras la comparación: calculadora de discos (no usan barra), mapa de recuperación de
 Fitbod (aporta poco con PPL 3×), insignias y logros.
 
 ### Cerrado en v36
 
-Red de seguridad de los datos. La prioridad del dueño es no perder datos nunca, y hasta v35 eso
-dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma de una clave.
+Sprint 1, «Datos honestos»: que lo que la app propone, guarda y cuenta sea verdad —la carga que
+vuelve a subir, pesos que existen, el récord en su serie, una sola racha— y que un toque de más,
+una señal mala o la letra grande no lo estropeen. Entran la red de seguridad de los datos (HU-03)
+y las trece historias del sprint, cada una con su entrada y en el orden en que se integraron.
+Los arreglos de la revisión cruzada no van aparte: están dentro de la entrada de la historia que
+tocan, que ya cuenta el comportamiento final. Al final, qué hace falta para publicarla.
+Fuera de la app y sin cambiarla: el arnés de pruebas (`tests/`, HU-02), las pruebas en cada PR con
+GitHub Actions (HU-05) y los informes de `docs/` (benchmark de apps, HU-01; API de Claude, HU-06).
+
+Red de seguridad de los datos (HU-03). La prioridad del dueño es no perder datos nunca, y hasta v35
+eso dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma de una clave.
 
 - **Versión de esquema** (`rp_schema`). Los datos no decían en qué forma estaban guardados, así
   que cambiar una clave obligaba a adivinar al leerla. Ahora un bloque en `<head>` corre antes que
@@ -364,6 +540,731 @@ dependía de que el teléfono tuviera espacio y de que nadie cambiara la forma d
   migra al importar, copia más nueva rechazada, forma cambiada, ida y vuelta con la sesión en
   curso, y teléfono lleno simulado (`setItem` que lanza `QuotaExceededError`) al anotar, al
   finalizar, al empezar otra rutina y al importar.
+
+Arreglos que encontró el arnés (HU-57): dos fallos que estaban anotados como `test.skip` y, al
+revisarlos, el peso con centésimas:
+
+- **Un descanso de 0 s ya no se convierte en 15.** `buildSteps` rellenaba con `d.rest||15` en
+  los aguantes y `d.rest||10` en los de por lado, y `estMinutes` con `d.rest||30` en todo, así que
+  un `rest:0` —ajustado en `rp_doses` o puesto al crear un ejercicio propio— metía un descanso que
+  nadie había pedido y alargaba la duración estimada. `dose()` ya avisaba de lo contrario. Las
+  nueve rutinas, con sus opcionales, no cambian ni en pasos ni en minutos: sus aguantes con
+  `rest:0` van a una serie. Solo cambian los dos estiramientos por lado del programa con `rest:0`
+  y dos series (pectoral en la puerta, trapecio superior) cuando se agregan a otra rutina o se les
+  suben las series: las series van seguidas, como dice su dosis, en vez de con 10 s entre medias.
+- **El peso del guiado se ve siempre igual.** Al entrar en la serie y al escribirlo salía «30»,
+  pero tocar − o + y cambiar las series lo reescribían como «30 kg». Queda solo el número en los
+  cuatro caminos (`pintaW()`), y sale la regla CSS de la unidad, que solo usaban esos dos.
+- **El peso se ve con hasta dos decimales, sin ceros de más** (`fmtW`: 100, 102.5, 1.25). Con una
+  décima, unas mancuernas de 1,25 kg salían «1.3» en Ajustes, en el guiado y en los campos de
+  corregir, y corregir solo las reps (en el guiado o desde Historial) guardaba ese 1.3, un peso
+  que no existe; volver a guardar las mancuernas en Ajustes también las cambiaba. Escribir el peso,
+  corregirlo y los saltos (`roundDownTo`, `nextW`, el de 2,5 kg, y la subida que propone
+  `todayTarget` sin lista ni salto: 26,25 → 28,75, no 28,8) redondean a centésimas, como ya
+  hacía la corrección desde Historial, y los campos de peso aceptan cualquier decimal (`step="any"`).
+  Los pesos de siempre y los números de Progreso se ven igual; el cambio de peso por semana sigue
+  con una décima.
+- **Pruebas**: las dos que estaban omitidas pasan a ser normales (la del peso corre ahora en los
+  tres juegos de datos, no solo en el del gimnasio), y se añaden el descanso 0 en aguantes por lado
+  y en ejercicios propios, el descanso del programa sin cambios, los minutos estimados con
+  descanso 0, la serie siguiente sin pantalla de descanso en el guiado, y el formato del peso al
+  pintar, con − y +, al escribirlo y al cambiar las series. En `tests/pruebas_datos.js`, mancuernas
+  de 1,25 y 3,75 kg en Ajustes, el guiado, corregir la serie y la corrección desde Historial.
+
+Los ejercicios ligeros vuelven a subir de peso (HU-07). Por debajo de 25 kg la progresión sin lista
+de mancuernas se quedaba pidiendo más repeticiones para siempre.
+
+- **El 10 % decide cuándo se sube, no si se sube.** `loadStep` devolvía 0 cuando el salto pasaba
+  del 10 % del peso de trabajo, y por debajo de 25 kg siempre pasa (1 kg sobre 8 es un 12,5 %;
+  2,5 sobre 22, un 11 %). `todayTarget` estiraba el rango a tope+2 y, al llenarlo, lo volvía a
+  estirar. Ahora `loadStep` es el salto sin corte (la tabla de `progStep`: 1, 2 o 2,5 kg) y la
+  regla, con el rango lleno y todas las series hechas, es:
+  - salto de hasta el 10 % (25 kg o más): se sube y se vuelve al mínimo, como antes;
+  - salto mayor: primero se estira a tope+2 («estira el rango a 22 reps») y, cuando **todas**
+    las series llegan a tope+2, se sube y se vuelve al mínimo: «Llegaste a 22 reps: sube a 9 kg
+    y vuelve a 12».
+
+  Es la regla que ya seguía la lista de mancuernas de v35, que no cambia.
+- **Con `pesosDB` declarado manda la lista, también en lo que no es «de mancuerna».** En las
+  rutinas de casa todo lo que lleva carga se hace con esas mancuernas: sentarse con una al pecho
+  (`eq` silla), la zancada (sin aparato) y los gemelos (máquina en el gimnasio). Con la regla de
+  arriba a secas caían en el salto teórico y, de 3 kg con una lista 1-2-3, proponían 4 (en v35
+  solo estiraban). Ahora
+  `availDB(id,k)` les da la lista cuando `k` es de casa, y el salto es a la siguiente que existe:
+  de 1 a 2 tras tope+2, y con la de 3, la más pesada, se estira («Ya usas tu mancuerna más
+  pesada»). Sin peso todavía, al llenar el rango se coge la más ligera de la lista. Fuera de casa
+  los gemelos siguen siendo de máquina y siguen el salto teórico. Los botones −/+ del guiado y la
+  aproximación también pasan la rutina: en casa con la lista saltan entre sus mancuernas, y en
+  lo que no es de mancuerna (silla, zancada, gemelos) el suelo es 0, porque se puede hacer sin
+  peso. Antes la propuesta salía de la lista y los botones sumaban 2,5 kg (de 6 a 8,5).
+- **Un peso guardado como texto ya no se concatena.** Importar comprueba que `rp_logs` sea un
+  objeto, no el tipo de cada `w`, así que una copia editada a mano puede traer `"30"`: al llenar
+  el rango sumaba `"30"+2,5` = 302,5 kg, y con la lista un `"8"` proponía bajar a la de 6.
+  `todayTarget` lo pasa a número, también con la molestia anotada (de ahí iba tal cual a los
+  −/+, que daban 82,5 o NaN); y los −/+ pasan a número lo que tengan delante.
+- **Lo que no cambia:** la primera vez, la molestia anotada (congela aunque tope+2 esté lleno),
+  el ejercicio que aún va sin peso (de 0 kg sube a 1, como antes; con lista, a la más ligera) y
+  las series de menos (no sube). Sin claves nuevas ni cambios en la forma de `rp_logs`.
+- **Riesgo conocido:** sin lista, el salto es teórico y una máquina puede no tener ese peso en
+  su placa. Se corrige a mano en el guiado; el salto real de cada máquina (punto 1 de la
+  comparación con apps líderes) lo cierra el chip «Salto», justo debajo.
+- **Pruebas** en `tests/pruebas_logica.js`: 8 kg en el tope y en tope+2, 22 kg que sube a 24,5,
+  40 kg y el borde de 25 kg que suben directo, la rama de `pesosDB` contra lo que devolvía v35,
+  primera vez y molestia idénticas, una mancuerna de 3 kg sin lista (sube a 4) y con lista
+  (manda la lista), sentarse, zancada y gemelos en casa con la lista (de 3 kg no proponen 4;
+  todo ejercicio con carga de casa, de 0 a 3 kg, solo propone pesos de la lista), los gemelos
+  del gimnasio con salto teórico, pesos guardados como texto, el guiado mostrando «sube a
+  9 kg», y los juegos de datos de v35 sin escrituras ni claves nuevas.
+
+Pesos que existen en cada máquina (HU-08):
+
+- **Salto de placa por máquina** (chip «Salto» del guiado, `rp_inc`). La propuesta sumaba 2,5 kg
+  (1 o 2 por debajo de 20) aunque la polea fuera de 5 en 5: decía 42,5 donde solo hay 40 y 45, y
+  había que corregirlo a mano cada vez. Ahora el salto se dice una vez por ejercicio y los
+  pesos que existen son sus múltiplos:
+  - `todayTarget` aplica sobre esos múltiplos la regla de las mancuernas: salto suave (≤10 %) se
+    sube al llenar el rango; salto grande, primero el rango estirado (+2 reps) y después el peso.
+    Con 40 kg en saltos de 5 (12,5 %): 40 × 14 y luego 45. Nunca 42,5.
+  - Los −/+ van al múltiplo siguiente o anterior; un 42,5 tecleado sube a 45 y baja a 40.
+  - La aproximación redondea **hacia abajo** a un múltiplo (60 kg en saltos de 5: 30 y 40), nunca
+    por debajo de una placa. Si el peso de hoy no pasa de una placa (9 kg en saltos de 10) no hay
+    aproximación: saldría igual o más pesada que la serie. Con lista, lo mismo si la mancuerna
+    más ligera no queda por debajo del peso de hoy (8 kg con 8 y 10). La primera vez, el peso de arranque
+    también baja al múltiplo; `startKg:0` sigue sin peso. Con lista, la primera vez es la más
+    pesada de la lista que no pasa del arranque, o la más ligera si ninguna cabe.
+  - Lo tecleado no se redondea, ni al cambiar el salto después.
+  - Un solo sitio dice el salto: `stepFor(id,w)`, el declarado o el de siempre; `roundDownTo(id,w)`
+    da el peso real de abajo. Con mancuernas en Ajustes manda la lista y el chip no sale.
+  - Con los ligeros que vuelven a subir (arriba): en casa con la lista, lo que lleva carga se hace
+    con mancuernas y manda la lista aunque el ejercicio tenga salto de máquina guardado. Los
+    gemelos son de máquina en el gimnasio (allí su salto manda) y de mancuerna en casa (allí ni
+    chip ni salto: la propuesta, la primera vez, los −/+ y la aproximación siguen la lista). Por eso `incFor`, `stepFor`, `roundDownTo` y `nextW` aceptan la rutina, igual que
+    `availDB(id,k)`.
+  - Sin `rp_inc` (datos de v35) todo sigue igual. Clave nueva y sin migración: si falta es `{}`.
+    Viaja en la copia por prefijo, e importar exige que sea un objeto.
+  - **Pruebas** en `tests/pruebas_logica.js` (propuesta, −/+, aproximación, primera vez, datos de
+    v35; en casa con la lista, un salto guardado en cada ejercicio con carga no cambia nada, y los
+    gemelos siguen su salto en el gimnasio), `pruebas_pantallas.js` (dónde sale el chip, elegir y
+    quitar, lo tecleado se guarda tal cual, gemelos en el gimnasio y en casa) y
+    `pruebas_datos.js` (ida y vuelta de la copia con `rp_inc`, copia con otra forma).
+
+Una sola racha en toda la app: semanas cumplidas (HU-11).
+
+- **La misma cifra en cada pantalla.** Inicio contaba semanas cumplidas, pero la
+  pantalla de fin y «Listo por hoy» enseñaban la llama con «N días seguidos» y Progreso decía
+  «Racha de N días»: dos rachas que se contradecían en la misma sesión. Ahora todas salen de
+  `weekStats()` (§12): la pantalla de fin cambia la llama por el anillo de Inicio con «Esta semana:
+  N de M» y, en la sesión que cumple la meta (solo en esa), «Semana cumplida · R seguidas»;
+  «Listo por hoy» y «Tu historial» dicen «R semanas cumplidas · mejor M», y Ajustes «racha R
+  semanas». La semana en curso suma en cuanto se cumple. Con objetivo salud, Inicio añade
+  «Postura: N de 7 días esta semana» (§8). `rp_streak` se sigue escribiendo igual
+  (`completeDay`, `recalcStreak`) y su total es el de «N sesiones en total»: sin claves nuevas ni
+  migración.
+  - **La mejor racha se partía en los cambios de hora.** `weekStats()` ya calculaba `mejor`, pero
+    no se veía; al enseñarlo salió que juntaba semanas restando milisegundos entre lunes, y con un
+    cambio de hora en medio daba 7 días ± 1 h: seis semanas seguidas de marzo y abril salían como
+    «mejor 3» en Madrid. Ahora compara fechas, como la racha. En CI no se veía porque el navegador
+    corre en UTC: `app.enZona(zona, fn, ahora)` emula una zona IANA y fija el reloj.
+  - Con la letra grande a 320 px, «N de M» baja entera a la línea de abajo en vez de partirse.
+    La prueba vuelve a poner delante la pantalla de fin antes de medir: escondida mide 0 y
+    pasaba también con el CSS de antes.
+  - **Sin «mejor 0» ni «1 sesiones».** Sin ninguna semana cumplida —la primera sesión, o
+    quien aún no llega a la meta— la pantalla de fin decía «Mejor racha: 0 semanas» y «Listo por
+    hoy» y «Tu historial» «· mejor 0». Ahora «mejor» sale solo cuando hay alguna (§12). Ajustes y
+    «Tu historial» usan `plural()` en las sesiones y las series: «Guardado: 1 sesión», «1 serie
+    registrada».
+  - Pruebas en `pruebas_pantallas.js` (los dos juegos de datos, la sesión que cumple la semana,
+    las que vienen después, la primera sesión con `Fixtures.vacio`, la línea de postura, la
+    pantalla de fin a 320 px y la mejor racha en pantalla en Madrid y Santiago con cifras
+    contadas a mano) y `pruebas_datos.js` (`rp_streak`,
+    copia de ida y vuelta, datos de v35 sin meta congelada en las semanas viejas, y la racha que
+    cruza los cambios de hora de Europa, EE. UU., Chile y Australia, con `Fixtures.cambioHora`).
+
+Un doble toque no duplica la serie (HU-78):
+
+- **Un toque, una serie.** «Registrar serie» se convierte en visto 300 ms antes
+  del descanso, pero seguía aceptando toques: uno de más en esa ventana, frecuente con prisa o
+  con guantes, metía otra serie igual en la sesión —y al finalizar, en `rp_logs`, con su volumen
+  y su recuento— y lanzaba `afterAction` dos veces: en la última serie de un ejercicio, eso se
+  saltaba la primera del siguiente. El récord ya salía una sola vez, porque la copia no supera a
+  la original. Ahora el botón queda deshabilitado y sin `pointer-events` mientras confirma, y
+  `logSet` admite una serie por paso pintado (`renderStep` abre el candado) y nunca dos a menos
+  de 300 ms, con reloj monótono. Esto último es para «reducir movimiento»: sin confirmación y sin
+  descanso detrás, el ejercicio siguiente se pinta en el acto y el segundo toque caía en su botón.
+  Y no solo en el suyo: caía también en «Saltar descanso», en «¿Molestia…?» (que anota dolor y
+  congela la progresión de la próxima sesión) o en «Nota fija». Así que, tras pintar en el acto,
+  ningún control de `#guided` recibe toques durante esos 300 ms (un oyente en captura).
+  Sin claves nuevas ni cambio de forma: la copia va y vuelve igual. Pruebas en
+  `tests/pruebas_datos.js` («Doble toque en «Registrar serie»»), con y sin reducir movimiento.
+- **Salir, retroceder o saltar en esos 300 ms cancela la confirmación.** El paso pendiente no se
+  guardaba y corría igual: saltar ejercicio se comía la serie 1 del siguiente, «Paso anterior»
+  volvía solo al de antes y la X tras la última serie cerraba la sesión sin que nadie lo eligiera.
+  Ahora `clearTimer` también la cancela, y salir en esa ventana deja la sesión como salir en el
+  descanso: abierta, en el paso que viene. También con «Paso anterior» en el primer paso, que
+  sale: `guidedExit` mira la confirmación antes de pararla.
+  Queda abierto «Serie completada», el botón de los ejercicios que no se registran: no anota
+  nada, pero un doble toque sin descanso detrás todavía puede saltarse un paso.
+
+Mirar otra rutina no cierra la que está a medias (HU-63). Con Empuje a medias, tocar una fila, su
+play o su visto en Tirón cerraba Empuje sola (`startSess` → `finishSession` «auto») y la guardaba
+como terminada sin preguntar; y entrar al guiado solo para mirar ya creaba `rp_session`.
+
+- **La sesión nace con lo primero que se registra** (`ensureSess`): la primera serie, el primer
+  visto o el temporizador, no la entrada. `startRoutine` ya no llama a `startSess`, y `touchSess`
+  sin series en memoria solo pone al día la que ya hubiera: salir del guiado, pasar de ejercicio o
+  cambiar las series no la crean. `ensureSess` nunca cierra la de otra rutina a medias hoy.
+- **Hoja de conflicto** en `#planov` (§8). `sessConflict(k)` solo lee: mira la `rp_session` de
+  hoy de otra rutina con algo hecho y la que solo vive en memoria porque no cupo. La abren
+  `startRoutine` (fila, figura, play, Empezar) y `toggleCheck` al marcar. «Guardar y empezar» es
+  el único sitio que cierra una sesión a medias de hoy para empezar otra
+  (`finishSession(o,"switch")`); la rama «auto» queda para las de otros días. Su título,
+  «Tienes X a medias», salta de línea en vez de cortarse con «…»: a 320 px (y con letra grande a
+  375) se perdía justo «a medias» en seis de las nueve rutinas, todas las de casa entre ellas.
+- **Teléfono lleno al guardar:** sale el aviso de siempre («…sigue abierta sin guardar. Libera
+  espacio y finalízala») y las dos quedan como estaban. Si la otra está entera en `rp_session`, se
+  sigue a la nueva solo en memoria, como hasta ahora, y mientras esta tenga series no se vuelve a
+  preguntar: cada serie reintenta guardar la otra, que ya se eligió guardar. Si la otra tiene
+  series que solo viven en memoria, la hoja se queda, porque cambiar de rutina las perdería. Por
+  el visto, la hoja también se queda y no se marca nada: un visto no tiene memoria donde esperar,
+  y marcarlo pondría el «No cupo» genérico encima del aviso de la otra sesión.
+- **Las de otros días no cambian:** no abren la hoja, se rescatan al abrir con «Entrenamiento sin
+  cerrar» y, si se dejan para luego, se guardan con su fecha al entrar al guiado o al primer
+  visto, como antes. Mezcladas con lo de hoy pasarían por de hoy.
+- **Sin claves nuevas ni cambios de forma:** `rp_session` es la misma, solo nace más tarde. De
+  paso, un récord se apunta solo en la sesión de su rutina (`markPR`) y al recargar en el guiado el
+  paso guardado solo se usa si es de esa rutina: con dos sesiones vivas (la que no cupo y la nueva)
+  se cruzaban. Y como un visto ya crea la sesión, la que nace en el mismo milisegundo en que se
+  cerró otra lleva un `startedAt` posterior al de aquella: es lo que `finishSession` usa para no
+  guardar dos veces la misma, y con el mismo daba la nueva por ya guardada.
+- **Pruebas** en `tests/pruebas_datos.js` con el juego `aMedias` (Empuje 3 de 14): cada toque abre
+  la hoja sin escribir nada, la hoja sin opción destructiva, volver, guardar y empezar en 2 toques
+  (por el play y por el visto), teléfono lleno con la otra entera en disco y con series solo en
+  memoria, recarga en mitad del conflicto, mirar el guiado sin registrar, qué crea la sesión, y la
+  de ayer sin cerrar. Tres pruebas que daban por hecho que entrar creaba la sesión o que empezar
+  otra la cerraba sola conservan sus aserciones y añaden el paso que ahora hace falta: salir del
+  guiado y volver pasa por el primer visto; la otra sesión sin cerrar y el recorrido de pantallas
+  con una rutina de casa a medias, por la hoja.
+
+Avisar de los ejercicios que faltan antes de cerrar la sesión (HU-09):
+
+- **Aviso de lo que falta** (idea de RP Hypertrophy, Fitbod y Hevy).
+  Llegar al final del guiado cerraba la sesión como «Completada» aunque faltaran ejercicios:
+  empezar por el cuarto dejaba los tres primeros sin hacer y sin aviso. Ahora el final
+  (`advance` y `guidedSkipExercise` → `alFinal`) cuenta los pendientes —sin series hoy, sin
+  visto y sin saltar a propósito— y, si hay alguno, pregunta: «Hacerlos ahora» o «Terminar así».
+  Las reglas, en §8 Modo guiado y §12.
+  - `rp_session` gana dos listas **opcionales**: `saltados` (lo que se saltó con «Saltar
+    ejercicio») y `repaso` (los pendientes que se están haciendo tras el aviso). Sin ellas —una
+    sesión de v35— son listas vacías, así que no hace falta migración, y sin usarlas la sesión se
+    guarda igual que en v35. Siguen la regla de la memoria: viven junto a `sessionLog` y la
+    memoria manda. Viajan en la copia de seguridad y el guiado retoma en el mismo paso y en el
+    mismo orden. Con HU-63 saltar o llegar al aviso no crean la sesión, porque no registran
+    nada: las dos listas viven en memoria y entran en `rp_session` cuando nace, con el primer
+    visto o la primera serie. Si no se registró nada, no hay sesión que dejar abierta.
+  - «Terminar así» llama a lo mismo que antes (`finishSession`): series, vistos, racha e
+    historial se escriben igual. Lo único nuevo es el texto y el anillo de la pantalla final.
+  - Sin nada hecho —con pendientes tras «Terminar así», o con todo saltado— no se guarda nada y
+    el final lo dice («Nada nuevo que guardar»), en vez del «Completada» vacío de antes. Saltarlo
+    todo no deja pendientes, y aun así sin guardar nada no es «Completada».
+  - El aviso lleva su barra con «Salir» (sin «Paso anterior»): sin ella, salir sin elegir solo
+    se podía con el atrás del sistema, que una app instalada en iOS no tiene. Sale como el atrás:
+    la sesión queda abierta en el primer pendiente. Al pintarse, el foco va a su título.
+  - Si mientras tanto ese pendiente se marca con visto desde la lista, «Continuar» va al
+    siguiente que falte: antes volvía al ya hecho, y saltarlo lo apuntaba en `saltados`.
+  - Pruebas en `tests/pruebas_logica.js` (aviso, repaso, terminar así, saltados y el final sin
+    pendientes), `tests/pruebas_datos.js` (ida y vuelta con el repaso a medias) y
+    `tests/pruebas_pantallas.js` (sesiones de v35 de los juegos `madre` y `sinCerrar`). Tres
+    pruebas de teléfono lleno esperaban «Completada» al reintentar con casi todo sin hacer;
+    ahora esperan «Guardada · X de Y» con lo hecho (1 de 14, 2 de 14 y 1 de 12), que es justo
+    lo que esta historia cambia. La de 2 de 14 cuenta también el visto con el que HU-63 hace
+    nacer la sesión.
+
+El récord, en la propia serie (HU-10). El comentario de `markPR` decía desde v24 que un récord de
+nivel 1 «se ve en la propia serie», pero la serie no lo enseñaba: `.setline.pr` y `.prtag` estaban
+en el CSS sin que nada los pintara, así que la mayoría de los récords no se veían hasta la pantalla
+de fin, y ninguno decía qué se había superado.
+
+- **La serie récord se pinta en ámbar** en el guiado, con el trofeo y qué se superó en una línea
+  propia bajo el valor: al lado no cabía junto a «32.5 kg × 6 · reserva 2» a 360 px. §9 y §12.
+- **Qué se superó** (`prKind`): «Peso máximo», «Mejor 1RM est.» o «Más reps con X kg» («Más reps»
+  sin carga), contra las mismas series anteriores que `isPR`. La pantalla de fin lo repite bajo el
+  nombre del ejercicio. El nivel (`prLevel`, el que decide el aviso flotante) se mide contra esas
+  mismas series: antes solo contra el historial, y una serie ligera tras otra fuerte de hoy salía
+  de nivel 2, con aviso, mientras su etiqueta decía «Más reps con X kg».
+- **Cada récord guarda su número de serie** (`i`, 0 la primera) y su tipo (`kind`) en
+  `rp_session.pr`, y de ahí en `rp_history[].pr`. La marca va por número: dos series iguales que
+  baten la marca solo cuentan la primera; por peso y reps se habrían pintado las dos. Sin
+  migración: los `pr` de v35 no los traen, se leen igual y salen sin etiqueta; la copia los lleva
+  tal cual.
+- **Borrar o corregir una serie rehace los récords** de ese ejercicio (`prRecalc`): cada serie se
+  vuelve a medir contra el historial y las anteriores de hoy, sin aviso flotante. Antes el récord
+  de una serie borrada o corregida llegaba igual a la pantalla de fin y al historial. Corregir una
+  errata que sigue siendo récord lo conserva con su nuevo valor. Como `markPR` desde HU-63, rehacer
+  y pintar la marca solo miran la sesión de hoy de esta rutina, nunca la de otra a medias.
+- **Con el teléfono lleno el récord no se pierde.** `markPR` lo apuntaba en un `rp_session` leído
+  del disco y, si no cabía, no quedaba ni ahí ni en memoria: la serie, la pantalla de fin y
+  `rp_history[].pr` se quedaban sin él mientras Progreso (que lo calcula de `rp_logs`) sí lo
+  listaba. Ahora el ejercicio queda pendiente en memoria (`prSinGuardar`) y sus récords se rehacen
+  desde las series con `prRecalc` en cuanto estas caben (`touchSess`), o al finalizar. Y si no
+  cabe, sale el «No cupo», no el aviso de récord: el récord se verá en su serie al guardarse.
+- **`isPR` cuenta lo mismo que `prFeed`** (Récords recientes): no cuenta el calentamiento, y la
+  primera vez que se registra un ejercicio no hay récord aunque la segunda serie pese más. Antes el
+  guiado celebraba récords que Progreso nunca listaba.
+- **Pruebas** en `tests/pruebas_logica.js` (calentamiento, coherencia serie a serie con `prFeed`,
+  `prKind`, la marca por número, borrar y corregir, aviso solo en nivel 2) y en
+  `tests/pruebas_datos.js` (ida y vuelta de `i` y `kind`, datos de v35 sin ellos en el guiado,
+  la pantalla de fin y el calendario, y un récord de nivel 2 con el teléfono lleno). Las tres que terminan con solo el pecho hecho esperan
+  «Guardada · 1 de 14 ejercicios», no «Completada»: con HU-09 eso es lo que dice el final con
+  ejercicios sin hacer.
+
+Borrar una serie se puede deshacer (HU-54). La X de cada serie del guiado borraba de un toque, sin
+confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se tocaba en 18 px de alto.
+
+- **«Serie borrada · Deshacer»** durante siete segundos (`DESHACER_MS`). Deshacer la vuelve a
+  poner en su índice y la sesión queda idéntica, byte a byte: si era la última serie de su
+  ejercicio, el ejercicio vuelve a su puesto en `rp_session`. Lo que se borra con el aviso a la vista se apila:
+  un doble toque en la X se lleva dos series —la de abajo sube al sitio de la borrada— y el aviso
+  pasa a «2 series borradas»; Deshacer devuelve las dos. Anotar otra mientras tanto no estorba: la
+  borrada vuelve a su sitio y la nueva se queda, y deshacer en el descanso no saca del descanso.
+  Aunque la nueva sea récord de nivel 2: el aviso de récord no tapa al de Deshacer (lo cerraba y
+  la borrada ya no volvía); el récord se ve en su serie (HU-10) y se guarda igual.
+  Salir del guiado o finalizar retira el aviso: una sesión cerrada no se reabre. Si al deshacer no
+  cabe en el teléfono, la serie vuelve a la memoria y queda encima el aviso de «No cupo». Al
+  borrar, igual: se guarda después de sacar el Deshacer, así que si no cabe el «No cupo» queda
+  encima, y la borrada no vuelve aunque siga en `rp_session`. Un ejercicio que se queda sin series
+  sigue en memoria como `[]`, que manda sobre el disco (`sessLog`) y no se escribe
+  (`logSinVacios`): antes desaparecía de la memoria, ganaba la copia del disco y la serie borrada
+  llegaba a la pantalla de fin y a `rp_logs`.
+- **El aviso respeta §2, §10 y §11**: X en `--danger-hero` (el ámbar es logro), botón en
+  `--hero-accent`, sin exclamaciones y con plural. `toast()` acepta un tercer argumento que se
+  llama al cerrarse, por tiempo o porque otro aviso lo pisa; ahí caduca el Deshacer.
+- **El aviso usa el ancho que declara** (86 % de la pantalla). Centrado con `left:50%` solo tenía
+  media pantalla para encoger: los avisos nuevos se partían («Salto quitado: vuelven los de
+  siempre» en tres líneas a 320 px, el de récord en cinco), y el `nowrap` que mantenía «Serie
+  borrada» en una línea sacaba «Deshacer» de la píldora con letra grande. Ahora se centra con
+  márgenes automáticos; si el texto no cabe se parte él, y el botón queda entero dentro.
+  El aviso con botón llega hasta 8 px del borde (`.toast.conboton`, `calc(100% - 16px)`), no
+  al 86 %: con DejaVu Sans, «Serie borrada» y «Deshacer» piden 287 px al 130 % y a 320 px el
+  86 % son 275. Partido en «Serie / borrada», el aviso dejaba un hueco antes de Deshacer y
+  pasaba de 48 a 71 px de alto, y en el guiado de la madre casi nunca le quedaba sitio donde no
+  tapara un control («Una serie menos» y «Una serie más» a 320×760; abajo, «Nota fija» a
+  320×568). A 304 px le sobran 16 con DejaVu: cabe en una línea con la letra al 130 % también
+  con una letra un 8 % más ancha. En `%` y no en `vw`: fijo, el `%` es la ventana sin la barra
+  de scroll.
+- **En el guiado, el aviso con Deshacer sale arriba**, bajo la barra (Paso anterior, Salir), sobre
+  el nombre y la figura. Abajo, la zona de toque de Deshacer caía sobre «Registrar serie», el «+»
+  o «Nota fija» (a 360×640 y 375×667): volver a registrar justo después de borrar deshacía en vez
+  de anotar. Si arriba también pisa un control (página desplazada hasta la última serie, a
+  320×568), baja hasta el primer hueco sin controles (`colocaAviso`); si no lo hay, lo busca
+  también por encima de la barra y, centrado, si no cabe, algo movido a un lado (HU-55, «Con
+  cualquier letra»). En vertical no prueba de 8 en 8, sino cada sitio donde el aviso (con la
+  zona de 44 px de Deshacer) toca justo el borde de un control, por arriba o por abajo: un hueco
+  libre empieza siempre en uno de esos bordes, así que si lo hay lo encuentra. De 8 en 8 se
+  saltaba los huecos justos: con la madre a 320×568 y letra al 115 % (Roboto) el aviso cabía
+  entre «¿Molestia…?» y el + de «Series» en 6 px de recorrido, ninguno múltiplo de 8, y tapaba
+  la serie 1 (con DejaVu, igual a 320×640 al 115 %). Y cuando no hay hueco para el aviso
+  entero, de los sitios donde al menos Deshacer no cae sobre un control elige el que menos
+  superficie de controles tapa, no el primero. Entre los huecos, antes uno que no tape la barra
+  del guiado ni los rótulos PESO, REPS y SERIES (`ROTULOS`): no son controles, pero sin el suyo
+  «− 2 +» no dice qué cuenta, y el primer hueco bajo la barra caía a menudo sobre el rótulo de
+  «Series» con sitio libre un poco más abajo (DejaVu y Roboto a 360 y 412 px y a 320 al 130 %).
+  El último sitio posible es `innerHeight` menos el alto real del aviso, redondeado hacia abajo:
+  con su alto entero (42 de 42,125) asomaba 0,1 px por debajo. La posición se vuelve a
+  calcular cada vez que la página se desplaza o la ventana cambia de tamaño (`recolocaAviso`):
+  calculada una sola vez, al desplazar en esos 7 s «Registrar serie» o el «+» podían pasar bajo
+  Deshacer. Al desplazar sin hueco, el aviso **se queda quieto** en la pantalla mientras Deshacer
+  siga libre, y cuando tiene que moverse busca antes un sitio que no tape lo que acaba de tapar:
+  buscando cada vez el que menos tapa, perseguía a la cifra más corta de la lista (la serie 2,
+  «22.5 kg × 8», con seis series a 320×568), y desplazar no la sacaba nunca de debajo. Los
+  avisos sin botón siguen abajo, donde siempre.
+- **Nada atraviesa el aviso.** Solo el botón recibía toques (`pointer-events:none` en el resto):
+  tocar el texto o la X roja de «Serie borrada» activaba lo que hubiera debajo sin que se viera
+  —con los datos del dueño a 320, 360 y 375 px, el chip «¿De cuánto sube?»; con los de la madre a
+  320 px y letra al 130 %, «Una serie menos», que guardaba otra dosis en `rp_doses`—. Los avisos
+  sin botón también tapaban controles (en la rutina, «Empezar» o «Finalizar rutina») y dejaban
+  pasar el toque. Ahora el aviso a la vista se queda todos los toques (`.toast.show`). Tocar el de
+  Deshacer fuera del botón no hace nada, para no perder el Deshacer por rozar el texto; el aviso
+  sin botón se cierra (`toastToca`) y el toque siguiente ya llega a lo de debajo. El clic del
+  propio Deshacer no cuenta como toque en el aviso: sube hasta `#toast` cuando `deshacerSerie()`
+  ya ha puesto «Serie recuperada» (sin botón), y lo cerraba en ese mismo clic; `toastToca` ignora
+  lo que viene de `.tact` (prueba en `tests/pruebas_datos.js`: tras Deshacer el aviso tiene
+  `.show` y sigue a la vista su tiempo). Como lo que
+  tapa no se puede tocar en esos 7 s, `colocaAviso` busca antes un hueco donde **el aviso
+  entero** no tape ningún control, y solo si no lo hay, uno donde no lo tape el botón, como antes.
+  Pruebas en `tests/pruebas_pantallas.js`: se toca el aviso punto a punto como el dedo
+  (`elementFromPoint` y un clic en lo que devuelve), con y sin botón, a 320, 360 y 375 px y letra
+  al 100 y al 130 %, y con los datos del dueño en la prensa: todo cae en el aviso, nada cambia en
+  los datos y el Deshacer sigue a la vista. Las pruebas de dónde se coloca miden el botón y,
+  desde HU-55, también el aviso entero: «el Deshacer no pisa…» y «con la página desplazada…»
+  miraban solo el botón, lo que medían cuando solo él recibía toques, y no veían que con seis
+  series a 320×568 el aviso tapaba la cifra de una serie (ver «lo que queda abierto»).
+- **Se coloca con la página ya repintada.** `delSet` sacaba el aviso (y lo colocaba) antes de
+  repintar el paso, así que el hueco se buscaba con la fila borrada todavía en su sitio: sin
+  ella lo de debajo sube, y con los datos de la madre a 320 px y letra al 130 % el Deshacer
+  quedaba sobre el + de «Series». Ahora se vuelve a colocar después de `renderStep()`. Y se
+  mide donde se quedan los controles, no donde están: el paso repintado entra 8 px más abajo
+  (`stageIn`) y, medido a media entrada, el hueco elegido quedaba 8 px corto al terminar
+  (`controlesGuiado` descuenta lo que se está moviendo, una vez por colocación y no una por cada
+  hueco probado). Prueba en `tests/pruebas_pantallas.js`: con la madre a 320×760, 320×568 y
+  360×640, letra al 100, 115 y 130 %, borrando la primera o la última serie, el aviso queda
+  donde lo pondría `colocaAviso` con la página quieta y su botón no pisa ningún control (sin
+  ningún hueco, a 320×568 con letra grande, se queda abajo, como siempre).
+- **Zonas de toque de la fila de serie** (§10): la cifra entra en la lista del pseudo-elemento, la
+  X pasa a caja de 44 y los campos de corregir miden 44 de alto y 52 de ancho (antes 58; con la X
+  de 44, a 320 px la fila se partía). La fila mide lo mismo que antes, 40 px; editando, 46 en vez
+  de 48. Cada X dice qué serie borra («Borrar serie 2»).
+- **Sin cambios de datos**: nada nuevo en `rp_*`; lo que se puede deshacer vive en memoria.
+- **Con el récord en la propia serie (HU-10)**: borrar rehace los récords del ejercicio, y
+  deshacer también. La serie vuelve con su marca y, si los récords salen los mismos que antes de
+  borrar, `pr` vuelve tal cual estaba en `rp_session`, en su orden (rehacer ponía al final los del
+  ejercicio devuelto). `prRecalc` ya no crea `pr: []` en una sesión que no tenía récords: borrar
+  y deshacer sin ninguno, o con el teléfono lleno, la dejaba con esa clave de más. La marca de
+  récord no recibe toques, para no quedarse el borde de abajo de la X (§10).
+- **Pruebas** en `tests/pruebas_datos.js`: borrar y deshacer deja `rp_session` (menos el sello
+  `lastAt`), la memoria y la lista idénticas; sin deshacer, la serie no está ni al finalizar;
+  doble toque; la única serie de un ejercicio; anotar otra y deshacer en el descanso; salir y
+  finalizar (con HU-09, «Guardada · 1 de 14 ejercicios»); teléfono lleno, al deshacer y al borrar
+  la única serie de un ejercicio; una serie de `rp_logs`;
+  una serie récord, con récords en dos ejercicios. En `tests/pruebas_pantallas.js`: cifra, X,
+  campos y visto con 44 px propios a 400 y 320 px de ancho útil (en CI la barra de desplazamiento
+  clásica ocupa 15 px y el iframe se ensancha lo que mida), también en una serie récord; el aviso
+  con su rol, su voz y el contraste del rojo en los dos temas; y con teclado.
+
+La app abre aunque la señal sea mala (HU-53). `index.html` iba *network-first* sin más: con la red
+caída salía la copia en el acto, pero con señal mala la petición ni responde ni falla, y la
+pantalla se quedaba en blanco hasta que el navegador se rendía (en Chromium, más de 20 s sin nada).
+
+- **Red primero con plazo** (`ESPERA_RED`, 3 s en `sw.js`). Si en ese tiempo la red no ha traído
+  el archivo **entero**, sale la copia guardada y la descarga sigue detrás: si termina, se guarda
+  y la versión nueva sale en la siguiente apertura. Cuenta el archivo entero y no las cabeceras
+  porque con señal mala también se atasca el cuerpo, y la app es un solo archivo que no pinta nada
+  hasta tenerlo completo. Con buena red no cambia nada: llega la versión nueva y se guarda. Con la
+  red caída del todo la copia sigue saliendo en el acto, sin esperar el plazo.
+- **Sin copia se espera a la red**, como antes: en la primera visita y justo después de «Buscar
+  actualización», que vacía la caché (todo menos `figuras.js`). Por eso ese botón sigue trayendo la última versión aunque la
+  red tarde.
+- **Tras «Buscar actualización» la caché vuelve a tener todo** (arreglado al cerrar v36; ya pasaba
+  en v35). El botón vacía todas las cachés y recarga; si `sw.js` no cambió no hay install que las
+  llene, así que solo se volvía a guardar lo que se pedía: `./` y `figuras.js`. El manifest, los
+  iconos e `index.html` se quedaban sin copia hasta que algo los pedía, y la siguiente apertura
+  sin red los echaba en falta.
+  Ahora cada apertura (`completa`, en el `waitUntil` de la navegación) mira que `ASSETS` siga
+  entero y trae solo lo que falte, cada archivo por su lado y con su `catch`: lo que no llega se
+  intenta en la apertura siguiente. Con la caché entera no pide nada. No trae lo que esa misma
+  apertura ya va a guardar ni `figuras.js`: pedirla también ahí serían 2 MB dos veces. Sirve
+  igual si el navegador desaloja parte de la caché.
+- **«Buscar actualización» conserva `figuras.js`** (arreglado al cerrar v36). Se contaba con que
+  la app la pidiera al recargar y el service worker la guardara en su primera descarga buena,
+  pero en Chromium de verdad no pasa: en esa recarga el `<script src=figuras.js>` sale de la
+  memoria de la pestaña y no llega al service worker, así que se quedaba sin copia y una apertura
+  posterior sin red se quedaba sin ilustraciones (`FIGS` sin definir, «falla figuras.js»). Como
+  `figuras.js` no cambia nunca (si cambia, cambia de nombre), `vaciarCaches` la deja donde está:
+  la caché que la tiene se queda solo con ella y las demás se borran enteras. Así tampoco se
+  vuelven a bajar sus 2 MB. Si falta por otra causa (falló en install, el navegador la desalojó),
+  la rama *cache-first* la guarda en su primera descarga buena, que en una apertura nueva sí pasa
+  por el service worker. Un teléfono que pulse el botón con el `index.html` de v35 aún la borra;
+  la recupera la primera apertura en frío con red.
+- **Sin copia y sin red, un error de red limpio.** En la rama *cache-first* (iconos, `figuras.js`)
+  la descarga fallida llegaba a `respondWith` como promesa rechazada y salía «Uncaught (in
+  promise) TypeError: Failed to fetch»; ahora responde `Response.error()`. Y guardar las figuras
+  va en el `waitUntil` y con su `catch`: un `put` que falla (teléfono lleno) también quedaba sin
+  capturar.
+- **Una dirección sin copia propia cae a la de `./`**, y solo si no está, a la de `index.html`.
+  `./` se renueva en cada apertura con buena red; `index.html` solo al instalar (o al entrar por
+  ahí con buena red), y como `sw.js` no cambia en cada versión puede quedarse varias por detrás.
+  Entrar por `index.html?…` sin red ya abría esa copia vieja; con el plazo también lo habría hecho
+  con señal lenta. Abrir desde el icono (`start_url` es `.`) no pasaba por aquí.
+- **El manifest ya no cae a `index.html`** cuando no tiene copia: servir HTML como manifest no
+  arreglaba nada, y con el plazo habría pasado con una simple red lenta tras «Buscar actualización».
+- **`ASSETS` y `CACHE` no cambian.** El navegador compara `sw.js` byte a byte, así que el cambio
+  basta para que se instale el nuevo; `CACHE` solo se sube para tirar lo guardado. Ojo: instalar
+  volvía a pedir `figuras.js` aunque `CACHE` no cambiara (`c.add` no mira si ya está), así que
+  cada versión de `sw.js` podía costar a cada teléfono otra descarga de las figuras; desde la
+  entrada siguiente (tocar un aviso) se copia de la caché que la tenga.
+- **Pruebas** en `tests/pruebas_sw.js`: `sw.js` se evalúa tal cual con red, caché y reloj de
+  mentira —red buena, buena pero sin prisa, lenta, cuerpo atascado, caída, error del servidor, sin
+  copia, dirección sin copia propia, manifest y figuras—, y «Buscar actualización» se prueba en la
+  app: vacía la caché, pide buscar un `sw.js` nuevo y recarga. Las dos tienen en cuenta el tiempo
+  virtual de la CI: el cuerpo atascado se comprueba solo con microtareas, porque mientras sigue
+  abierto Chrome congela los temporizadores y la corrida no terminaba, y en la app la caché y los
+  registros son dobles, porque los de verdad tardan tiempo real y perdían contra el tope de 20 s.
+  Al cerrar v36, en el mismo archivo: con la caché vacía, la primera apertura con red vuelve a
+  guardar todo `ASSETS` y las figuras, cada uno una sola vez, y la siguiente sin red lo sirve todo;
+  y el `forceUpdate` de la app, aplicado a la caché del service worker en su caja, conserva
+  `figuras.js` sin que la app la pida al worker: tras la recarga con red no se vuelve a bajar y
+  la siguiente apertura sin red tiene todo `ASSETS` y las figuras;
+  con la caché entera no se pide nada más; un icono que no llega se reintenta en la apertura
+  siguiente; sin copia ni red, iconos y figuras reciben `Response.error()`; y un `put` de las
+  figuras que falla no deja promesas sin capturar. La prueba de «sin copia, se espera a la red»
+  responde ahora a la petición de `./` por su ruta (`net.de`), porque detrás van las de `completa`.
+
+Tocar un aviso devuelve a la app (HU-12). `sw.js` no escuchaba `notificationclick`: tocar «Descanso
+terminado» con el teléfono bloqueado cerraba el aviso y nada más, y había que buscar la app para
+volver a la serie.
+
+- **Enfocar o abrir.** Tocar cualquier aviso lo cierra y enfoca la ventana de la app si ya hay
+  una, tal como estaba; si no, abre una: el de fin de descanso (`rp-rest`) con `#retomar`, el
+  recordatorio en Inicio. Solo cuentan las ventanas dentro del scope de la app, porque en
+  github.io el origen lo comparten otros repos.
+- **`#retomar` vuelve al paso guardado.** Con una sesión viva de hoy, el arranque abre el guiado
+  en `rp_session.stepi` (`retomarDesdeAviso`). Durante el descanso ese paso es la serie que viene
+  (`renderRest` y salir lo guardan), no la ya registrada: si no, el aviso abría «Serie 1 de 4»
+  con la serie 1 ya anotada debajo. Va con la pila Inicio › rutina › guiado: con una
+  ventana nueva el historial está vacío y salir habría cerrado la app. Sin sesión viva, con una
+  de una rutina que ya no existe o con la de ayer —que sigue ofreciendo cerrarse— se queda en
+  Inicio. La marca se quita de la URL al leerla. No escribe nada: ni claves nuevas ni cambio de
+  forma, y la copia va y vuelve igual.
+- **Fragmento y no `?retomar=1`**, que era lo previsto: la caché casa las URL sin fragmento, así
+  que sin red sale la misma copia de la app que al abrirla a mano. Con `?`, el *network-first*
+  guardaría otra copia de `index.html` aparte y, sin red, podría servir una versión vieja, porque
+  `CACHE` no cambia entre versiones.
+- **Instalar ya no vuelve a bajar `figuras.js`.** Si está en cualquier caché —la de la versión
+  anterior, o la misma si `CACHE` no cambió— se copia a la nueva; si no, se descarga aparte y con
+  su propio `catch`, como antes, así que una instalación nueva sin red para las figuras sigue
+  instalando el service worker. Hasta ahora cada `sw.js` nuevo las volvía a pedir a la red, y
+  eran 2 MB si la caché HTTP del teléfono ya no las tenía. La contrapartida: **subir `CACHE` ya no
+  renueva las figuras**; si algún día se tocan, hay que cambiarle el nombre al archivo
+  (`figuras-2.js`, en `index.html` y en `sw.js`). `CACHE` no cambia (abajo, «Publicar v36»).
+- **Pruebas** en `tests/pruebas_avisos.js`: `sw.js` tal cual con dobles de `self`, `caches`,
+  `clients` y `fetch` —install con las figuras ya guardadas, sin guardar, sin red y con 404;
+  `notificationclick` con y sin ventana, de descanso y de recordatorio, y con una ventana de otra
+  app del mismo origen—; la caché real del navegador para el fragmento, dentro de
+  `Pruebas.tiempoReal` para que el reloj virtual de la CI no salte al tope mientras contesta; y el
+  arranque con `#retomar` con sesión de hoy, sin sesión, con una rutina que ya no existe, con la
+  de ayer y con datos de v35. Queda abierta la prueba a mano en un Android con la app instalada:
+  el arnés no registra el service worker.
+
+Progreso carga más rápido (HU-56):
+
+- **Progreso lee el historial una vez por pintado.** Cada análisis —el índice de fuerza y su
+  curva de 12 semanas, sobrecarga, estancamiento, récords, series por músculo y el resumen del
+  mes— volvía a leer y parsear `rp_logs` entero: **25 veces por pintado**, también al guardar un
+  pesaje o una medida, que redibujan la pantalla. Ahora `renderProgress` lo lee una vez y se lo
+  pasa (§8); el resumen del mes, además, pide la lista de récords una vez y no dos. Con dos años
+  sintéticos (`Fixtures.dosAnos`: 427 sesiones, 373 KB de `rp_logs`), por pintado: **de 25
+  parseos a 1 y de 9 MB parseados a 0,36 MB**, lo que comprueba el arnés también en la CI; y en
+  tiempo, **de 55-59 ms a 17-18 ms**, mediana de 41 pintados con el arnés servido (`--servir`) en
+  Chromium con Playwright, en un ordenador. Con seis semanas de datos, de 6 a 3 ms. En el teléfono
+  no se ha medido. `run.py` no puede tomar la medida en ms: corre con reloj virtual, que dentro de
+  un pintado no avanza (`tests/README.md`).
+  Las cifras que se ven no cambian por esta historia: comparado con el código de v35 con los
+  cuatro juegos de datos, el texto de Progreso es idéntico salvo la primera línea de «Tu
+  historial», que cambia HU-11 («Racha de N días · mejor M» pasa a «R semanas cumplidas · mejor
+  M»). En el HTML cambia además el trazo de la curva del índice: desde HU-57 se dibuja con los
+  valores a una décima, los mismos que rotula, y sus puntos se mueven hasta 1 px.
+  Queda, de menos peso: la media de 7 días del peso recorre `rp_bw` entero 112 veces por pintado
+  (unos 6 ms con dos años de pesajes casi diarios) y `rp_history` se lee tres veces.
+  **Pruebas** en `tests/pruebas_progreso.js`: una lectura y un parseo al abrir Progreso y al
+  redibujar; el pintado y cada análisis dan lo mismo con el registro compartido que leyendo el suyo,
+  con `dosAnos` y con los juegos de cada día (eso solo prueba que pasar el registro equivale a
+  leerlo: las dos ramas corren el cálculo de hoy); la igualdad con v35 la prueba una referencia
+  guardada (`tests/referencia_progreso_v35.js`), sacada una vez del `index.html` de v35: lo que
+  calculan los análisis y el texto de cada bloque, con `dueno`, `madre` y `dosAnos` generados con
+  el reloj parado en el 14 de octubre de 2026 (`Pruebas.conReloj` y `app.enZona`); ningún análisis modifica lo que
+  recibe; con `dosAnos`, un parseo de `rp_logs` frente a más de 20 y veinte veces menos KB, y con
+  reloj real menos del 60 % del tiempo (con el de `run.py` esa sale omitida, con su motivo). Nada
+  depende del día en que corran: `dosAnos` trae una sesión cada día 1, y una prueba con el reloj de
+  la app en un día 1 comprueba que el resumen del mes sale.
+
+Letra del sistema y zoom (HU-55). Quien necesita letra más grande no podía ampliar con los
+dedos —el viewport lo prohibía— y la app no se enteraba del tamaño de letra del teléfono: toda la
+escala estaba en px y la raíz fijada a 14.
+
+- **Pellizco permitido.** Fuera `maximum-scale=1` y `user-scalable=no` del viewport. Los
+  controles llevan `touch-action:manipulation` para que dos toques rápidos en − o + no se lean
+  como doble toque para ampliar (§10).
+- **La escala tipográfica pasa a `rem`**, con los mismos once pasos y los mismos px de serie
+  (§3). `<html>` deja de tener tamaño propio y el base va en `body`. De los nueve tamaños que
+  quedaban escritos a mano, ocho pasan a la escala (glifos de botón, campos a 16 px, y el campo
+  de la cifra del stepper, de 24 px a `--t-xl` como la cifra que sustituye). El noveno era el
+  emoji de la pantalla de fin, que no se pinta desde v24: la regla se borra.
+- **La letra del sistema llega**: `meta text-scale` en Android y `-apple-system-body` con `--fk`
+  en iOS (§3). En escritorio, el ajuste de letra del navegador.
+- **Campos a 16 px como mínimo** (`--t-campo`): sin `maximum-scale`, iOS habría vuelto a ampliar
+  la pantalla al enfocar el campo de corregir una serie, que iba a 12,5.
+- **Las etiquetas de las curvas** (SVG) crecen con la letra (`letraK()`).
+- **Revisión de desbordes a 320-430 px y al 130 %** (§10). De paso salieron cosas que ya fallaban
+  con la letra de serie:
+  - a 320 px un peso con decimal o de tres cifras no cabía entre − y +: pegado a los botones,
+    empujaba el stepper de las reps hasta el borde de la pantalla; y al escribirlo, el campo de
+    104 px se salía del stepper en cualquier ancho;
+  - un «142.5» encogía los botones del stepper hasta 37 px y dejaba la cifra pegada a ellos, a
+    375 px ya con la letra de serie y a 430 al 130 %. Ahora los botones no encogen y la fila
+    reserva siempre el sitio de «142.5» (§10). La cifra va sin unidad desde HU-57 (`pintaW()`);
+  - «Caminadora» se cortaba sin «…» a 320 px, y el recorte a dos líneas dejaba «Colgado con…»;
+  - la etiqueta «Calentamiento» de la fila siguiente pasaba de su columna a 320 px;
+  - en el aviso flotante cada `<b>` era otra columna del flex: un récord salía partido en dos
+    columnas. `toast()` pone ahora el texto en un solo hijo (`.tmsg`, como ya hacía el aviso de
+    Deshacer, que llega así y no se toca); el ancho del 86 % ya lo había arreglado HU-54;
+  - los récords y los músculos largos salían con «…» («Extensión de tríceps en p…», «Hombro p…»).
+- **Escribir la cifra no mueve nada** (§10). En la primera versión de la historia el campo subía
+  siempre encima de − y +, a lo ancho del stepper, y la fila ganaba unos 47 px mientras se
+  escribía. Al tocar «Registrar serie» o + con el campo abierto, el campo perdía el foco al
+  empezar el toque, la fila volvía a su alto y lo de debajo subía antes de levantar el dedo: el
+  toque caía en otro sitio y la serie no se registraba, sin aviso, en cualquier ancho. Ahora el
+  campo ocupa el sitio de la cifra.
+- **La forma de la fila no depende de la cifra** (§10). La segunda versión reservaba el sitio
+  por el orden del peso (3, 4 o 5 caracteres): dentro de un orden nada se movía, pero al cruzar
+  de 97.5 a 100 con + la fila se apilaba entre un toque y el siguiente, y el segundo toque, en el
+  mismo sitio, abría el campo en vez de sumar (y de 100 a 97.5 con − se desapilaba y el segundo
+  caía en la fila de la reserva), con la letra de serie a 360-393 px, los iPhone más comunes.
+  Tres revisiones encontraron variantes del mismo fallo, así que se fue a la causa: la fila
+  reserva siempre el sitio de «142.5», la cifra ocupa todo el hueco entre − y +, y apilar o no
+  lo deciden solo el ancho y la letra. Fuera `cifraPeso()`, `data-cifra` y `trasElToque()`. El
+  precio: con la letra de serie, de 320 a 393 px la cifra va encima de − y + también con pesos
+  cortos.
+- **Pruebas** en `tests/pruebas_letra.js`: viewport y `text-scale`, la escala en rem a 100 y
+  130 %, ningún `font-size` en px y todos de la escala, la compensación de iOS, campos de 16 px
+  o más, `touch-action` en los controles y no en la página, que todo el texto de seis pantallas
+  crezca un 30 %, curvas, riel y aviso; el stepper con una cifra de cada largo a 320-430 px y
+  hasta el 130 % (botones de 42, cifra encima o con 4 px de aire; al escribir el peso o las
+  reps, el campo en el sitio de la cifra, «142.5» entero y la fila sin cambiar de forma), el +
+  quieto de 140 a 142.5 y 145, entre − y + donde «142.5» cabe con su aire (medido con la letra
+  que pinta) y encima donde no, con cualquier peso; la fila entera
+  (botones, cifras, campo y «Registrar serie») con la misma geometría de «0» a «999.5» kg y de
+  1 a 100 reps, al cruzar 97.5↔100, 7.5↔10, 9↔10 y 99→100 con + y − y con el campo abierto, a
+  320-430 px y al 100, 115 y 130 %; dos toques seguidos en el mismo punto de + o −, de dedo y
+  de ratón, a 360-412 px y hasta el 130 %, que suman o restan los dos sin abrir el campo; escribir y
+  tocar «Registrar serie» o + con el campo abierto con los eventos de un toque de verdad, de
+  dedo y de ratón y en el orden del navegador, a 320-430 px y al 100 y al 130 %, con pesos del
+  mismo orden y de otro: la serie se registra con lo escrito y + suma a lo escrito; y el humo de las
+  pantallas principales a 320, 375 y 430 px con la letra de serie y al 130 %, con tres juegos de
+  datos. El humo revisa cada texto contra las cajas que lo contienen, contra los demás textos y
+  contra los botones, y cada tarjeta contra el ancho del teléfono.
+- **Al integrarla con el resto de v36.** Los campos de corregir una serie (HU-54) pasan de
+  52 px de ancho y 12,5 de letra a `--t-campo` y 3,3 em sin relleno a los lados: 53 px con la letra
+  de serie, así que a 320 px la fila sigue entera con la X de 44 (con 3,6 em se partía) y
+  «142.5» cabe; un «102.75» (HU-57) se desplaza dentro del campo. La sangría de la marca de
+  récord (HU-10) sigue a la columna del número de serie, que ya va en em, en vez de sus 52 px
+  fijos. El aviso de Deshacer llega ya con su texto en `.tmsg` y `toast()` no lo envuelve. En
+  el arnés, `app.reiniciarMemoria()` también abre el candado de «Registrar serie» (HU-78):
+  la prueba de tocar con el campo abierto empieza cada caso de cero y su primer toque caía en
+  los 300 ms de la serie anterior.
+- **Con cualquier letra.** Todo lo anterior se calibró con Inter, la letra del contenedor donde
+  se escribe, y la CI de GitHub, que pinta con DejaVu Sans (más ancha), salió en rojo: 8 de 361.
+  En un teléfono tampoco es Inter (Roboto en Android, SF en iOS), así que el arreglo es de diseño
+  y la regla queda en §3: nada se calibra con los px de una letra. Lo que cambió:
+  - **La reserva de «142.5» se mide** (§10): con los 4,94 em de Inter escritos en la consulta, a
+    412 px y a 430 al 115 % la cifra quedaba con −1,3 y −3,8 px de aire, pegada a los botones.
+    `reservaCifra()` la mide con la letra real; la garantía de la fila no cambia: la forma la
+    deciden el ancho, la letra y su tamaño, nunca la cifra.
+  - **El aviso de Deshacer encuentra hueco**: con DejaVu las series largas van en dos líneas y,
+    con seis series a 320×568 y la página desplazada, no había hueco bajo la barra; el aviso
+    volvía abajo y Deshacer caía sobre «Registrar serie». `colocaAviso` busca ahora también
+    encima de la barra, hasta el borde (desplazada, ese trozo es página) y, si centrado no cabe,
+    movido a un lado hasta 8 px del borde (a 8 px a la izquierda Deshacer deja de rozar las X).
+    Las posiciones se prueban con cuentas (`avisoPisa` con x, y), sin mover el aviso: probar
+    cientos moviéndolo maquetaría cientos de veces en cada desplazamiento.
+  - **A 320 px y al 130 % se reparte o se acorta** (§10, §11): el selector de tema baja de línea;
+    el buscador dice «Buscar ejercicio…» (como su etiqueta) en vez de «Buscar en el catálogo…»;
+    en el ejercicio propio, «Sin aparato» y «Reps por lado».
+  - **Corregir una serie, en una línea con la letra de serie** (§10): flex de 2 px en vez de
+    espacios, y el visto con 4 px menos de relleno (su zona sigue en 44).
+  - **Las pruebas pasan a invariantes**: la cifra va entre − y + exactamente donde «142.5» cabe
+    con su aire, medido con la letra que pinta (antes, «desde 412 px»); la cifra que se desplaza
+    dentro del campo es la primera de 1002.5, 10002.5… que no cabe con esa letra (con Roboto
+    «1002.5» cabía); el aviso usa su 86 % antes de partirse y se parte en las líneas que pide su
+    largo (antes, «en una línea» y «menos de 2,5 líneas»). Ese largo se compara con el sitio
+    que el aviso deja al texto (su contenido menos el icono, los huecos y el botón): si cabe,
+    una línea; si no, las que pide más una. Medido contra la caja del propio texto, como se hizo
+    primero, un texto metido en una columna del 40 % dentro de una píldora del 86 % cuadraba
+    (cinco líneas, y las pruebas en verde); así falla con las tres letras. Y de una lista se
+    miran todas las opciones, no solo la elegida. Lo que se sigue exigiendo en una línea con cualquier letra es
+    la fila de corregir una serie a 320 px con la letra de serie, porque partirse la hacía crecer
+    bajo el dedo. Las pruebas que fallaban con DejaVu fallan si se vuelve a la reserva fija de
+    4,94 em (en DejaVu, pegada; en Roboto, apilada donde cabía) o al aviso centrado con
+    `left:50%` (de 2 a 5 líneas a media pantalla).
+  - **Tres perfiles de letra**: la CI se corre con Inter, con DejaVu Sans y con Roboto
+    (`FONTCONFIG_FILE`, cómo en `tests/README.md`), dos veces cada uno, y Playwright.
+  - **Una prueba que dependía de la máquina**: «al registrar con el campo abierto un peso de otro
+    orden, «Serie registrada» no salta…» esperaba 300 ms a que acabara la entrada del paso
+    (fade y `stageIn`). Con el tiempo virtual de la CI esos 300 ms no pasan de verdad y las
+    animaciones siguen en su primer fotograma; con la máquina cargada llegaba un fotograma entre
+    las dos medidas y la prueba veía un salto de 13,16 px (6 + 8 de las dos entradas) que no era
+    del botón: 1 de 9 corridas, 3 de 8 con cuatro bucles ocupando la CPU, ya en v36. Ahora da
+    las entradas por acabadas antes de medir, como la de los dos toques seguidos; lo que pasa
+    desde el toque se sigue midiendo tal cual. Rebobinar las entradas a su primer fotograma y
+    acabarlas entre las dos medidas reproduce los 13,16 px con lo anterior y pasa con esto.
+  - **El aviso de Deshacer, en una línea y sin tapar controles**: «Serie borrada · Deshacer»
+    llega hasta 8 px del borde y `colocaAviso` prueba cada borde de control en vez de ir de 8 en
+    8 (HU-54, arriba). Prueba en `tests/pruebas_pantallas.js` («tras borrar…»), sin barras de
+    scroll como en el teléfono (con la de 15 px del Chrome de las pruebas, a «320 px» la ventana
+    medía 335 y el aviso, en `vw`, tenía justo lo que DejaVu necesitaba para no partirse): con
+    la madre a 320×760, 320×640, 320×568, 360×640, 360×760 y 412×760, letra al 100, 115 y 130 % y borrando la
+    primera o la última serie, «Serie borrada» va en una línea, el aviso entero no tapa ningún
+    control salvo en el caso sin hueco de abajo y, si tapa, se comprueba de píxel en píxel que no
+    había hueco a ninguna altura, centrado ni movido a un lado, y que de los sitios donde Deshacer
+    queda libre está en el que menos tapa. Falla con DejaVu si se vuelve al 86 %, con DejaVu y
+    Roboto si se vuelve a probar de 8 en 8, y con Inter y Roboto si sin hueco se queda con el
+    primer sitio en vez del que menos tapa. Esta y las otras dos pruebas de dónde se coloca
+    («el Deshacer no pisa…», «con la página desplazada…», también ya sin barras de scroll)
+    comprueban además que el aviso no tapa los rótulos PESO, REPS o SERIES si había un sitio sin
+    controles, rótulos ni barra; antes de `ROTULOS` fallaban las tres con las tres letras.
+- **Lo que queda abierto, el aviso sin hueco**: hay pantallas que son control de arriba abajo y
+  donde entre dos controles no quedan los 44 px del aviso (con la zona de Deshacer):
+  - con la madre a 320×568 y letra grande (115-130 %), borrando la primera serie (steppers,
+    «¿Cuántas más podías?», «La última vez», la serie, «Registrar serie», «Nota fija»,
+    «¿Molestia…?»). Con Inter y Roboto el aviso tapa la mitad de abajo de la serie 1 (su cifra
+    y su X asoman por arriba, y Deshacer queda libre); con DejaVu Sans, sin sitio ni para
+    Deshacer, vuelve abajo, sobre «Nota fija» y «¿Molestia…?»;
+  - con seis series a 320×568, la última a la vista, y a media página con tres o seis series a
+    320×568 y con seis a 375×667: los dos campos y sus − y +, «¿De cuánto sube?», las reservas,
+    «La última vez» y la lista de series con sus X, cada 46 px. El aviso tapa la cifra más corta
+    de una serie («22.5 kg × 8») o el chip «¿De cuánto sube?», según la letra.
+
+  Ahí el aviso tapa un control sus 7 s, e incumple «el aviso entero no tapa ningún control»
+  (HU-54, «Nada atraviesa el aviso»). Es su último recurso: nada se activa a ciegas (el toque
+  en el aviso no hace nada), Deshacer sigue a la vista, tapa lo menos posible y, al desplazar
+  la página, se queda quieto y lo tapado sale de debajo (antes lo perseguía). Las pruebas lo
+  admiten solo en esos casos y, en cada uno, comprueban de píxel en píxel que no había hueco
+  a ninguna altura, centrado ni movido a un lado (desde 8 px del borde, el margen del aviso),
+  que Deshacer no pisa nada y, recién colocado, que está en el sitio que menos tapa; al
+  desplazar de 12 en 12 px, que ningún control sigue tapado más paradas de las que tarda en
+  cruzar un aviso quieto ((alto del aviso + alto del control) / 12, y una). Con lo anterior
+  la de desplazar fallaba con las tres letras (siete paradas o más con el mismo control). Lo
+  que lo cerraría es un sitio fijo para el aviso que la página deje libre, y eso es otro
+  diseño del guiado.
+- **Lo que queda abierto, la letra**: al 150 % el selector de tema, lo único que se salía a
+  320 px, ya baja de línea; al 200 % se salen los títulos de una sola palabra («Calendario») y
+  el botón «Registrar rutina». Para eso está el pellizco. No se ha probado en un teléfono real: las
+  pruebas simulan la letra del sistema agrandando la raíz, que es lo que hacen `text-scale` y
+  `-apple-system-body`, y su letra con los perfiles de fontconfig (Roboto de Android sí; SF de
+  iOS no, que no se puede instalar fuera de Apple: DejaVu Sans, más ancha, hace de cota).
+
+Publicar v36: `VERSION` pasa a «v36 · pesos reales, récords, racha y deshacer», y **`CACHE`
+se queda en `mi-rutina-v33`**: no hace falta subirlo para que un teléfono con v35 reciba v36
+entera.
+
+- **De lo que guarda el service worker, solo cambia `index.html`.** Contra lo publicado como v35,
+  `manifest.webmanifest`, los iconos, `favicon.ico` y `figuras.js` son byte a byte los mismos, y
+  `index.html` no pide ningún archivo nuevo. Lo que se sirve *cache-first* (iconos, `figuras.js`)
+  sigue siendo correcto.
+- **`index.html` se renueva solo.** Va por red primero: con buena red, la primera apertura ya trae
+  v36 y la guarda —todavía con el service worker de v35, que es red primero sin plazo—; con señal
+  mala, sale la copia de v35 y v36 llega en la siguiente apertura (HU-53).
+- **`sw.js` cambió, y con eso basta para instalar el nuevo**: el navegador lo compara byte a byte.
+  Su install vuelve a pedir todo `ASSETS` y pisa `./` e `index.html` en la misma caché, copia
+  `figuras.js` de donde ya está sin tocar la red, y `skipWaiting` + `clients.claim` lo ponen al
+  mando sin esperar a cerrar la app. Desde ahí rigen el plazo de 3 s y el `notificationclick`.
+- **Los teléfonos con v35 y «Buscar actualización».** El `sw.js` de v35 tiene el fallo de la
+  caché a medias (HU-53, «Tras "Buscar actualización"…»), y no se arregla en el teléfono hasta que
+  manda el de v36. Pulsar el botón con el de v35 al mando pide `update()`: llega el `sw.js` de v36,
+  se instala con todo `ASSETS` y toma el mando; el botón vacía las cachés después, pero la recarga
+  (o, si la instalación aún no había terminado, la apertura siguiente) ya la sirve el de v36, y
+  esa apertura con red vuelve a llenar lo que falte. Un teléfono que
+  ya lo pulsó con v35 y se quedó sin manifest ni iconos los recupera igual en la primera apertura
+  con red tras instalar v36. `CACHE` no hace falta subirlo para esto: lo que falta se trae sin
+  tirar lo que hay.
+- **Subirlo no arreglaría nada.** Solo tiraría copias que ya no estorban (las de una dirección
+  con `?algo`; sin copia propia se cae primero a `./`), y el install volvería a guardar las mismas
+  respuestas. Ni siquiera renovaría las figuras: desde HU-12 se copian de la caché
+  anterior (§15). Mientras conviven las dos versiones tampoco se rompe nada: v36 con el service
+  worker de v35 se comporta como v35 al tocar un aviso, y v35 con el de v36 no conoce `#retomar` y
+  abre como siempre.
+
+Cuándo sí habría que subirlo: si un archivo de `ASSETS` cambiara de contenido sin cambiar de nombre
+(los iconos llevan `-v25` para no tener que hacerlo) o si cambiara la forma de lo guardado en la
+caché. Las figuras no: se renombran.
 
 ### Cerrado en v35
 
@@ -668,6 +1569,10 @@ Y una segunda auditoría de las rutinas de gimnasio, esta vez del programa y no 
   buscarla en un catálogo abierto o dejar el mapa — **no dibujarla**.
 - **Animar el mapa corporal.** El movimiento lo llevan las ilustraciones. El mapa es geometría
   estática y ahí se queda: su valor es justamente que no tiene nada que pueda salir mal.
+- **Superseries, también las antagonistas:** descartadas por el usuario (2026-09-23). No volver a
+  proponerlas. Eran la palanca con respaldo para recortar el tiempo de sesión sin tocar descansos
+  (los tres días quedaron en 62-68 min tras la revisión de programa de v30), y el especialista que
+  revisó las rutinas en v27 las señaló para el bloque secundario; la decisión es del usuario.
 - **Mecánicas de gamificación competitivas:** tablas de clasificación, comparación con otros,
   puntos canjeables e insignias por presentarse. Para un usuario único no tienen sentido, y los
   leaderboards son el elemento más asociado a efectos motivacionales negativos.
@@ -894,7 +1799,9 @@ Dos decisiones que hacen que ese peso no muerda:
 
 - **`figuras.js` va aparte y cache-first.** Dentro de `index.html` —que va network-first— se
   re-descargaría en cada arranque. Fuera, se pide una vez. El precio es que si algún día se tocan
-  las figuras hay que subir `CACHE`, o los teléfonos ya instalados se quedan con las viejas.
+  las figuras hay que cambiarle el nombre al archivo, o los teléfonos ya instalados se quedan con
+  las viejas: desde v36 instalar copia `figuras.js` de la caché anterior, así que subir `CACHE` ya
+  no basta.
 - **Fuera de `ASSETS`, con su propio `catch`.** `addAll` es atómico: si esos 2 MB fallan dentro de
   la lista, el service worker no se instala y la app pierde el modo sin conexión **entero**. Aparte,
   el peor caso es quedarse sin figuras hasta la siguiente visita.

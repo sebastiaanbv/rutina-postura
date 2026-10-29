@@ -24,6 +24,9 @@
   /* el aviso flotante conserva el texto al esconderse: se vacia antes de mirar */
   function sinAviso(app){app.$("#toast").innerHTML="";}
   const pregunto=(app,n)=>app.w.__dialogos.slice(n).filter(x=>x.tipo==="confirm").length;
+  /* HU-63: la hoja de conflicto vive en #planov */
+  const hoja=app=>app.$("#planov").classList.contains("show");
+  const boton=(app,txt)=>app.$$("#planBody button").find(b=>b.textContent.indexOf(txt)>=0);
 
   escenario("Copia de seguridad (datos del dueño)",F.dueno,()=>{
     test("exportData → importData real: todas las claves rp_* vuelven identicas",async app=>{
@@ -121,8 +124,244 @@
       expect(app.leer("rp_logs").press_banca_db.length).toBe(1);});
   });
 
+  /* doble toque (v36): «Registrar serie» confirma 300 ms antes de pasar al
+     descanso, y un segundo toque en esa ventana volvia a entrar en logSet:
+     otra serie en la sesion (y al cerrar, en rp_logs) y otro afterAction,
+     que en la ultima serie de un ejercicio saltaba dos pasos. */
+  /* matchMedia se fija en cada prueba para no depender de como venga el
+     navegador sin interfaz; el parche muere con el iframe */
+  function movimiento(app,reducido){const w=app.w,orig=w.matchMedia;
+    w.matchMedia=function(q){return /prefers-reduced-motion/.test(q)
+      ?{matches:reducido,media:q,onchange:null,addEventListener(){},removeEventListener(){},addListener(){},removeListener(){}}
+      :orig.call(w,q);};}
+  /* juego de datos de gimnasio, primera serie del press con una marca que es
+     récord seguro. o.series:1 la deja como ultima serie, sin descanso detras */
+  async function aLaSerie(app,o){await app.arrancar(F.dueno);movimiento(app,o.reducido);
+    if(o.series)app.w.setDose("gym_empuje","press_banca_db",{sets:o.series});
+    app.w.openRoutine("gym_empuje");app.w.startRoutine("press_banca_db");
+    expect(app.ev("steps[stepi].setNo")).toBe(1);
+    app.ev("curW=60;curReps=8");
+    expect(app.w.isPR("press_banca_db",60,8)).toBe(true);
+    return app.ev("stepi");}
+  const anotadas=(app,id)=>(app.ev("sessionLog")[id]||[]).map(x=>x.w+"x"+x.reps);
+  const deHoy=(app,id)=>(app.leer("rp_logs")[id]||[]).filter(r=>r.date===app.w.today()).map(r=>r.sets.map(x=>x.w+"x"+x.reps));
+  const descanso=app=>app.hasta(()=>app.$("#guided .gbtn.rest"),3000,"el descanso");
+  /* cerrar la sesion deja una serie en rp_logs y un récord en el historial
+     y en el panel de progreso */
+  function cierraConUna(app){const res=app.w.finishSession("gym_empuje","guided");
+    expect(res.summary.sets).toBe(1);
+    expect(deHoy(app,"press_banca_db")).toEqual([["60x8"]]);
+    const h=app.leer("rp_history")[0];
+    expect([h.key,h.sets]).toEqual(["gym_empuje",1]);
+    expect(h.pr.map(p=>p.id+" "+p.w+"x"+p.reps)).toEqual(["press_banca_db 60x8"]);
+    expect(app.w.prFeed(1).filter(p=>p.id==="press_banca_db"&&p.date===app.w.today())).toHaveLength(1);
+    app.reiniciarMemoria();}
+
+  escenario("Doble toque en «Registrar serie»",F.vacio,()=>{
+    test("mientras confirma, el botón está deshabilitado y sin pointer-events",async app=>{
+      await aLaSerie(app,{reducido:false});
+      const b=app.$("#guided .gbtn.go");b.scrollIntoView({block:"center"});
+      const r=b.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
+      const bajoElDedo=()=>{const el=app.doc.elementFromPoint(x,y);return !!el&&(el===b||b.contains(el));};
+      expect(bajoElDedo()).toBe(true);expect(b.disabled).toBe(false);
+      b.click();
+      expect(b.textContent).toContain("Serie registrada");
+      expect(b.disabled).toBe(true);
+      expect(app.w.getComputedStyle(b).pointerEvents).toBe("none");
+      expect(bajoElDedo()).toBe(false);
+      b.click();
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      await descanso(app);
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      cierraConUna(app);});
+    test("dos logSet dentro de la confirmación: una serie y un récord",async app=>{
+      const i0=await aLaSerie(app,{reducido:false});
+      app.w.logSet();app.w.logSet();
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      const s=app.leer("rp_session");
+      expect(s.log.press_banca_db).toHaveLength(1);
+      expect(s.pr).toHaveLength(1);
+      await descanso(app);await app.espera(350);
+      expect(app.ev("stepi")).toBe(i0);
+      /* ya en el descanso, la serie de ese paso tampoco entra otra vez */
+      app.w.logSet();
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      cierraConUna(app);});
+    test("el doble toque en la última serie avanza un solo paso",async app=>{
+      const i0=await aLaSerie(app,{reducido:false,series:1}),sig=app.ev("steps["+(i0+1)+"].id");
+      expect(sig).toBe("fondos_paralelas");
+      app.w.logSet();app.w.logSet();
+      await app.hasta(()=>app.ev("stepi")!==i0,3000,"el ejercicio siguiente");
+      await app.espera(350);
+      expect(app.ev("stepi")).toBe(i0+1);
+      expect(app.ev("steps[stepi].setNo")).toBe(1);
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      expect(anotadas(app,sig)).toEqual([]);
+      cierraConUna(app);});
+    test("con reducir movimiento (sin confirmación) tampoco se duplica",async app=>{
+      const i0=await aLaSerie(app,{reducido:true});
+      app.w.logSet();
+      /* sin la ventana de 300 ms el descanso entra en el acto */
+      expect(app.$("#guided .gbtn.rest")).toBeTruthy();
+      app.w.logSet();
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      expect(app.leer("rp_session").pr).toHaveLength(1);
+      expect(app.ev("stepi")).toBe(i0);
+      cierraConUna(app);});
+    test("con reducir movimiento, el segundo toque no registra la serie del ejercicio siguiente",async app=>{
+      const i0=await aLaSerie(app,{reducido:true,series:1}),sig=app.ev("steps["+(i0+1)+"].id");
+      app.$("#guided .gbtn.go").click();
+      /* sin confirmacion ni descanso, el ejercicio siguiente se pinta en el
+         acto y el segundo toque cae en su «Registrar serie» */
+      expect(app.ev("stepi")).toBe(i0+1);
+      app.$("#guided .gbtn.go").click();
+      expect(app.ev("stepi")).toBe(i0+1);
+      expect(anotadas(app,sig)).toEqual([]);
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      /* pasado el doble toque, la serie siguiente entra con normalidad */
+      await app.espera(350);
+      app.$("#guided .gbtn.go").click();
+      expect(anotadas(app,sig)).toHaveLength(1);
+      expect(app.ev("stepi")).toBe(i0+1);
+      const res=app.w.finishSession("gym_empuje","guided");
+      expect(res.summary.sets).toBe(2);
+      expect(deHoy(app,"press_banca_db")).toEqual([["60x8"]]);
+      expect(deHoy(app,sig)).toHaveLength(1);
+      app.reiniciarMemoria();});
+    /* el segundo toque tampoco cae en otro control de lo que se pinta en el
+       acto: Molestia (marcaba dolor y congelaba la progresion), Nota fija
+       (abria un prompt) o Saltar descanso */
+    test("con reducir movimiento, el segundo toque no marca molestia ni abre la nota fija",async app=>{
+      const i0=await aLaSerie(app,{reducido:true,series:1}),sig=app.ev("steps["+(i0+1)+"].id");
+      const dolor=JSON.stringify(app.leer("rp_pain")),dialogos=app.w.__dialogos.length;
+      app.$("#guided .gbtn.go").click();
+      expect(app.ev("stepi")).toBe(i0+1);
+      const molestia=app.$$("#guided .exnote").find(b=>/Molestia/.test(b.textContent)),
+            nota=app.$$("#guided .exnote").find(b=>/Nota fija/.test(b.textContent));
+      expect(!!molestia&&!!nota).toBe(true);
+      molestia.click();nota.click();
+      expect(JSON.stringify(app.leer("rp_pain"))).toBe(dolor);
+      expect(app.w.__dialogos.length).toBe(dialogos);
+      expect(app.ev("stepi")).toBe(i0+1);
+      /* pasado el doble toque, los controles responden */
+      await app.espera(350);
+      app.$$("#guided .exnote").find(b=>/Molestia/.test(b.textContent)).click();
+      expect(app.leer("rp_pain")[sig]).toEqual([app.w.today()]);
+      app.w.togglePain(sig);
+      app.reiniciarMemoria();});
+    test("con reducir movimiento, el segundo toque no salta el descanso",async app=>{
+      const i0=await aLaSerie(app,{reducido:true});
+      app.$("#guided .gbtn.go").click();
+      const b=app.$("#guided .gbtn.rest"),fin=app.ev("restEnds");
+      expect(b).toBeTruthy();
+      b.click();
+      expect(app.ev("stepi")).toBe(i0);
+      expect(app.ev("restEnds")).toBe(fin);
+      expect(app.$("#guided .gbtn.rest")).toBe(b);
+      await app.espera(350);
+      app.$("#guided .gbtn.rest").click();
+      expect(app.ev("stepi")).toBe(i0+1);
+      cierraConUna(app);});
+    test("tras el doble toque no hay claves nuevas y la copia va y vuelve idéntica",async app=>{
+      await aLaSerie(app,{reducido:false});
+      app.w.logSet();app.w.logSet();await descanso(app);
+      const base=Object.keys(F.dueno()).concat("rp_schema").sort();
+      expect(app.claves()).toEqual(base.concat("rp_session").sort());
+      const idaYVuelta=async()=>{const antes=app.foto(),d=await exportar(app);
+        expect(JSON.parse(d.texto).store).toEqual(antes);
+        localStorage.clear();
+        const recarga=app.cargo();importar(app,d.texto);await recarga;await app.listo();
+        expect(app.foto()).toEqual(antes);};
+      /* a mitad de sesion: la serie y el récord viajan en rp_session */
+      await idaYVuelta();
+      const s=app.leer("rp_session");
+      expect(s.log.press_banca_db).toHaveLength(1);
+      expect(s.pr).toHaveLength(1);
+      cierraConUna(app);
+      expect(app.claves()).toEqual(base);
+      await idaYVuelta();
+      expect(deHoy(app,"press_banca_db")).toEqual([["60x8"]]);});
+    /* la confirmacion de 300 ms corria aunque se saliera, retrocediera o
+       saltara en esa ventana, y actuaba sobre el paso que hubiera entonces */
+    const sinDescanso=app=>{expect(app.$("#guided .gbtn.rest")).toBe(null);expect(app.ev("tId")).toBe(null);};
+    test("saltar ejercicio mientras confirma: el siguiente empieza en su serie 1, sin descanso",async app=>{
+      const i0=await aLaSerie(app,{reducido:false});
+      app.w.logSet();
+      app.$("#guided .skip").click();
+      const i1=app.ev("stepi");
+      expect(app.ev("steps[stepi].id")).toBe("fondos_paralelas");
+      expect(app.ev("steps[stepi].setNo")).toBe(1);
+      await app.espera(450);
+      sinDescanso(app);
+      expect(app.ev("stepi")).toBe(i1);
+      expect(app.ev("steps[stepi].setNo")).toBe(1);
+      expect(i1).toBeGreaterThan(i0);
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      app.reiniciarMemoria();});
+    test("paso anterior mientras confirma: se queda en el anterior",async app=>{
+      const i0=await aLaSerie(app,{reducido:false});
+      app.w.logSet();app.w.guidedBack();
+      expect(app.ev("stepi")).toBe(i0-1);
+      await app.espera(450);
+      expect(app.ev("stepi")).toBe(i0-1);
+      sinDescanso(app);
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      app.reiniciarMemoria();});
+    /* en el paso 0 «Paso anterior» sale: paraba el reloj antes de salir y la
+       sesion guardaba el paso ya anotado (al retomar, otra vez «Serie 1 de 1») */
+    test("paso anterior en el primer paso mientras confirma: la sesión guarda el paso que viene",async app=>{
+      const D=F.madre();delete D.rp_session;delete D.rp_checks;
+      await app.arrancar(D);movimiento(app,false);
+      app.w.openRoutine("cuello_rostro");app.w.startRoutine();
+      expect(app.ev("stepi")).toBe(0);
+      expect(app.ev("steps[0].kind")).toBe("count");
+      const id0=app.ev("steps[0].id");
+      expect(app.ev("steps[1].id")).not.toBe(id0);
+      app.w.logSet();app.w.guidedBack();
+      await app.hasta(()=>app.activa()==="routine",3000,"la rutina");
+      await app.espera(450);
+      sinDescanso(app);
+      const s=app.leer("rp_session");
+      expect(s.log[id0]).toHaveLength(1);
+      expect(s.stepi).toBe(1);
+      await app.arrancar({__crudo:app.foto()},"#retomar");
+      expect(app.ev("stepi")).toBe(1);
+      expect(app.ev("steps[stepi].id")).not.toBe(id0);
+      app.reiniciarMemoria();});
+    test("salir mientras confirma: sin descanso de fondo y la sesión guarda la serie que viene",async app=>{
+      const i0=await aLaSerie(app,{reducido:false});
+      app.w.logSet();app.w.guidedExit();
+      await app.hasta(()=>app.activa()==="routine",3000,"la rutina");
+      await app.espera(450);
+      expect(app.activa()).toBe("routine");
+      sinDescanso(app);
+      expect(app.ev("restEnds")).toBe(0);
+      const s=app.leer("rp_session");
+      expect(s.log.press_banca_db).toHaveLength(1);
+      expect(s.stepi).toBe(i0+1);
+      app.reiniciarMemoria();});
+    test("salir mientras confirma la última serie de la rutina: la sesión no se cierra sola",async app=>{
+      await app.arrancar(F.dueno);movimiento(app,false);
+      app.w.openRoutine("gym_empuje");
+      const st=app.w.buildSteps("gym_empuje"),last=st[st.length-1];
+      app.w.effList("gym_empuje").forEach(id=>{if(id!==last.id)app.w.markCheck("gym_empuje",id,true);});
+      app.w.startRoutine(last.id);app.ev("stepi=steps.length-1");app.w.renderStep();
+      expect(app.texto("#guided .gbtn.go")).toContain("Registrar");
+      const h0=(app.leer("rp_history")||[]).length;
+      app.ev("curW=20;curReps=10");app.w.logSet();app.w.guidedExit();
+      await app.hasta(()=>app.activa()==="routine",3000,"la rutina");
+      await app.espera(650);
+      expect(app.activa()).toBe("routine");
+      expect((app.leer("rp_history")||[]).length).toBe(h0);
+      const s=app.leer("rp_session");
+      expect(s.key).toBe("gym_empuje");
+      expect(s.log[last.id]).toHaveLength(1);
+      expect(app.texto("#guided")).not.toContain("Completada");
+      app.reiniciarMemoria();});
+  });
+
   /* almacenamiento dañado: la app tiene que seguir abriendo */
-  const CLAVES=["rp_bw","rp_checks","rp_custom","rp_doses","rp_extras","rp_history","rp_lastexport","rp_logged","rp_logs",
+  const CLAVES=["rp_bw","rp_checks","rp_custom","rp_doses","rp_extras","rp_history","rp_inc","rp_lastexport","rp_logged","rp_logs",
     "rp_medidas","rp_notes","rp_pain","rp_plan","rp_prefs","rp_rem","rp_session","rp_streak","rp_swaps","rp_theme","rp_weekgoal"];
   async function recorrer(app){["history","progress","settings","home"].forEach(v=>{
       app.$('.nav .tab[data-v="'+v+'"]').click();expect(app.activa()).toBe(v);});
@@ -146,7 +385,7 @@
       expect(pregunto(app,n)).toBe(0);});
     test("claves ya guardadas con otra forma: arranca y recorre las pantallas",async app=>{
       const c={rp_history:"{}",rp_plan:"{}",rp_bw:"{}",rp_medidas:"{}",rp_logs:"[]",rp_custom:"[]",rp_extras:"[]",
-        rp_swaps:"[]",rp_doses:"[]",rp_checks:"[]",rp_logged:"[]",rp_pain:"[]",rp_notes:"[]",rp_prefs:"[]",
+        rp_swaps:"[]",rp_doses:"[]",rp_checks:"[]",rp_logged:"[]",rp_pain:"[]",rp_notes:"[]",rp_inc:"[]",rp_prefs:"[]",
         rp_streak:"[]",rp_weekgoal:"[]",rp_rem:"[]",rp_session:"[]",rp_theme:"5",rp_lastexport:"[]",rp_schema:"[]"};
       await app.arrancar({__crudo:c});
       expect(app.$$("#routines .rcard").length).toBe(9);await recorrer(app);
@@ -216,6 +455,28 @@
       expect(pregunto(app,n)).toBe(0);});
   });
 
+  /* rp_inc (v36): el salto de placa de cada maquina viaja en la copia */
+  const SALTOS_GIMNASIO={jalon_pecho:5,extension_triceps_polea:4.5,pec_deck:7,remo_maquina:2.5};
+  escenario("Copia de seguridad con saltos de máquina (rp_inc)",()=>Object.assign(F.dueno(),{rp_inc:SALTOS_GIMNASIO}),()=>{
+    test("exportar → importar conserva rp_inc con sus valores",async app=>{
+      const antes=app.foto();
+      expect(app.leer("rp_inc")).toEqual(SALTOS_GIMNASIO);
+      const d=await exportar(app),data=JSON.parse(d.texto);
+      expect(JSON.parse(data.store.rp_inc)).toEqual(SALTOS_GIMNASIO);
+      localStorage.clear();
+      const recarga=app.cargo();importar(app,d.texto);await recarga;await app.listo();
+      expect(app.foto()).toEqual(antes);
+      expect(app.leer("rp_inc")).toEqual(SALTOS_GIMNASIO);
+      /* y la app los usa al volver */
+      expect(["jalon_pecho","extension_triceps_polea","pec_deck","remo_maquina"].map(id=>app.w.stepFor(id,40))).toEqual([5,4.5,7,2.5]);});
+    test("una copia con rp_inc que no es un objeto se rechaza entera, antes de preguntar",async app=>{
+      const antes=app.foto(),n=app.w.__dialogos.length;
+      for(const t of ['{"store":{"rp_inc":"[5]"}}','{"store":{"rp_inc":"5"}}']){sinAviso(app);importar(app,t);
+        await app.hasta(()=>app.texto("#toast").indexOf("no es una copia válida")>=0,3000,"el rechazo de "+t);
+        expect(app.foto()).toEqual(antes);}
+      expect(pregunto(app,n)).toBe(0);});
+  });
+
   escenario("Copia de seguridad (datos de la madre)",F.madre,()=>{
     test("ida y vuelta idéntica, con la sesión en curso y rp_schema",async app=>{
       const antes=app.foto();
@@ -228,6 +489,202 @@
       expect(app.foto()).toEqual(antes);
       /* y la copia de la copia sale igual */
       expect(JSON.parse((await exportar(app)).texto).store).toEqual(data.store);});
+  });
+
+  /* HU-11: en pantalla solo queda la racha de semanas (weekStats), pero
+     rp_streak se sigue escribiendo igual: su total es «N sesiones en total» */
+  escenario("Racha diaria guardada (rp_streak)",F.dueno,()=>{
+    test("terminar una sesión escribe rp_streak como siempre (completeDay)",app=>{
+      const s0=app.leer("rp_streak"),hoy=app.w.today();
+      expect(s0.last).not.toBe(hoy);
+      app.w.markCheck("gym_empuje","caminadora",true);
+      const res=app.w.finishSession("gym_empuje","sheet");
+      expect(!!res&&!res.lleno).toBe(true);
+      const cuenta=s0.last===app.w.yesterday()?s0.count+1:1;
+      expect(app.leer("rp_streak")).toEqual({count:cuenta,best:Math.max(s0.best,cuenta),last:hoy,total:s0.total+1});
+      expect(res.streak).toEqual(app.leer("rp_streak"));
+      /* una segunda sesion el mismo dia suma al total y no a la cuenta */
+      app.w.markCheck("gym_tiron","caminadora",true);
+      expect(!!app.w.finishSession("gym_tiron","sheet")).toBe(true);
+      expect(app.leer("rp_streak")).toEqual({count:cuenta,best:Math.max(s0.best,cuenta),last:hoy,total:s0.total+1});
+      app.reiniciarMemoria();});
+    test("recalcStreak recuenta los días seguidos desde el historial sin bajar el total",app=>{
+      const h=app.leer("rp_history"),dias=new Set(h.map(x=>F.ds(new Date(x.iso)))),s0=app.leer("rp_streak");
+      let d=new Date(),n=0;if(!dias.has(F.ds(d)))d.setDate(d.getDate()-1);
+      while(dias.has(F.ds(d))){n++;d.setDate(d.getDate()-1);}
+      const s=app.w.recalcStreak();
+      expect(Object.keys(s).sort()).toEqual(["best","count","last","total"]);
+      expect([s.count,s.last,s.total]).toEqual([n,[...dias].sort().pop(),Math.max(s0.total,h.length)]);
+      expect(s.best).not.toBeLessThan(s0.best);
+      expect(app.leer("rp_streak")).toEqual(s);});
+    test("exportar → importar conserva rp_streak intacto y la racha semanal sale igual",async app=>{
+      const antes=localStorage.getItem("rp_streak"),w=app.w.weekStats(),d=await exportar(app);
+      expect(JSON.parse(d.texto).store.rp_streak).toBe(antes);
+      localStorage.clear();
+      const recarga=app.cargo();importar(app,d.texto);await recarga;await app.listo();
+      expect(localStorage.getItem("rp_streak")).toBe(antes);
+      expect(app.w.weekStats()).toEqual(w);
+      expect(app.texto("#stCount")).toBe(String(w.racha));});
+  });
+
+  /* v35 congelaba en rp_weekgoal solo la meta de la semana viva: las semanas
+     anteriores no tienen foto y se miden con la meta actual. Con todas las
+     sesiones del juego de gimnasio completas, cada semana entera lleva 3 de fuerza. */
+  function semanasV35(){const D=F.dueno();D.rp_history.forEach(h=>{h.exTotal=h.exDone;});delete D.rp_weekgoal;return D;}
+  escenario("Racha semanal con datos de v35 (sin rp_weekgoal de semanas viejas)",semanasV35,()=>{
+    const lun=d=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return F.ds(x);};
+    const haceSemanas=i=>{const x=new Date();x.setDate(x.getDate()-7*i);return lun(x);};
+    /* cuenta aparte: semanas seguidas hacia atras desde la pasada con al
+       menos su meta de sesiones de fuerza (60 % hecho), y la actual si ya
+       la cumplio */
+    function esperada(app,meta,fotos){const G=app.ev("GYMKEYS"),m={};
+      app.leer("rp_history").forEach(h=>{if(G.indexOf(h.key)<0||(h.exTotal&&h.exDone/h.exTotal<0.6))return;
+        const k=lun(new Date(h.iso));m[k]=(m[k]||0)+1;});
+      const metaDe=k=>fotos&&fotos[k]!=null?fotos[k]:meta;let r=0;
+      for(let i=1;i<300;i++){const k=haceSemanas(i);if((m[k]||0)>=metaDe(k))r++;else break;}
+      return r+((m[lun(new Date())]||0)>=meta?1:0);}
+    const plan4=["gym_empuje","gym_tiron","gym_pierna","gym_empuje",null,null,"rest"];
+    test("la racha se mide con la meta actual y solo se congela la semana en curso",app=>{
+      const w=app.w.weekStats();
+      expect(w.goal).toBe(3);
+      expect(w.racha).toBe(esperada(app,3));
+      expect(w.racha).toBeGreaterThan(3);
+      expect(w.mejor).not.toBeLessThan(w.racha);
+      expect(app.leer("rp_weekgoal")).toEqual({[lun(new Date())]:3});
+      expect(app.texto("#stCount")).toBe(String(w.racha));});
+    test("con la meta subida a 4 las semanas sin foto se miden con 4; las congeladas guardan la suya",app=>{
+      /* semanas cerradas cumplidas con 3: la actual no puede llegar a 4 (el
+         juego de gimnasio entrena lunes, miercoles y viernes, y hoy aun no) */
+      const plan=localStorage.getItem("rp_plan"),w3=app.w.weekStats(),cerradas=w3.racha-(w3.semanaOK?1:0);
+      try{localStorage.setItem("rp_plan",JSON.stringify(plan4));
+        expect(app.w.weekStats().goal).toBe(4);
+        expect(app.w.weekStats().racha).toBe(esperada(app,4));
+        expect(app.w.weekStats().racha).toBe(0);
+        /* como si v36 hubiera congelado las semanas viejas con 3 */
+        const fotos={};for(let i=1;i<=8;i++)fotos[haceSemanas(i)]=3;
+        localStorage.setItem("rp_weekgoal",JSON.stringify(fotos));
+        const w=app.w.weekStats();
+        expect(w.racha).toBe(esperada(app,4,fotos));
+        expect(w.racha).toBe(cerradas);
+        expect(w.racha).toBeGreaterThan(3);
+        /* y nada se rompe: las pantallas pintan la misma cifra */
+        ["progress","settings","history","home"].forEach(v=>{app.$('.nav .tab[data-v="'+v+'"]').click();expect(app.activa()).toBe(v);});
+        expect(app.texto("#stCount")).toBe(String(w.racha));
+        expect(app.texto("#stWeek")).toContain(" de 4 esta semana");
+      }finally{localStorage.setItem("rp_plan",plan);localStorage.setItem("rp_weekgoal",JSON.stringify({}));app.w.weekStats();}});
+  });
+
+  /* la mejor racha de semanas no se parte en un cambio de hora. Se contaba
+     restando milisegundos entre dos lunes, y con un cambio en medio salian
+     7 dias +-1 h. CI corre en UTC, donde no pasa nunca: cada zona se emula
+     con app.enZona y el reloj en el miercoles 4 de noviembre de 2026. Las
+     cifras esperadas estan contadas a mano (Fixtures.cambioHora). */
+  escenario("Racha semanal que cruza cambios de hora",F.cambioHora,()=>{
+    test("en la zona del equipo la mejor racha son las 8 semanas de marzo y abril",app=>{
+      expect(app.w.weekStats().mejor).toBe(8);});
+    /* zona, dos lunes seguidos con su cambio de hora en medio y las horas
+       que hay entre ellos (UTC no cambia nunca: es el control) */
+    [["UTC","2026-03-23","2026-03-30",168],["Europe/Madrid","2026-03-23","2026-03-30",167],
+     ["America/New_York","2026-03-02","2026-03-09",167],["America/Santiago","2026-03-30","2026-04-06",169],
+     ["Australia/Sydney","2026-03-30","2026-04-06",169]].forEach(([zona,l1,l2,horas])=>{
+      test("en "+zona+": racha 3 (las de octubre) y mejor 8 (marzo y abril)",async app=>{
+        await app.enZona(zona,()=>{const D=app.w.Date;
+          /* la zona emulada de verdad cambia de hora entre esos dos lunes */
+          expect((new D(l2+"T00:00:00")-new D(l1+"T00:00:00"))/36e5).toBe(horas);
+          expect(app.w.today()).toBe("2026-11-04");
+          const w=app.w.weekStats();
+          expect({goal:w.goal,hechas:w.hechas,racha:w.racha,mejor:w.mejor,semanaOK:w.semanaOK})
+            .toEqual({goal:3,hechas:2,racha:3,mejor:8,semanaOK:false});
+        },"2026-11-04T12:30:00Z");});
+    });
+  });
+
+  /* v36: los saltados y el repaso de pendientes viven en rp_session. La copia
+     los lleva, y al volver el guiado sigue donde estaba y en el mismo orden. */
+  escenario("Copia de seguridad · sesión repasando pendientes (dueño)",F.dueno,()=>{
+    test("exportar → importar conserva saltados y repaso, y el guiado retoma en el mismo paso",async app=>{
+      const R="gym_empuje",l=app.w.effList(R),id=()=>app.ev("steps[stepi].id");
+      const avanzarHasta=x=>{for(let n=0;n<300&&id()!==x;n++)app.w.advance();expect(id()).toBe(x);};
+      const hastaElFinal=()=>{const v=[];for(let n=0;n<300&&!app.$("#guided .done");n++){
+        if(v[v.length-1]!==id())v.push(id());app.w.advance();}return v;};
+      /* empieza por el 4.º, salta el press de pecho, llega al aviso y hace el 1.º pendiente */
+      app.w.openRoutine(R);app.w.startRoutine(l[3]);
+      avanzarHasta("press_banca_db");app.w.guidedSkipExercise();
+      hastaElFinal();app.w.hacerPendientes();avanzarHasta(l[1]);
+      const paso=app.ev("stepi"),s=app.leer("rp_session");
+      expect([s.stepi,s.saltados,s.repaso]).toEqual([paso,["press_banca_db"],l.slice(0,3)]);
+      const antes=app.foto(),d=await exportar(app);
+      expect(JSON.parse(JSON.parse(d.texto).store.rp_session)).toEqual(s);
+      localStorage.clear();
+      const recarga=app.cargo();importar(app,d.texto);await recarga;await app.listo();
+      expect(app.foto()).toEqual(antes);
+      /* la recarga vuelve al guiado (resumeGuided) en el mismo paso... */
+      expect(app.activa()).toBe("guided");
+      expect([app.ev("stepi"),id()]).toEqual([paso,l[1]]);
+      /* ...y salir y "Continuar" (startRoutine) tambien */
+      app.w.guidedExit();await app.hasta(()=>app.activa()==="routine",3000,"la rutina");
+      app.$("#routCta .btn:not(.sec)").click();
+      expect([app.activa(),app.ev("stepi"),id()]).toEqual(["guided",paso,l[1]]);
+      /* el repaso sigue: del 2.º al 3.º pendiente y al final, sin pasar por los
+         hechos; el saltado no sale como pendiente ni cuenta como hecho */
+      expect(hastaElFinal()).toEqual([l[1],l[2]]);
+      expect(app.$("#guided .finlist")).toBe(null);
+      expect(app.texto("#guided .done .mut")).toMatch(/^Completada/);
+      const h=app.leer("rp_history")[0];
+      expect([h.exDone,h.exTotal]).toEqual([13,14]);
+      app.reiniciarMemoria();});
+  });
+
+  /* HU-10: los records guardan el numero de la serie (i) y que se supero
+     (kind). La copia va por prefijo y como texto, asi que viajan solos; la
+     prueba lo fija. */
+  escenario("Récords en la copia de seguridad",F.dueno,()=>{
+    test("exportar → importar conserva i y kind en rp_history[].pr",async app=>{
+      app.w.openRoutine("gym_empuje");app.w.startRoutine("press_banca_db");
+      app.ev("curW=60;curReps=8");app.w.logSet();await app.espera(400);
+      expect(app.w.finishSession("gym_empuje","guided").summary.sets).toBe(1);
+      const pr=app.leer("rp_history")[0].pr;
+      expect(pr.map(p=>[p.id,p.w,p.reps,p.i,p.kind])).toEqual([["press_banca_db",60,8,0,"Peso máximo"]]);
+      const antes=app.foto(),d=await exportar(app);
+      expect(JSON.parse(JSON.parse(d.texto).store.rp_history)[0].pr).toEqual(pr);
+      localStorage.clear();
+      const recarga=app.cargo();importar(app,d.texto);await recarga;await app.listo();
+      expect(app.foto()).toEqual(antes);
+      expect(app.leer("rp_history")[0].pr).toEqual(pr);
+      app.reiniciarMemoria();});
+  });
+
+  /* datos de v35: sus pr son {id,w,reps,lvl}, sin i ni kind. El ultimo
+     entrenamiento de F.dueno trae uno, y la sesion de hoy otro a medias. */
+  function prV35(){const D=F.dueno(),t=Math.max(F.momento(0,0,1).getTime(),Date.now()-20*60000);
+    D.rp_history[0].pr=[{id:"hack_squat",w:70,reps:9,lvl:2}];
+    D.rp_session={v:1,key:"gym_empuje",date:F.fecha(0),startedAt:t,lastAt:t+60000,stepi:0,src:"guided",
+      log:{press_banca_db:[{w:40,reps:8,t:t+30000},{w:40,reps:8,t:t+40000}]},pr:[{id:"press_banca_db",w:40,reps:8,lvl:2}]};
+    return D;}
+  const TIPOS=/Peso máximo|Mejor 1RM|Más reps/;
+  escenario("Récords de v35 (sin i ni kind)",prV35,()=>{
+    test("el guiado y la pantalla de fin se pintan sin errores y sin etiqueta de tipo",app=>{
+      app.w.openRoutine("gym_empuje");app.w.startRoutine("press_banca_db");
+      expect(app.$$("#guided .setline").length).toBe(2);
+      expect(app.$$("#guided .setline.pr, #guided .prtag").length).toBe(0);
+      app.w.finish();
+      /* con HU-09 terminar con ejercicios sin hacer guarda lo hecho y dice
+         "Guardada · X de Y", nunca "Completada": aqui solo se hizo el pecho */
+      expect(app.texto("#guided .done .mut")).toBe("Guardada · 1 de 14 ejercicios");
+      expect(app.$$("#guided .doneprs .r").length).toBe(1);
+      expect(app.texto("#guided .doneprs .r")).toContain("40 kg × 8");
+      expect(app.$$("#guided .doneprs .k").length).toBe(0);
+      expect(app.texto("#guided")).not.toMatch(TIPOS);
+      /* el historial lo guarda tal cual vino: sin inventarle i ni kind */
+      expect(app.leer("rp_history")[0].pr).toEqual([{id:"press_banca_db",w:40,reps:8,lvl:2}]);
+      app.reiniciarMemoria();});
+    test("el calendario pinta los días con records de v35 sin errores y sin etiqueta de tipo",app=>{
+      app.$('.nav .tab[data-v="history"]').click();expect(app.activa()).toBe("history");
+      const dias=app.leer("rp_history").filter(h=>h.pr).map(h=>app.w.ds(new Date(h.iso)));
+      expect(dias.length).toBeGreaterThan(0);
+      dias.forEach(d=>{app.w.calPick(d);
+        expect(app.$$("#histBody .dayblock").length).toBeGreaterThan(0);
+        expect(app.texto("#histBody")).not.toMatch(TIPOS);});});
   });
 
   /* almacenamiento lleno: jset devuelve false. Lo critico avisa y no pierde
@@ -248,11 +705,48 @@
         expect(app.ev("sessionLog").press_banca_db.length).toBe(1);
       }finally{libera();}
       app.$("#guided .gbtn.go").click();
-      expect(app.texto("#guided")).toContain("Completada");
+      /* guardada al reintentar. Quedan 13 sin hacer: desde v36 dice "Guardada", nunca "Completada" */
+      expect(app.texto("#guided .done .mut")).toBe("Guardada · 1 de 14 ejercicios");
       const l=app.leer("rp_logs").press_banca_db;
       expect(l.length).toBe(1);expect(l[0].sets.length).toBe(1);
       expect(app.leer("rp_history")[0].key).toBe("gym_empuje");
       expect(app.leer("rp_session")).toBe(null);
+      app.reiniciarMemoria();});
+  });
+
+  /* HU-10: el record se apuntaba leyendo rp_session y, si no cabia, se perdia
+     para siempre; y su aviso tapaba el de «No cupo» */
+  escenario("Almacenamiento lleno · récord en la propia serie",F.vacio,()=>{
+    async function aLaMarca(app){await app.arrancar(F.dueno);movimiento(app,true);
+      app.w.openRoutine("gym_empuje");app.w.startRoutine("press_banca_db");
+      app.ev("curW=20;curReps=8");app.w.logSet();app.w.skipRest();await app.espera(400);
+      app.ev("curW=60;curReps=8");
+      expect(app.w.isPR("press_banca_db",60,8)).toBe(true);
+      expect(app.w.prLevel("press_banca_db",60,8)).toBe(2);
+      sinAviso(app);const libera=lleno(app,{margen:0});
+      try{app.w.logSet();
+        expect(app.texto("#toast")).toContain("No cupo en el teléfono");
+        expect(app.texto("#toast")).not.toContain("Récord");
+        expect(app.leer("rp_session").pr||[]).toEqual([]);}
+      finally{libera();}
+      await app.espera(400);app.w.skipRest();await app.espera(400);}
+    test("al haber espacio, la siguiente serie guarda el récord en su serie y llega al historial",async app=>{
+      await aLaMarca(app);
+      app.ev("curW=20;curReps=8");app.w.logSet();await app.espera(400);
+      const s=app.leer("rp_session");
+      expect(s.log.press_banca_db.map(x=>x.w)).toEqual([20,60,20]);
+      expect(s.pr.map(p=>[p.id,p.w,p.reps,p.i,p.lvl])).toEqual([["press_banca_db",60,8,1,2]]);
+      app.w.skipRest();
+      const res=app.w.finishSession("gym_empuje","guided");
+      expect(res.summary.pr).toHaveLength(1);
+      expect(app.leer("rp_history")[0].pr.map(p=>[p.w,p.i])).toEqual([[60,1]]);
+      app.reiniciarMemoria();});
+    test("al haber espacio, finalizar sin otra serie también guarda el récord",async app=>{
+      await aLaMarca(app);
+      const res=app.w.finishSession("gym_empuje","guided");
+      expect(!!res&&!res.lleno).toBe(true);
+      expect(app.leer("rp_logs").press_banca_db.slice(-1)[0].sets.map(x=>x.w)).toEqual([20,60]);
+      expect(app.leer("rp_history")[0].pr.map(p=>[p.w,p.reps,p.i,p.lvl])).toEqual([[60,8,1,2]]);
       app.reiniciarMemoria();});
   });
 
@@ -338,6 +832,10 @@
   escenario("Almacenamiento lleno · salir del guiado y volver",F.vacio,()=>{
     test("la serie que no cupo sobrevive a salir y volver a entrar; con espacio se guarda",async app=>{
       app.w.openRoutine("gym_empuje");app.w.startRoutine("press_banca_db");
+      /* HU-63: entrar no crea la sesion; el primer visto si, y queda en disco
+         sin la serie que viene */
+      expect(app.leer("rp_session")).toBe(null);
+      app.w.markCheck("gym_empuje","caminadora",true);
       expect(app.leer("rp_session").key).toBe("gym_empuje");
       sinAviso(app);const libera=lleno(app,{margen:0});
       try{app.w.logSet();
@@ -359,7 +857,9 @@
         expect(app.leer("rp_session").log).toEqual({});
       }finally{libera();}
       app.w.finish();
-      expect(app.texto("#guided")).toContain("Completada");
+      /* hechos: la caminadora (el visto que crea la sesion, HU-63) y el press
+         con su serie. Quedan 12 sin hacer: "Guardada", nunca "Completada" */
+      expect(app.texto("#guided .done .mut")).toBe("Guardada · 2 de 14 ejercicios");
       const l=app.leer("rp_logs").press_banca_db;
       expect(l.length).toBe(1);expect(l[0].sets.length).toBe(1);
       expect(app.leer("rp_session")).toBe(null);
@@ -373,6 +873,10 @@
       const sesion=app.foto().rp_session;expect(app.leer("rp_session").key).toBe("salud_fuerza_b");
       sinAviso(app);const libera=lleno(app,{margen:0});
       try{app.w.openRoutine("salud_fuerza_a");app.w.startRoutine("sentadilla_silla");
+        /* HU-63: ya no la cierra sola; pregunta, y guardarla no cabe */
+        expect(hoja(app)).toBe(true);
+        expect(app.texto("#toast")).toBe("");
+        boton(app,"Guardar Casa — Fuerza B y empezar Casa — Fuerza A").click();
         expect(app.texto("#toast")).toContain("sigue abierta");
         expect(app.ev("steps[stepi].id")).toBe("sentadilla_silla");
         app.w.logSet();
@@ -385,10 +889,567 @@
       }finally{libera();}
       expect(app.foto().rp_session).toBe(sesion);
       app.w.finish();
-      expect(app.texto("#guided")).toContain("Completada");
+      expect(app.texto("#guided .done .mut")).toBe("Guardada · 1 de 12 ejercicios");
       const l=app.leer("rp_logs").sentadilla_silla.slice(-1)[0];
       expect(l.date).toBe(app.w.today());expect(l.sets.length).toBe(1);
       expect(app.foto().rp_session).toBe(sesion);
+      app.reiniciarMemoria();});
+  });
+
+  /* HU-63: mirar otra rutina no cierra la que esta a medias. Tocar una fila,
+     su play o su visto en Tirón cerraba Empuje sola (finishSession "auto") y
+     la guardaba como terminada. Ahora sale una hoja y nada cambia hasta elegir. */
+  const fila=(app,id)=>app.$('#routine .ex[data-ex="'+id+'"]');
+  async function cerrarHoja(app){app.w.history.back();await app.hasta(()=>!hoja(app),3000,"que se cierre la hoja");}
+  escenario("Otra rutina con Empuje a medias",F.aMedias,()=>{
+    test("de partida: Empuje a medias, 3 de 14, y en curso en Inicio",app=>{
+      expect(app.leer("rp_session").key).toBe("gym_empuje");
+      const st=app.w.sessStats("gym_empuje");
+      expect([st.exDone,st.exTotal,st.sets]).toEqual([3,14,3]);
+      expect(app.texto("#todayCard")).toContain("En curso");
+      expect(app.texto("#todayCard")).toContain("Empuje");});
+    test("tocar una fila, su figura, su play, su visto o Empezar en Tirón abre la hoja en 1 toque y no cambia nada",async app=>{
+      const antes=app.foto(),h0=app.leer("rp_history").length;
+      app.w.openRoutine("gym_tiron");
+      const toques=[["la fila",()=>fila(app,"jalon_pecho").querySelector(".nm")],
+        ["la figura",()=>fila(app,"jalon_pecho").querySelector(".diag")],
+        ["el play",()=>fila(app,"jalon_pecho").querySelector(".exstart")],
+        ["el visto",()=>fila(app,"jalon_pecho").querySelector(".exck")],
+        ["Empezar",()=>app.$("#routCta .btn:not(.sec)")]];
+      for(const [que,el] of toques){
+        el().click();
+        expect(que+": "+hoja(app)).toBe(que+": true");
+        expect(app.activa()).toBe("routine");
+        expect(app.texto("#planTitle")).toBe("Tienes Empuje a medias");
+        expect(app.texto("#planBody")).toContain("Empuje · 3 de 14 hechos · 3 series");
+        expect(app.leer("rp_session").key).toBe("gym_empuje");
+        expect(app.leer("rp_history").length).toBe(h0);
+        expect(app.foto()).toEqual(antes);
+        await cerrarHoja(app);
+        expect(app.foto()).toEqual(antes);}
+      /* el visto no quedo marcado ni en pantalla */
+      expect(fila(app,"jalon_pecho").classList.contains("checked")).toBe(false);
+      expect(fila(app,"jalon_pecho").querySelector(".exck").getAttribute("aria-checked")).toBe("false");});
+    test("la hoja no tiene opción destructiva: dos botones con nombre, sin borrar ni descartar",async app=>{
+      const n=app.w.__dialogos.length;
+      app.w.openRoutine("gym_tiron");app.w.startRoutine("jalon_pecho");
+      expect(app.$$("#planBody button").map(b=>b.textContent.replace(/\s+/g," ").trim()))
+        .toEqual(["Volver a Empuje","Guardar Empuje y empezar Tirón"]);
+      expect(app.$$("#planBody .danger,#planBody .fin").length).toBe(0);
+      expect(/descart|borr|elimin/i.test(app.texto("#planov"))).toBe(false);
+      expect(pregunto(app,n)).toBe(0);
+      await cerrarHoja(app);});
+    test("«Volver a Empuje» abre su detalle con los 3 hechos intactos",async app=>{
+      await app.arrancar(F.aMedias);const antes=app.foto();
+      app.w.openRoutine("gym_tiron");fila(app,"jalon_pecho").querySelector(".exstart").click();
+      boton(app,"Volver a Empuje").click();
+      expect(hoja(app)).toBe(false);
+      expect(app.activa()).toBe("routine");
+      expect(app.ev("curRoutine")).toBe("gym_empuje");
+      expect(app.$$("#routine .ex.checked").map(e=>e.dataset.ex).sort()).toEqual(["caminadora","circulos_brazos","press_banca_db"]);
+      expect(app.texto("#routProg")).toBe("3/14");
+      expect(app.texto("#routCta")).toContain("Continuar");
+      expect(app.foto()).toEqual(antes);
+      /* atras vuelve a Tirón, y tampoco toca nada */
+      app.w.history.back();
+      await app.hasta(()=>app.ev("curRoutine")==="gym_tiron"&&app.activa()==="routine",3000,"el detalle de Tirón");
+      expect(app.foto()).toEqual(antes);
+      app.reiniciarMemoria();});
+    test("«Guardar Empuje y empezar Tirón» guarda Empuje (1 entrada) y abre Tirón: 2 toques",async app=>{
+      await app.arrancar(F.aMedias);const h0=app.leer("rp_history").length;
+      app.w.openRoutine("gym_tiron");
+      fila(app,"jalon_pecho").querySelector(".exstart").click();     /* toque 1 */
+      boton(app,"Guardar Empuje y empezar Tirón").click();           /* toque 2 */
+      expect(hoja(app)).toBe(false);
+      expect(app.activa()).toBe("guided");
+      expect(app.ev("curRoutine")).toBe("gym_tiron");
+      expect(app.ev("steps[stepi].id")).toBe("jalon_pecho");
+      const h=app.leer("rp_history");
+      expect(h.length).toBe(h0+1);
+      expect([h[0].key,h[0].exDone,h[0].exTotal,h[0].sets]).toEqual(["gym_empuje",3,14,3]);
+      expect(app.leer("rp_logs").press_banca_db.slice(-1)[0].date).toBe(app.w.today());
+      /* la de Tirón nace con lo primero que se registra */
+      expect(app.leer("rp_session")).toBe(null);
+      app.w.logSet();
+      expect(app.leer("rp_session").key).toBe("gym_tiron");
+      expect(app.leer("rp_history").length).toBe(h0+1);
+      await app.espera(400);
+      /* atras: el detalle de Tirón, no la hoja */
+      app.w.guidedExit();await app.hasta(()=>app.activa()==="routine",3000,"la rutina");
+      expect(app.ev("curRoutine")).toBe("gym_tiron");
+      expect(hoja(app)).toBe(false);
+      app.reiniciarMemoria();});
+    test("el visto de Tirón con Empuje a medias: guardar Empuje y queda marcado, en 2 toques",async app=>{
+      await app.arrancar(F.aMedias);const h0=app.leer("rp_history").length;
+      app.w.openRoutine("gym_tiron");
+      fila(app,"jalon_pecho").querySelector(".exck").click();        /* toque 1 */
+      boton(app,"Guardar Empuje y empezar Tirón").click();           /* toque 2 */
+      await app.hasta(()=>!hoja(app),3000,"que se cierre la hoja");
+      expect(app.activa()).toBe("routine");
+      expect(app.ev("curRoutine")).toBe("gym_tiron");
+      expect(fila(app,"jalon_pecho").classList.contains("checked")).toBe(true);
+      expect(app.w.checksOn(app.w.today(),"gym_tiron")).toEqual({jalon_pecho:true});
+      expect(app.leer("rp_session").key).toBe("gym_tiron");
+      expect(app.leer("rp_history").length).toBe(h0+1);
+      expect(app.leer("rp_history")[0].key).toBe("gym_empuje");
+      app.reiniciarMemoria();});
+    test("teléfono lleno al guardar: el aviso de siempre y las dos sesiones intactas",async app=>{
+      await app.arrancar(F.aMedias);
+      app.w.openRoutine("gym_tiron");fila(app,"jalon_pecho").querySelector(".exstart").click();
+      const antes=app.foto(),h0=app.leer("rp_history").length;sinAviso(app);const libera=lleno(app,{margen:0});
+      try{boton(app,"Guardar Empuje y empezar Tirón").click();
+        expect(app.texto("#toast")).toBe("No cupo en el teléfono: la sesión de Empuje sigue abierta sin guardar. Libera espacio y finalízala.");
+        expect(app.foto()).toEqual(antes);
+        expect(app.leer("rp_session").key).toBe("gym_empuje");
+        expect(app.w.sessStats("gym_empuje").exDone).toBe(3);
+        /* Empuje esta entera en disco: se sigue a Tirón solo en memoria, como
+           antes, y no se vuelve a preguntar mientras tenga series */
+        expect(app.activa()).toBe("guided");
+        expect(app.ev("steps[stepi].id")).toBe("jalon_pecho");
+        sinAviso(app);app.w.logSet();
+        expect(app.texto("#toast")).toContain("Empuje sigue abierta");
+        expect(app.foto()).toEqual(antes);
+        await app.espera(400);
+        await salirDelGuiado(app);
+        fila(app,"jalon_pecho").querySelector(".exstart").click();
+        expect(hoja(app)).toBe(false);
+        expect(app.activa()).toBe("guided");
+        expect(app.ev("steps[stepi].id")).toBe("jalon_pecho");
+        expect(app.ev("sessionLog").jalon_pecho.length).toBe(1);
+        expect(app.foto()).toEqual(antes);
+      }finally{libera();}
+      /* con espacio, la siguiente serie guarda Empuje, que ya se eligió
+         guardar, y Tirón pasa a tener su sesion con las dos series */
+      app.w.logSet();
+      const h=app.leer("rp_history");
+      expect(h.length).toBe(h0+1);
+      expect([h[0].key,h[0].exDone]).toEqual(["gym_empuje",3]);
+      const s=app.leer("rp_session");
+      expect([s.key,s.log.jalon_pecho.length]).toEqual(["gym_tiron",2]);
+      await app.espera(400);app.ev("clearTimer()");
+      app.reiniciarMemoria();});
+    test("teléfono lleno al guardar desde el visto: queda el aviso de Empuje, la hoja sigue y no se marca nada",async app=>{
+      await app.arrancar(F.aMedias);const h0=app.leer("rp_history").length;
+      app.w.openRoutine("gym_tiron");fila(app,"jalon_pecho").querySelector(".exck").click();
+      expect(hoja(app)).toBe(true);
+      const antes=app.foto();sinAviso(app);const libera=lleno(app,{margen:0});
+      try{boton(app,"Guardar Empuje y empezar Tirón").click();
+        expect(app.texto("#toast")).toBe("No cupo en el teléfono: la sesión de Empuje sigue abierta sin guardar. Libera espacio y finalízala.");
+        /* un visto no tiene memoria donde esperar: no se marca lo que no cabe */
+        expect(hoja(app)).toBe(true);
+        const f=fila(app,"jalon_pecho");
+        expect(f.classList.contains("checked")).toBe(false);
+        expect(f.querySelector(".exck").getAttribute("aria-checked")).toBe("false");
+        expect(app.foto()).toEqual(antes);
+        expect(app.leer("rp_session").key).toBe("gym_empuje");
+      }finally{libera();}
+      /* con espacio, volver a pulsar guarda Empuje y marca el visto */
+      boton(app,"Guardar Empuje y empezar Tirón").click();
+      await app.hasta(()=>!hoja(app),3000,"que se cierre la hoja");
+      expect(fila(app,"jalon_pecho").classList.contains("checked")).toBe(true);
+      expect(app.w.checksOn(app.w.today(),"gym_tiron")).toEqual({jalon_pecho:true});
+      expect(app.leer("rp_history").length).toBe(h0+1);
+      expect(app.leer("rp_history")[0].key).toBe("gym_empuje");
+      app.reiniciarMemoria();});
+    test("teléfono lleno con series de Empuje solo en pantalla: la hoja se queda y no se pierde ninguna",async app=>{
+      await app.arrancar(F.aMedias);
+      app.w.openRoutine("gym_empuje");app.w.startRoutine("fondos_paralelas");
+      sinAviso(app);const libera=lleno(app,{margen:0});
+      try{app.w.logSet();
+        expect(app.texto("#toast")).toContain("No cupo en el teléfono");
+        await app.espera(400);
+        await salirDelGuiado(app);
+        const antes=app.foto();
+        app.w.openRoutine("gym_tiron");fila(app,"jalon_pecho").querySelector(".exstart").click();
+        expect(hoja(app)).toBe(true);
+        expect(app.texto("#planBody")).toContain("Empuje · 4 de 14 hechos · 4 series");
+        sinAviso(app);boton(app,"Guardar Empuje y empezar Tirón").click();
+        expect(app.texto("#toast")).toContain("la sesión de Empuje sigue abierta sin guardar");
+        expect(hoja(app)).toBe(true);
+        expect(app.activa()).toBe("routine");
+        expect(app.ev("sessionLogKey")).toBe("gym_empuje");
+        expect(app.ev("sessionLog").fondos_paralelas.length).toBe(1);
+        expect(app.foto()).toEqual(antes);
+        boton(app,"Volver a Empuje").click();
+        expect(app.ev("curRoutine")).toBe("gym_empuje");
+        expect(app.ev("sessionLog").fondos_paralelas.length).toBe(1);
+        expect(app.foto()).toEqual(antes);
+      }finally{libera();}
+      /* con espacio, finalizar Empuje guarda tambien la serie que no cupo */
+      const res=app.w.finishSession("gym_empuje","sheet");
+      expect(!!res&&!res.lleno).toBe(true);
+      expect(res.summary.exDone).toBe(4);
+      expect(app.leer("rp_logs").fondos_paralelas.slice(-1)[0].sets.length).toBe(1);
+      expect(app.leer("rp_session")).toBe(null);
+      app.reiniciarMemoria();});
+    test("recarga en mitad del conflicto: nada cambia y Empuje sigue en curso",async app=>{
+      await app.arrancar(F.aMedias);
+      app.w.openRoutine("gym_tiron");fila(app,"jalon_pecho").querySelector(".exck").click();
+      expect(hoja(app)).toBe(true);
+      const antes=app.foto();
+      await app.recargar();
+      expect(hoja(app)).toBe(false);
+      expect(app.foto()).toEqual(antes);
+      expect(app.activa()).toBe("home");
+      expect(app.texto("#todayCard")).toContain("En curso");
+      expect(app.texto("#todayCard")).toContain("Empuje");
+      /* y la hoja vuelve a salir si se insiste */
+      app.w.openRoutine("gym_tiron");fila(app,"jalon_pecho").querySelector(".exck").click();
+      expect(hoja(app)).toBe(true);
+      await cerrarHoja(app);
+      expect(app.foto()).toEqual(antes);});
+  });
+
+  /* HU-63: entrar al guiado solo para mirar no deja rastro; la sesion nace
+     con lo primero que se registra */
+  escenario("Mirar el guiado sin registrar",F.dueno,()=>{
+    test("abrir el guiado y salir sin registrar nada no crea rp_session ni pone la tarjeta «En curso»",async app=>{
+      const antes=app.foto(),tarjeta=app.texto("#todayCard");
+      expect(app.leer("rp_session")).toBe(null);
+      app.w.openRoutine("gym_tiron");app.w.startRoutine("jalon_pecho");
+      expect(app.activa()).toBe("guided");
+      app.w.guidedSkipExercise();app.w.guidedBack();
+      await salirDelGuiado(app);
+      app.$("#routCta .btn:not(.sec)").click();
+      expect(app.activa()).toBe("guided");
+      await salirDelGuiado(app);
+      expect(app.leer("rp_session")).toBe(null);
+      expect(app.foto()).toEqual(antes);
+      app.$('.nav .tab[data-v="home"]').click();
+      expect(app.activa()).toBe("home");
+      expect(app.texto("#todayCard")).toBe(tarjeta);
+      expect(app.texto("#todayCard")).not.toContain("En curso");
+      app.reiniciarMemoria();});
+    test("lo primero que se registra sí la crea: una serie, un visto o el temporizador",async app=>{
+      const sesion=()=>app.leer("rp_session");
+      app.sembrar(F.dueno);app.reiniciarMemoria();
+      app.w.openRoutine("gym_tiron");app.w.startRoutine("jalon_pecho");
+      expect(sesion()).toBe(null);
+      app.w.logSet();
+      expect([sesion().key,sesion().src,sesion().log.jalon_pecho.length]).toEqual(["gym_tiron","guided",1]);
+      await app.espera(400);app.ev("clearTimer()");
+      app.sembrar(F.dueno);app.reiniciarMemoria();
+      app.w.openRoutine("gym_tiron");
+      expect(sesion()).toBe(null);
+      fila(app,"jalon_pecho").querySelector(".exck").click();
+      expect([sesion().key,sesion().src]).toEqual(["gym_tiron","check"]);
+      app.sembrar(F.dueno);app.reiniciarMemoria();
+      app.w.openRoutine("gym_tiron");app.w.startRoutine("caminadora");
+      expect(app.ev("steps[stepi].kind")).toBe("timer");
+      expect(sesion()).toBe(null);
+      app.w.startTimer();
+      expect([sesion().key,sesion().src]).toEqual(["gym_tiron","guided"]);
+      app.ev("clearTimer()");app.reiniciarMemoria();});
+  });
+
+  /* criterio 5 de HU-63: las de otros dias siguen su camino de siempre */
+  escenario("Sesión de ayer sin cerrar · otra rutina hoy",F.sinCerrar,()=>{
+    test("se sigue rescatando al abrir; «Ahora no» la deja y vuelve a salir al recargar",async app=>{
+      const antes=app.foto();
+      expect(app.$("#finov").classList.contains("show")).toBe(true);
+      expect(app.texto("#finTitle")).toBe("Entrenamiento sin cerrar");
+      app.$$("#finBody button").find(b=>b.textContent.indexOf("Ahora no")>=0).click();
+      await app.hasta(()=>!app.$("#finov").classList.contains("show"),3000,"que se cierre el rescate");
+      expect(app.foto()).toEqual(antes);
+      await app.recargar();
+      expect(app.$("#finov").classList.contains("show")).toBe(true);
+      expect(app.texto("#finTitle")).toBe("Entrenamiento sin cerrar");});
+    test("no es «a medias»: no abre la hoja de conflicto y, como antes, se guarda con su fecha al entrar",app=>{
+      app.ev("$('finov').classList.remove('show')");
+      app.w.openRoutine("gym_tiron");
+      expect(app.w.sessConflict("gym_tiron")).toBe(null);
+      app.w.startRoutine("jalon_pecho");
+      expect(hoja(app)).toBe(false);
+      expect(app.activa()).toBe("guided");
+      const h=app.leer("rp_history");
+      expect(h.length).toBe(1);
+      expect([h[0].key,h[0].sets]).toEqual(["gym_empuje",2]);
+      expect(app.w.ds(new Date(h[0].iso))).toBe(F.fecha(1));
+      expect(app.leer("rp_session")).toBe(null);
+      app.reiniciarMemoria();});
+  });
+
+  /* Borrar una serie del guiado era un toque sin vuelta atras. Ahora sale
+     «Serie borrada · Deshacer» unos segundos: deshacer deja la sesion
+     identica, y dejarlo pasar la deja sin la serie. */
+  function conSerie(){const ini=F.inicio(20);
+    return {rp_session:{v:1,key:"gym_empuje",date:F.fecha(0),startedAt:ini,lastAt:ini,stepi:0,src:"guided",
+      log:{press_banca_db:[{w:20,reps:10,t:ini+60000,rir:2},{w:22.5,reps:8,t:ini+240000},{w:22.5,reps:7,t:ini+420000,rir:0}]}}};}
+  /* la sesion menos lastAt, que es el sello de la ultima escritura; en
+     crudo, para que tambien cuente el orden de los ejercicios */
+  const sinSello=app=>{const s=app.leer("rp_session");if(s)delete s.lastAt;return s;};
+  const crudo=()=>String(localStorage.getItem("rp_session")).replace(/"lastAt":\d+,?/,"");
+  const copia=x=>JSON.parse(JSON.stringify(x));
+  const filas=app=>app.$$("#guided .sets .setline").map(l=>Array.from(l.children)
+    .map(c=>c.textContent.replace(/\s+/g," ").trim()).filter(Boolean).join(" | "));
+  /* cada prueba arranca con la sesion sembrada y el guiado en el press */
+  function abrir(app,semilla){app.w.toastFuera();app.reiniciarMemoria();app.sembrar(semilla||conSerie);
+    app.w.openRoutine("gym_empuje");app.w.startRoutine("press_banca_db");sinAviso(app);
+    expect(app.activa()).toBe("guided");
+    return {log:copia(app.ev("sessionLog")),ses:sinSello(app),crudo:crudo(),filas:filas(app)};}
+  const borrar=(app,i)=>app.$("#sl_press_banca_db_"+i+" .del").click();
+  const deshacer=app=>app.$("#toast .tact").click();
+  escenario("Borrar una serie en el guiado",conSerie,()=>{
+    test("borrar y deshacer deja la sesión idéntica",app=>{
+      const antes=abrir(app);
+      expect(antes.filas).toHaveLength(3);
+      borrar(app,1);
+      expect(app.ev("sessionLog").press_banca_db.map(x=>x.reps)).toEqual([10,7]);
+      expect(app.leer("rp_session").log.press_banca_db.map(x=>x.reps)).toEqual([10,7]);
+      expect(filas(app)).toHaveLength(2);
+      expect(app.texto("#toast")).toContain("Serie borrada");
+      expect(app.$("#toast").classList.contains("show")).toBe(true);
+      deshacer(app);
+      expect(copia(app.ev("sessionLog"))).toEqual(antes.log);
+      expect(sinSello(app)).toEqual(antes.ses);
+      expect(crudo()).toBe(antes.crudo);
+      expect(filas(app)).toEqual(antes.filas);
+      expect(app.texto("#toast")).toContain("Serie recuperada");
+      expect(app.$("#toast .tact")).toBeFalsy();
+      /* y lo que se guarda al cerrar es lo de antes de borrar */
+      const res=app.w.finishSession("gym_empuje","guided");
+      expect(res.summary.sets).toBe(3);
+      expect(app.leer("rp_logs").press_banca_db[0].sets).toEqual(antes.log.press_banca_db);
+      app.reiniciarMemoria();});
+    /* el click del Deshacer sube hasta el aviso: deshacerSerie() ya habia
+       puesto «Serie recuperada» (sin boton) y toastToca lo cerraba en ese
+       mismo click. Con el dedo, con .click() y con Enter, que es un click.
+       Ahora se queda a la vista su tiempo, como cualquier aviso */
+    test("tocar Deshacer deja «Serie recuperada» a la vista su tiempo",async app=>{
+      abrir(app);
+      borrar(app,1);
+      expect(app.$("#toast").classList.contains("show")).toBe(true);
+      deshacer(app);
+      expect(app.texto("#toast")).toContain("Serie recuperada");
+      expect(app.$("#toast").classList.contains("show")).toBe(true);
+      await app.espera(2000);
+      expect(app.$("#toast").classList.contains("show")).toBe(true);
+      expect(app.texto("#toast")).toContain("Serie recuperada");
+      await app.espera(900);
+      expect(app.$("#toast").classList.contains("show")).toBe(false);
+      /* y el aviso sin boton se sigue cerrando al tocarlo */
+      app.w.toast(app.w.ic("check","sm")+" Serie recuperada");
+      app.$("#toast .tmsg").click();
+      expect(app.$("#toast").classList.contains("show")).toBe(false);
+      app.reiniciarMemoria();});
+    test("borrar y no deshacer la deja sin la serie",async app=>{
+      const antes=abrir(app),ms=app.ev("DESHACER_MS");
+      expect(ms).toBeGreaterThan(3999);
+      /* con teclado, para ver tambien adonde va el foco cuando el aviso caduca */
+      const x=app.$("#sl_press_banca_db_0 .del");x.focus();
+      x.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter",bubbles:true}));
+      expect(app.doc.activeElement).toBe(app.$("#toast .tact"));
+      await app.espera(ms+300);
+      expect(app.$("#toast").classList.contains("show")).toBe(false);
+      /* el boton escondido no se enfoca ni se pulsa, y el foco no se pierde */
+      expect(app.w.getComputedStyle(app.$("#toast .tact")).visibility).toBe("hidden");
+      expect(app.doc.activeElement).toBe(app.$("#guided .gbtn.go"));
+      app.w.deshacerSerie();
+      const queda=antes.log.press_banca_db.slice(1);
+      expect(copia(app.ev("sessionLog"))).toEqual({press_banca_db:queda});
+      expect(app.leer("rp_session").log).toEqual({press_banca_db:queda});
+      expect(filas(app)).toEqual(["Serie 1 | 22.5 kg × 8","Serie 2 | 22.5 kg × 7 · reserva 0"]);
+      const res=app.w.finishSession("gym_empuje","guided");
+      expect(res.summary.sets).toBe(2);
+      expect(app.leer("rp_logs").press_banca_db[0].sets).toEqual(queda);
+      app.reiniciarMemoria();});
+    test("dos toques seguidos en la X: Deshacer devuelve las dos, cada una a su sitio",app=>{
+      const antes=abrir(app);
+      /* la de abajo sube al sitio de la borrada: el segundo toque se la lleva */
+      borrar(app,1);borrar(app,1);
+      expect(app.ev("sessionLog").press_banca_db.map(x=>x.reps)).toEqual([10]);
+      expect(app.texto("#toast")).toContain("2 series borradas");
+      deshacer(app);
+      expect(copia(app.ev("sessionLog"))).toEqual(antes.log);
+      expect(crudo()).toBe(antes.crudo);
+      expect(filas(app)).toEqual(antes.filas);
+      expect(app.texto("#toast")).toContain("2 series recuperadas");
+      app.reiniciarMemoria();});
+    test("borrar la única serie de un ejercicio y deshacer: vuelve a su puesto en la sesión",app=>{
+      const s=conSerie(),log=s.rp_session.log;
+      log.press_banca_db=log.press_banca_db.slice(0,1);
+      log.press_hombro_db=[{w:12,reps:10,t:s.rp_session.startedAt+600000}];
+      const antes=abrir(app,s);
+      expect(Object.keys(antes.ses.log)).toEqual(["press_banca_db","press_hombro_db"]);
+      borrar(app,0);
+      expect(Object.keys(app.leer("rp_session").log)).toEqual(["press_hombro_db"]);
+      expect(filas(app)).toHaveLength(0);
+      deshacer(app);
+      expect(crudo()).toBe(antes.crudo);
+      expect(Object.keys(app.ev("sessionLog"))).toEqual(["press_banca_db","press_hombro_db"]);
+      expect(filas(app)).toEqual(antes.filas);
+      app.reiniciarMemoria();});
+    test("borrar, anotar otra y deshacer en el descanso: no se pierde ninguna",async app=>{
+      const antes=abrir(app);
+      borrar(app,1);
+      app.w.logSet();
+      await app.hasta(()=>app.$("#guided .isrest"),3000,"el descanso");
+      deshacer(app);
+      /* la borrada vuelve a su indice y la nueva se queda al final */
+      const log=copia(app.ev("sessionLog")).press_banca_db;
+      expect(log.slice(0,3)).toEqual(antes.log.press_banca_db);
+      expect(log).toHaveLength(4);
+      expect(app.leer("rp_session").log.press_banca_db).toEqual(log);
+      /* deshacer no saca del descanso */
+      expect(app.$("#guided .isrest")).toBeTruthy();
+      app.w.skipRest();
+      app.reiniciarMemoria();});
+    test("borrar y anotar un récord de nivel 2: el aviso de récord no tapa el Deshacer",async app=>{
+      /* con historial (30x8, e1RM 38): 35x8 es nuevo maximo de e1RM */
+      const s=conSerie();s.rp_logs={press_banca_db:[{date:F.fecha(3),sets:[{w:30,reps:8}],k:"gym_empuje",t:1}]};
+      const antes=abrir(app,s);
+      borrar(app,1);
+      app.ev("curW=35;curReps=8");
+      app.w.logSet();
+      const pr=app.leer("rp_session").pr.filter(p=>p.w===35&&p.reps===8);
+      expect(pr).toHaveLength(1);
+      expect(pr[0].lvl).toBe(2);
+      /* el récord se ve en su serie; el aviso sigue siendo el de Deshacer */
+      expect(app.texto("#toast")).toContain("Serie borrada");
+      expect(app.$("#toast .tact")).toBeTruthy();
+      expect(app.ev("deshacer.length")).toBe(1);
+      await app.hasta(()=>app.$("#guided .isrest"),3000,"el descanso");
+      deshacer(app);
+      /* la borrada vuelve a su indice, la nueva se queda al final y sigue con su récord */
+      const log=copia(app.ev("sessionLog")).press_banca_db;
+      expect(log.slice(0,3)).toEqual(antes.log.press_banca_db);
+      expect(log.map(x=>x.w+"x"+x.reps)).toEqual(["20x10","22.5x8","22.5x7","35x8"]);
+      expect(app.leer("rp_session").pr.map(p=>p.w+"x"+p.reps+" "+p.i)).toContain("35x8 3");
+      app.w.skipRest();
+      app.reiniciarMemoria();});
+    test("salir del guiado o finalizar retira el Deshacer y no toca nada",async app=>{
+      abrir(app);
+      borrar(app,0);
+      app.w.guidedExit();
+      await app.hasta(()=>app.activa()==="routine",3000,"la pantalla de la rutina");
+      expect(app.$("#toast").classList.contains("show")).toBe(false);
+      const fuera=app.foto();
+      app.w.deshacerSerie();
+      expect(app.foto()).toEqual(fuera);
+      /* finalizar con el aviso a la vista: la sesion cerrada no se reabre */
+      abrir(app);
+      borrar(app,0);
+      app.w.finish();
+      /* con HU-09 terminar con ejercicios sin hacer guarda lo hecho y dice
+         "Guardada · X de Y", nunca "Completada": aqui solo se hizo el pecho */
+      expect(app.texto("#guided .done .mut")).toBe("Guardada · 1 de 14 ejercicios");
+      expect(app.$("#toast").classList.contains("show")).toBe(false);
+      app.w.deshacerSerie();
+      expect(app.leer("rp_session")).toBe(null);
+      expect(app.leer("rp_logs").press_banca_db.slice(-1)[0].sets).toHaveLength(2);
+      app.reiniciarMemoria();});
+    test("teléfono lleno: Deshacer devuelve la serie a la memoria y avisa que no cupo",app=>{
+      const antes=abrir(app);
+      borrar(app,2);
+      const libera=lleno(app,{margen:0});
+      try{deshacer(app);
+        expect(copia(app.ev("sessionLog"))).toEqual(antes.log);
+        expect(app.texto("#toast")).toContain("No cupo en el teléfono");}
+      finally{libera();}
+      app.w.touchSess();
+      expect(sinSello(app)).toEqual(antes.ses);
+      app.reiniciarMemoria();});
+    test("teléfono lleno al borrar la única serie de un ejercicio: avisa que no cupo y la borrada no vuelve",app=>{
+      const s=conSerie(),log=s.rp_session.log;
+      log.press_banca_db=log.press_banca_db.slice(0,1);
+      log.press_hombro_db=[{w:12,reps:10,t:s.rp_session.startedAt+600000}];
+      abrir(app,s);
+      /* borrar encoge rp_session: el margen no la pararia, solo esa clave */
+      const libera=lleno(app,{solo:["rp_session"]});
+      try{borrar(app,0);
+        /* el «No cupo» queda encima del Deshacer, como al deshacer */
+        expect(app.texto("#toast")).toContain("No cupo en el teléfono");
+        /* en disco sigue la serie, pero la memoria manda: ya no cuenta */
+        expect(Object.keys(app.leer("rp_session").log)).toEqual(["press_banca_db","press_hombro_db"]);
+        expect(Object.keys(app.w.sessLog("gym_empuje"))).toEqual(["press_hombro_db"]);
+        expect(app.w.sessStats("gym_empuje").sets).toBe(1);
+        expect(filas(app)).toHaveLength(0);}
+      finally{libera();}
+      /* con espacio, ni la sesion ni el historial la recuperan */
+      app.w.touchSess();
+      expect(Object.keys(app.leer("rp_session").log)).toEqual(["press_hombro_db"]);
+      const res=app.w.finishSession("gym_empuje","guided");
+      expect(!!res&&!res.lleno).toBe(true);
+      expect(res.summary.sets).toBe(1);
+      expect(app.leer("rp_logs").press_banca_db).toBe(undefined);
+      expect(app.leer("rp_logs").press_hombro_db.slice(-1)[0].sets).toHaveLength(1);
+      app.reiniciarMemoria();});
+    test("una serie ya guardada en rp_logs: borrar y deshacer deja rp_logs idéntico",app=>{
+      const t=Date.now()-3600000,logs={press_banca_db:[
+        {date:F.fecha(7),sets:[{w:20,reps:10,t:t-7*864e5}],k:"gym_empuje",t:t-7*864e5},
+        {date:F.fecha(0),sets:[{w:22.5,reps:8,t:t}],k:"gym_empuje",t:t}]};
+      abrir(app,Object.assign(conSerie(),{rp_logs:logs}));
+      const antes=localStorage.getItem("rp_logs");
+      /* la unica serie del registro: se va el registro entero */
+      app.w.delSet("press_banca_db","l",1,0,-1);
+      expect(app.leer("rp_logs").press_banca_db).toHaveLength(1);
+      expect(app.texto("#toast")).toContain("Serie borrada");
+      deshacer(app);
+      expect(localStorage.getItem("rp_logs")).toBe(antes);
+      app.reiniciarMemoria();});
+    /* HU-10 marca el record en su serie y lo rehace al borrar: deshacer lo
+       devuelve con la serie, y la sesion queda identica, records en su orden */
+    test("borrar una serie récord y deshacer: vuelve su récord, y los de la sesión en su orden",app=>{
+      const s=conSerie(),ini=s.rp_session.startedAt,t=ini-3*864e5;
+      /* hace 3 dias: 20 x 8 en el press de pecho y 10 x 8 en el de hombro */
+      s.rp_logs={press_banca_db:[{date:F.fecha(3),sets:[{w:20,reps:8,t:t}],k:"gym_empuje",t:t}],
+        press_hombro_db:[{date:F.fecha(3),sets:[{w:10,reps:8,t:t}],k:"gym_empuje",t:t}]};
+      s.rp_session.log.press_hombro_db=[{w:12,reps:10,t:ini+600000}];
+      abrir(app,s);
+      /* los records como los deja el guiado: los del pecho y despues el del hombro */
+      app.w.prRecalc("press_banca_db");app.w.prRecalc("press_hombro_db");app.w.renderStep();
+      const prs=()=>(app.leer("rp_session").pr||[]).map(p=>[p.id,p.i]);
+      expect(prs()).toEqual([["press_banca_db",0],["press_banca_db",1],["press_hombro_db",0]]);
+      const antes={crudo:crudo(),filas:filas(app),log:copia(app.ev("sessionLog"))};
+      const marcadas=()=>app.$$("#guided .sets .setline.pr").map(l=>l.id.replace("sl_press_banca_db_",""));
+      expect(marcadas()).toEqual(["0","1"]);
+      /* la primera se va: la de 22.5 x 8 pasa a ser la serie 1, y record */
+      borrar(app,0);
+      expect(prs()).toEqual([["press_hombro_db",0],["press_banca_db",0]]);
+      expect(marcadas()).toEqual(["0"]);
+      deshacer(app);
+      expect(copia(app.ev("sessionLog"))).toEqual(antes.log);
+      expect(crudo()).toBe(antes.crudo);
+      expect(filas(app)).toEqual(antes.filas);
+      expect(marcadas()).toEqual(["0","1"]);
+      app.reiniciarMemoria();});
+  });
+  /* HU-57: el peso se veia con una decima (1,25 → «1.3») y corregir solo las
+     reps reescribia el peso con lo que se veia: un peso que no existe */
+  escenario("Pesos con centésimas (mancuernas de 1,25 y 3,75 kg)",F.madre,()=>{
+    const EL="elevaciones_laterales";
+    test("Ajustes, guiado y corregir la serie conservan 1.25 y 3.75",async app=>{
+      app.$('.nav .tab[data-v="settings"]').click();
+      app.$("#pesosDB").value="1,25 2,5 3,75";app.w.savePesosDB();
+      expect(app.leer("rp_prefs").pesosDB).toEqual([1.25,2.5,3.75]);
+      expect(app.$("#pesosDB").value).toBe("1.25 2.5 3.75");
+      app.w.openRoutine("salud_fuerza_b");app.w.startRoutine(EL);
+      app.ev("curW=0");app.w.adjW(1);
+      expect(app.ev("curW")).toBe(1.25);
+      expect(app.texto("#lw")).toBe("1.25");
+      app.ev("curReps=15");app.w.logSet();
+      expect(app.ev("sessionLog")[EL][0].w).toBe(1.25);
+      await app.hasta(()=>app.$("#guided .isrest"),3000,"el descanso");app.w.skipRest();
+      expect(app.texto("#sl_"+EL+"_0 .v")).toContain("1.25 kg");
+      /* corregir solo las reps deja el peso tal cual */
+      app.w.editSet(EL,"s",-1,0,-1,0);
+      expect(app.$("#se_w").value).toBe("1.25");
+      app.$("#se_r").value="14";app.$("#sl_"+EL+"_0 .setok").click();
+      expect([app.ev("sessionLog")[EL][0].w,app.ev("sessionLog")[EL][0].reps]).toEqual([1.25,14]);
+      expect(app.leer("rp_session").log[EL][0].w).toBe(1.25);
+      /* escribirlo a mano tampoco lo redondea a la decima */
+      app.w.editNum("w");const i=app.$("#numin");i.value="3.75";i.dispatchEvent(new app.w.Event("blur"));
+      expect(app.ev("curW")).toBe(3.75);
+      expect(app.texto("#lw")).toBe("3.75");
+      app.reiniciarMemoria();});
+    test("la corrección desde Historial no cambia los pesos que no se tocan",app=>{
+      app.ev('logsWrite(l=>{l.elevaciones_laterales.slice(-1)[0].sets=[{w:3.75,reps:12},{w:1.25,reps:10}];})');
+      const ri=app.leer("rp_logs")[EL].length-1;
+      app.w.openSetEdit(EL,ri);
+      const ins=app.$$("#sefix .sefrow input");
+      expect(ins.map(x=>x.value)).toEqual(["3.75","12","1.25","10"]);
+      ins[3].value="11";app.w.saveSetEdit(EL,ri);
+      expect(app.leer("rp_logs")[EL][ri].sets.map(x=>[x.w,x.reps])).toEqual([[3.75,12],[1.25,11]]);
       app.reiniciarMemoria();});
   });
 })();
