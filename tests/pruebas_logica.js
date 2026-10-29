@@ -178,6 +178,13 @@
       app.sembrar({rp_logs:{sentadilla_silla:[reg(3,"salud_fuerza_a",veces(2,0,12))]}});
       expect(tt(app,"sentadilla_silla","salud_fuerza_a")).toEqual({w:1,reps:8,subeCarga:true,
         why:"Llenaste el rango entero: sube a 1 kg y vuelve a 8"});});
+    test("todayTarget sin lista ni salto con un peso de centesimas: sube a 28,75 kg, no a 28,8",app=>{
+      /* HU-57: editNum ya guarda 26.25; la subida teorica no puede redondearlo
+         a la decima y proponer un peso que no existe */
+      limpio(app,{rp_logs:{curl_barra:[reg(3,"gym_tiron",veces(3,26.25,12))]}});
+      expect(tt(app,"curl_barra","gym_tiron")).toEqual({w:28.75,reps:8,subeCarga:true,
+        why:"Llenaste el rango entero: sube a 28.75 kg y vuelve a 8"});
+      expect(sug(app,"curl_barra","gym_tiron")).toEqual({w:28.75,reps:8,why:"Llenaste el rango entero: sube a 28.75 kg y vuelve a 8"});});
     test("no regresion: con pesosDB la rama de mancuernas devuelve lo mismo que en v35",app=>{
       /* [mancuernas, ejercicio, rutina, series de la vez pasada, lo que devolvia v35] */
       const casos=[

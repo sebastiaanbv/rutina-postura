@@ -435,7 +435,8 @@ Dos fallos que encontró el arnés de pruebas y que estaban anotados como `test.
   décima, unas mancuernas de 1,25 kg salían «1.3» en Ajustes, en el guiado y en los campos de
   corregir, y corregir solo las reps (en el guiado o desde Historial) guardaba ese 1.3, un peso
   que no existe; volver a guardar las mancuernas en Ajustes también las cambiaba. Escribir el peso,
-  corregirlo y los saltos (`roundDownTo`, `nextW`, el de 2,5 kg) redondean a centésimas, como ya
+  corregirlo y los saltos (`roundDownTo`, `nextW`, el de 2,5 kg, y la subida que propone
+  `todayTarget` sin lista ni salto: 26,25 → 28,75, no 28,8) redondean a centésimas, como ya
   hacía la corrección desde Historial, y los campos de peso aceptan cualquier decimal (`step="any"`).
   Los pesos de siempre y los números de Progreso se ven igual; el cambio de peso por semana sigue
   con una décima.

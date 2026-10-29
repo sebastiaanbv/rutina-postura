@@ -4091,7 +4091,7 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
     if(l&&sig==null)return {w:w0,reps:rng[1]+2,extiende:true,
       why:"Ya usas tu mancuerna más pesada: estira a "+(rng[1]+2)+" reps"};
     const suave=w0<=0||inc/w0<=0.10,lleno=trabajo.every(x=>(x.reps||0)>=rng[1]+2);
-    if(suave||lleno){const w=l?sig:Math.round((w0+inc)*10)/10;
+    if(suave||lleno){const w=l?sig:Math.round((w0+inc)*100)/100;
       return {w:w,reps:rng[0],subeCarga:true,
         why:(suave?"Llenaste el rango entero":"Llegaste a "+(rng[1]+2)+" reps")+": sube a "+fmtW(w)+" kg y vuelve a "+rng[0]};}
     return {w:w0,reps:rng[1]+2,extiende:true,
