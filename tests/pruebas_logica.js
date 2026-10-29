@@ -834,6 +834,24 @@
       expect(hastaElFinal(app)).toEqual(l.slice(0,3));
       expect(app.texto("#guided .done .mut")).toMatch(/^Completada/);
       app.reiniciarMemoria();});
+    /* sin el atras del sistema (app instalada en iOS) el aviso necesita su
+       propio Salir; y el foco va al aviso, no se queda en BODY */
+    test("el aviso tiene su Salir: deja la sesión abierta y 'Continuar' lleva a lo que falta",async app=>{
+      const l=empezarPorElCuarto(app);hastaElFinal(app);
+      const antes=app.leer("rp_history").length,x=app.$('#guided .icbtn[aria-label="Salir"]');
+      expect(!!x).toBe(true);
+      expect([x.getAttribute("role"),x.getAttribute("tabindex")]).toEqual(["button","0"]);
+      expect(app.doc.activeElement).toBe(app.$("#guided h2"));
+      x.click();await app.hasta(()=>app.activa()==="routine",3000,"la rutina");
+      expect(app.leer("rp_history").length).toBe(antes);
+      const s=app.leer("rp_session");
+      expect(s.key).toBe(R);
+      expect(s.repaso).toEqual(l.slice(0,3));
+      expect(s.stepi).toBe(app.ev("buildSteps('"+R+"').findIndex(x=>x.id==='"+l[0]+"')"));
+      app.$("#routCta .btn:not(.sec)").click();
+      expect(app.activa()).toBe("guided");
+      expect(app.ev("steps[stepi].id")).toBe(l[0]);
+      app.reiniciarMemoria();});
     test("con pendientes y nada hecho, 'Terminar así' no guarda nada ni dice 'Completada'",app=>{
       app.reiniciarMemoria();app.sembrar(F.dueno);const antes=app.leer("rp_history").length,l=app.w.effList(R);
       app.w.openRoutine(R);app.w.startRoutine(l[l.length-1]);app.w.guidedSkipExercise();

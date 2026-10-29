@@ -849,6 +849,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
 
   /* pantalla final */
   .done{text-align:center;padding:46px var(--s5)}
+  .gtop+.done{padding-top:var(--s3)}
   .done .em{font-size:60px}
   .done h2{font-size:var(--t-xl);margin:var(--s3) 0 var(--s1);font-weight:var(--w-bold);letter-spacing:-.6px}
   .done .big{font-size:var(--t-mega);font-weight:var(--w-bold);color:var(--primary-ink);margin:var(--s4) 0 0}
@@ -3254,12 +3255,20 @@ function alFinal(){clearTimer();const k=curRoutine,p=pendientes(k);
   const i=steps.findIndex(st=>st.id===p[0]);
   if(i>=0){useSessionLog(k);sessRepaso=p;touchSess(i);}
   const filas=p.map(id=>`<div class="setline fin" data-ex="${id}"><span class="n">${esc(shortName(id))}</span><span class="v">${metaOf(EX[id],dose(k,id))}</span></div>`).join("");
-  $("guided").innerHTML=`<div class="done">
-    <h2>${p.length===1?"Te falta 1 ejercicio":"Te faltan "+p.length+" ejercicios"}</h2>
+  /* con su Salir: sin barra, solo el atras del sistema salia sin elegir, y
+     una app instalada en iOS no lo tiene */
+  $("guided").innerHTML=`<div class="gtop"><div class="pbar"><i style="width:100%"></i></div><div class="icbtn" onclick="salirAviso()" role="button" tabindex="0" aria-label="Salir" title="Salir (se guarda solo)">${ic("close")}</div></div><div class="done">
+    <h2 tabindex="-1">${p.length===1?"Te falta 1 ejercicio":"Te faltan "+p.length+" ejercicios"}</h2>
     <p class="mut">Llegaste al final sin hacer ${plural(p.length,"este","estos")}. Si terminas así, se guarda lo que hiciste.</p>
     <div class="finlist">${filas}</div>
     <button class="gbtn go" onclick="hacerPendientes()">${ic("play","sm solid")} ${plural(p.length,"Hacerlo ahora","Hacerlos ahora")}</button>
-    <button class="gbtn sec" onclick="finish()">${ic("flag","sm")} Terminar así</button></div>`;}
+    <button class="gbtn sec" onclick="finish()">${ic("flag","sm")} Terminar así</button></div>`;
+  /* el foco no se queda en BODY: el lector lee el aviso */
+  const h=document.querySelector("#guided h2");if(h)h.focus({preventScroll:true});}
+/* salir del aviso sin elegir: la sesion queda abierta en el primer pendiente,
+   que alFinal ya guardo. Sin touchSess(stepi), como guidedExit: stepi sigue
+   en el ultimo paso, ya hecho */
+function salirAviso(){clearTimer();clearRestNotif();releaseWake();history.back();}
 function hacerPendientes(){const p=pendientes(curRoutine),i=p.length?steps.findIndex(st=>st.id===p[0]):-1;
   if(i<0){finish();return;}
   useSessionLog(curRoutine);sessRepaso=p;stepi=i;gInfoOpen=null;gVidOn=false;
