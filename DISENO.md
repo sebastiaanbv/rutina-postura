@@ -867,6 +867,22 @@ pantalla se quedaba en blanco hasta que el navegador se rendía (en Chromium, m�
 - **Sin copia se espera a la red**, como antes: en la primera visita y justo después de «Buscar
   actualización», que vacía la caché. Por eso ese botón sigue trayendo la última versión aunque la
   red tarde.
+- **Tras «Buscar actualización» la caché vuelve a tener todo** (arreglado al cerrar v36; ya pasaba
+  en v35). El botón vacía todas las cachés y recarga; si `sw.js` no cambió no hay install que las
+  llene, así que solo se volvía a guardar lo que se pedía: `./` y `figuras.js`. El manifest, los
+  iconos e `index.html` se quedaban sin copia hasta que algo los pedía, y la siguiente apertura
+  sin red los echaba en falta.
+  Ahora cada apertura (`completa`, en el `waitUntil` de la navegación) mira que `ASSETS` siga
+  entero y trae solo lo que falte, cada archivo por su lado y con su `catch`: lo que no llega se
+  intenta en la apertura siguiente. Con la caché entera no pide nada. No trae lo que esa misma
+  apertura ya va a guardar ni `figuras.js`, que la app pide al cargar y se guarda en su primera
+  descarga buena: pedirla también ahí serían 2 MB dos veces. Sirve igual si el navegador
+  desaloja parte de la caché.
+- **Sin copia y sin red, un error de red limpio.** En la rama *cache-first* (iconos, `figuras.js`)
+  la descarga fallida llegaba a `respondWith` como promesa rechazada y salía «Uncaught (in
+  promise) TypeError: Failed to fetch»; ahora responde `Response.error()`. Y guardar las figuras
+  va en el `waitUntil` y con su `catch`: un `put` que falla (teléfono lleno) también quedaba sin
+  capturar.
 - **Una dirección sin copia propia cae a la de `./`**, y solo si no está, a la de `index.html`.
   `./` se renueva en cada apertura con buena red; `index.html` solo al instalar (o al entrar por
   ahí con buena red), y como `sw.js` no cambia en cada versión puede quedarse varias por detrás.
@@ -886,6 +902,12 @@ pantalla se quedaba en blanco hasta que el navegador se rendía (en Chromium, m�
   virtual de la CI: el cuerpo atascado se comprueba solo con microtareas, porque mientras sigue
   abierto Chrome congela los temporizadores y la corrida no terminaba, y en la app la caché y los
   registros son dobles, porque los de verdad tardan tiempo real y perdían contra el tope de 20 s.
+  Al cerrar v36, en el mismo archivo: tras vaciar la caché, la primera apertura con red vuelve a
+  guardar todo `ASSETS` y las figuras, cada uno una sola vez, y la siguiente sin red lo sirve todo;
+  con la caché entera no se pide nada más; un icono que no llega se reintenta en la apertura
+  siguiente; sin copia ni red, iconos y figuras reciben `Response.error()`; y un `put` de las
+  figuras que falla no deja promesas sin capturar. La prueba de «sin copia, se espera a la red»
+  responde ahora a la petición de `./` por su ruta (`net.de`), porque detrás van las de `completa`.
 
 Tocar un aviso devuelve a la app (HU-12). `sw.js` no escuchaba `notificationclick`: tocar «Descanso
 terminado» con el teléfono bloqueado cerraba el aviso y nada más, y había que buscar la app para
@@ -1048,6 +1070,15 @@ entera.
   Su install vuelve a pedir todo `ASSETS` y pisa `./` e `index.html` en la misma caché, copia
   `figuras.js` de donde ya está sin tocar la red, y `skipWaiting` + `clients.claim` lo ponen al
   mando sin esperar a cerrar la app. Desde ahí rigen el plazo de 3 s y el `notificationclick`.
+- **Los teléfonos con v35 y «Buscar actualización».** El `sw.js` de v35 tiene el fallo de la
+  caché a medias (HU-53, «Tras "Buscar actualización"…»), y no se arregla en el teléfono hasta que
+  manda el de v36. Pulsar el botón con el de v35 al mando pide `update()`: llega el `sw.js` de v36,
+  se instala con todo `ASSETS` y toma el mando; el botón vacía las cachés después, pero la recarga
+  (o, si la instalación aún no había terminado, la apertura siguiente) ya la sirve el de v36, y
+  esa apertura con red vuelve a llenar lo que falte. Un teléfono que
+  ya lo pulsó con v35 y se quedó sin manifest ni iconos los recupera igual en la primera apertura
+  con red tras instalar v36. `CACHE` no hace falta subirlo para esto: lo que falta se trae sin
+  tirar lo que hay.
 - **Subirlo no arreglaría nada.** Solo tiraría copias que ya no estorban (las de una dirección
   con `?algo`; sin copia propia se cae primero a `./`), y el install volvería a guardar las mismas
   respuestas. Ni siquiera renovaría las figuras: desde HU-12 se copian de la caché

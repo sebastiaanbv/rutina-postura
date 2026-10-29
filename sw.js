@@ -31,6 +31,21 @@ self.addEventListener("install", e => {
       .then(() => self.skipWaiting())
   );
 });
+/* "Buscar actualizacion" vacia todas las caches y recarga. Si sw.js no
+   cambio, no hay install que las vuelva a llenar: solo se guardaba lo que se
+   pedia (./ y figuras.js), y el manifest y los iconos se quedaban sin copia
+   hasta que algo los pidiera, asi que la siguiente apertura sin red los
+   echaba en falta. Cada apertura mira que ASSETS siga entero y trae solo lo
+   que falte, cada uno por su lado: lo que no llega se intenta en la
+   siguiente. No trae lo que esta misma apertura ya va a guardar, ni
+   figuras.js, que la app pide al cargar y se guarda en su primera descarga
+   buena (abajo): pedirla tambien aqui serian 2 MB dos veces */
+function completa(req) {
+  return caches.open(CACHE).then(c => Promise.all(ASSETS.map(a => {
+    if (new URL(a, location.href).href === req.url) return;
+    return caches.match(a).then(r => r || c.add(a)).catch(() => {});
+  }))).catch(() => {});
+}
 self.addEventListener("activate", e => {
   e.waitUntil(
     caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
@@ -82,13 +97,24 @@ self.addEventListener("fetch", e => {
   if (req.mode === "navigate" || url.pathname.endsWith("/") ||
       url.pathname.endsWith("index.html") || url.pathname.endsWith(".webmanifest")) {
     e.respondWith(redPrimero(e, req));
+    if (req.mode === "navigate") e.waitUntil(completa(req));
   } else {
     /* si figuras.js fallo en install, se guarda en la primera descarga buena;
-       antes se bajaban 2 MB en cada visita hasta la siguiente version */
-    e.respondWith(caches.match(req).then(r => r || fetch(req).then(res => {
-      if (res.ok && url.pathname.endsWith("figuras.js")) { const cp = res.clone(); caches.open(CACHE).then(c => c.put(req, cp)); }
+       antes se bajaban 2 MB en cada visita hasta la siguiente version.
+       Sin copia y sin red, un error de red limpio: la promesa rechazada
+       salia como "Uncaught (in promise) TypeError: Failed to fetch" */
+    let guarda = null;
+    const resp = caches.match(req).then(r => r || fetch(req).then(res => {
+      if (res.ok && url.pathname.endsWith("figuras.js")) {
+        const cp = res.clone();
+        guarda = caches.open(CACHE).then(c => c.put(req, cp));
+      }
       return res;
-    })));
+    }));
+    e.respondWith(resp.catch(() => Response.error()));
+    /* y el guardado, con su catch: un put que falla (telefono lleno) tambien
+       salia como promesa rechazada sin capturar */
+    e.waitUntil(resp.then(() => guarda, () => {}).catch(() => {}));
   }
 });
 /* Tocar un aviso devuelve a la app: si ya hay una ventana abierta se enfoca

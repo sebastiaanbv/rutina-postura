@@ -35,6 +35,9 @@
   function red(){const n={pedidas:[],modo:null};
     n.fetch=req=>new Promise((ok,no)=>{const d={url:dir(req),ok:ok,no:no};n.pedidas.push(d);if(n.modo)n.modo(d);});
     n.ultima=()=>n.pedidas[n.pedidas.length-1];
+    /* la ultima peticion de esa ruta: una apertura sin copia tambien pide,
+       detras, lo que le falte a la cache (completa) */
+    n.de=ruta=>n.pedidas.filter(d=>d.url===dir(ruta)).pop();
     return n;}
 
   /* CacheStorage en memoria. put lee el cuerpo, como la de verdad: no guarda
@@ -62,7 +65,8 @@
     if(fuente==null)fuente=await fetch("../sw.js",{cache:"no-store"}).then(r=>r.text());
     const h={},rel=reloj(),net=red(),cs=almacen(net);
     const self={addEventListener:(t,f)=>{h[t]=f;},skipWaiting:()=>Promise.resolve(),clients:{claim:()=>Promise.resolve()}};
-    new Function("self","caches","fetch","location","setTimeout","clearTimeout",fuente)
+    /* devuelve tambien su ASSETS, para no copiar la lista aqui */
+    const dentro=new Function("self","caches","fetch","location","setTimeout","clearTimeout",fuente+"\n;return {assets:ASSETS};")
       (self,cs,net.fetch,{origin:ORIGEN,href:SW},rel.setTimeout,rel.clearTimeout);
     net.modo=d=>d.ok(new Response("v35 "+new URL(d.url).pathname));
     const esp=[];h.install({waitUntil:p=>{esp.push(p);}});await Promise.all(esp);
@@ -77,7 +81,7 @@
         Promise.resolve(p).then(r=>{ev.r=r;ev.listo=true;},e=>{ev.err=e;ev.listo=true;});};
       ev.waitUntil=p=>{if(!vivo)throw fuera("waitUntil");ev.esperas.push(Promise.resolve(p));};
       h.fetch(ev);vivo=false;return ev;}
-    return {rel:rel,net:net,cs:cs,pedir:pedir};}
+    return {rel:rel,net:net,cs:cs,pedir:pedir,assets:dentro.assets};}
   /* lo que recibe el navegador; para lo que NO debe haber llegado se mira ev.listo */
   const llega=ev=>Pruebas.hasta(()=>ev.listo,2000,"la respuesta del service worker");
   const texto=async ev=>{await llega(ev);return ev.r?ev.r.text():null;};
@@ -178,8 +182,10 @@
       const s=await montar({sinCopia:true}),ev=s.pedir("./");
       await s.rel.avanzar(60000);
       expect(ev.listo).toBe(false);
-      s.net.ultima().ok(new Response("v36"));
+      s.net.de("./").ok(new Response("v36"));
       expect(await texto(ev)).toBe("v36");
+      /* la red acaba trayendo tambien lo que la apertura pidio para la cache */
+      s.net.pedidas.filter(d=>d.url!==dir("./")).forEach(d=>d.ok(new Response("v36 "+new URL(d.url).pathname)));
       await fin(ev);expect(await s.cs.lee("./")).toBe("v36");});
 
     test("sin copia y sin red: no se inventa una respuesta, el navegador da su error de red",async()=>{
@@ -207,6 +213,73 @@
       expect(s.net.pedidas).toHaveLength(0);
       expect(s.rel.plazos()).toHaveLength(0);
       expect(s.pedir("https://www.youtube.com/embed/x","navigate").respondio).toBe(false);});
+
+    /* «Buscar actualización» vacia todas las caches y, si sw.js no cambio, no
+       hay install que las llene: solo se volvia a guardar ./ (y figuras.js al
+       pedirla la app). El manifest y los iconos se quedaban sin copia y la
+       siguiente apertura sin red los echaba en falta */
+    const modoDe=a=>a==="./"||a==="index.html"?"navigate":a.endsWith(".webmanifest")?"cors":"no-cors";
+    test("tras «Buscar actualización», la primera apertura con red vuelve a guardar todo ASSETS, y la siguiente sin red lo tiene",async()=>{
+      const s=await montar({sinCopia:true});
+      expect(s.assets).toContain("manifest.webmanifest");expect(s.assets).toContain("icon-192-v25.png");
+      s.net.modo=d=>d.ok(new Response("v36 "+new URL(d.url).pathname));
+      const ev=s.pedir("./");
+      expect(await texto(ev)).toBe("v36 /rutina/");await fin(ev);
+      /* la app pide sus figuras al cargar */
+      const evf=s.pedir("figuras.js","no-cors");
+      expect(await texto(evf)).toBe("v36 /rutina/figuras.js");await fin(evf);
+      const faltan=[];
+      for(const a of s.assets.concat(["figuras.js"]))if(await s.cs.lee(a)==null)faltan.push(a);
+      expect(faltan).toEqual([]);
+      /* cada cosa una sola vez: ni la app ni las figuras se piden dos veces */
+      const veces={};s.net.pedidas.forEach(d=>{veces[d.url]=(veces[d.url]||0)+1;});
+      expect(Object.keys(veces).filter(u=>veces[u]>1)).toEqual([]);
+      expect(Object.keys(veces).sort()).toEqual(s.assets.concat(["figuras.js"]).map(dir).sort());
+      /* la siguiente apertura, sin red */
+      s.net.modo=d=>d.no(new TypeError("Failed to fetch"));
+      const ev2=s.pedir("./");expect(await texto(ev2)).toBe("v36 /rutina/");await fin(ev2);
+      for(const a of s.assets.concat(["figuras.js"])){
+        const e=s.pedir(a,modoDe(a));
+        expect([a,await texto(e)]).toEqual([a,"v36 "+new URL(dir(a)).pathname]);}});
+
+    test("con la caché entera, abrir la app no pide nada más que la app",async()=>{
+      const s=await montar();s.net.modo=d=>d.ok(new Response("v36"));
+      const ev=s.pedir("./");expect(await texto(ev)).toBe("v36");await fin(ev);
+      expect(s.net.pedidas.map(d=>d.url)).toEqual([dir("./")]);});
+
+    test("lo que falte se trae aparte: si un icono no llega, lo demás se guarda y se reintenta en la apertura siguiente",async()=>{
+      const s=await montar({sinCopia:true});
+      s.net.modo=d=>/icon-192/.test(d.url)?d.ok(new Response("caido",{status:503})):d.ok(new Response("v36 "+new URL(d.url).pathname));
+      const ev=s.pedir("./");await texto(ev);await fin(ev);
+      expect(await s.cs.lee("icon-192-v25.png")).toBe(null);
+      expect(await s.cs.lee("manifest.webmanifest")).toBe("v36 /rutina/manifest.webmanifest");
+      s.net.modo=d=>d.ok(new Response("v36 "+new URL(d.url).pathname));
+      const ev2=s.pedir("./");await texto(ev2);await fin(ev2);
+      expect(await s.cs.lee("icon-192-v25.png")).toBe("v36 /rutina/icon-192-v25.png");});
+
+    /* lo que va cache primero (iconos, figuras): sin copia y sin red, la
+       promesa rechazada salia como «Uncaught (in promise) TypeError: Failed
+       to fetch»; el navegador tiene que recibir un error de red limpio */
+    test("sin copia y sin red, un icono o las figuras reciben un error de red limpio",async()=>{
+      const s=await montar({sinCopia:true});s.net.modo=d=>d.no(new TypeError("Failed to fetch"));
+      for(const a of ["icon-192-v25.png","figuras.js","favicon.ico"]){
+        const ev=s.pedir(a,"no-cors");await llega(ev);
+        expect([a,ev.err]).toEqual([a,null]);
+        expect([a,ev.r&&ev.r.type]).toEqual([a,"error"]);
+        await fin(ev);}});
+
+    test("si guardar las figuras falla (teléfono lleno), se entregan igual y no queda una promesa rechazada sin capturar",async()=>{
+      const rech=[],h=e=>{rech.push(String(e.reason));e.preventDefault();};
+      addEventListener("unhandledrejection",h);
+      try{const s=await montar({sinCopia:true});
+        s.cs.open=async()=>({put:async()=>{throw new DOMException("lleno","QuotaExceededError");}});
+        s.net.modo=d=>d.ok(new Response("v36 figuras"));
+        const ev=s.pedir("figuras.js","no-cors");
+        expect(await texto(ev)).toBe("v36 figuras");await fin(ev);
+        /* el aviso de promesa sin capturar llega en una tarea aparte */
+        await new Promise(r=>setTimeout(r,50));}
+      finally{removeEventListener("unhandledrejection",h);}
+      expect(rech).toEqual([]);});
 
     test("«Buscar actualización» vacía la caché y recarga la app",async app=>{
       /* CacheStorage y los registros son dobles dentro de la app (ver arriba
