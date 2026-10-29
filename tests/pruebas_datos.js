@@ -307,6 +307,27 @@
       sinDescanso(app);
       expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
       app.reiniciarMemoria();});
+    /* en el paso 0 «Paso anterior» sale: paraba el reloj antes de salir y la
+       sesion guardaba el paso ya anotado (al retomar, otra vez «Serie 1 de 1») */
+    test("paso anterior en el primer paso mientras confirma: la sesión guarda el paso que viene",async app=>{
+      const D=F.madre();delete D.rp_session;delete D.rp_checks;
+      await app.arrancar(D);movimiento(app,false);
+      app.w.openRoutine("cuello_rostro");app.w.startRoutine();
+      expect(app.ev("stepi")).toBe(0);
+      expect(app.ev("steps[0].kind")).toBe("count");
+      const id0=app.ev("steps[0].id");
+      expect(app.ev("steps[1].id")).not.toBe(id0);
+      app.w.logSet();app.w.guidedBack();
+      await app.hasta(()=>app.activa()==="routine",3000,"la rutina");
+      await app.espera(450);
+      sinDescanso(app);
+      const s=app.leer("rp_session");
+      expect(s.log[id0]).toHaveLength(1);
+      expect(s.stepi).toBe(1);
+      await app.arrancar({__crudo:app.foto()},"#retomar");
+      expect(app.ev("stepi")).toBe(1);
+      expect(app.ev("steps[stepi].id")).not.toBe(id0);
+      app.reiniciarMemoria();});
     test("salir mientras confirma: sin descanso de fondo y la sesión guarda la serie que viene",async app=>{
       const i0=await aLaSerie(app,{reducido:false});
       app.w.logSet();app.w.guidedExit();

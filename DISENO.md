@@ -575,7 +575,8 @@ Un toque, una serie:
   guardaba y corría igual: saltar ejercicio se comía la serie 1 del siguiente, «Paso anterior»
   volvía solo al de antes y la X tras la última serie cerraba la sesión sin que nadie lo eligiera.
   Ahora `clearTimer` también la cancela, y salir en esa ventana deja la sesión como salir en el
-  descanso: abierta, en el paso que viene.
+  descanso: abierta, en el paso que viene. También con «Paso anterior» en el primer paso, que
+  sale: `guidedExit` mira la confirmación antes de pararla.
   Queda abierto «Serie completada», el botón de los ejercicios que no se registran: no anota
   nada, pero un doble toque sin descanso detrás todavía puede saltarse un paso.
 

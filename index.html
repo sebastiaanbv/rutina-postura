@@ -3232,7 +3232,9 @@ function guidedExit(){const st=pasoTrasSerie();clearTimer();clearRestNotif();rel
    en el descanso) es el siguiente, no el que ya esta anotado; si no, retomar
    (#retomar, recarga) volveria a pedir la misma serie */
 function pasoTrasSerie(){return (serieTO||document.querySelector("#guided .gbtn.rest"))&&stepi+1<steps.length?stepi+1:stepi;}
-function guidedBack(){clearTimer();if(stepi>0){stepi--;renderStep();}else{guidedExit();}}
+/* en el paso 0 sale sin parar antes el reloj: guidedExit mira serieTO para
+   guardar el paso que viene si la serie se acaba de anotar */
+function guidedBack(){if(stepi>0){clearTimer();stepi--;renderStep();}else{guidedExit();}}
 function guidedSkipExercise(){clearTimer();const cur=steps[stepi].id;let i=stepi;while(i<steps.length&&steps[i].id===cur)i++;
   /* saltar a proposito es "hoy no lo hago": no sale como pendiente al final */
   useSessionLog(curRoutine);if(sessSaltados.indexOf(cur)<0)sessSaltados.push(cur);
