@@ -1872,7 +1872,8 @@ function toast(html,ms,fin){const el=$("toast");if(!el)return;
    Si ahi tambien pisa un control (pagina desplazada hasta la ultima serie),
    baja hasta el primer hueco libre; sin ninguno, donde siempre */
 function colocaAviso(el,arriba){el.style.top="";el.classList.toggle("arriba",arriba);if(!arriba)return;
-  for(let y=el.offsetTop,fin=innerHeight-el.offsetHeight;y<=fin;y+=8){el.style.top=y+"px";if(!avisoPisa(el))return;}
+  const cs=controlesGuiado();
+  for(let y=el.offsetTop,fin=innerHeight-el.offsetHeight;y<=fin;y+=8){el.style.top=y+"px";if(!avisoPisa(el,cs))return;}
   el.style.top="";el.classList.remove("arriba");}
 /* la pagina se mueve bajo el aviso: si en sus 7 s se desplaza, otro control
    ("Registrar serie", el +) puede pasar bajo el boton. Se vuelve a colocar
@@ -1880,13 +1881,26 @@ function colocaAviso(el,arriba){el.style.top="";el.classList.toggle("arriba",arr
 function recolocaAviso(){const el=$("toast");
   if(el&&toastFin&&el.classList.contains("show")&&inGuided())colocaAviso(el,true);}
 addEventListener("scroll",recolocaAviso,{passive:true});addEventListener("resize",recolocaAviso);
+/* las cajas de los controles del guiado donde se quedan quietos. El paso
+   recien pintado (borrar una serie) entra 8 px mas abajo (stageIn): medido a
+   media entrada, el hueco que se encontraba dejaba el Deshacer sobre un
+   control al terminar. Se descuenta el desplazamiento de lo que se esta
+   moviendo, una vez por colocacion */
+function controlesGuiado(){
+  const mov=(document.getAnimations?document.getAnimations():[]).filter(a=>{const t=a.effect&&a.effect.target;
+      return t&&t.closest&&t.closest("#guided")&&a.playState==="running"&&isFinite(a.effect.getComputedTiming().endTime);})
+    .map(a=>{const t=a.effect.target,m=getComputedStyle(t).transform,d=m&&m!=="none"?new DOMMatrix(m):null;
+      return {t:t,x:d?d.m41:0,y:d?d.m42:0};});
+  return Array.prototype.map.call(document.querySelectorAll("#guided button,#guided [role=button],#guided input,#guided summary,#guided a"),c=>{
+    const r=c.getBoundingClientRect();let dx=0,dy=0;
+    mov.forEach(m=>{if(m.t===c||m.t.contains(c)){dx+=m.x;dy+=m.y;}});
+    return {w:r.width,l:r.left-dx,r:r.right-dx,t:r.top-dy,b:r.bottom-dy};});}
 /* si la zona de 44 px del boton del aviso cae sobre un control del guiado.
    Con offset*, que no ven el translateY de la entrada del aviso */
-function avisoPisa(el){const b=el.querySelector(".tact");if(!b)return false;
+function avisoPisa(el,cs){const b=el.querySelector(".tact");if(!b)return false;
   const cx=el.offsetLeft+b.offsetLeft+b.offsetWidth/2,cy=el.offsetTop+b.offsetTop+b.offsetHeight/2,
     mx=Math.max(22,b.offsetWidth/2),my=Math.max(22,b.offsetHeight/2);
-  return Array.prototype.some.call(document.querySelectorAll("#guided button,#guided [role=button],#guided input,#guided summary,#guided a"),c=>{
-    const r=c.getBoundingClientRect();return r.width>0&&r.left<cx+mx&&r.right>cx-mx&&r.top<cy+my&&r.bottom>cy-my;});}
+  return (cs||controlesGuiado()).some(r=>r.w>0&&r.l<cx+mx&&r.r>cx-mx&&r.t<cy+my&&r.b>cy-my);}
 function toastCierra(){const f=toastFin;toastFin=null;if(f)f();}
 /* el aviso con boton es de su pantalla: al salir de ella se retira ya */
 function toastFuera(){if(!toastFin)return;clearTimeout(toastT);toastCierra();
@@ -2981,7 +2995,11 @@ function delSet(id,src,ri,si,n){
   /* se guarda despues del aviso, como en deshacerSerie: si no cabe, el de
      "No cupo" queda encima. La fila se pinta ya con los records rehechos */
   if(src==="s"){touchSess();prRecalc(id);}
-  renderStep();}
+  renderStep();
+  /* el aviso se coloco con la pagina de antes de borrar: sin la fila (y,
+     si era la ultima, sin el ejercicio) lo de debajo sube, y el Deshacer
+     podia quedar sobre el + de "Series". Se vuelve a colocar sobre la de ahora */
+  recolocaAviso();}
 /* los records de la sesion antes de borrar (HU-10), tal cual estan en
    rp_session: null si no tenia clave pr */
 function prFoto(){const sv=sessActive(curRoutine)?loadSess():null;return sv&&sv.pr?JSON.stringify(sv.pr):null;}

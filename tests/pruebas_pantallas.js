@@ -781,6 +781,43 @@
       expect(fuera).toEqual([]);
       expect(pisados).toEqual([]);
       app.reiniciarMemoria();});
+    /* el aviso se colocaba ANTES de repintar el paso (delSet: ofrecerDeshacer
+       y luego renderStep), con la disposicion de antes de borrar: con los
+       datos de la madre a 320 px y letra al 130 %, el Deshacer quedaba sobre
+       el + de «Series». Tiene que quedar donde lo pondria colocaAviso con la
+       pagina ya repintada, y su boton sin pisar ningun control */
+    test("tras borrar, el aviso se coloca con la página ya repintada (madre, 320 px, letra al 130 %)",async app=>{
+      const raiz=app.doc.documentElement,mal=[];let casos=0,sinHueco=0;
+      try{for(const [w,h] of [[320,760],[320,568],[360,640]])for(const pct of [100,115,130])for(const cual of ["primera","última"]){
+          app.frame.style.width=w+"px";app.frame.style.height=h+"px";raiz.style.fontSize=pct===100?"":pct+"%";
+          app.w.toastFuera();app.reiniciarMemoria();app.sembrar(F.madre);
+          app.w.openRoutine("salud_fuerza_b");app.w.startRoutine("remo_db");anchoUtil(app,w);
+          app.ev("curW=9;curReps=12");app.w.logSet();app.w.skipRest();
+          expect(app.ev("sessionLog").remo_db).toHaveLength(2);
+          const filas=app.$$("#guided .sets .setline"),x=(cual==="primera"?filas[0]:filas[filas.length-1]).querySelector(".del");
+          /* el desplazamiento, antes de borrar, como el dedo (su evento
+             scroll recolocaria el aviso). Se mide con la entrada del paso
+             repintado terminada (quieta), donde se quedan los controles */
+          x.scrollIntoView({block:"center"});await app.espera(20);
+          x.click();quieta(app);casos++;
+          const t=app.$("#toast"),bt=t.querySelector(".tact");
+          expect(app.texto("#toast .tmsg")).toBe("Serie borrada");
+          const donde=[t.className,t.style.top];app.w.colocaAviso(t,true);quieta(app);
+          const caso=w+"x"+h+" "+pct+"% "+cual;
+          if(JSON.stringify([t.className,t.style.top])!==JSON.stringify(donde))mal.push(caso+": "+donde[1]+" en vez de "+t.style.top);
+          app.w.colocaAviso(t,donde[0].indexOf("arriba")>=0);if(donde[1])t.style.top=donde[1];quieta(app);
+          /* sin ningun hueco (320x568 con letra grande) se queda donde siempre */
+          if(donde[0].indexOf("arriba")<0){sinHueco++;continue;}
+          app.$$("#guided button,#guided [role=button],#guided input").forEach(c=>{const r=c.getBoundingClientRect();
+            if(!r.width||r.bottom<0||r.top>app.w.innerHeight)return;
+            for(let y=r.top+2;y<r.bottom-1;y+=4)for(let xx=r.left+2;xx<r.right-1;xx+=4){
+              const e=app.doc.elementFromPoint(xx,y);
+              if(e&&bt.contains(e)){mal.push(caso+": Deshacer sobre «"+(c.getAttribute("aria-label")||c.textContent.trim().slice(0,20))+"»");return;}}});}}
+      finally{raiz.style.fontSize="";app.frame.style.width="400px";app.frame.style.height="800px";}
+      expect(casos).toBe(18);
+      expect(mal).toEqual([]);
+      expect(sinHueco).toBeLessThan(3);
+      app.reiniciarMemoria();});
     test("con teclado: Enter en la X lleva el foco a Deshacer, y Deshacer a la serie recuperada",app=>{abrir(app);
       const x=app.$("#sl_press_banca_db_2 .del");x.focus();
       x.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter",bubbles:true}));

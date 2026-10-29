@@ -806,6 +806,17 @@ confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se toca
   calcular cada vez que la página se desplaza o la ventana cambia de tamaño (`recolocaAviso`):
   calculada una sola vez, al desplazar en esos 7 s «Registrar serie» o el «+» podían pasar bajo
   Deshacer. Los avisos sin botón siguen abajo, donde siempre.
+- **Se coloca con la página ya repintada.** `delSet` sacaba el aviso (y lo colocaba) antes de
+  repintar el paso, así que el hueco se buscaba con la fila borrada todavía en su sitio: sin
+  ella lo de debajo sube, y con los datos de la madre a 320 px y letra al 130 % el Deshacer
+  quedaba sobre el + de «Series». Ahora se vuelve a colocar después de `renderStep()`. Y se
+  mide donde se quedan los controles, no donde están: el paso repintado entra 8 px más abajo
+  (`stageIn`) y, medido a media entrada, el hueco elegido quedaba 8 px corto al terminar
+  (`controlesGuiado` descuenta lo que se está moviendo, una vez por colocación y no una por cada
+  hueco probado). Prueba en `tests/pruebas_pantallas.js`: con la madre a 320×760, 320×568 y
+  360×640, letra al 100, 115 y 130 %, borrando la primera o la última serie, el aviso queda
+  donde lo pondría `colocaAviso` con la página quieta y su botón no pisa ningún control (sin
+  ningún hueco, a 320×568 con letra grande, se queda abajo, como siempre).
 - **Zonas de toque de la fila de serie** (§10): la cifra entra en la lista del pseudo-elemento, la
   X pasa a caja de 44 y los campos de corregir miden 44 de alto y 52 de ancho (antes 58; con la X
   de 44, a 320 px la fila se partía). La fila mide lo mismo que antes, 40 px; editando, 46 en vez
