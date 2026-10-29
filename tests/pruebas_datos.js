@@ -1211,6 +1211,27 @@
       expect(res.summary.sets).toBe(3);
       expect(app.leer("rp_logs").press_banca_db[0].sets).toEqual(antes.log.press_banca_db);
       app.reiniciarMemoria();});
+    /* el click del Deshacer sube hasta el aviso: deshacerSerie() ya habia
+       puesto «Serie recuperada» (sin boton) y toastToca lo cerraba en ese
+       mismo click. Con el dedo, con .click() y con Enter, que es un click.
+       Ahora se queda a la vista su tiempo, como cualquier aviso */
+    test("tocar Deshacer deja «Serie recuperada» a la vista su tiempo",async app=>{
+      abrir(app);
+      borrar(app,1);
+      expect(app.$("#toast").classList.contains("show")).toBe(true);
+      deshacer(app);
+      expect(app.texto("#toast")).toContain("Serie recuperada");
+      expect(app.$("#toast").classList.contains("show")).toBe(true);
+      await app.espera(2000);
+      expect(app.$("#toast").classList.contains("show")).toBe(true);
+      expect(app.texto("#toast")).toContain("Serie recuperada");
+      await app.espera(900);
+      expect(app.$("#toast").classList.contains("show")).toBe(false);
+      /* y el aviso sin boton se sigue cerrando al tocarlo */
+      app.w.toast(app.w.ic("check","sm")+" Serie recuperada");
+      app.$("#toast .tmsg").click();
+      expect(app.$("#toast").classList.contains("show")).toBe(false);
+      app.reiniciarMemoria();});
     test("borrar y no deshacer la deja sin la serie",async app=>{
       const antes=abrir(app),ms=app.ev("DESHACER_MS");
       expect(ms).toBeGreaterThan(3999);

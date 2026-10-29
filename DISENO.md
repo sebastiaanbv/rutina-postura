@@ -814,7 +814,11 @@ confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se toca
   sin botón también tapaban controles (en la rutina, «Empezar» o «Finalizar rutina») y dejaban
   pasar el toque. Ahora el aviso a la vista se queda todos los toques (`.toast.show`). Tocar el de
   Deshacer fuera del botón no hace nada, para no perder el Deshacer por rozar el texto; el aviso
-  sin botón se cierra (`toastToca`) y el toque siguiente ya llega a lo de debajo. Como lo que
+  sin botón se cierra (`toastToca`) y el toque siguiente ya llega a lo de debajo. El clic del
+  propio Deshacer no cuenta como toque en el aviso: sube hasta `#toast` cuando `deshacerSerie()`
+  ya ha puesto «Serie recuperada» (sin botón), y lo cerraba en ese mismo clic; `toastToca` ignora
+  lo que viene de `.tact` (prueba en `tests/pruebas_datos.js`: tras Deshacer el aviso tiene
+  `.show` y sigue a la vista su tiempo). Como lo que
   tapa no se puede tocar en esos 7 s, `colocaAviso` busca antes un hueco donde **el aviso
   entero** no tape ningún control, y solo si no lo hay, uno donde no lo tape el botón, como antes.
   Pruebas en `tests/pruebas_pantallas.js`: se toca el aviso punto a punto como el dedo

@@ -1916,8 +1916,11 @@ function toastCierra(){const f=toastFin;toastFin=null;if(f)f();}
 /* el aviso a la vista se queda los toques (pointer-events en .toast.show):
    nada de lo que tapa se activa sin verse. El que no tiene boton se cierra,
    y el siguiente toque ya llega a lo de debajo; el de Deshacer sigue igual,
-   para no perder el Deshacer por rozar su texto */
+   para no perder el Deshacer por rozar su texto. El click de su boton
+   tambien sube hasta aqui, y para entonces deshacerSerie() ya ha puesto
+   «Serie recuperada», sin boton: no es un toque en ESE aviso y no lo cierra */
 function toastToca(e){const el=e.currentTarget;if(toastFin||!el.classList.contains("show"))return;
+  if(e.target.closest&&e.target.closest(".tact"))return;
   clearTimeout(toastT);el.classList.remove("show");}
 document.getElementById("toast").addEventListener("click",toastToca);
 /* el aviso con boton es de su pantalla: al salir de ella se retira ya */
