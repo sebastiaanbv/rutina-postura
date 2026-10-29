@@ -405,6 +405,10 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     z-index:70;display:flex;align-items:center;gap:9px;max-width:86vw;opacity:0;pointer-events:none;
     box-shadow:0 10px 30px -10px rgba(0,0,0,.5);transition:opacity .25s,transform .25s}
   .toast.show{opacity:1;transform:translateY(0)}
+  /* el aviso con Deshacer en el guiado: bajo la barra del guiado (Paso
+     anterior, Salir), sobre el nombre y la figura, que no son controles */
+  .toast.arriba{bottom:auto;top:calc(66px + env(safe-area-inset-top));transform:translateY(-16px)}
+  .toast.arriba.show{transform:translateY(0)}
   .toast .ic{color:var(--energy-hero);flex:0 0 auto}
   /* serie borrada (v36): la X en rojo, porque el ambar es logro, y el unico
      boton que ha tenido un aviso. Solo el boton recibe toques: el resto sigue
@@ -1739,7 +1743,22 @@ let toastT=null,toastFin=null;
 function toast(html,ms,fin){const el=$("toast");if(!el)return;
   toastCierra();
   el.innerHTML=html;el.classList.add("show");toastFin=fin||null;
+  colocaAviso(el,!!fin&&inGuided());
   clearTimeout(toastT);toastT=setTimeout(()=>{toastCierra();el.classList.remove("show");},ms||2600);}
+/* el aviso con boton, en el guiado, arriba, bajo la barra: abajo su boton
+   caia sobre "Registrar serie", el + o "Nota fija", y un toque ahi deshacia.
+   Si ahi tambien pisa un control (pagina desplazada hasta la ultima serie),
+   baja hasta el primer hueco libre; sin ninguno, donde siempre */
+function colocaAviso(el,arriba){el.style.top="";el.classList.toggle("arriba",arriba);if(!arriba)return;
+  for(let y=el.offsetTop,fin=innerHeight-el.offsetHeight;y<=fin;y+=8){el.style.top=y+"px";if(!avisoPisa(el))return;}
+  el.style.top="";el.classList.remove("arriba");}
+/* si la zona de 44 px del boton del aviso cae sobre un control del guiado.
+   Con offset*, que no ven el translateY de la entrada del aviso */
+function avisoPisa(el){const b=el.querySelector(".tact");if(!b)return false;
+  const cx=el.offsetLeft+b.offsetLeft+b.offsetWidth/2,cy=el.offsetTop+b.offsetTop+b.offsetHeight/2,
+    mx=Math.max(22,b.offsetWidth/2),my=Math.max(22,b.offsetHeight/2);
+  return Array.prototype.some.call(document.querySelectorAll("#guided button,#guided [role=button],#guided input,#guided summary,#guided a"),c=>{
+    const r=c.getBoundingClientRect();return r.width>0&&r.left<cx+mx&&r.right>cx-mx&&r.top<cy+my&&r.bottom>cy-my;});}
 function toastCierra(){const f=toastFin;toastFin=null;if(f)f();}
 /* el aviso con boton es de su pantalla: al salir de ella se retira ya */
 function toastFuera(){if(!toastFin)return;clearTimeout(toastT);toastCierra();

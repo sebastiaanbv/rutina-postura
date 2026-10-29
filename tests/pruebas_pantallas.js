@@ -694,6 +694,29 @@
         expect(b.height).toBeLessThan(t.height);}
       finally{raiz.style.removeProperty("--t-sm");app.frame.style.width="400px";}
       app.reiniciarMemoria();});
+    /* abajo, el boton Deshacer caia sobre «Registrar serie», el + o «Nota
+       fija»: volver a registrar justo despues de borrar deshacia. Se mide
+       como el dedo: cada control del guiado, punto a punto, no da en el aviso */
+    test("el Deshacer no pisa ningún control del guiado (de 320x568 a 412x915, con 1, 3 y 6 series)",app=>{
+      const conN=n=>()=>{const s=conSerie(),l=s.rp_session.log.press_banca_db,t=s.rp_session.startedAt;
+        s.rp_session.log.press_banca_db=Array.from({length:n},(_,i)=>Object.assign({},l[i%3],{t:t+(i+1)*60000}));return s;};
+      const pisados=[];
+      try{for(const [w,h] of [[320,568],[360,640],[375,667],[400,800],[412,915]])for(const n of [1,3,6]){
+          app.frame.style.height=h+"px";app.frame.style.width=w+"px";abrir(app,conN(n));anchoUtil(app,w);
+          const filas=app.$$("#guided .sets .setline"),ult=filas[filas.length-1];
+          expect(filas).toHaveLength(n);
+          ult.scrollIntoView({block:"nearest"});ult.querySelector(".del").click();quieta(app);
+          const t=app.$("#toast"),tr=t.getBoundingClientRect();
+          expect(app.texto("#toast .tmsg")).toBe("Serie borrada");
+          expect(tr.top).toBeGreaterThan(0);expect(tr.bottom).toBeLessThan(app.w.innerHeight);
+          app.$$("#guided button,#guided [role=button],#guided input").forEach(c=>{const r=c.getBoundingClientRect();
+            if(!r.width||r.bottom<0||r.top>app.w.innerHeight)return;
+            for(let y=r.top+2;y<r.bottom-1;y+=4)for(let x=r.left+2;x<r.right-1;x+=4){
+              const e=app.doc.elementFromPoint(x,y);
+              if(e&&t.contains(e)){pisados.push(w+"x"+h+" n="+n+" "+(c.className||c.tagName)+" "+c.textContent.trim().slice(0,20));return;}}});}}
+      finally{app.frame.style.height="800px";app.frame.style.width="400px";}
+      expect(pisados).toEqual([]);
+      app.reiniciarMemoria();});
     test("con teclado: Enter en la X lleva el foco a Deshacer, y Deshacer a la serie recuperada",app=>{abrir(app);
       const x=app.$("#sl_press_banca_db_2 .del");x.focus();
       x.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter",bubbles:true}));
