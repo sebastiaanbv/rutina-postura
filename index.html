@@ -1849,7 +1849,10 @@ function beep(){try{actx=actx||new (window.AudioContext||window.webkitAudioConte
   try{if(navigator.vibrate)navigator.vibrate([120,60,120]);}catch(e){}}
 function prime(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();}catch(e){}}
 let tickFn=null,tEnds=0,restEnds=0;
-function clearTimer(){if(tId){clearInterval(tId);tId=null;}tickFn=null;}
+/* tambien la confirmacion de 300 ms de logSet: salir, retroceder o saltar
+   en esa ventana la cancela, como si se saliera durante el descanso */
+function clearTimer(){if(tId){clearInterval(tId);tId=null;}tickFn=null;
+  if(serieTO){clearTimeout(serieTO);serieTO=null;}}
 /* al volver del segundo plano el navegador frena los intervalos: se recalcula
    contra el reloj en vez de ir restando de uno en uno */
 document.addEventListener("visibilitychange",function(){
@@ -2905,7 +2908,7 @@ function adjR(d){curReps=Math.max(1,curReps+d);const el=$("lr");if(el)el.textCon
    movimiento no hay confirmacion y, sin descanso detras, el ejercicio
    siguiente se pinta en el acto bajo el mismo dedo. Reloj monotono: con
    Date.now(), atrasar la hora del telefono dejaria el boton muerto. */
-const SERIE_MS=300;let serieAbierta=true,serieT=-Infinity;
+const SERIE_MS=300;let serieAbierta=true,serieT=-Infinity,serieTO=null;
 function logSet(){if(!serieAbierta||performance.now()-serieT<SERIE_MS)return;
   serieAbierta=false;serieT=performance.now();
   const s=steps[stepi];useSessionLog(curRoutine);
@@ -2924,7 +2927,7 @@ function logSet(){if(!serieAbierta||performance.now()-serieT<SERIE_MS)return;
   const b=document.querySelector("#guided .gbtn.go");
   if(b&&!matchMedia("(prefers-reduced-motion:reduce)").matches){
     b.classList.add("done");b.disabled=true;b.innerHTML=ic("check","sm")+" Serie registrada";
-    setTimeout(afterAction,SERIE_MS);
+    serieTO=setTimeout(()=>{serieTO=null;afterAction();},SERIE_MS);
   }else afterAction();}
 function editNum(which){const isW=which==="w",el=$(isW?"lw":"lr");if(!el)return;
   const val=isW?curW:curReps;
@@ -3172,7 +3175,11 @@ function conflictSave(){const c=conflicto;if(!c)return;
   enterGuided(c.act.from);}
 /* salir ya no destruye nada: la sesion vive en localStorage y se cierra
    desde el boton "Finalizar rutina" de la pantalla de la rutina */
-function guidedExit(){clearTimer();clearRestNotif();releaseWake();touchSess(stepi);history.back();}
+function guidedExit(){const st=pasoTrasSerie();clearTimer();clearRestNotif();releaseWake();touchSess(st);history.back();}
+/* el paso que se guarda al salir: con la serie ya registrada (confirmando o
+   en el descanso) es el siguiente, no el que ya esta anotado; si no, retomar
+   (#retomar, recarga) volveria a pedir la misma serie */
+function pasoTrasSerie(){return (serieTO||document.querySelector("#guided .gbtn.rest"))&&stepi+1<steps.length?stepi+1:stepi;}
 function guidedBack(){clearTimer();if(stepi>0){stepi--;renderStep();}else{guidedExit();}}
 function guidedSkipExercise(){clearTimer();const cur=steps[stepi].id;let i=stepi;while(i<steps.length&&steps[i].id===cur)i++;
   /* saltar a proposito es "hoy no lo hago": no sale como pendiente al final */
@@ -3383,6 +3390,9 @@ function nextStepLabel(){const n=steps[stepi+1];if(!n)return "Ultima serie";
   return (mismo?"Sigue: ":"Después: ")+n.label.replace(" · cada lado","")+
     (mismo?"":" · "+n.name);}
 function renderRest(sec){clearTimer();restR=sec;restEnds=Date.now()+sec*1000;
+  /* mientras descansa, el paso guardado es la serie que viene: el aviso de fin
+     de descanso (#retomar) abre ahi. Solo hay descanso con otra serie detras */
+  touchSess(Math.min(stepi+1,steps.length-1));
   clearRestNotif();scheduleRestNotif(sec*1000);
   const C=(2*Math.PI*90).toFixed(1);
   $("guided").innerHTML=frame(`<div class="phaselab">Descanso</div>
@@ -3801,7 +3811,7 @@ async function forceUpdate(b){if(b&&b.textContent!=null)b.textContent="Actualiza
 /* ---------- NAV / PWA ---------- */
 /* ===== boton atras del dispositivo: navegar dentro de la app ===== */
 function pushHist(st){try{history.pushState(st,"");}catch(e){}}
-function renderState(s){clearTimer();s=s||{v:"home"};
+function renderState(s){if(serieTO)touchSess(pasoTrasSerie());clearTimer();s=s||{v:"home"};
   if(s.v==="routine"&&s.k&&ROUTINES[s.k]){openRoutine(s.k,true);}
   else if(s.v==="guided"&&s.k&&ROUTINES[s.k]){resumeGuided(s.k);}
   else{var v=s.v||"home";show(v);if(v==="home")renderHome();if(v==="history")renderHistory();if(v==="progress")renderProgress();if(v==="settings")renderSettings();}}

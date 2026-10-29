@@ -191,6 +191,36 @@
       app.reiniciarMemoria();});
   });
 
+  /* el aviso suena durante o al final de un descanso: la serie ya esta
+     registrada y el paso guardado tiene que ser el que viene. Antes volvia a
+     «Serie 1 de 4» con la serie 1 anotada debajo */
+  escenario("Volver desde el aviso · desde un descanso de verdad",F.vacio,()=>{
+    async function aLDescanso(app){await app.arrancar(F.dueno);
+      app.w.openRoutine("gym_empuje");app.w.startRoutine("press_banca_db");
+      expect(app.ev("steps[stepi].setNo")).toBe(1);const i0=app.ev("stepi");
+      app.ev("curW=30;curReps=8");app.w.logSet();
+      await app.hasta(()=>app.$("#guided .gbtn.rest"),3000,"el descanso");
+      return i0;}
+    async function retoma(app,i0){await app.arrancar({__crudo:app.foto()},"#retomar");
+      expect(app.activa()).toBe("guided");
+      expect(app.ev("stepi")).toBe(i0+1);
+      expect(app.ev("steps[stepi].id")).toBe("press_banca_db");
+      expect(app.ev("steps[stepi].setNo")).toBe(2);
+      expect(app.texto("#guided .setlab")).toBe(app.ev("steps[stepi].label"));
+      expect(app.ev("sessionLog").press_banca_db.map(x=>x.w+"x"+x.reps)).toEqual(["30x8"]);
+      app.reiniciarMemoria();}
+    test("con la app cerrada en pleno descanso, vuelve a la serie 2",async app=>{
+      const i0=await aLDescanso(app);
+      expect(app.leer("rp_session").stepi).toBe(i0+1);
+      await retoma(app,i0);});
+    test("saliendo del guiado durante el descanso, también",async app=>{
+      const i0=await aLDescanso(app);
+      app.w.guidedExit();
+      await app.hasta(()=>app.activa()==="routine",3000,"la rutina");
+      expect(app.leer("rp_session").stepi).toBe(i0+1);
+      await retoma(app,i0);});
+  });
+
   escenario("Volver desde el aviso · sin sesión viva",F.vacio,()=>{
     test("sin sesion: Inicio, sin errores y sin datos nuevos",async app=>{
       const antes=app.foto();

@@ -247,6 +247,62 @@
       expect(app.claves()).toEqual(base);
       await idaYVuelta();
       expect(deHoy(app,"press_banca_db")).toEqual([["60x8"]]);});
+    /* la confirmacion de 300 ms corria aunque se saliera, retrocediera o
+       saltara en esa ventana, y actuaba sobre el paso que hubiera entonces */
+    const sinDescanso=app=>{expect(app.$("#guided .gbtn.rest")).toBe(null);expect(app.ev("tId")).toBe(null);};
+    test("saltar ejercicio mientras confirma: el siguiente empieza en su serie 1, sin descanso",async app=>{
+      const i0=await aLaSerie(app,{reducido:false});
+      app.w.logSet();
+      app.$("#guided .skip").click();
+      const i1=app.ev("stepi");
+      expect(app.ev("steps[stepi].id")).toBe("fondos_paralelas");
+      expect(app.ev("steps[stepi].setNo")).toBe(1);
+      await app.espera(450);
+      sinDescanso(app);
+      expect(app.ev("stepi")).toBe(i1);
+      expect(app.ev("steps[stepi].setNo")).toBe(1);
+      expect(i1).toBeGreaterThan(i0);
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      app.reiniciarMemoria();});
+    test("paso anterior mientras confirma: se queda en el anterior",async app=>{
+      const i0=await aLaSerie(app,{reducido:false});
+      app.w.logSet();app.w.guidedBack();
+      expect(app.ev("stepi")).toBe(i0-1);
+      await app.espera(450);
+      expect(app.ev("stepi")).toBe(i0-1);
+      sinDescanso(app);
+      expect(anotadas(app,"press_banca_db")).toEqual(["60x8"]);
+      app.reiniciarMemoria();});
+    test("salir mientras confirma: sin descanso de fondo y la sesión guarda la serie que viene",async app=>{
+      const i0=await aLaSerie(app,{reducido:false});
+      app.w.logSet();app.w.guidedExit();
+      await app.hasta(()=>app.activa()==="routine",3000,"la rutina");
+      await app.espera(450);
+      expect(app.activa()).toBe("routine");
+      sinDescanso(app);
+      expect(app.ev("restEnds")).toBe(0);
+      const s=app.leer("rp_session");
+      expect(s.log.press_banca_db).toHaveLength(1);
+      expect(s.stepi).toBe(i0+1);
+      app.reiniciarMemoria();});
+    test("salir mientras confirma la última serie de la rutina: la sesión no se cierra sola",async app=>{
+      await app.arrancar(F.dueno);movimiento(app,false);
+      app.w.openRoutine("gym_empuje");
+      const st=app.w.buildSteps("gym_empuje"),last=st[st.length-1];
+      app.w.effList("gym_empuje").forEach(id=>{if(id!==last.id)app.w.markCheck("gym_empuje",id,true);});
+      app.w.startRoutine(last.id);app.ev("stepi=steps.length-1");app.w.renderStep();
+      expect(app.texto("#guided .gbtn.go")).toContain("Registrar");
+      const h0=(app.leer("rp_history")||[]).length;
+      app.ev("curW=20;curReps=10");app.w.logSet();app.w.guidedExit();
+      await app.hasta(()=>app.activa()==="routine",3000,"la rutina");
+      await app.espera(650);
+      expect(app.activa()).toBe("routine");
+      expect((app.leer("rp_history")||[]).length).toBe(h0);
+      const s=app.leer("rp_session");
+      expect(s.key).toBe("gym_empuje");
+      expect(s.log[last.id]).toHaveLength(1);
+      expect(app.texto("#guided")).not.toContain("Completada");
+      app.reiniciarMemoria();});
   });
 
   /* almacenamiento dañado: la app tiene que seguir abriendo */

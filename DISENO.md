@@ -561,6 +561,11 @@ Un toque, una serie:
   descanso detrás, el ejercicio siguiente se pinta en el acto y el segundo toque caía en su botón.
   Sin claves nuevas ni cambio de forma: la copia va y vuelve igual. Pruebas en
   `tests/pruebas_datos.js` («Doble toque en «Registrar serie»»), con y sin reducir movimiento.
+- **Salir, retroceder o saltar en esos 300 ms cancela la confirmación.** El paso pendiente no se
+  guardaba y corría igual: saltar ejercicio se comía la serie 1 del siguiente, «Paso anterior»
+  volvía solo al de antes y la X tras la última serie cerraba la sesión sin que nadie lo eligiera.
+  Ahora `clearTimer` también la cancela, y salir en esa ventana deja la sesión como salir en el
+  descanso: abierta, en el paso que viene.
   Queda abierto «Serie completada», el botón de los ejercicios que no se registran: no anota
   nada, pero un doble toque sin descanso detrás todavía puede saltarse un paso.
 
@@ -748,7 +753,9 @@ volver a la serie.
   recordatorio en Inicio. Solo cuentan las ventanas dentro del scope de la app, porque en
   github.io el origen lo comparten otros repos.
 - **`#retomar` vuelve al paso guardado.** Con una sesión viva de hoy, el arranque abre el guiado
-  en `rp_session.stepi` (`retomarDesdeAviso`), con la pila Inicio › rutina › guiado: con una
+  en `rp_session.stepi` (`retomarDesdeAviso`). Durante el descanso ese paso es la serie que viene
+  (`renderRest` y salir lo guardan), no la ya registrada: si no, el aviso abría «Serie 1 de 4»
+  con la serie 1 ya anotada debajo. Va con la pila Inicio › rutina › guiado: con una
   ventana nueva el historial está vacío y salir habría cerrado la app. Sin sesión viva, con una
   de una rutina que ya no existe o con la de ayer —que sigue ofreciendo cerrarse— se queda en
   Inicio. La marca se quita de la URL al leerla. No escribe nada: ni claves nuevas ni cambio de
