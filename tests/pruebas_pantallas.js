@@ -666,6 +666,34 @@
           expect(app.texto("#toast")).toBe("2 series recuperadas");voz(app.texto("#toast"));}}
       finally{if(tema)raiz.setAttribute("data-theme",tema);else raiz.removeAttribute("data-theme");}
       app.reiniciarMemoria();});
+    /* el aviso centrado con left:50% solo tenia media pantalla para encoger:
+       los avisos nuevos se partian en 2-5 lineas, y el parche de nowrap
+       sacaba «Deshacer» de la pildora con letra grande */
+    test("los avisos usan el 86 % del ancho: caben en una línea, y con letra grande Deshacer queda dentro",app=>{
+      const el=app.$("#toast"),raiz=app.doc.documentElement,ic=(n,c)=>app.w.ic(n,c);
+      const caja=html=>{app.w.toast(html);quieta(app);return el.getBoundingClientRect();};
+      try{for(const ancho of [320,375]){app.frame.style.width=ancho+"px";abrir(app);anchoUtil(app,ancho);
+          const linea=caja("Ok").height;
+          ["Salto quitado: vuelven los de siempre",ic("check","sm")+" Salto de 4.5 kg guardado",ic("check","sm")+" Serie recuperada"]
+            .forEach(t=>{const r=caja(t);expect([el.textContent.trim(),r.height]).toEqual([el.textContent.trim(),linea]);
+              expect(r.left).toBeGreaterThan(0);expect(r.right).toBeLessThan(ancho);
+              /* centrado */
+              expect(Math.abs((r.left+r.right)/2-ancho/2)).toBeLessThan(1);});
+          /* el de record, como mucho dos lineas (antes cinco a 320) */
+          const r=caja(ic("trophy","sm")+" Récord en "+app.w.esc(app.w.shortName("press_banca_db"))+": <b>122.5 kg × 12</b>");
+          expect(r.height).toBeLessThan(linea*1.7);
+          expect(r.width).toBeLessThan(app.w.innerWidth*0.86+0.5);}
+        /* letra grande a 320: la pildora se parte en dos lineas y el boton sigue dentro y entero */
+        app.frame.style.width="320px";abrir(app);anchoUtil(app,320);
+        raiz.style.setProperty("--t-sm","20px");
+        app.$("#sl_press_banca_db_1 .del").click();quieta(app);
+        const t=el.getBoundingClientRect(),b=app.$("#toast .tact").getBoundingClientRect();
+        expect(b.left).not.toBeLessThan(t.left);expect(b.right).not.toBeGreaterThan(t.right);
+        expect(t.left).not.toBeLessThan(0);expect(t.right).not.toBeGreaterThan(320);
+        expect(app.texto("#toast .tact")).toBe("Deshacer");
+        expect(b.height).toBeLessThan(t.height);}
+      finally{raiz.style.removeProperty("--t-sm");app.frame.style.width="400px";}
+      app.reiniciarMemoria();});
     test("con teclado: Enter en la X lleva el foco a Deshacer, y Deshacer a la serie recuperada",app=>{abrir(app);
       const x=app.$("#sl_press_banca_db_2 .del");x.focus();
       x.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter",bubbles:true}));

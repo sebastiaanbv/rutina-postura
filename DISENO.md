@@ -703,6 +703,11 @@ confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se toca
 - **El aviso respeta §2, §10 y §11**: X en `--danger-hero` (el ámbar es logro), botón en
   `--hero-accent`, sin exclamaciones y con plural. `toast()` acepta un tercer argumento que se
   llama al cerrarse, por tiempo o porque otro aviso lo pisa; ahí caduca el Deshacer.
+- **El aviso usa el ancho que declara** (86 % de la pantalla). Centrado con `left:50%` solo tenía
+  media pantalla para encoger: los avisos nuevos se partían («Salto quitado: vuelven los de
+  siempre» en tres líneas a 320 px, el de récord en cinco), y el `nowrap` que mantenía «Serie
+  borrada» en una línea sacaba «Deshacer» de la píldora con letra grande. Ahora se centra con
+  márgenes automáticos; si el texto no cabe se parte él, y el botón queda entero dentro.
 - **Zonas de toque de la fila de serie** (§10): la cifra entra en la lista del pseudo-elemento, la
   X pasa a caja de 44 y los campos de corregir miden 44 de alto y 52 de ancho (antes 58; con la X
   de 44, a 320 px la fila se partía). La fila mide lo mismo que antes, 40 px; editando, 46 en vez

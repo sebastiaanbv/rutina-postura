@@ -393,22 +393,27 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .prtag{flex-basis:100%;padding-left:calc(52px + var(--s2));color:var(--energy-ink);display:flex;align-items:center;gap:4px;
     font-size:var(--t-2xs);font-weight:var(--w-bold);text-transform:uppercase;letter-spacing:.6px;pointer-events:none}
 
-  /* aviso flotante: la unica pieza que faltaba para poder celebrar algo */
-  .toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom));
-    transform:translateX(-50%) translateY(16px);background:var(--hero);color:var(--hero-tx);
+  /* aviso flotante: la unica pieza que faltaba para poder celebrar algo.
+     Centrado con left/right 0 y margen auto, no con left:50%: asi solo
+     tenia media pantalla para encoger, y el max-width de 86 % nunca se
+     alcanzaba ("Salto quitado: vuelven los de siempre" en tres lineas a
+     320 px, el de record en cinco) */
+  .toast{position:fixed;left:0;right:0;margin:0 auto;width:max-content;box-sizing:border-box;
+    bottom:calc(80px + env(safe-area-inset-bottom));
+    transform:translateY(16px);background:var(--hero);color:var(--hero-tx);
     border-radius:var(--r-pill);padding:12px 20px;font-size:var(--t-sm);font-weight:var(--w-semi);
-    z-index:70;display:flex;align-items:center;gap:9px;max-width:86%;opacity:0;pointer-events:none;
+    z-index:70;display:flex;align-items:center;gap:9px;max-width:86vw;opacity:0;pointer-events:none;
     box-shadow:0 10px 30px -10px rgba(0,0,0,.5);transition:opacity .25s,transform .25s}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.show{opacity:1;transform:translateY(0)}
   .toast .ic{color:var(--energy-hero);flex:0 0 auto}
   /* serie borrada (v36): la X en rojo, porque el ambar es logro, y el unico
      boton que ha tenido un aviso. Solo el boton recibe toques: el resto sigue
-     sin tapar lo de debajo. Escondido no se enfoca ni se pulsa. Con left:50%
-     el aviso solo tiene media pantalla para encoger: sin nowrap, "Serie
-     borrada" se partia en dos lineas. */
+     sin tapar lo de debajo. Escondido no se enfoca ni se pulsa. Si no cabe
+     en una linea (letra grande), se parte el texto y el boton se queda
+     entero dentro del aviso: con nowrap se salia por la derecha. */
   .toast .ic.borrado{color:var(--danger-hero)}
-  .toast .tmsg{white-space:nowrap}
-  .toast .tact{background:none;border:none;padding:0;margin-left:var(--s1);font:inherit;
+  .toast .tmsg{min-width:0}
+  .toast .tact{flex:0 0 auto;background:none;border:none;padding:0;margin-left:var(--s1);font:inherit;
     font-weight:var(--w-bold);color:var(--hero-accent);cursor:pointer;visibility:hidden}
   .toast.show .tact{visibility:visible;pointer-events:auto}
   .toast .tact:focus-visible{box-shadow:0 0 0 2px var(--hero-accent)}
