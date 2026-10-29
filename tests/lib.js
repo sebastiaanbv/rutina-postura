@@ -164,8 +164,10 @@
     sembrar(datos){localStorage.clear();const d=typeof datos==="function"?datos():(datos||{});
       Object.keys(d).forEach(k=>{if(k==="__crudo")Object.keys(d[k]).forEach(c=>localStorage.setItem(c,d[k][c]));
         else localStorage.setItem(k,JSON.stringify(d[k]));});},
-    /* deja la memoria de la app como recien arrancada sin recargar */
-    reiniciarMemoria(){this.ev("sessionLog={};sessionLogKey=null;curRoutine=null;sessCommitted=0;curRir=null;clearTimer()");},
+    /* deja la memoria de la app como recien arrancada sin recargar. Tambien
+       el candado de "Registrar serie" (HU-78): sin esto, el primer toque tras
+       reiniciar caia en los 300 ms de la serie de antes y no contaba */
+    reiniciarMemoria(){this.ev("sessionLog={};sessionLogKey=null;curRoutine=null;sessCommitted=0;curRir=null;clearTimer();serieT=-Infinity;pintadoT=-Infinity");},
     cargo(){const f=this.frame;return new Promise(r=>f.addEventListener("load",r,{once:true}));},
     /* extra: lo que se anade a la URL, p. ej. "#retomar" (con lo que sw.js
        abre la app al tocar el aviso de fin de descanso) */

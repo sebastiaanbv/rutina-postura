@@ -988,6 +988,15 @@ escala estaba en px y la raíz fijada a 14.
   pantallas principales a 320, 375 y 430 px con la letra de serie y al 130 %, con tres juegos de
   datos. El humo revisa cada texto contra las cajas que lo contienen, contra los demás textos y
   contra los botones, y cada tarjeta contra el ancho del teléfono.
+- **Al integrarla con el resto de v36.** Los campos de corregir una serie (HU-54) pasan de
+  52 px de ancho y 12,5 de letra a `--t-campo` y 3,3 em sin relleno a los lados: 53 px con la letra
+  de serie, así que a 320 px la fila sigue entera con la X de 44 (con 3,6 em se partía) y
+  «142.5» cabe; un «102.75» (HU-57) se desplaza dentro del campo. La sangría de la marca de
+  récord (HU-10) sigue a la columna del número de serie, que ya va en em, en vez de sus 52 px
+  fijos. El aviso de Deshacer llega ya con su texto en `.tmsg` y `toast()` no lo envuelve. En
+  el arnés, `app.reiniciarMemoria()` también abre el candado de «Registrar serie» (HU-78):
+  la prueba de tocar con el campo abierto empieza cada caso de cero y su primer toque caía en
+  los 300 ms de la serie anterior.
 - **Lo que queda abierto**: al 150 % aguanta todo menos el selector de tema a 320 px; al 200 % se
   salen los títulos de una sola palabra («Calendario») y el botón «Registrar rutina». Para eso
   está el pellizco. No se ha probado en un teléfono real: las pruebas simulan la letra del
