@@ -7,11 +7,18 @@
    siempre. Y la medida que vale en run.py (y en la CI) es la de lecturas y KB
    parseados: run.py usa reloj virtual y ahi un pintado mide 0 ms.
 
-   «Antes» se reproduce sin guardar una copia del codigo viejo. Los analisis de
-   Progreso aceptan el rp_logs ya leido como ultimo argumento y, si no llega, lo
-   leen ellos: es exactamente lo que hacian hasta v35. comoAntes() los envuelve
-   para que descarten ese argumento, y cada lectura vuelve a su sitio (24 de las
-   25: el resumen del mes ya no pide dos veces la misma lista de records). */
+   «Antes» se reproduce sin guardar una copia del codigo viejo, para contar
+   lecturas. Los analisis de Progreso aceptan el rp_logs ya leido como ultimo
+   argumento y, si no llega, lo leen ellos, como hacian hasta v35. comoAntes()
+   los envuelve para que descarten ese argumento, y cada lectura vuelve a su
+   sitio (24 de las 25: el resumen del mes ya no pide dos veces la misma lista
+   de records). Las dos ramas corren el MISMO calculo de hoy: compararlas solo
+   prueba que pasar LOGS equivale a leerlo, no que los numeros sean los de v35.
+
+   Que lo que se ve no cambia respecto a v35 lo prueba la referencia guardada
+   (referencia_progreso_v35.js): las cifras que daba el index.html de v35 con
+   tres juegos de datos generados con el reloj parado (Pruebas.conReloj y
+   app.enZona), que no dependen del dia en que corran las pruebas. */
 (function(){
   const F=Fixtures;
   const tab=(app,v)=>{app.$('.nav .tab[data-v="'+v+'"]').click();};
@@ -132,6 +139,50 @@
          performance.now() no se mueve. Todo mide 0 y no hay nada que comparar */
       if(mediana(antes)===0)test.omitir("reloj virtual (run.py): un pintado mide 0 ms. La medida en ms se toma con el arnés servido (--servir); sin reloj la comprueba «de mas de 20 parseos del historial a 1»");
       expect(mediana(ahora)).toBeLessThan(mediana(antes)*0.6);});
+  });
+
+  /* ---- igualdad con v35, con una referencia guardada ----
+     Cada juego de datos se genera como si hoy fuera el miercoles 14 de
+     octubre de 2026 en Madrid, y la app pinta Progreso con su reloj parado en
+     ese instante: asi las cifras son siempre las mismas. foto() recoge lo que
+     calculan los analisis y lo que se ve, bloque a bloque: de las graficas,
+     sus etiquetas (no las coordenadas). La linea de la racha de «Tu
+     historial» se quita: HU-11 la cambia a proposito («Racha de N dias» paso
+     a «N semanas cumplidas»).
+     referencia_progreso_v35.js se genero con esta misma foto() sobre el
+     index.html de v35 (git show 64711cc:index.html): en una copia del repo con
+     ese index.html, Pruebas.fotoProgreso() desde la consola del arnes servido
+     (--servir) da el objeto que se guarda. */
+  const ZONA="Europe/Madrid",AHORA="2026-10-14T10:30:00Z",
+    JUEGOS=[["dueno",F.dueno],["madre",F.madre],["dosAnos",F.dosAnos]];
+  function visible(app){const c=app.$("#progBody").cloneNode(true);
+    c.querySelectorAll("svg").forEach(g=>{const t=Array.from(g.querySelectorAll("text")).map(x=>x.textContent).join(" | ");
+      g.replaceWith(t?" ["+t+"] ":" ");});
+    const tit=Array.from(c.querySelectorAll(".grouptitle")).find(x=>x.textContent.trim()==="Tu historial"),
+      cs=tit&&tit.nextElementSibling&&tit.nextElementSibling.querySelector(".cs");
+    if(cs&&cs.firstChild&&cs.firstChild.nodeType===3)cs.firstChild.remove();
+    c.querySelectorAll("*").forEach(e=>e.after(" "));
+    return Array.from(c.children).map(x=>x.textContent.replace(/\s+/g," ").trim());}
+  async function foto(app,juego){let r;
+    await app.enZona(ZONA,()=>{app.sembrar(Pruebas.conReloj(ZONA,AHORA,juego));
+      app.w.renderProgress();
+      r={hoy:app.w.today(),calculos:calculos(app,app.w.loadLogs()),visible:visible(app)};},AHORA);
+    return r;}
+  Pruebas.fotoProgreso=async()=>{const o={};for(const [n,j] of JUEGOS)o[n]=await foto(Pruebas.app,j);return JSON.stringify(o);};
+  escenario("Progreso · igual que v35 (referencia guardada)",F.vacio,()=>{
+    JUEGOS.forEach(([nombre,juego])=>{
+      test("las cifras de Progreso coinciden con las de v35 ("+nombre+")",async app=>{
+        const ref=REFERENCIA_PROGRESO_V35[nombre],r=await foto(app,juego);
+        expect(r.hoy).toBe("2026-10-14");
+        /* que la comparacion no sea entre vacios */
+        expect(r.visible.join(" ")).toContain("Series por músculo");
+        expect(r.calculos.idx.n).toBeGreaterThan(0);
+        /* bloque a bloque, para que el fallo diga cual cambio */
+        r.visible.forEach((t,i)=>expect(t).toBe(ref.visible[i]));
+        expect(r.visible).toHaveLength(ref.visible.length);
+        Object.keys(ref.calculos).forEach(k=>expect({[k]:r.calculos[k]}).toEqual({[k]:ref.calculos[k]}));
+        expect(Object.keys(r.calculos).sort()).toEqual(Object.keys(ref.calculos).sort());
+        app.sembrar(F.vacio);});});
   });
 
   /* lo mismo con los juegos de datos de cada dia: el cambio no puede mover un numero */

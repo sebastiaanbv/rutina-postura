@@ -825,15 +825,20 @@ Progreso carga más rápido:
   Chromium con Playwright, en un ordenador. Con seis semanas de datos, de 6 a 3 ms. En el teléfono
   no se ha medido. `run.py` no puede tomar la medida en ms: corre con reloj virtual, que dentro de
   un pintado no avanza (`tests/README.md`).
-  Lo que se ve no cambia en un solo carácter por esta historia: comparado con el código de v35
-  con los cuatro juegos de datos, el HTML de Progreso es idéntico salvo la primera línea de «Tu
+  Las cifras que se ven no cambian por esta historia: comparado con el código de v35 con los
+  cuatro juegos de datos, el texto de Progreso es idéntico salvo la primera línea de «Tu
   historial», que cambia HU-11 («Racha de N días · mejor M» pasa a «R semanas cumplidas · mejor
-  M»).
+  M»). En el HTML cambia además el trazo de la curva del índice: desde HU-57 se dibuja con los
+  valores a una décima, los mismos que rotula, y sus puntos se mueven hasta 1 px.
   Queda, de menos peso: la media de 7 días del peso recorre `rp_bw` entero 112 veces por pintado
   (unos 6 ms con dos años de pesajes casi diarios) y `rp_history` se lee tres veces.
   **Pruebas** en `tests/pruebas_progreso.js`: una lectura y un parseo al abrir Progreso y al
   redibujar; el pintado y cada análisis dan lo mismo con el registro compartido que leyendo el suyo,
-  como hasta v35, con `dosAnos` y con los juegos de cada día; ningún análisis modifica lo que
+  con `dosAnos` y con los juegos de cada día (eso solo prueba que pasar el registro equivale a
+  leerlo: las dos ramas corren el cálculo de hoy); la igualdad con v35 la prueba una referencia
+  guardada (`tests/referencia_progreso_v35.js`), sacada una vez del `index.html` de v35: lo que
+  calculan los análisis y el texto de cada bloque, con `dueno`, `madre` y `dosAnos` generados con
+  el reloj parado en el 14 de octubre de 2026 (`Pruebas.conReloj` y `app.enZona`); ningún análisis modifica lo que
   recibe; con `dosAnos`, un parseo de `rp_logs` frente a más de 20 y veinte veces menos KB, y con
   reloj real menos del 60 % del tiempo (con el de `run.py` esa sale omitida, con su motivo). Nada
   depende del día en que corran: `dosAnos` trae una sesión cada día 1, y una prueba con el reloj de

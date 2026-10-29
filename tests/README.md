@@ -37,7 +37,8 @@ Otras opciones:
 | `pruebas_pantallas.js` | recorrido de humo por Inicio, rutina, guiado, Calendario, Progreso y Ajustes con cada juego de datos (Calendario también con el reloj en un día 1), los juegos con sesión de hoy a medias generados a las 00:05, el guiado con un descanso de 0 s ajustado y el chip «Salto» del guiado, y una sola racha (semanas cumplidas) en Inicio, pantalla de fin, Progreso y Ajustes, también con zona horaria emulada; aviso de pendientes con las sesiones de v35; zonas de toque de la fila de serie (medidas con `elementFromPoint`) y el aviso de serie borrada (su ancho, y que en el guiado su Deshacer no pise ningún control de 320x568 a 412x915); el título de la hoja de conflicto a 320 px |
 | `pruebas_sw.js` | el service worker: `sw.js` tal cual en una caja con red, caché y reloj de mentira (red buena, lenta, caída, sin copia) y «Buscar actualización» en la app |
 | `pruebas_avisos.js` | volver a la app al tocar un aviso: `sw.js` tal cual con dobles de `self`, `caches`, `clients` y `fetch` (install y `notificationclick`), y el arranque con `#retomar` |
-| `pruebas_progreso.js` | Progreso lee `rp_logs` una sola vez por pintado y pinta lo mismo que antes; con `dosAnos`, 1 parseo del historial frente a más de 20 y, con reloj real, menos del 60 % del tiempo |
+| `pruebas_progreso.js` | Progreso lee `rp_logs` una sola vez por pintado y pinta lo mismo que antes; con `dosAnos`, 1 parseo del historial frente a más de 20 y, con reloj real, menos del 60 % del tiempo; y las cifras de Progreso coinciden con las de v35 guardadas en `referencia_progreso_v35.js` |
+| `referencia_progreso_v35.js` | lo que calculaba y mostraba Progreso en v35 con `dueno`, `madre` y `dosAnos` generados con el reloj parado; no se edita a mano (cómo regenerarla, en `pruebas_progreso.js`) |
 
 ## Añadir una prueba
 
