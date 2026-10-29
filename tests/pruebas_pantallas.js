@@ -696,6 +696,36 @@
           expect(zona(app,app.$("#sl_press_banca_db_1 .v"))).toEqual(z44);}}
       finally{app.frame.style.width="400px";}
       app.reiniciarMemoria();});
+    /* con la letra grande los campos crecen con ella y a 320 px, al 115 y
+       al 130 %, la fila de corregir no cabia con «Serie 1» delante: el visto
+       bajaba bajo el peso y la fila pasaba de 46 a 80 px justo al tocar la
+       cifra (con DejaVu Sans, ademas, «Serie 1» en dos lineas). Corrigiendo,
+       la columna dice solo «1». Sin barras de scroll, como en el telefono */
+    test("corregir una serie con la letra grande: la fila no crece al tocar la cifra y todo mide 44, de 320 a 375 px y hasta el 130 %",app=>{
+      const raiz=app.doc.documentElement,mal=[],sinBarras=barrasFuera(app);
+      try{for(const ancho of [320,360,375])for(const pct of [100,115,130]){const caso=ancho+" px al "+pct+" %";
+          raiz.style.fontSize=pct===100?"":pct+"%";app.frame.style.width=ancho+"px";abrir(app);anchoUtil(app,ancho);
+          app.$("#guided .sets").scrollIntoView({block:"center"});
+          const fila=app.$("#sl_press_banca_db_0"),una=el=>{const lh=parseFloat(app.w.getComputedStyle(el).lineHeight)||parseFloat(app.w.getComputedStyle(el).fontSize)*1.45;
+            return el.getBoundingClientRect().height<lh*1.5;};
+          app.$$("#guided .sets .setline .n").forEach(n=>{if(!una(n))mal.push(caso+": «"+n.textContent+"» en dos lineas");});
+          const alto=fila.getBoundingClientRect().height;
+          fila.querySelector(".v").click();expect(app.$("#se_w")).toBeTruthy();
+          const ahora=fila.getBoundingClientRect().height;
+          /* los campos miden 44 y la fila pierde su relleno: de 40 a 46 px
+             como mucho (los 44 y el borde), nunca otra linea */
+          if(ahora>=50||ahora>Math.max(alto,46)+0.5)mal.push(caso+": la fila pasa de "+alto+" a "+ahora+" px al corregir");
+          if(!una(fila.querySelector(".n")))mal.push(caso+": corrigiendo, «"+fila.querySelector(".n").textContent+"» en dos lineas");
+          expect(fila.querySelector(".n").innerText.trim()).toBe("1");
+          if(app.doc.documentElement.scrollWidth>app.doc.documentElement.clientWidth)mal.push(caso+": la pagina desborda");
+          ["#se_w","#se_r",".setok",".del"].forEach(sel=>{const z=zona(app,fila.querySelector(sel));
+            if(JSON.stringify(z)!==JSON.stringify(z44))mal.push(caso+": "+sel+" "+JSON.stringify(z));});
+          /* y al guardar vuelve a decir «Serie 1» */
+          fila.querySelector(".setok").click();
+          expect(app.$("#sl_press_banca_db_0 .n").innerText.trim()).toBe("Serie 1");}}
+      finally{sinBarras.remove();raiz.style.fontSize="";app.frame.style.width="400px";}
+      expect(mal).toEqual([]);
+      app.reiniciarMemoria();});
     /* HU-10 pone la marca en su propia linea, bajo la cifra: la X de 44 baja
        10 px por esa linea, y la marca, pintada despues, se quedaba ese trozo */
     test("en una serie récord la marca no tapa la X ni la cifra, a 400 y a 320 px",app=>{

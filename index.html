@@ -353,10 +353,20 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
      la letra, y con DejaVu Sans la fila de editar pasaba 0,2 px de su sitio
      a 320 px, el visto bajaba de linea y la fila crecia 30 px bajo el dedo.
      Asi, con la letra de serie, cabe en una linea con cualquier letra sans
-     razonable (sobran 6 px con DejaVu, 10 con Inter). Con la letra grande no
-     cabe y se reparte: el visto baja, sin pisar la X. */
+     razonable (sobran 6 px con DejaVu, 10 con Inter). Con la letra grande,
+     hasta el 130 %, cabe porque la columna del numero pierde «Serie» (abajo);
+     mas alla se reparte: el visto baja, sin pisar la X. */
   .setin{width:3.3em;min-height:44px;font-size:var(--t-campo);padding:5px 0}
   .setline[data-editing]{padding-top:0;padding-bottom:0}
+  /* corrigiendo, la columna del numero se queda en el numero: «1», no
+     «Serie 1» (la fila es la misma y su sitio en la lista lo dice). Con la
+     letra grande los dos campos crecen con ella (3,3 em de --t-campo) y a
+     320 px, al 115 y al 130 %, con cualquier letra, no cabian con «Serie 1»
+     delante: el visto bajaba bajo el peso, la fila pasaba de 44 a 80 px bajo
+     el dedo y, con DejaVu Sans, «Serie 1» se partia en dos lineas. Sin la
+     palabra caben con 13 px de sobra en el peor caso (DejaVu, 320 px, 130 %) */
+  .setline[data-editing] .n{min-width:0}
+  .setline[data-editing] .np{display:none}
   .setline[data-editing] .v{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) 2px}
   /* el campo pide su sitio (10 em el de texto, 8 el de la hora) y el boton se
      queda al lado mientras quepa; con la letra grande baja a su propia linea
@@ -958,7 +968,10 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .gchart.show{display:block}
   .sets{margin:var(--s3) 0 0;display:flex;flex-direction:column;gap:6px}
   .setline{display:flex;align-items:center;gap:var(--s2);font-size:var(--t-sm);padding:9px 11px}
-  .setline .n{color:var(--mut);font-weight:var(--w-bold);width:calc(52em/12.5)}
+  /* «Serie 1» no se parte: la columna mide al menos sus 52 px de la letra de
+     serie y crece si la letra es mas ancha (DejaVu Sans a 320 px desde el
+     115 %: «Serie / 1» en dos lineas) */
+  .setline .n{color:var(--mut);font-weight:var(--w-bold);min-width:calc(52em/12.5);white-space:nowrap;flex:0 0 auto}
   .setline .v{font-weight:var(--w-semi);cursor:pointer}
   .setline .ck{margin-left:auto;color:var(--primary-ink);font-weight:var(--w-bold)}
   /* La X mide 44 de caja, no de pseudo-elemento: la zona ampliada de 23 px
@@ -1238,7 +1251,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .finsum .fs b{display:block;font-size:var(--t-lg);font-weight:var(--w-bold);line-height:1.2}
   .finsum .fs span{font-size:var(--t-2xs);letter-spacing:.6px}
   .finlist{display:flex;flex-direction:column;gap:6px;margin:0 0 var(--s4)}
-  .setline.fin .n{width:auto;flex:1;color:var(--tx);font-weight:var(--w-med)}
+  .setline.fin .n{width:auto;min-width:0;white-space:normal;flex:1;color:var(--tx);font-weight:var(--w-med)}
   .setline.fin .v{color:var(--mut);font-weight:var(--w-semi);font-size:var(--t-sm);text-align:right}
   .finempty{padding:16px 14px;text-align:center;font-size:var(--t-sm);color:var(--mut);
     font-weight:var(--w-med);margin:0 0 var(--s4);line-height:1.5}
@@ -3672,7 +3685,7 @@ function renderStep(keep){clearTimer();serieAbierta=true;const s=steps[stepi];le
       const sv=sessActive(curRoutine)?loadSess():null,prs=(sv&&sv.pr)||[];
       const prDe=i=>prs.find(p=>p.id===s.id&&p.i===i);
       const setsTxt=ds.map((x,i)=>{const pr=prDe(i);
-        return `<div class="setline${pr?" pr":""}" id="sl_${s.id}_${i}"><span class="n">Serie ${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${valor(x)}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie ${i+1}">${ic("close","xs")}</span>${pr?`<span class="prtag">${ic("trophy","xs")} ${esc(pr.kind||"Récord")}</span>`:""}</div>`;}).join("");
+        return `<div class="setline${pr?" pr":""}" id="sl_${s.id}_${i}"><span class="n"><span class="np">Serie </span>${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${valor(x)}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie ${i+1}">${ic("close","xs")}</span>${pr?`<span class="prtag">${ic("trophy","xs")} ${esc(pr.kind||"Récord")}</span>`:""}</div>`;}).join("");
       const pesoStep=cargado?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-1)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" role="button" tabindex="0" aria-label="Escribir el peso exacto" title="Toca para escribir el peso exacto">${fmtW(curW)}</b><button class="sq" onclick="adjW(1)" aria-label="Subir peso">+</button></div>${incChipHTML(s.id)}</div>`:'';
       const repsStep=`<div class="stepper"${cargado?'':' style="max-width:220px;margin:0 auto"'}><div class="lab">${cargado?'Reps':'Repeticiones'}</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" role="button" tabindex="0" aria-label="Escribir las repeticiones" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>`;
       inner=`<div class="logrow">${pesoStep}${repsStep}</div>${cargado?incPickHTML(s.id):""}${cargado?rirHTML():""}

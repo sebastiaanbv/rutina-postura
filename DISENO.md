@@ -399,12 +399,23 @@ otro aviso —el recordatorio— abre Inicio.
   - **Filas que se reparten**: la marca de un récord y su fecha, el botón junto a un campo o en
     el aviso de copia, la tercera caja de la pantalla de fin, la tercera columna del ejercicio
     propio, el selector de tema de Ajustes (su texto pide 8 em; con una letra ancha a 320 px y al
-    130 % el selector baja a su línea) y el visto de corregir una serie con la letra grande bajan
+    130 % el selector baja a su línea) y, pasado el 130 %, el visto de corregir una serie bajan
     de línea antes que recortar o pisar.
   - **Corregir una serie cabe en una línea con la letra de serie, con cualquier letra.** Los dos
     campos, la × y el visto van en un flex con 2 px entre ellos, no como texto con espacios cuyo
     ancho depende de la letra: con DejaVu Sans la fila pasaba 0,2 px de su sitio a 320 px, el
     visto bajaba y la fila crecía 30 px bajo el dedo. Sobran 6 px con DejaVu y 10 con Inter.
+    **Y con la letra grande, hasta el 130 %**: los campos crecen con la letra (3,3 em de
+    `--t-campo`) y a 320 px, al 115 y al 130 %, con las tres letras, el visto bajaba bajo el
+    peso y la fila pasaba de 46 a 80 px justo al tocar la cifra (también a 360 px al 130 %).
+    Corrigiendo, la columna del número dice solo «1» en vez de «Serie 1» (su sitio en la lista
+    ya dice qué serie es): con DejaVu a 320 px y al 130 % sobran 13 px. Y «Serie 1» no se parte
+    nunca: la columna mide al menos sus 52 px de la letra de serie y crece con una letra más
+    ancha (con DejaVu, a 320 px desde el 115 %, iba en dos líneas). Prueba en
+    `tests/pruebas_pantallas.js` («corregir una serie con la letra grande…», a 320, 360 y 375 px,
+    al 100, 115 y 130 %, sin barras de scroll): la fila no pasa de 46 px, todo sigue en 44 y
+    nadie pisa la zona de nadie; con lo anterior fallaba con las tres letras (80 px, y la zona
+    del peso pisada por el visto).
   - **Las opciones de una lista caben todas**, no solo la elegida: la persona puede elegir
     cualquiera. «Ninguno / peso corporal» pasa a «Sin aparato» y «Repeticiones por lado» a «Reps
     por lado», como el stepper (§11).
