@@ -31,6 +31,10 @@ var Fixtures=(function(){
   function fecha(n){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-n);return ds(d);}
   /* un instante concreto de hace n dias, en hora local */
   function momento(n,h,m){const d=new Date();d.setDate(d.getDate()-n);d.setHours(h,m||0,0,0);return d;}
+  /* inicio (ms) de una sesion de hoy que empezo hace min minutos: nunca antes
+     de las 00:00 de hoy. Entre las 00:00 y las 00:min, ahora-min cae en ayer,
+     y una sesion con date de hoy que empezo ayer no la escribe nunca la app */
+  function inicio(min){return Math.max(momento(0,0,0).getTime(),Date.now()-min*60000);}
   /* entrada de rp_history igual a la que escribe recordSession */
   function entrada(key,nombre,d,sum){const e={key:key,name:nombre,iso:d.toISOString(),day:DIAS[d.getDay()],
       date:p2(d.getDate())+"/"+p2(d.getMonth()+1)+"/"+d.getFullYear(),time:p2(d.getHours())+":"+p2(d.getMinutes())};
@@ -112,7 +116,7 @@ var Fixtures=(function(){
       else if(dow===5)sesion(D,"salud_equilibrio","Casa — Equilibrio",n,[],
         ["marcha_sitio","equilibrio_unipodal","sentadilla_silla","flexiones_pared","dead_bug"],13);}
     const bw=[];for(let i=27;i>=0;i--)if(i%2===0)bw.push({date:fecha(i),kg:Math.round((64.2-((i*3)%4)*0.1)*10)/10});
-    const ini=momento(0,9,0).getTime()<Date.now()?momento(0,9,0).getTime():Date.now()-20*60000;
+    const ini=Math.min(momento(0,9,0).getTime(),inicio(20));
     Object.assign(D,{
       rp_prefs:{goal:"salud",pesosDB:[1,2,3]},
       rp_plan:["salud_fuerza_a",null,"salud_fuerza_b",null,"salud_equilibrio",null,"rest"],
@@ -200,12 +204,12 @@ var Fixtures=(function(){
 
   /* ---- dueno() con Empuje a medias hoy (HU-63): 3 de 14, dos de
      calentamiento con visto y el press con sus tres series ---- */
-  function aMedias(){const D=dueno(),ini=Date.now()-25*60000;
+  function aMedias(){const D=dueno(),ini=inicio(25);
     D.rp_session={v:1,key:"gym_empuje",date:fecha(0),startedAt:ini,lastAt:ini+1200000,stepi:0,src:"guided",
       log:{press_banca_db:[{w:30,reps:8,t:ini+600000},{w:30,reps:8,t:ini+800000},{w:30,reps:7,t:ini+1000000}]}};
     D.rp_checks={[fecha(0)]:{gym_empuje:{caminadora:true,circulos_brazos:true,press_banca_db:true}}};
     return D;}
 
   return {vacio:()=>({}),dueno:dueno,madre:madre,dosAnos:dosAnos,sinCerrar:sinCerrar,cambioHora:cambioHora,
-    aMedias:aMedias,fecha:fecha,momento:momento,ds:ds};
+    aMedias:aMedias,fecha:fecha,momento:momento,inicio:inicio,ds:ds};
 })();

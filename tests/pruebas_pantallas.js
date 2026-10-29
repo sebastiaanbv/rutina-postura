@@ -6,6 +6,25 @@
   const F=Fixtures;
   const tab=(app,v)=>{app.$('.nav .tab[data-v="'+v+'"]').click();};
 
+  /* Calendario pinta el mes en curso. Los juegos de datos traen sesiones de
+     ayer hacia atras: el dia 1 (y el 2 o el 3 si los anteriores no tocan
+     entreno) el mes en curso aun no tiene ninguna, y se cuentan las del
+     anterior. calShift(1) lo devuelve al mes en curso */
+  function calendario(app,o){
+    tab(app,"history");
+    expect(app.activa()).toBe("history");
+    const dias=app.$$("#histBody .calcell:not(.empty)").length;
+    expect(dias>=28&&dias<=31).toBe(true);
+    let marcados=app.$$("#histBody .calcell.has").length;
+    if(o.conHistorial&&!marcados){app.w.calShift(-1);marcados=app.$$("#histBody .calcell.has").length;app.w.calShift(1);}
+    expect(marcados>0).toBe(o.conHistorial);
+    expect(app.$$("#histBody .calcell.istoday").length).toBe(1);
+    /* el ultimo dia entrenado muestra su sesion y sus series */
+    const h=app.leer("rp_history");
+    if(h&&h.length){const p=h[0].date.split("/");app.w.calPick(p[2]+"-"+p[1]+"-"+p[0]);
+      expect(app.$$("#histBody .dayblock").length).toBeGreaterThan(0);
+      expect(app.texto("#histBody .dayblock")).toContain(h[0].name);}}
+
   function humo(nombre,semilla,o){
     escenario("Pantallas · "+nombre,semilla,()=>{
       test("Inicio: rutinas, tarjeta de hoy, semana y racha",app=>{
@@ -63,18 +82,7 @@
         app.w.gAdjSets(1);igual();
         expect(app.texto("#lw")).toBe("7.5");
         app.w.gResetSets();igual();});
-      test("Calendario: mes pintado y dias con actividad",app=>{
-        tab(app,"history");
-        expect(app.activa()).toBe("history");
-        const dias=app.$$("#histBody .calcell:not(.empty)").length;
-        expect(dias>=28&&dias<=31).toBe(true);
-        expect(app.$$("#histBody .calcell.has").length>0).toBe(o.conHistorial);
-        expect(app.$$("#histBody .calcell.istoday").length).toBe(1);
-        /* el ultimo dia entrenado muestra su sesion y sus series */
-        const h=app.leer("rp_history");
-        if(h&&h.length){const p=h[0].date.split("/");app.w.calPick(p[2]+"-"+p[1]+"-"+p[0]);
-          expect(app.$$("#histBody .dayblock").length).toBeGreaterThan(0);
-          expect(app.texto("#histBody .dayblock")).toContain(h[0].name);}});
+      test("Calendario: mes pintado y dias con actividad",app=>calendario(app,o));
       test("Progreso: indice de fuerza, peso, musculos y constancia",app=>{
         tab(app,"progress");
         expect(app.activa()).toBe("progress");
@@ -104,6 +112,20 @@
   humo("madre (casa, salud, 1-3 kg)",F.madre,{tema:"light",rutina:"salud_fuerza_a",cargado:"press_hombro_db",avisoCopia:false,
     conHistorial:true,conIndice:true,pesos:"1 2 3",objetivo:"Salud y mantenimiento",hoy:"En curso",chip:false,
     aMedias:"Casa — Fuerza B"});
+
+  /* el mismo recorrido de Calendario con el reloj en un dia 1, cuando el mes
+     en curso aun no tiene sesiones: los datos se generan como si hoy fuera el
+     1 de octubre de 2026 y la app pinta con el reloj parado ahi */
+  [["dueño",F.dueno],["madre",F.madre]].forEach(([nombre,juego])=>{
+    const UNO="2026-10-01T10:00:00Z";
+    escenario("Pantallas · Calendario el día 1 del mes ("+nombre+")",()=>Pruebas.conReloj("UTC",UNO,juego),()=>{
+      test("mes pintado y dias con actividad tambien el dia 1",async app=>{
+        await app.enZona("UTC",()=>{app.ev("calY=null;calM=null;calSel=null");
+          expect(app.w.today()).toBe("2026-10-01");
+          calendario(app,{conHistorial:true});
+          app.ev("calY=null;calM=null;calSel=null");},UNO);});
+    });
+  });
 
   /* un descanso de 0 s ajustado por la persona: la serie siguiente entra sin
      pasar por la pantalla de descanso; sin el ajuste, el del programa sigue */
@@ -332,6 +354,20 @@
   racha("gimnasio, masa (Fixtures.dueno)",F.dueno,{rutina:"gym_empuje",salud:false});
   racha("casa, salud (Fixtures.madre)",F.madre,{rutina:"salud_fuerza_b",salud:true});
 
+  /* los juegos con una sesion de hoy a medias la empiezan hoy, tambien si las
+     pruebas corren entre las 00:00 y las 00:25 (UTC en la CI): si empezara
+     ayer, al terminarla la app la apuntaria en ayer y las pruebas de racha
+     de madre fallarian */
+  escenario("Juegos de datos · sesión de hoy pasada la medianoche",F.vacio,()=>{
+    [["madre",F.madre],["aMedias",F.aMedias]].forEach(([nombre,juego])=>{
+      ["2026-11-02T00:05:00Z","2026-11-02T00:19:00Z","2026-11-02T12:00:00Z"].forEach(ahora=>{
+        test(nombre+" a las "+ahora.slice(11,16)+" (UTC): rp_session empieza hoy y no despues de ahora",()=>{
+          const s=Pruebas.conReloj("UTC",ahora,juego).rp_session;
+          expect(s.date).toBe("2026-11-02");
+          expect(new Date(s.startedAt).toISOString().slice(0,10)).toBe("2026-11-02");
+          expect(s.startedAt<=Date.parse(ahora)).toBe(true);});});});
+  });
+
   /* el juego de gimnasio con todas sus sesiones completas (todas cuentan)
      y la meta una por encima de lo hecho esta semana: la rutina que se
      termina en la prueba es la que la cumple, sea el dia que sea */
@@ -545,7 +581,7 @@
   /* Borrar una serie (HU-54): las zonas de toque de la fila y el aviso.
      La zona se mide como la ve el dedo: elementFromPoint ve los
      pseudo-elementos que agrandan un control y lo que otro tapa encima. */
-  function conSerie(){const ini=Date.now()-20*60000;
+  function conSerie(){const ini=F.inicio(20);
     return {rp_session:{v:1,key:"gym_empuje",date:F.fecha(0),startedAt:ini,lastAt:ini,stepi:0,src:"guided",
       log:{press_banca_db:[{w:122.5,reps:12,t:ini+60000,rir:3},{w:22.5,reps:8,t:ini+240000},{w:22.5,reps:7,t:ini+420000,rir:0}]}}};}
   /* la serie 1 con su record, como lo pinta HU-10 */

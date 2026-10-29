@@ -10,6 +10,8 @@
      puede medir lo que mide (el reloj virtual de run.py); sale omitida con su motivo
    await app.enZona("Europe/Madrid", fn, "2026-11-04T12:30:00Z")
      corre fn con la app en esa zona horaria (y ese reloj, opcional)
+   Pruebas.conReloj("UTC", "2026-10-01T10:00:00Z", Fixtures.dueno)
+     genera un juego de datos como si hoy fuera ese dia (en esa zona)
    await Pruebas.tiempoReal(async () => { ... })
      corre fn sin que el reloj virtual de la CI salte (CacheStorage de verdad)
    expect(x).toBe / toEqual / toBeCloseTo / toBeTruthy / toBeFalsy / toContain /
@@ -133,6 +135,13 @@
       toLocaleTimeString(l,o){return P.toLocaleTimeString.call(this,l,Object.assign({timeZone:zona},o));}}
     return FechaZona;}
 
+  /* corre fn (sincrona) con el Date del arnes en esa zona y con el reloj
+     parado en ahora ("2026-10-01T10:00:00Z"): un juego de Fixtures, que cuenta
+     sus fechas desde hoy, sale como si hoy fuera ese dia. Al terminar vuelve
+     el Date de siempre */
+  function conReloj(zona,ahora,fn){const Base=G.Date;G.Date=fechaEnZona(Base,zona,Base.parse(ahora));
+    try{return fn();}finally{G.Date=Base;}}
+
   /* ---- la app en su iframe ---- */
   G.__erroresApp=[];
   const SRC="../index.html?__pruebas=1";
@@ -232,6 +241,6 @@
     res.errores_sueltos=G.__erroresApp.filter(e=>!e.visto).map(e=>e.tipo+": "+e.msg.split("\n")[0]);
     res.terminado=true;res.duracion_ms=Math.round(performance.now()-t0);publicar();}
 
-  G.Pruebas={escenario:escenario,test:test,expect:expect,app:app,correr:correr,espera:espera,hasta:hasta,tiempoReal:tiempoReal};
+  G.Pruebas={escenario:escenario,test:test,expect:expect,app:app,correr:correr,espera:espera,hasta:hasta,tiempoReal:tiempoReal,conReloj:conReloj};
   G.escenario=escenario;G.test=test;G.expect=expect;
 })(window);

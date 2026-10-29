@@ -1151,7 +1151,7 @@
   /* Borrar una serie del guiado era un toque sin vuelta atras. Ahora sale
      «Serie borrada · Deshacer» unos segundos: deshacer deja la sesion
      identica, y dejarlo pasar la deja sin la serie. */
-  function conSerie(){const ini=Date.now()-20*60000;
+  function conSerie(){const ini=F.inicio(20);
     return {rp_session:{v:1,key:"gym_empuje",date:F.fecha(0),startedAt:ini,lastAt:ini,stepi:0,src:"guided",
       log:{press_banca_db:[{w:20,reps:10,t:ini+60000,rir:2},{w:22.5,reps:8,t:ini+240000},{w:22.5,reps:7,t:ini+420000,rir:0}]}}};}
   /* la sesion menos lastAt, que es el sello de la ultima escritura; en
