@@ -572,7 +572,9 @@ terminada sin preguntar; y entrar al guiado solo para mirar ya creaba `rp_sessio
   espacio y finalízala») y las dos quedan como estaban. Si la otra está entera en `rp_session`, se
   sigue a la nueva solo en memoria, como hasta ahora, y mientras esta tenga series no se vuelve a
   preguntar: cada serie reintenta guardar la otra, que ya se eligió guardar. Si la otra tiene
-  series que solo viven en memoria, la hoja se queda, porque cambiar de rutina las perdería.
+  series que solo viven en memoria, la hoja se queda, porque cambiar de rutina las perdería. Por
+  el visto, la hoja también se queda y no se marca nada: un visto no tiene memoria donde esperar,
+  y marcarlo pondría el «No cupo» genérico encima del aviso de la otra sesión.
 - **Las de otros días no cambian:** no abren la hoja, se rescatan al abrir con «Entrenamiento sin
   cerrar» y, si se dejan para luego, se guardan con su fecha al entrar al guiado o al primer
   visto, como antes. Mezcladas con lo de hoy pasarían por de hoy.

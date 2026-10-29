@@ -3129,7 +3129,9 @@ function conflictBack(){const c=conflicto;conflicto=null;if(!c)return;
    en memoria: cambiar de rutina las perderia, y la hoja se queda. */
 function conflictSave(){const c=conflicto;if(!c)return;
   const res=finishSession(c.o,"switch");
-  if(res&&res.lleno){avisoAbierta(c.o);if(soloEnMemoria(c.o))return;}
+  /* por el visto, la hoja tambien se queda: un visto no tiene memoria donde
+     esperar, y marcarlo taparia el aviso de que la otra no se guardo */
+  if(res&&res.lleno){avisoAbierta(c.o);if(c.act.id!=null||soloEnMemoria(c.o))return;}
   conflicto=null;curRoutine=c.k;
   if(c.act.id!=null){marcarFila(c.act.id,c.act.i,true);closePlan();return;}
   $("planov").classList.remove("show");

@@ -881,6 +881,29 @@
       expect([s.key,s.log.jalon_pecho.length]).toEqual(["gym_tiron",2]);
       await app.espera(400);app.ev("clearTimer()");
       app.reiniciarMemoria();});
+    test("teléfono lleno al guardar desde el visto: queda el aviso de Empuje, la hoja sigue y no se marca nada",async app=>{
+      await app.arrancar(F.aMedias);const h0=app.leer("rp_history").length;
+      app.w.openRoutine("gym_tiron");fila(app,"jalon_pecho").querySelector(".exck").click();
+      expect(hoja(app)).toBe(true);
+      const antes=app.foto();sinAviso(app);const libera=lleno(app,{margen:0});
+      try{boton(app,"Guardar Empuje y empezar Tirón").click();
+        expect(app.texto("#toast")).toBe("No cupo en el teléfono: la sesión de Empuje sigue abierta sin guardar. Libera espacio y finalízala.");
+        /* un visto no tiene memoria donde esperar: no se marca lo que no cabe */
+        expect(hoja(app)).toBe(true);
+        const f=fila(app,"jalon_pecho");
+        expect(f.classList.contains("checked")).toBe(false);
+        expect(f.querySelector(".exck").getAttribute("aria-checked")).toBe("false");
+        expect(app.foto()).toEqual(antes);
+        expect(app.leer("rp_session").key).toBe("gym_empuje");
+      }finally{libera();}
+      /* con espacio, volver a pulsar guarda Empuje y marca el visto */
+      boton(app,"Guardar Empuje y empezar Tirón").click();
+      await app.hasta(()=>!hoja(app),3000,"que se cierre la hoja");
+      expect(fila(app,"jalon_pecho").classList.contains("checked")).toBe(true);
+      expect(app.w.checksOn(app.w.today(),"gym_tiron")).toEqual({jalon_pecho:true});
+      expect(app.leer("rp_history").length).toBe(h0+1);
+      expect(app.leer("rp_history")[0].key).toBe("gym_empuje");
+      app.reiniciarMemoria();});
     test("teléfono lleno con series de Empuje solo en pantalla: la hoja se queda y no se pierde ninguna",async app=>{
       await app.arrancar(F.aMedias);
       app.w.openRoutine("gym_empuje");app.w.startRoutine("fondos_paralelas");
