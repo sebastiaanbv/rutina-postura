@@ -603,6 +603,42 @@
       app.reiniciarMemoria();});
   });
 
+  /* HU-10: el record se apuntaba leyendo rp_session y, si no cabia, se perdia
+     para siempre; y su aviso tapaba el de «No cupo» */
+  escenario("Almacenamiento lleno · récord en la propia serie",F.vacio,()=>{
+    async function aLaMarca(app){await app.arrancar(F.dueno);movimiento(app,true);
+      app.w.openRoutine("gym_empuje");app.w.startRoutine("press_banca_db");
+      app.ev("curW=20;curReps=8");app.w.logSet();app.w.skipRest();await app.espera(400);
+      app.ev("curW=60;curReps=8");
+      expect(app.w.isPR("press_banca_db",60,8)).toBe(true);
+      expect(app.w.prLevel("press_banca_db",60,8)).toBe(2);
+      sinAviso(app);const libera=lleno(app,{margen:0});
+      try{app.w.logSet();
+        expect(app.texto("#toast")).toContain("No cupo en el teléfono");
+        expect(app.texto("#toast")).not.toContain("Récord");
+        expect(app.leer("rp_session").pr||[]).toEqual([]);}
+      finally{libera();}
+      await app.espera(400);app.w.skipRest();await app.espera(400);}
+    test("al haber espacio, la siguiente serie guarda el récord en su serie y llega al historial",async app=>{
+      await aLaMarca(app);
+      app.ev("curW=20;curReps=8");app.w.logSet();await app.espera(400);
+      const s=app.leer("rp_session");
+      expect(s.log.press_banca_db.map(x=>x.w)).toEqual([20,60,20]);
+      expect(s.pr.map(p=>[p.id,p.w,p.reps,p.i,p.lvl])).toEqual([["press_banca_db",60,8,1,2]]);
+      app.w.skipRest();
+      const res=app.w.finishSession("gym_empuje","guided");
+      expect(res.summary.pr).toHaveLength(1);
+      expect(app.leer("rp_history")[0].pr.map(p=>[p.w,p.i])).toEqual([[60,1]]);
+      app.reiniciarMemoria();});
+    test("al haber espacio, finalizar sin otra serie también guarda el récord",async app=>{
+      await aLaMarca(app);
+      const res=app.w.finishSession("gym_empuje","guided");
+      expect(!!res&&!res.lleno).toBe(true);
+      expect(app.leer("rp_logs").press_banca_db.slice(-1)[0].sets.map(x=>x.w)).toEqual([20,60]);
+      expect(app.leer("rp_history")[0].pr.map(p=>[p.w,p.reps,p.i,p.lvl])).toEqual([[60,8,1,2]]);
+      app.reiniciarMemoria();});
+  });
+
   escenario("Almacenamiento lleno · sesión guardada de la madre",F.madre,()=>{
     test("finalizar sin espacio no escribe a medias ni borra la sesión",app=>{
       const antes=app.foto();expect(antes.rp_session).toBeTruthy();

@@ -641,13 +641,19 @@ de fin, y ninguno decía qué se había superado.
   de una serie borrada o corregida llegaba igual a la pantalla de fin y al historial. Corregir una
   errata que sigue siendo récord lo conserva con su nuevo valor. Como `markPR` desde HU-63, rehacer
   y pintar la marca solo miran la sesión de hoy de esta rutina, nunca la de otra a medias.
+- **Con el teléfono lleno el récord no se pierde.** `markPR` lo apuntaba en un `rp_session` leído
+  del disco y, si no cabía, no quedaba ni ahí ni en memoria: la serie, la pantalla de fin y
+  `rp_history[].pr` se quedaban sin él mientras Progreso (que lo calcula de `rp_logs`) sí lo
+  listaba. Ahora el ejercicio queda pendiente en memoria (`prSinGuardar`) y sus récords se rehacen
+  desde las series con `prRecalc` en cuanto estas caben (`touchSess`), o al finalizar. Y si no
+  cabe, sale el «No cupo», no el aviso de récord: el récord se verá en su serie al guardarse.
 - **`isPR` cuenta lo mismo que `prFeed`** (Récords recientes): no cuenta el calentamiento, y la
   primera vez que se registra un ejercicio no hay récord aunque la segunda serie pese más. Antes el
   guiado celebraba récords que Progreso nunca listaba.
 - **Pruebas** en `tests/pruebas_logica.js` (calentamiento, coherencia serie a serie con `prFeed`,
   `prKind`, la marca por número, borrar y corregir, aviso solo en nivel 2) y en
-  `tests/pruebas_datos.js` (ida y vuelta de `i` y `kind`, y datos de v35 sin ellos en el guiado,
-  la pantalla de fin y el calendario). Las tres que terminan con solo el pecho hecho esperan
+  `tests/pruebas_datos.js` (ida y vuelta de `i` y `kind`, datos de v35 sin ellos en el guiado,
+  la pantalla de fin y el calendario, y un récord de nivel 2 con el teléfono lleno). Las tres que terminan con solo el pecho hecho esperan
   «Guardada · 1 de 14 ejercicios», no «Completada»: con HU-09 eso es lo que dice el final con
   ejercicios sin hacer.
 
