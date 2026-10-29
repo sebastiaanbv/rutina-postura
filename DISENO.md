@@ -832,13 +832,28 @@ confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se toca
   siempre» en tres líneas a 320 px, el de récord en cinco), y el `nowrap` que mantenía «Serie
   borrada» en una línea sacaba «Deshacer» de la píldora con letra grande. Ahora se centra con
   márgenes automáticos; si el texto no cabe se parte él, y el botón queda entero dentro.
+  El aviso con botón llega hasta 8 px del borde (`.toast.conboton`, `calc(100% - 16px)`), no
+  al 86 %: con DejaVu Sans, «Serie borrada» y «Deshacer» piden 287 px al 130 % y a 320 px el
+  86 % son 275. Partido en «Serie / borrada», el aviso dejaba un hueco antes de Deshacer y
+  pasaba de 48 a 71 px de alto, y en el guiado de la madre casi nunca le quedaba sitio donde no
+  tapara un control («Una serie menos» y «Una serie más» a 320×760; abajo, «Nota fija» a
+  320×568). A 304 px le sobran 16 con DejaVu: cabe en una línea con la letra al 130 % también
+  con una letra un 8 % más ancha. En `%` y no en `vw`: fijo, el `%` es la ventana sin la barra
+  de scroll.
 - **En el guiado, el aviso con Deshacer sale arriba**, bajo la barra (Paso anterior, Salir), sobre
   el nombre y la figura. Abajo, la zona de toque de Deshacer caía sobre «Registrar serie», el «+»
   o «Nota fija» (a 360×640 y 375×667): volver a registrar justo después de borrar deshacía en vez
   de anotar. Si arriba también pisa un control (página desplazada hasta la última serie, a
   320×568), baja hasta el primer hueco sin controles (`colocaAviso`); si no lo hay, lo busca
   también por encima de la barra y, centrado, si no cabe, algo movido a un lado (HU-55, «Con
-  cualquier letra»). La posición se vuelve a
+  cualquier letra»). En vertical no prueba de 8 en 8, sino cada sitio donde el aviso (con la
+  zona de 44 px de Deshacer) toca justo el borde de un control, por arriba o por abajo: un hueco
+  libre empieza siempre en uno de esos bordes, así que si lo hay lo encuentra. De 8 en 8 se
+  saltaba los huecos justos: con la madre a 320×568 y letra al 115 % (Roboto) el aviso cabía
+  entre «¿Molestia…?» y el + de «Series» en 6 px de recorrido, ninguno múltiplo de 8, y tapaba
+  la serie 1 (con DejaVu, igual a 320×640 al 115 %). Y cuando no hay hueco para el aviso
+  entero, de los sitios donde al menos Deshacer no cae sobre un control elige el que menos
+  superficie de controles tapa, no el primero. La posición se vuelve a
   calcular cada vez que la página se desplaza o la ventana cambia de tamaño (`recolocaAviso`):
   calculada una sola vez, al desplazar en esos 7 s «Registrar serie» o el «+» podían pasar bajo
   Deshacer. Los avisos sin botón siguen abajo, donde siempre.
@@ -1139,9 +1154,32 @@ escala estaba en px y la raíz fijada a 14.
     `left:50%` (de 2 a 5 líneas a media pantalla).
   - **Tres perfiles de letra**: la CI se corre con Inter, con DejaVu Sans y con Roboto
     (`FONTCONFIG_FILE`, cómo en `tests/README.md`), dos veces cada uno, y Playwright.
-- **Lo que queda abierto**: al 150 % el selector de tema, lo único que se salía a 320 px, ya baja
-  de línea; al 200 % se salen los títulos de una sola palabra («Calendario») y el botón
-  «Registrar rutina». Para eso está el pellizco. No se ha probado en un teléfono real: las
+  - **El aviso de Deshacer, en una línea y sin tapar controles**: «Serie borrada · Deshacer»
+    llega hasta 8 px del borde y `colocaAviso` prueba cada borde de control en vez de ir de 8 en
+    8 (HU-54, arriba). Prueba en `tests/pruebas_pantallas.js` («tras borrar…»), sin barras de
+    scroll como en el teléfono (con la de 15 px del Chrome de las pruebas, a «320 px» la ventana
+    medía 335 y el aviso, en `vw`, tenía justo lo que DejaVu necesitaba para no partirse): con
+    la madre a 320×760, 320×640, 320×568 y 360×640, letra al 100, 115 y 130 % y borrando la
+    primera o la última serie, «Serie borrada» va en una línea, el aviso entero no tapa ningún
+    control salvo en el caso sin hueco de abajo y, si tapa, se comprueba de píxel en píxel que no
+    había hueco a ninguna altura, centrado ni movido a un lado, y que de los sitios donde Deshacer
+    queda libre está en el que menos tapa. Falla con DejaVu si se vuelve al 86 %, con DejaVu y
+    Roboto si se vuelve a probar de 8 en 8, y con Inter y Roboto si sin hueco se queda con el
+    primer sitio en vez del que menos tapa.
+- **Lo que queda abierto, el aviso sin hueco**: con la madre a 320×568 y letra grande
+  (115-130 %), borrando la primera serie, la pantalla es control de arriba abajo (steppers,
+  «¿Cuántas más podías?», «La última vez», la serie, «Registrar serie», «Nota fija»,
+  «¿Molestia…?») y entre dos no quedan los 45-48 px del aviso. Ahí el aviso tapa un control sus
+  7 s: con Inter y Roboto, la mitad de abajo de la serie 1, entre ella y «Registrar serie» (su
+  cifra y su X asoman por arriba, y Deshacer queda libre); con DejaVu Sans, sin sitio ni para
+  Deshacer, vuelve abajo, sobre «Nota fija» y «¿Molestia…?». Incumple «el aviso entero no
+  tapa ningún control» (HU-54, «Nada atraviesa el aviso») y es su último recurso: nada se
+  activa a ciegas (el toque en el aviso no hace nada), Deshacer sigue a la vista y basta
+  desplazar la página para que el aviso busque otro sitio. La prueba solo lo admite en ese caso. Lo que lo cerraría es un sitio fijo para el
+  aviso que la página deje libre, y eso es otro diseño del guiado.
+- **Lo que queda abierto, la letra**: al 150 % el selector de tema, lo único que se salía a
+  320 px, ya baja de línea; al 200 % se salen los títulos de una sola palabra («Calendario») y
+  el botón «Registrar rutina». Para eso está el pellizco. No se ha probado en un teléfono real: las
   pruebas simulan la letra del sistema agrandando la raíz, que es lo que hacen `text-scale` y
   `-apple-system-body`, y su letra con los perfiles de fontconfig (Roboto de Android sí; SF de
   iOS no, que no se puede instalar fuera de Apple: DejaVu Sans, más ancha, hace de cota).

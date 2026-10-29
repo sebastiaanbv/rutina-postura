@@ -890,9 +890,23 @@
        datos de la madre a 320 px y letra al 130 %, el Deshacer quedaba sobre
        el + de «Series». Tiene que quedar donde lo pondria colocaAviso con la
        pagina ya repintada, y su boton sin pisar ningun control */
+    /* y el aviso entero tampoco tapa ningun control: lo que tapa no se puede
+       tocar en sus 7 s. Con DejaVu Sans «Serie borrada» se partia a 320 px y
+       al 130 % (el aviso, de 48 a 71 px de alto) y tapaba «Una serie menos»
+       y «Una serie más» a 320x760, o volvia abajo sobre «Nota fija». Ahora va
+       en una linea, y el unico sitio sin hueco para el aviso entero es
+       320x568 con letra grande, borrando la primera serie: la pantalla es
+       control de arriba abajo, sin 48 px libres entre dos (DISENO §13, HU-54,
+       lo que queda abierto) */
     test("tras borrar, el aviso se coloca con la página ya repintada (madre, 320 px, letra al 130 %)",async app=>{
-      const raiz=app.doc.documentElement,mal=[];let casos=0,sinHueco=0;
-      try{for(const [w,h] of [[320,760],[320,568],[360,640]])for(const pct of [100,115,130])for(const cual of ["primera","última"]){
+      const raiz=app.doc.documentElement,mal=[],tapan=[];let casos=0,sinHueco=0;
+      /* sin barras de scroll que ocupen sitio, como en el telefono: con la
+         de 15 px del Chrome de las pruebas, a «320 px» la ventana mide 335 y
+         el 86 % del aviso, en vw, tenia 13 px mas que en el telefono (con
+         DejaVu Sans, justo lo que «Serie borrada» necesitaba para no
+         partirse: la prueba no veia lo que pasaba en el telefono) */
+      const sinBarras=app.doc.createElement("style");sinBarras.textContent="*{scrollbar-width:none}";app.doc.head.appendChild(sinBarras);
+      try{for(const [w,h] of [[320,760],[320,640],[320,568],[360,640]])for(const pct of [100,115,130])for(const cual of ["primera","última"]){
           app.frame.style.width=w+"px";app.frame.style.height=h+"px";raiz.style.fontSize=pct===100?"":pct+"%";
           app.w.toastFuera();app.reiniciarMemoria();app.sembrar(F.madre);
           app.w.openRoutine("salud_fuerza_b");app.w.startRoutine("remo_db");anchoUtil(app,w);
@@ -910,6 +924,35 @@
           const caso=w+"x"+h+" "+pct+"% "+cual;
           if(JSON.stringify([t.className,t.style.top])!==JSON.stringify(donde))mal.push(caso+": "+donde[1]+" en vez de "+t.style.top);
           app.w.colocaAviso(t,donde[0].indexOf("arriba")>=0);if(donde[1])t.style.top=donde[1];quieta(app);
+          /* «Serie borrada» y Deshacer en una linea, con el ancho que declara
+             el aviso con boton (hasta 8 px del borde) */
+          if(app.w.innerWidth!==w)mal.push(caso+": la ventana mide "+app.w.innerWidth+" px");
+          mal.push(...usaElAncho(app,t,w-16).map(m=>caso+": "+m));
+          const ms=t.querySelector(".tmsg"),lh=parseFloat(app.w.getComputedStyle(ms).lineHeight);
+          if(ms.getBoundingClientRect().height>lh*1.5)mal.push(caso+": «Serie borrada» partido en "+Math.round(ms.getBoundingClientRect().height/lh)+" lineas");
+          const tr=t.getBoundingClientRect(),bajo=[];
+          app.$$("#guided button,#guided [role=button],#guided input,#guided summary,#guided a").forEach(c=>{const r=c.getBoundingClientRect();
+            const x0=Math.max(r.left,tr.left)+1,x1=Math.min(r.right,tr.right)-1,y0=Math.max(r.top,tr.top)+1,y1=Math.min(r.bottom,tr.bottom)-1;
+            if(!r.width||x0>=x1||y0>=y1)return;
+            for(let yy=y0;yy<=y1;yy+=3)for(let xx=x0;xx<=x1;xx+=3){const e=app.doc.elementFromPoint(xx,yy);
+              if(e&&t.contains(e)){bajo.push(c.getAttribute("aria-label")||c.textContent.trim().slice(0,20));return;}}});
+          if(bajo.length)tapan.push(caso+": tapa «"+bajo.join("», «")+"»");
+          /* y si tapa, es que no habia ningun hueco a ninguna altura, ni
+             centrado ni movido a un lado (de 8 en 8 hasta 8 px del borde,
+             como lo prueba colocaAviso): se prueban todas las alturas, de
+             pixel en pixel (de 8 en 8 se saltaba los huecos justos, con 6 px
+             de recorrido). Y de donde al menos Deshacer queda libre, esta en
+             el que menos superficie de controles tapa */
+          if(app.w.avisoPisa(t,null,true)){const l=t.style.left,r=t.style.right;t.style.left=t.style.right="";
+            const xc=t.offsetLeft,cs=app.w.controlesGuiado(),cw=app.doc.documentElement.clientWidth;t.style.left=l;t.style.right=r;
+            const lado=Math.max(0,Math.min(xc,cw-xc-t.offsetWidth)-8),dxs=[0];for(let d=8;d<=lado;d+=8)dxs.push(-d,d);
+            const altos=[];for(let y=8;y<=app.w.innerHeight-t.offsetHeight;y++)altos.push(y);
+            const hueco=dxs.map(dx=>altos.filter(y=>!app.w.avisoPisa(t,cs,true,null,xc+dx,y)).map(y=>dx+","+y)[0]).filter(Boolean);
+            if(hueco.length)mal.push(caso+": tapa controles y habia hueco en "+hueco[0]);
+            if(t.classList.contains("arriba")&&!app.w.avisoPisa(t,cs,false)){const ya=app.w.avisoTapa(t,cs,t.offsetLeft,t.offsetTop);
+              const menos=dxs.map(dx=>altos.filter(y=>!app.w.avisoPisa(t,cs,false,null,xc+dx,y)&&app.w.avisoTapa(t,cs,xc+dx,y)<ya-1)
+                .map(y=>dx+","+y+" ("+app.w.avisoTapa(t,cs,xc+dx,y).toFixed(0)+")")[0]).filter(Boolean);
+              if(menos.length)mal.push(caso+": tapa "+ya.toFixed(0)+" px² y en "+menos[0]+" taparia menos");}}
           /* sin ningun hueco (320x568 con letra grande) se queda donde siempre */
           if(donde[0].indexOf("arriba")<0){sinHueco++;continue;}
           app.$$("#guided button,#guided [role=button],#guided input").forEach(c=>{const r=c.getBoundingClientRect();
@@ -917,10 +960,12 @@
             for(let y=r.top+2;y<r.bottom-1;y+=4)for(let xx=r.left+2;xx<r.right-1;xx+=4){
               const e=app.doc.elementFromPoint(xx,y);
               if(e&&bt.contains(e)){mal.push(caso+": Deshacer sobre «"+(c.getAttribute("aria-label")||c.textContent.trim().slice(0,20))+"»");return;}}});}}
-      finally{raiz.style.fontSize="";app.frame.style.width="400px";app.frame.style.height="800px";}
-      expect(casos).toBe(18);
+      finally{sinBarras.remove();raiz.style.fontSize="";app.frame.style.width="400px";app.frame.style.height="800px";}
+      expect(casos).toBe(24);
       expect(mal).toEqual([]);
       expect(sinHueco).toBeLessThan(3);
+      expect(tapan.filter(c=>!/^320x568 1(15|30)% primera:/.test(c))).toEqual([]);
+      expect(tapan.length).toBeLessThan(3);
       app.reiniciarMemoria();});
     test("con teclado: Enter en la X lleva el foco a Deshacer, y Deshacer a la serie recuperada",app=>{abrir(app);
       const x=app.$("#sl_press_banca_db_2 .del");x.focus();

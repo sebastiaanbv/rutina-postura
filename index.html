@@ -505,6 +505,14 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     font-weight:var(--w-bold);color:var(--hero-accent);cursor:pointer;visibility:hidden}
   .toast.show .tact{visibility:visible;pointer-events:auto}
   .toast .tact:focus-visible{box-shadow:0 0 0 2px var(--hero-accent)}
+  /* el aviso con boton llega hasta 8 px del borde, no al 86 %: con una
+     letra ancha (DejaVu Sans) «Serie borrada» y «Deshacer» piden 287 px al
+     130 % y a 320 px el 86 % son 275. Partido, «Serie / borrada» dejaba un
+     hueco antes de Deshacer y el aviso pasaba de 48 a 71 px de alto, sin
+     sitio en el guiado donde no tapara un control (v36, HU-54). En % y no
+     en vw: fijo, el % es de la ventana sin la barra de scroll, y en un
+     ordenador con barra de 15 px el aviso no llega al borde */
+  .toast.conboton{max-width:calc(100% - 2*var(--s2))}
 
   /* pantalla de fin */
   .done .hero{margin:0 auto var(--s4);width:104px;height:104px;display:block}
@@ -1892,7 +1900,7 @@ function toast(html,ms,fin){const el=$("toast");if(!el)return;
      aviso con boton ya llega asi (icono, .tmsg y el boton) */
   const m=/^\s*(<svg[\s\S]*?<\/svg>)\s*([\s\S]*)$/.exec(html);
   el.innerHTML=/class="tmsg"/.test(html)?html:m?m[1]+'<span class="tmsg">'+m[2]+"</span>":'<span class="tmsg">'+html+"</span>";
-  el.classList.add("show");toastFin=fin||null;
+  el.classList.add("show");el.classList.toggle("conboton",!!el.querySelector(".tact"));toastFin=fin||null;
   colocaAviso(el,!!fin&&inGuided());
   clearTimeout(toastT);toastT=setTimeout(()=>{toastCierra();el.classList.remove("show");},ms||2600);}
 /* el aviso con boton, en el guiado, arriba, bajo la barra: abajo su boton
@@ -1901,8 +1909,8 @@ function toast(html,ms,fin){const el=$("toast");if(!el)return;
    baja hasta el primer hueco libre. Primero busca uno donde el aviso entero
    no tape ninguno: como se queda los toques, lo que tapa no se puede tocar
    en esos 7 s (con los datos del dueno, el chip "¿De cuanto sube?"). Si no
-   lo hay, uno donde al menos el boton no caiga sobre un control; sin
-   ninguno, donde siempre.
+   lo hay, de los sitios donde al menos el boton no cae sobre un control, el
+   que menos tapa; sin ninguno, donde siempre.
    Se busca primero bajo la barra y, si ahi no hay hueco, tambien por encima,
    hasta el borde de la pantalla: con la pagina desplazada la barra ya no
    esta y ese trozo es pagina como cualquier otro. Y si centrado no cabe en
@@ -1913,17 +1921,44 @@ function toast(html,ms,fin){const el=$("toast");if(!el)return;
    serie». Los huecos estaban encima, entre el stepper y el chip del salto,
    o a 8 px a la izquierda, donde Deshacer deja de rozar las X.
    Las posiciones se prueban con cuentas, sin mover el aviso: mover y medir
-   cada una obligaria a maquetar cientos de veces en cada desplazamiento. */
+   cada una obligaria a maquetar cientos de veces en cada desplazamiento.
+   En vertical no se prueba de 8 en 8 sino cada sitio donde el aviso (con la
+   zona de 44 px del boton), o solo esa zona, toca justo el borde de un
+   control, por debajo o por encima: un hueco libre empieza y acaba siempre
+   en uno de esos bordes o en los extremos, asi que si lo hay se encuentra.
+   De 8 en 8 se saltaba los huecos justos: con los datos de la madre a
+   320x568 y letra al 115 % (Roboto), borrando la primera serie, el aviso
+   cabia entre «¿Molestia…?» y el + de «Series» en 6 px de recorrido, ninguno
+   de los probados, y tapaba la serie 1. */
 function colocaAviso(el,arriba){el.style.top="";el.style.left=el.style.right="";el.classList.toggle("arriba",arriba);if(!arriba)return;
   const b=el.querySelector(".tact"),cs=controlesGuiado(),y0=el.offsetTop,x0=el.offsetLeft,h=el.offsetHeight,fin=innerHeight-h;
   el.style.top="calc(var(--s2) + env(safe-area-inset-top))";const tope=el.offsetTop;
   const lado=Math.max(0,Math.min(x0,document.documentElement.clientWidth-x0-el.offsetWidth)-8);
   const dxs=[0];for(let d=8;d<=lado;d+=8)dxs.push(-d,d);
   const pon=(dx,y)=>{el.style.top=y+"px";if(dx){el.style.left=dx+"px";el.style.right=(-dx)+"px";}};
-  for(const entero of [true,false])for(const dx of dxs){
-    for(let y=y0;y<=fin;y+=8)if(!avisoPisa(el,cs,entero,b,x0+dx,y))return pon(dx,y);
-    for(let y=y0-8;y>=tope;y-=8)if(!avisoPisa(el,cs,entero,b,x0+dx,y))return pon(dx,y);}
+  /* lo que ocupa por encima y por debajo de su top el aviso con la zona del
+     boton (entero) y la zona sola. Y donde el aviso solo empieza o deja de
+     tapar un control a lo alto: ahi cambia la superficie que tapa, y la
+     menor (abajo) cae en uno de esos sitios */
+  const by=b?b.offsetTop+b.offsetHeight/2:0,my=b?Math.max(22,b.offsetHeight/2):0,
+    arr=Math.min(0,by-my),aba=Math.max(h,by+my),ys=[y0,tope,fin];
+  cs.forEach(r=>{if(r.w>0)ys.push(Math.ceil(r.b-arr),Math.floor(r.t-aba),Math.ceil(r.b-by+my),Math.floor(r.t-by-my),
+    Math.round(r.t),Math.round(r.b-h),Math.round(r.t-h),Math.round(r.b));});
+  const bajan=[...new Set(ys.filter(y=>y>=y0&&y<=fin))].sort((p,q)=>p-q),
+    suben=[...new Set(ys.filter(y=>y<y0&&y>=tope))].sort((p,q)=>q-p);
+  const todas=bajan.concat(suben);
+  for(const dx of dxs)for(const y of todas)if(!avisoPisa(el,cs,true,b,x0+dx,y))return pon(dx,y);
+  /* sin hueco para el aviso entero: de los sitios donde al menos el boton
+     no cae sobre un control, el que menos superficie de controles tapa (lo
+     tapado no se puede tocar en esos 7 s); a igualdad, el primero */
+  let mejor=null;
+  for(const dx of dxs)for(const y of todas)if(!avisoPisa(el,cs,false,b,x0+dx,y)){
+    const t=avisoTapa(el,cs,x0+dx,y);if(!mejor||t<mejor.t-0.5)mejor={t:t,dx:dx,y:y};}
+  if(mejor)return pon(mejor.dx,mejor.y);
   el.style.top="";el.classList.remove("arriba");}
+/* la superficie de controles que tapa el aviso en x,y */
+function avisoTapa(el,cs,x,y){const R=x+el.offsetWidth,B=y+el.offsetHeight;
+  return cs.reduce((a,r)=>a+(r.w>0?Math.max(0,Math.min(r.r,R)-Math.max(r.l,x))*Math.max(0,Math.min(r.b,B)-Math.max(r.t,y)):0),0);}
 /* la pagina se mueve bajo el aviso: si en sus 7 s se desplaza, otro control
    ("Registrar serie", el +) puede pasar bajo el boton. Se vuelve a colocar
    con cada desplazamiento o cambio de tamano de la ventana */
