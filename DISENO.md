@@ -227,7 +227,7 @@ El descanso es pantalla propia: contador y saltar. No hereda la ficha del ejerci
 
 **El final avisa de lo que falta.** Si al acabar el último paso queda algún ejercicio **sin series ni visto** —por haber empezado a mitad de la lista, por ejemplo—, el guiado no cierra: sale «Te faltan N ejercicios», la lista de cuáles con su dosis y dos botones. **Hacerlos ahora** (el primario) va al primer paso del primero que falta y, al acabar cada uno, salta al siguiente que falte sin volver a pasar por lo hecho. **Terminar así** guarda igual que siempre y la pantalla final dice «Guardada · X de Y ejercicios», con el anillo parado en lo hecho. «Completada» queda para cuando no falta nada; sin pendientes, el final es el de siempre. Salir del aviso sin elegir deja la sesión abierta, y «Continuar» lleva a lo que falta, no al último paso, que ya está hecho.
 
-**Saltar ejercicio es «hoy no lo hago».** El saltado no sale como pendiente en el aviso, pero tampoco cuenta como hecho en el «X de Y». Si ya tenía series, esas series se guardan y sí cuenta.
+**Saltar ejercicio es «hoy no lo hago».** El saltado no sale como pendiente en el aviso, pero tampoco cuenta como hecho en el «X de Y». Si ya tenía series, esas series se guardan y sí cuenta. Saltarlos todos no guarda nada, y el final lo dice («Nada nuevo que guardar»), no «Completada».
 
 ### Calendario
 Resumen del mes arriba, calendario, y las sesiones del día seleccionado con icono y color de familia. El detalle se despliega **dentro** de la tarjeta de su sesión.
@@ -634,8 +634,9 @@ Los ejercicios que faltan, antes de cerrar:
     visto o la primera serie. Si no se registró nada, no hay sesión que dejar abierta.
   - «Terminar así» llama a lo mismo que antes (`finishSession`): series, vistos, racha e
     historial se escriben igual. Lo único nuevo es el texto y el anillo de la pantalla final.
-  - Con pendientes y nada hecho, «Terminar así» no guarda nada y lo dice («Nada nuevo que
-    guardar»), en vez del «Completada» vacío de antes.
+  - Sin nada hecho —con pendientes tras «Terminar así», o con todo saltado— no se guarda nada y
+    el final lo dice («Nada nuevo que guardar»), en vez del «Completada» vacío de antes. Saltarlo
+    todo no deja pendientes, y aun así sin guardar nada no es «Completada».
   - Pruebas en `tests/pruebas_logica.js` (aviso, repaso, terminar así, saltados y el final sin
     pendientes), `tests/pruebas_datos.js` (ida y vuelta con el repaso a medias) y
     `tests/pruebas_pantallas.js` (sesiones de v35 de los juegos `madre` y `sinCerrar`). Tres

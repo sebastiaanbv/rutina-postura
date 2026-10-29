@@ -843,6 +843,19 @@
       expect(app.texto("#guided")).not.toContain("Completada");
       expect(app.leer("rp_history").length).toBe(antes);
       app.reiniciarMemoria();});
+    test("saltar todos los ejercicios: no guarda nada ni dice 'Completada'",app=>{
+      app.reiniciarMemoria();app.sembrar(F.dueno);
+      const antes=app.leer("rp_history").length,racha=app.leer("rp_streak"),logs=JSON.stringify(app.leer("rp_logs"));
+      app.w.openRoutine(R);app.w.startRoutine();
+      for(let n=0;n<50&&app.$("#guided .skip");n++)app.w.guidedSkipExercise();
+      expect(app.$("#guided .finlist")).toBe(null);
+      expect(app.texto("#guided .done .mut")).toContain("Nada nuevo que guardar");
+      expect(app.texto("#guided")).not.toContain("Completada");
+      expect(app.leer("rp_history").length).toBe(antes);
+      expect(app.leer("rp_streak")).toEqual(racha);
+      expect(JSON.stringify(app.leer("rp_logs"))).toBe(logs);
+      expect(app.leer("rp_session")).toBe(null);
+      app.reiniciarMemoria();});
     test("'Terminar así' guarda igual que antes y dice 'Guardada · 11 de 14 ejercicios', nunca 'Completada'",async app=>{
       /* lo que guardaba cerrar en el guiado hasta v35: finishSession tal cual */
       empezarPorElCuarto(app);await unaSerie(app);hastaElFinal(app);

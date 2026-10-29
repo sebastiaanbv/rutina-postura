@@ -3489,7 +3489,9 @@ function finish(){clearTimer();toastFuera();
     <p class="mut">Tus series siguen aquí, sin guardar. Libera espacio en el teléfono y vuelve a intentarlo; no cierres la app mientras tanto.</p>
     <button class="gbtn go" style="margin-top:22px" onclick="finish()">Intentar de nuevo</button></div>`;return;}
   const s=(res&&res.streak)||loadStreak(),w=weekStats(),sum=res&&res.summary,nom=ROUTINES[curRoutine].name;
-  if(pend&&!sum){$("guided").innerHTML=`<div class="done"><h2>${esc(nom)}</h2>
+  /* sin nada guardado (pendientes tras "Terminar asi", o todo saltado)
+     nunca sale "Completada": no se hizo nada */
+  if(!sum){$("guided").innerHTML=`<div class="done"><h2>${esc(nom)}</h2>
     <p class="mut">Nada nuevo que guardar: en esta sesión no hay series ni ejercicios marcados.</p>
     <button class="gbtn go" style="margin-top:22px" onclick="exitToHome()">Volver al inicio</button></div>`;return;}
   /* sin ninguna semana cumplida "Mejor racha: 0 semanas" no dice nada: solo
