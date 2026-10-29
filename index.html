@@ -1756,6 +1756,12 @@ function toast(html,ms,fin){const el=$("toast");if(!el)return;
 function colocaAviso(el,arriba){el.style.top="";el.classList.toggle("arriba",arriba);if(!arriba)return;
   for(let y=el.offsetTop,fin=innerHeight-el.offsetHeight;y<=fin;y+=8){el.style.top=y+"px";if(!avisoPisa(el))return;}
   el.style.top="";el.classList.remove("arriba");}
+/* la pagina se mueve bajo el aviso: si en sus 7 s se desplaza, otro control
+   ("Registrar serie", el +) puede pasar bajo el boton. Se vuelve a colocar
+   con cada desplazamiento o cambio de tamano de la ventana */
+function recolocaAviso(){const el=$("toast");
+  if(el&&toastFin&&el.classList.contains("show")&&inGuided())colocaAviso(el,true);}
+addEventListener("scroll",recolocaAviso,{passive:true});addEventListener("resize",recolocaAviso);
 /* si la zona de 44 px del boton del aviso cae sobre un control del guiado.
    Con offset*, que no ven el translateY de la entrada del aviso */
 function avisoPisa(el){const b=el.querySelector(".tact");if(!b)return false;

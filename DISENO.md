@@ -723,8 +723,10 @@ confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se toca
   el nombre y la figura. Abajo, la zona de toque de Deshacer caía sobre «Registrar serie», el «+»
   o «Nota fija» (a 360×640 y 375×667): volver a registrar justo después de borrar deshacía en vez
   de anotar. Si arriba también pisa un control (página desplazada hasta la última serie, a
-  320×568), baja hasta el primer hueco sin controles (`colocaAviso`). Los avisos sin botón siguen
-  abajo, donde siempre.
+  320×568), baja hasta el primer hueco sin controles (`colocaAviso`). La posición se vuelve a
+  calcular cada vez que la página se desplaza o la ventana cambia de tamaño (`recolocaAviso`):
+  calculada una sola vez, al desplazar en esos 7 s «Registrar serie» o el «+» podían pasar bajo
+  Deshacer. Los avisos sin botón siguen abajo, donde siempre.
 - **Zonas de toque de la fila de serie** (§10): la cifra entra en la lista del pseudo-elemento, la
   X pasa a caja de 44 y los campos de corregir miden 44 de alto y 52 de ancho (antes 58; con la X
   de 44, a 320 px la fila se partía). La fila mide lo mismo que antes, 40 px; editando, 46 en vez

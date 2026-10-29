@@ -753,6 +753,34 @@
       finally{app.frame.style.height="800px";app.frame.style.width="400px";}
       expect(pisados).toEqual([]);
       app.reiniciarMemoria();});
+    /* el aviso se colocaba una sola vez, al salir: si en sus 7 s la pagina se
+       desplazaba y «Registrar serie», el + o «Nota fija» pasaban bajo el
+       Deshacer, tocarlos deshacia. Se recorre la pagina de arriba abajo y en
+       cada parada se mide como el dedo, donde el aviso y el control coinciden */
+    test("con la página desplazada el Deshacer sigue sin pisar ningún control",app=>{
+      const conN=n=>()=>{const s=conSerie(),l=s.rp_session.log.press_banca_db,t=s.rp_session.startedAt;
+        s.rp_session.log.press_banca_db=Array.from({length:n},(_,i)=>Object.assign({},l[i%3],{t:t+(i+1)*60000}));return s;};
+      const pisados=[],fuera=[];let paradas=0;
+      try{for(const [w,h] of [[320,568],[375,667],[412,915]])for(const n of [3,6]){
+          app.frame.style.height=h+"px";app.frame.style.width=w+"px";abrir(app,conN(n));anchoUtil(app,w);
+          const filas=app.$$("#guided .sets .setline");
+          filas[filas.length-1].querySelector(".del").click();quieta(app);
+          expect(app.texto("#toast .tmsg")).toBe("Serie borrada");
+          const max=app.doc.documentElement.scrollHeight-app.w.innerHeight;
+          for(let y=0;y<=max;y+=12){app.w.scrollTo(0,y);app.w.dispatchEvent(new app.w.Event("scroll"));quieta(app);paradas++;
+            const t=app.$("#toast"),tr=t.getBoundingClientRect();
+            if(tr.top<0||tr.bottom>app.w.innerHeight)fuera.push(w+"x"+h+" n="+n+" y="+y);
+            app.$$("#guided button,#guided [role=button],#guided input").forEach(c=>{const r=c.getBoundingClientRect();
+              const x0=Math.max(r.left,tr.left)+1,x1=Math.min(r.right,tr.right)-1,y0=Math.max(r.top,tr.top,0)+1,y1=Math.min(r.bottom,tr.bottom)-1;
+              if(!r.width||x0>=x1||y0>=y1)return;
+              for(let yy=y0;yy<=y1;yy+=3)for(let x=x0;x<=x1;x+=3){const e=app.doc.elementFromPoint(x,yy);
+                if(e&&t.contains(e)){pisados.push(w+"x"+h+" n="+n+" y="+y+" "+(c.className||c.tagName)+" "+c.textContent.trim().slice(0,20));return;}}});}
+          app.w.scrollTo(0,0);}}
+      finally{app.frame.style.height="800px";app.frame.style.width="400px";}
+      expect(paradas).toBeGreaterThan(30);
+      expect(fuera).toEqual([]);
+      expect(pisados).toEqual([]);
+      app.reiniciarMemoria();});
     test("con teclado: Enter en la X lleva el foco a Deshacer, y Deshacer a la serie recuperada",app=>{abrir(app);
       const x=app.$("#sl_press_banca_db_2 .del");x.focus();
       x.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter",bubbles:true}));
