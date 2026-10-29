@@ -6,7 +6,7 @@ Un solo comando, desde la raíz del repo:
 python tests/run.py
 ```
 
-Sale con código 0 si todo pasa y 1 si algo falla. Tarda unos 5-10 s. No hace falta instalar nada: usa Python 3 y Edge (o Chrome si Edge no responde) en modo sin interfaz.
+Sale con código 0 si todo pasa y 1 si algo falla. Tarda menos de un minuto. No hace falta instalar nada: usa Python 3 y Edge (o Chrome si Edge no responde) en modo sin interfaz.
 
 Otras opciones:
 
@@ -39,6 +39,7 @@ Otras opciones:
 | `pruebas_avisos.js` | volver a la app al tocar un aviso: `sw.js` tal cual con dobles de `self`, `caches`, `clients` y `fetch` (install y `notificationclick`), y el arranque con `#retomar` |
 | `pruebas_progreso.js` | Progreso lee `rp_logs` una sola vez por pintado y pinta lo mismo que antes; con `dosAnos`, 1 parseo del historial frente a más de 20 y, con reloj real, menos del 60 % del tiempo; y las cifras de Progreso coinciden con las de v35 guardadas en `referencia_progreso_v35.js` |
 | `referencia_progreso_v35.js` | lo que calculaba y mostraba Progreso en v35 con `dueno`, `madre` y `dosAnos` generados con el reloj parado; no se edita a mano (cómo regenerarla, en `pruebas_progreso.js`) |
+| `pruebas_letra.js` | zoom y letra del sistema: viewport, escala en `rem`, `touch-action` de los controles, el stepper del guiado con cifras de cada largo y la misma forma con cualquiera, tocar «Registrar serie» o + con el campo de la cifra abierto y dos toques seguidos en el mismo punto de + o − (`toca()` y `tocaEn()` mandan los eventos de un toque de dedo o de ratón en el orden del navegador), y las pantallas principales a 320, 375 y 430 px con la letra de serie y al 130 % sin textos cortados ni pisados (una pantalla nueva entra en el humo añadiéndola a `recorrido`) |
 
 ## Añadir una prueba
 

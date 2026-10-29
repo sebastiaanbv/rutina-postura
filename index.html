@@ -2,7 +2,11 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<!-- sin maximum-scale ni user-scalable=no: la persona puede ampliar con los dedos.
+     text-scale: la letra del sistema entra por la raiz (1rem) en vez de que el
+     navegador la aplique por su cuenta; por eso la escala de DISENO 3 va en rem. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="text-scale" content="scale">
 <meta name="theme-color" id="tc" content="#eef1f5">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -103,9 +107,21 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
        agujero, y azul profundo para que el boton primario se separe de ella. */
     --hero:linear-gradient(155deg,#141f36,#0b111d); --hero-tx:#ffffff; --hero-mut:#a8bdd6;
 
-    /* --- tipografía: 8 pasos, ni uno más --- */
-    --t-mega:50px; --t-display:30px; --t-xl:26px; --t-title:22px; --t-lg:20px; --t-md:16px;
-    --t-lead:15px; --t-base:14px; --t-sm:12.5px; --t-xs:11px; --t-2xs:10px;
+    /* --- tipografía: 11 pasos, ni uno más. En rem y no en px: 1rem es la
+           letra que pide el telefono (16 px de serie), asi que con la letra
+           del sistema al 130 % la escala entera crece igual y no se deforma.
+           Los px de DISENO 3 son los de la letra de serie. --fk solo cambia
+           en iOS: ver el bloque de -apple-system-body. --- */
+    --fk:1;
+    --t-mega:calc(3.125rem*var(--fk)); --t-display:calc(1.875rem*var(--fk));
+    --t-xl:calc(1.625rem*var(--fk)); --t-title:calc(1.375rem*var(--fk));
+    --t-lg:calc(1.25rem*var(--fk)); --t-md:calc(1rem*var(--fk));
+    --t-lead:calc(.9375rem*var(--fk)); --t-base:calc(.875rem*var(--fk));
+    --t-sm:calc(.78125rem*var(--fk)); --t-xs:calc(.6875rem*var(--fk)); --t-2xs:calc(.625rem*var(--fk));
+    /* los campos de texto: --t-md, pero nunca por debajo de 16 px. Por debajo,
+       iOS amplia la pantalla al enfocarlos, y desde que el viewport deja
+       ampliar ya no hay maximum-scale que lo impida. */
+    --t-campo:max(16px,var(--t-md));
     /* --- pesos: el texto normal deja de ir en negrita --- */
     --w-body:400; --w-med:600; --w-semi:700; --w-bold:800;
     /* --- espaciado --- */
@@ -151,9 +167,21 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   html,body{margin:0;padding:0;color:var(--tx);
     background:radial-gradient(1100px 460px at 50% -12%, var(--page-grad) 0%, var(--bg) 60%) fixed;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
-    font-size:var(--t-base);font-weight:var(--w-body);line-height:1.45;letter-spacing:-.01em;
+    font-weight:var(--w-body);line-height:1.45;letter-spacing:-.01em;
     -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;text-size-adjust:100%}
-  body{max-width:600px;margin:0 auto;min-height:100vh;min-height:100dvh;overflow-x:hidden}
+  /* la raiz NO lleva tamaño: si lo fijara, 1rem dejaria de ser la letra del
+     telefono y la escala no creceria nunca. El tamaño base va en body. */
+  body{max-width:600px;margin:0 auto;min-height:100vh;min-height:100dvh;overflow-x:hidden;
+    font-size:var(--t-base)}
+  /* iOS no pasa su tamaño de letra (Dynamic Type) a la web salvo por esta
+     fuente del sistema, que en la letra de serie mide 17 px y no 16: --fk
+     lo compensa para que de serie la escala mida lo mismo que en Android.
+     -webkit-touch-callout deja fuera a Safari de escritorio, donde la misma
+     fuente mide 13 px y encogeria la app. */
+  @supports (font:-apple-system-body) and (-webkit-touch-callout:none){
+    html{font:-apple-system-body}
+    :root{--fk:.9412}
+  }
   .app{padding:0 0 calc(92px + env(safe-area-inset-bottom))}
   .view{display:none;animation:fade .22s ease} .view.active{display:block}
   @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -212,15 +240,18 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     letter-spacing:-.01em;background:none;color:var(--tx)}
   .btn,.gbtn,.today-go{width:100%;display:block;border-radius:var(--r-md);
     background:var(--primary);color:var(--on-primary);box-shadow:var(--sh-raised)}
-  .btn{height:54px;padding:0;font-size:var(--t-md)}
-  .gbtn{height:52px;padding:0;font-size:var(--t-md);margin-top:var(--s3)}
-  .today-go{height:50px;padding:0;font-size:var(--t-md);margin-top:var(--s4)}
+  /* alto MINIMO y no alto fijo: con la letra grande una etiqueta larga
+     ("Empezar Casa — Fuerza A") pasa a dos lineas dentro del boton en vez
+     de salirse por abajo. Con la letra de serie miden lo mismo que antes. */
+  .btn{min-height:54px;padding:var(--s2) var(--s3);font-size:var(--t-md)}
+  .gbtn{min-height:52px;padding:var(--s2) var(--s3);font-size:var(--t-md);margin-top:var(--s3)}
+  .today-go{min-height:50px;padding:var(--s2) var(--s3);font-size:var(--t-md);margin-top:var(--s4)}
   .btn:active,.gbtn:active,.today-go:active{transform:translateY(1px)}
   .btn[disabled]{opacity:.45;box-shadow:none;cursor:default;transform:none}
   /* variantes apagadas */
   .btn.sec,.gbtn.sec,.gbtn.fin{background:var(--card);color:var(--tx);
     border:1px solid var(--line);box-shadow:none}
-  .gbtn.fin{color:var(--tx2);font-size:var(--t-base);height:46px}
+  .gbtn.fin{color:var(--tx2);font-size:var(--t-base);min-height:46px}
   .today-go.sec{background:rgba(255,255,255,.12);color:var(--hero-tx);box-shadow:none}
   /* el blanco estaba escrito a mano sobre un naranja: daba 3,4:1 en claro y
      2,2:1 en oscuro, y es el boton que sale en cada descanso de cada serie.
@@ -239,7 +270,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     border:1px solid var(--line);color:var(--tx2);font-size:var(--t-lg);display:flex;
     align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto}
   .sq{width:42px;height:42px;border-radius:var(--r-sm);background:var(--sunk);border:1px solid var(--line);
-    color:var(--primary-ink);font-size:22px;font-weight:var(--w-bold);display:flex;
+    color:var(--primary-ink);font-size:var(--t-title);font-weight:var(--w-bold);display:flex;
     align-items:center;justify-content:center;cursor:pointer}
   .exstart,.exadd{width:42px;height:42px;border-radius:var(--r-sm);display:flex;align-items:center;
     justify-content:center;flex:0 0 auto;cursor:pointer;font-size:var(--t-sm)}
@@ -284,20 +315,43 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
      de finalizar no es un control. Editando deja de ser hoja: dentro van los
      campos y el visto. */
   .setline[data-editing] .v:after{display:none}
+  /* Desde que el viewport deja ampliar, dos toques rapidos en - o + (o en
+     "Registrar serie") pueden leerse en iOS como doble toque para ampliar.
+     manipulation quita solo ese gesto y solo en los controles: el pellizco
+     sigue, y el doble toque sobre el texto tambien. */
+  button,[role="button"],[role="checkbox"],[role="switch"]{touch-action:manipulation}
 
   /* entradas numéricas */
   .numin,.setin,.addrow input,.bwrow input{background:var(--card);color:var(--tx);
     border:2px solid var(--primary);border-radius:10px;text-align:center;
     font-weight:var(--w-bold);font-variant-numeric:tabular-nums;-moz-appearance:textfield}
-  .numin{width:104px;font-size:24px;padding:2px 4px}
+  /* la cifra del stepper al escribirla ocupa el sitio del <b> al que
+     sustituye, con su letra y su alto (la letra por el 1.45 de interlinea de
+     body): entre - y + a lo que quede, o encima si la fila va apilada
+     (la consulta de .stepper .row). Asi la fila no cambia de forma al
+     abrir ni al cerrar el campo. Si cambiara, tocar "Registrar serie" o + con
+     el campo abierto se perderia: el campo pierde el foco al empezar el
+     toque, la cifra vuelve, lo de debajo se mueve y el toque acaba en otro
+     sitio. El borde va pintado por dentro y sin relleno: el sitio que la
+     fila reserva a la cifra es el de su texto, y con un borde de verdad un
+     "142.5" no cabria en el campo. Lo que sea mas largo se desplaza dentro
+     del campo. */
+  .numin{flex:1 1 0;min-width:0;height:1.45em;font-family:inherit;font-size:var(--t-xl);letter-spacing:calc(-1em/26);
+    padding:0;border:0;box-shadow:inset 0 0 0 2px var(--primary)}
+  /* con el foco, el anillo de siempre (seccion foco) sin perder el borde */
+  .numin:focus-visible{box-shadow:inset 0 0 0 2px var(--primary),var(--sh-focus)}
   /* 44 de alto: van en la misma fila que la X de borrar. La fila pierde su
-     relleno vertical mientras se edita para no crecer mas que antes, y los
-     campos 6 px de ancho para que a 320 px quepa la X de 44 sin partir la
-     fila ("122.5" sigue cabiendo) */
-  .setin{width:52px;min-height:44px;font-size:var(--t-sm);padding:5px 2px}
+     relleno vertical mientras se edita para no crecer mas que antes. El
+     ancho en em, con la letra del campo (nunca menos de 16 px, ver
+     --t-campo): con la letra grande el campo crece con su cifra */
+  .setin{width:3.6em;min-height:44px;font-size:var(--t-campo);padding:5px 2px}
   .setline[data-editing]{padding-top:0;padding-bottom:0}
-  .addrow input,.bwrow input{flex:1;min-width:0;text-align:left;background:var(--sunk);
-    border:1px solid var(--line);border-radius:var(--r-sm);padding:12px;font-size:var(--t-md);font-weight:var(--w-med)}
+  /* el campo pide su sitio (10 em el de texto, 8 el de la hora) y el boton se
+     queda al lado mientras quepa; con la letra grande baja a su propia linea
+     en vez de recortar "07:00" o el "Peso de hoy (kg)" del campo */
+  .addrow input,.bwrow input{flex:1 1 10em;min-width:0;text-align:left;background:var(--sunk);
+    border:1px solid var(--line);border-radius:var(--r-sm);padding:12px;font-size:var(--t-campo);font-weight:var(--w-med)}
+  .addrow input{flex-basis:8em}
   .numin::-webkit-outer-spin-button,.numin::-webkit-inner-spin-button,
   .setin::-webkit-outer-spin-button,.setin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 
@@ -334,7 +388,8 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
 
   /* la semana pasa de siete tarjetas a un riel */
   .week{display:flex;margin:var(--s3) var(--gut) 0;background:var(--card);
-    border-radius:var(--r-md);box-shadow:var(--sh-card);overflow:hidden;padding:0;gap:0}
+    border-radius:var(--r-md);box-shadow:var(--sh-card);overflow:hidden;padding:0;gap:0;
+    container-type:inline-size}
   .week .day{flex:1;min-width:0;border-radius:0;box-shadow:none;background:none;border:none;
     border-left:1px solid var(--line);padding:10px 2px 9px}
   .week .day:first-child{border-left:none}
@@ -351,14 +406,28 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   :root[data-theme="dark"] .rlist .rcard:first-child{border-top:none}
 
   /* anillo de avance de la rutina */
-  .rring{width:46px;height:46px;position:relative;flex:0 0 auto}
-  .rring svg{transform:rotate(-90deg);display:block}
+  /* 46/14 em son los 46 px de siempre con la letra de serie; con la letra
+     grande el anillo crece con su cifra y "12/12" no pisa el trazo */
+  .rring{width:calc(46em/14);height:calc(46em/14);position:relative;flex:0 0 auto}
+  .rring svg{transform:rotate(-90deg);display:block;width:100%;height:100%}
   .rring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     font-size:var(--t-xs);font-weight:var(--w-bold);font-variant-numeric:tabular-nums;color:var(--tx2)}
 
   /* ejercicios: una superficie por bloque y filas dentro */
   .exgroup{margin:0 0 var(--s3);background:var(--card);border-radius:var(--r-lg);
-    box-shadow:var(--sh-card);overflow:hidden}
+    box-shadow:var(--sh-card);overflow:hidden;container-type:inline-size}
+  /* La columna del nombre es lo que sobra de la fila: 175 px fijos (circulo,
+     miniatura, boton, huecos y relleno), 205 en la fila "siguiente" con su
+     figura de 76. Las consultas van en em del propio bloque, asi que miden
+     ancho y tamaño de letra a la vez.
+     - La figura grande vuelve a 46 px cuando no deja ni los 7 em de
+       "Calentamiento", la etiqueta mas larga sin espacios: a 320 px pasaba
+       de su columna ya con la letra de serie.
+     - Con poco ancho PARA la letra que hay (por debajo de 20 em: 320 a 390 px
+       con la letra al 130 %) las figuras se van y el nombre gana 57 px. Con la
+       letra de serie no salta nunca: haria falta una pantalla de 312 px o menos. */
+  @container (max-width:calc(205px + 7em)){.ex .diag.big{width:46px;height:46px;padding:5px;border-radius:12px}}
+  @container (max-width:20em){.ex .diag{display:none}}
   :root[data-theme="dark"] .exgroup{border:1px solid var(--line)}
   .exgroup .blockt{margin:0;padding:10px 14px;background:var(--sunk);
     border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px}
@@ -390,7 +459,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
      lado de "32.5 kg × 6 · reserva 2" sin partir los dos */
   /* no es un control: la X de 44 px (HU-54) baja 10 px por su linea, y sin
      esto la marca, pintada despues, se quedaba ese trozo del toque */
-  .prtag{flex-basis:100%;padding-left:calc(52px + var(--s2));color:var(--energy-ink);display:flex;align-items:center;gap:4px;
+  .prtag{flex-basis:100%;padding-left:calc(var(--t-sm)*52/12.5 + var(--s2));color:var(--energy-ink);display:flex;align-items:center;gap:4px;
     font-size:var(--t-2xs);font-weight:var(--w-bold);text-transform:uppercase;letter-spacing:.6px;pointer-events:none}
 
   /* aviso flotante: la unica pieza que faltaba para poder celebrar algo.
@@ -424,8 +493,10 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
 
   /* pantalla de fin */
   .done .hero{margin:0 auto var(--s4);width:104px;height:104px;display:block}
-  .donesum{display:flex;gap:var(--s2);margin:var(--s5) 0 0}
-  .donesum div{flex:1;background:var(--card);border-radius:var(--r-md);padding:12px 6px;box-shadow:var(--sh-card)}
+  /* tres cajas iguales mientras quepan; si "12450" o "EJERCICIOS" no caben
+     (letra grande a 320 px), la tercera baja a su linea en vez de desbordar */
+  .donesum{display:flex;flex-wrap:wrap;gap:var(--s2);margin:var(--s5) 0 0}
+  .donesum div{flex:1 1 0;min-width:max-content;background:var(--card);border-radius:var(--r-md);padding:12px 6px;box-shadow:var(--sh-card)}
   :root[data-theme="dark"] .donesum div{border:1px solid var(--line)}
   .donesum b{display:block;font-size:var(--t-title);font-weight:var(--w-bold);
     font-variant-numeric:tabular-nums;line-height:1.15}
@@ -509,6 +580,12 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .day .d{font-size:var(--t-xs);font-weight:var(--w-bold);color:var(--mut)}
   .day .tag{font-size:var(--t-2xs);font-weight:var(--w-semi);margin-top:4px;color:var(--mut);
     line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* Cada dia lleva el nombre y el icono de su rutina, y se ve uno de los dos.
+     Siete columnas a 320 px con la letra al 130 % dejaban "Em…", "De…": con
+     el riel por debajo de 19 em de su letra, la columna no da ni para cuatro
+     letras y el icono de la rutina dice mas. Con la letra de serie no salta. */
+  .day .tag .ic{display:none}
+  @container (max-width:19em){.day .tag .tx{display:none} .day .tag .ic{display:inline-block;vertical-align:-3px}}
   /* el dia de hoy se marca con el tinte del riel (.week .day.on), no tambien
      con un anillo: dos senales para lo mismo se leen como un error */
   .day.on .d{color:var(--primary-ink)}
@@ -527,7 +604,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     align-items:center;cursor:pointer;transition:transform .15s;border-radius:var(--r-lg)}
   .rcard:active{transform:scale(.99)}
   .rcard .em{width:48px;height:48px;border-radius:15px;display:flex;align-items:center;
-    justify-content:center;font-size:22px;flex:0 0 auto;background:var(--primary-tint);color:var(--primary-ink)}
+    justify-content:center;font-size:var(--t-title);flex:0 0 auto;background:var(--primary-tint);color:var(--primary-ink)}
   .rcard .em.n{background:var(--accent-tint);color:var(--accent-ink)}
   .rcard .em.g{background:var(--load-tint);color:var(--load-ink)}
   .rcard .t{flex:1;min-width:0}
@@ -545,7 +622,11 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .exwrap{margin:6px var(--gut)}
   .ex{margin-bottom:var(--s2);overflow:hidden;border-radius:var(--r-lg)}
   .ex .top{display:flex;gap:11px;align-items:center;padding:12px;cursor:pointer}
-  .ex .nm{font-weight:var(--w-semi);font-size:var(--t-lead);line-height:1.2;letter-spacing:-.2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  /* el nombre se lee entero: el recorte a dos lineas, con la letra grande o a
+     320 px, dejaba "Colgado con…" y partia "Caminadora" sin aviso. Una palabra
+     que no cabe se parte con guion donde el idioma lo permite. */
+  .ex .nm{font-weight:var(--w-semi);font-size:var(--t-lead);line-height:1.2;letter-spacing:-.2px;
+    overflow-wrap:anywhere;-webkit-hyphens:auto;hyphens:auto}
   .ex .meta{color:var(--mut);font-size:var(--t-sm);margin-top:3px}
   .badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
   /* la miniatura de 46 px era ilegible por aritmetica: el SVG mide ~255
@@ -815,17 +896,40 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
 
   /* steppers: el ancla visual de la pantalla */
   .logrow{display:flex;gap:var(--s2);margin-top:var(--s1)}
-  .stepper{flex:1;border-radius:var(--r-md);padding:12px 10px}
+  .stepper{flex:1;border-radius:var(--r-md);padding:12px 10px;container-type:inline-size}
   .stepper .lab{text-align:center}
-  .stepper .row{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
-  .stepper .row b{font-size:var(--t-xl);font-weight:var(--w-bold);letter-spacing:-1px;cursor:pointer}
+  .stepper .row{display:flex;align-items:center;justify-content:space-between;gap:var(--s2) var(--s1);margin-top:6px}
+  /* los botones miden 42 px siempre: si la cifra no cabe, no son ellos los
+     que encogen (un "142.5" los dejaba en 37 y pegados a la cifra) */
+  .stepper .row .sq{flex:0 0 42px}
+  /* -1 px con la letra de serie; en em para que la cifra crezca entera con la
+     letra y la consulta de abajo la mida igual a cualquier tamaño */
+  .stepper .row b{flex:1 1 0;min-width:0;font-size:var(--t-xl);font-weight:var(--w-bold);letter-spacing:calc(-1em/26);cursor:pointer;text-align:center}
+  /* Entre los dos botones de 42 px quedan 34 px a 320 de ancho: un "57.5" no
+     cabia ya con la letra de serie y, pegado a los botones, empujaba el
+     stepper de las reps fuera del margen; al 130 % pasaba hasta con un "12".
+     La cifra va entre - y + si cabe con 4 px de aire a cada lado (92 px con
+     los botones) la mas larga que puede tener, "142.5" (4,94 em de la letra
+     del stepper; las reps de tres cifras ocupan menos); si no, sube a su
+     propia linea y los botones quedan debajo, en los extremos. Lo decide solo
+     el ancho del stepper y su letra, nunca la cifra de cada momento: si la
+     forma dependiera de la cifra, al pasar de 97.5 a 100 con + (o de 9 a 10
+     reps) la fila se apilaria entre un toque y el siguiente, y el segundo
+     toque, en el mismo sitio, caeria en la cifra o en la fila de debajo. La
+     cifra ocupa todo el hueco entre los botones (flex 1 1 0), asi que su caja
+     tampoco cambia con el largo. Los steppers de una fila miden lo mismo y
+     cambian juntos. La consulta va en em del stepper, asi que mide a la vez
+     el ancho y la letra. */
+  @container (max-width:calc(92px + 4.94em)){
+    .stepper .row{flex-wrap:wrap}
+    .stepper .row>b,.stepper .row>.numin{order:-1;flex:1 0 100%}}
   .last{margin:var(--s3) 0 var(--s1)}
   .last.tap{cursor:pointer}
   .gchart{margin:var(--s2) 0 0;display:none}
   .gchart.show{display:block}
   .sets{margin:var(--s3) 0 0;display:flex;flex-direction:column;gap:6px}
   .setline{display:flex;align-items:center;gap:var(--s2);font-size:var(--t-sm);padding:9px 11px}
-  .setline .n{color:var(--mut);font-weight:var(--w-bold);width:52px}
+  .setline .n{color:var(--mut);font-weight:var(--w-bold);width:calc(52em/12.5)}
   .setline .v{font-weight:var(--w-semi);cursor:pointer}
   .setline .ck{margin-left:auto;color:var(--primary-ink);font-weight:var(--w-bold)}
   /* La X mide 44 de caja, no de pseudo-elemento: la zona ampliada de 23 px
@@ -850,7 +954,6 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   /* pantalla final */
   .done{text-align:center;padding:46px var(--s5)}
   .gtop+.done{padding-top:var(--s3)}
-  .done .em{font-size:60px}
   .done h2{font-size:var(--t-xl);margin:var(--s3) 0 var(--s1);font-weight:var(--w-bold);letter-spacing:-.6px}
   .done .big{font-size:var(--t-mega);font-weight:var(--w-bold);color:var(--primary-ink);margin:var(--s4) 0 0}
   /* aviso de pendientes: la misma lista que la hoja de finalizar */
@@ -862,7 +965,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .calhead{display:flex;align-items:center;gap:var(--s2);margin-bottom:var(--s2)}
   .calhead .m{flex:1;text-align:center;font-weight:var(--w-bold);font-size:var(--t-md);text-transform:capitalize}
   .calnav{width:38px;height:38px;border-radius:var(--r-sm);border:1px solid var(--line);
-    background:var(--sunk);color:var(--tx2);font-size:17px;display:flex;
+    background:var(--sunk);color:var(--tx2);font-size:var(--t-md);display:flex;
     align-items:center;justify-content:center;cursor:pointer}
   .calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
   .calgrid .wd{text-align:center;font-size:var(--t-2xs);font-weight:var(--w-bold);color:var(--mut);padding:2px 0 4px}
@@ -892,7 +995,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .hitem .dot.g{background:var(--load-tint);color:var(--load-ink)}
   .hitem .dot{width:38px;height:38px;border-radius:12px;background:var(--primary-tint);
     color:var(--primary-ink);display:flex;align-items:center;justify-content:center;
-    font-size:18px;flex:0 0 auto}
+    font-size:var(--t-lg);flex:0 0 auto}
   .hitem .nm{font-weight:var(--w-semi);font-size:var(--t-base)}
   .hitem .dt{color:var(--mut);font-size:var(--t-sm);margin-top:2px;text-transform:capitalize}
   .hitem .dt2{font-size:var(--t-xs);color:var(--mut);font-weight:var(--w-med);margin-top:3px}
@@ -928,7 +1031,8 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .daydet.open{display:block}
   .ddrow{display:flex;gap:var(--s3);font-size:var(--t-sm);padding:9px 0;border-top:1px solid var(--line)}
   .ddrow:first-child{border-top:none}
-  .ddrow .dn{flex:1;font-weight:var(--w-med);min-width:0}
+  /* un nombre largo se parte dentro de su columna y no por encima de las series */
+  .ddrow .dn{flex:1;font-weight:var(--w-med);min-width:0;overflow-wrap:anywhere;-webkit-hyphens:auto;hyphens:auto}
   .ddrow .dv{color:var(--mut);font-weight:var(--w-semi);text-align:right}
   .empty{color:var(--mut);text-align:center;font-size:var(--t-sm);padding:36px 10px;line-height:1.65}
 
@@ -946,23 +1050,27 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .chartcard{margin:0 0 var(--s2);border-radius:var(--r-lg);padding:14px 12px 8px}
   .chartcard .ct{font-size:var(--t-base);font-weight:var(--w-bold);margin:0 2px 2px}
   .callout{margin:0 0 var(--s3)}
-  .bwrow{display:flex;gap:var(--s2);margin-top:var(--s3)}
+  .bwrow{display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s3)}
   .bwrow .minibtn{margin-top:0;flex:0 0 auto}
   .mbars{display:flex;flex-direction:column;gap:9px}
   .mrow{display:flex;align-items:center;gap:9px}
-  .mrow .mn{flex:0 0 84px;font-size:var(--t-xs);font-weight:var(--w-med);color:var(--tx2);
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* 84/11 em son los 84 px de antes con la letra de serie; con la grande la
+     columna crece con ella y "Hombro posterior" pasa a dos lineas en vez de
+     quedarse en "Hombro p…" */
+  .mrow .mn{flex:0 0 calc(84em/11);font-size:var(--t-xs);font-weight:var(--w-med);color:var(--tx2);
+    line-height:1.2;overflow-wrap:anywhere}
   .mrow .mtrack{flex:1;height:10px;background:var(--sunk);border-radius:var(--r-pill);
     position:relative;overflow:hidden;min-width:0}
   .mrow .mfill{position:absolute;left:0;top:0;bottom:0;border-radius:var(--r-pill);background:var(--primary)}
   .mrow .mfill.mid{background:var(--rest)} .mrow .mfill.low{background:var(--danger)}
   .mrow .mgoal{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--line2);z-index:2}
-  .mrow .mv{flex:0 0 26px;text-align:right;font-size:var(--t-xs);font-weight:var(--w-bold)}
-  .prrow{display:flex;align-items:baseline;gap:var(--s2);padding:9px 0;border-top:1px solid var(--line)}
-  .prrow .prn{flex:1;min-width:0;font-size:var(--t-sm);font-weight:var(--w-med);
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mrow .mv{flex:0 0 calc(26em/11);text-align:right;font-size:var(--t-xs);font-weight:var(--w-bold)}
+  /* el nombre del ejercicio es el dato: en vez de recortarlo con "…", la marca
+     y la fecha bajan a una segunda linea cuando no caben al lado */
+  .prrow{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px var(--s2);padding:9px 0;border-top:1px solid var(--line)}
+  .prrow .prn{flex:1 1 10em;min-width:0;font-size:var(--t-sm);font-weight:var(--w-med);overflow-wrap:anywhere}
   .prrow .prv{font-size:var(--t-sm);font-weight:var(--w-bold);color:var(--energy-ink)}
-  .prrow .prd{font-size:var(--t-xs);color:var(--mut);flex:0 0 auto}
+  .prrow .prd{font-size:var(--t-xs);color:var(--mut);flex:0 0 auto;margin-left:auto}
   .heat{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:3px;margin-top:var(--s3);direction:ltr}
   .heat i{display:block;width:100%;aspect-ratio:1/1;border-radius:3px;background:var(--sunk)}
   .heat i.h-g{background:var(--primary)} .heat i.h-c{background:var(--primary-tint)}
@@ -993,9 +1101,9 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .timepill{border-radius:var(--r-pill);padding:8px 13px;font-size:var(--t-base);
     font-weight:var(--w-semi);display:flex;align-items:center;gap:var(--s2)}
   .timepill span.x{color:var(--mut);cursor:pointer;font-weight:var(--w-bold)}
-  .addrow{display:flex;gap:var(--s2);margin-top:var(--s3)}
+  .addrow{display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s3)}
   .addrow button{background:var(--primary);color:var(--on-primary);border-radius:var(--r-sm);
-    padding:0 18px;font-size:var(--t-base)}
+    padding:0 18px;font-size:var(--t-base);min-height:44px}
 
   /* ========================== OVERLAYS ========================== */
   #planov,#swapov,#finov{position:fixed;inset:0;background:rgba(4,8,12,.55);display:none;
@@ -1012,7 +1120,7 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   /* la hoja de conflicto (HU-63) pone ahi "Tienes <rutina> a medias": cortado,
      se perdia justo "a medias". Los demas titulos de esta hoja son cortos */
   #planTitle{white-space:normal}
-  .ovhead .x{cursor:pointer;font-size:20px;color:var(--mut);width:40px;height:40px;
+  .ovhead .x{cursor:pointer;font-size:var(--t-lg);color:var(--mut);width:40px;height:40px;
     display:flex;align-items:center;justify-content:center}
   .planbody{padding:var(--s3) var(--s3) calc(var(--s4) + env(safe-area-inset-bottom));
     display:flex;flex-direction:column;gap:7px}
@@ -1032,14 +1140,16 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     color:var(--primary-ink);font:inherit;font-weight:var(--w-bold);font-size:var(--t-base);cursor:pointer}
   .addsearch,.cxf input:not([type=checkbox]),.cxf select,.cxf textarea{width:100%;box-sizing:border-box;
     background:var(--sunk);color:var(--tx);border:1px solid var(--line);border-radius:var(--r-sm);
-    padding:11px 12px;font:inherit;font-size:16px;font-weight:var(--w-med)}
+    padding:11px 12px;font:inherit;font-size:var(--t-campo);font-weight:var(--w-med)}
   .planopt.addnew .em{background:var(--primary);color:#fff}
   #addList .blockt{font-size:var(--t-sm);font-weight:var(--w-bold);color:var(--mut);margin:10px 2px 2px}
   .cxf{display:flex;flex-direction:column;gap:var(--s3)}
   .cxf label{display:flex;flex-direction:column;gap:5px;font-size:var(--t-sm);font-weight:var(--w-bold);color:var(--mut)}
   .cxf label.ck{flex-direction:row;align-items:center;gap:10px;color:var(--tx);font-size:var(--t-base);font-weight:var(--w-med)}
   .cxf label.ck input{width:22px;height:22px;accent-color:var(--primary)}
-  .cxf .row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s2)}
+  /* tres columnas mientras quepa "Repeticiones" (6,5 em); con la letra grande
+     a 320 px la tercera baja de fila en vez de pisar a la de al lado */
+  .cxf .row3{display:grid;grid-template-columns:repeat(auto-fit,minmax(6.5em,1fr));gap:var(--s2)}
   .cxf .row3 label{justify-content:flex-end}
   .cxf textarea{min-height:76px;resize:vertical}
   .cxf .minibtn{margin-top:0}
@@ -1076,11 +1186,11 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .bwlist summary{cursor:pointer;color:var(--primary-ink);font-weight:var(--w-bold);padding:6px 0}
   .medrow{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:var(--t-sm)}
   .medrow>span:first-child{flex:1;font-weight:var(--w-semi)}
-  .medrow b{font-variant-numeric:tabular-nums}
+  .medrow b{font-variant-numeric:tabular-nums;white-space:nowrap}
   .medgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-top:12px}
   .medgrid label{display:flex;flex-direction:column;gap:4px;font-size:var(--t-xs);font-weight:var(--w-bold);color:var(--mut)}
   .medgrid input{width:100%;box-sizing:border-box;background:var(--sunk);color:var(--tx);border:1px solid var(--line);
-    border-radius:var(--r-sm);padding:10px;font:inherit;font-size:16px;font-weight:var(--w-med)}
+    border-radius:var(--r-sm);padding:10px;font:inherit;font-size:var(--t-campo);font-weight:var(--w-med)}
   .exnote.pain{background:var(--danger-tint);color:var(--danger-ink);border-color:var(--danger)}
   .exnote.pain u{color:inherit;text-decoration:underline}
   .ddfix{border:1px solid var(--line);background:var(--card);color:var(--primary-ink);border-radius:var(--r-sm);
@@ -1746,7 +1856,12 @@ function routIcon(k){const r=ROUTINES[k];
 let toastT=null,toastFin=null;
 function toast(html,ms,fin){const el=$("toast");if(!el)return;
   toastCierra();
-  el.innerHTML=html;el.classList.add("show");toastFin=fin||null;
+  /* el icono va aparte y el texto en UN solo hijo: suelto, cada <b> era otra
+     columna del flex y con la letra grande el aviso se partia en dos. El
+     aviso con boton ya llega asi (icono, .tmsg y el boton) */
+  const m=/^\s*(<svg[\s\S]*?<\/svg>)\s*([\s\S]*)$/.exec(html);
+  el.innerHTML=/class="tmsg"/.test(html)?html:m?m[1]+'<span class="tmsg">'+m[2]+"</span>":'<span class="tmsg">'+html+"</span>";
+  el.classList.add("show");toastFin=fin||null;
   colocaAviso(el,!!fin&&inGuided());
   clearTimeout(toastT);toastT=setTimeout(()=>{toastCierra();el.classList.remove("show");},ms||2600);}
 /* el aviso con boton, en el guiado, arriba, bajo la barra: abajo su boton
@@ -2052,7 +2167,9 @@ function daysSinceExport(){const l=jget("rp_lastexport",null);
   return l?Math.round((dlocal(today())-dlocal(l))/86400000):null;}
 function backupNag(){if(loadHist().length<5)return "";const d=daysSinceExport();
   if(d!=null&&d<14)return "";
-  return `<div class="bknag">${ic("alert","sm")}<div style="flex:1">${d==null?"Aún no tienes copia de seguridad.":"Tu última copia es de hace "+d+" días."}
+  /* el texto pide 12 em: con menos, el boton baja a su linea y el aviso no se
+     queda en una columna de dos palabras por renglon */
+  return `<div class="bknag">${ic("alert","sm")}<div style="flex:1 1 12em">${d==null?"Aún no tienes copia de seguridad.":"Tu última copia es de hace "+d+" días."}
     Si pierdes o cambias el teléfono, sin ella se pierde tu progreso.</div>
     <button class="minibtn" onclick="exportData()">${ic("down","sm")} Hacer copia</button></div>`;}
 
@@ -2947,7 +3064,9 @@ function adjW(d){const s=steps[stepi],ld=availDB(s.id,curRoutine),l=ld&&!availDB
   else curW=Math.max(0,Math.round((c+(d>0?2.5:-2.5))*100)/100);pintaW();}
 /* el peso del guiado se ve igual al pintar la serie, al tocar −/+, al
    escribirlo y al cambiar las series: solo el numero, como renderStep. Con
-   la unidad, "102.5 kg" parte la fila en dos lineas en un movil de 390 px */
+   la unidad, "102.5 kg" parte la fila en dos lineas en un movil de 390 px.
+   La forma de la fila no depende de la cifra (DISENO 10): cambiarla no
+   mueve nada */
 function pintaW(){const el=$("lw");if(el)el.textContent=fmtW(curW);}
 function adjR(d){curReps=Math.max(1,curReps+d);const el=$("lr");if(el)el.textContent=curReps;}
 /* Doble toque (v36): un segundo toque durante la confirmacion volvia a entrar
@@ -3000,7 +3119,8 @@ function loadPlan(){return jget("rp_plan",[null,null,null,null,null,null,null]);
 function planShort(v){if(v==="rest")return "Descanso";if(v&&ROUTINES[v]){let n=ROUTINES[v].name;if(n.indexOf("—")>=0)n=n.split("—")[1].trim();return n.replace(/^Tren\s+/i,"");}return "+";}
 function renderWeek(){const p=loadPlan();let h=`<div class="wkhead"><div class="t">Tu semana</div></div><div class="week">`;
   for(let d=0;d<7;d++){const v=p[d],cls=["day"];if(d===todayDow())cls.push("on");if(v==="rest")cls.push("rest");else if(v&&ROUTINES[v])cls.push("d-"+routColor(v));
-    h+=`<div class="${cls.join(' ')}" onclick="openPlan(${d})" role="button" tabindex="0" aria-label="Editar ${DOWLONG[d]}"><div class="d">${DOW[d]}</div><div class="tag">${esc(planShort(v))}</div></div>`;}
+    const icn=v==="rest"?"moon":(v&&ROUTINES[v])?routIcon(v):"plus";
+    h+=`<div class="${cls.join(' ')}" onclick="openPlan(${d})" role="button" tabindex="0" aria-label="Editar ${DOWLONG[d]}"><div class="d">${DOW[d]}</div><div class="tag"><span class="tx">${esc(planShort(v))}</span>${ic(icn,"xs")}</div></div>`;}
   h+=`</div>`;
   /* DISENO 9: un estado vacio explica que hacer. Sin plan, el riel eran siete
      "+" sin decir para que servian, y de el dependen la meta semanal, la racha
@@ -3018,11 +3138,17 @@ function bestSet(sets){let b=null;(sets||[]).forEach(x=>{if(!b||x.w>b.w)b=x;});r
 /* acepta [numero,...] (espaciado uniforme, como antes) o [{date,v},...],
    que reparte los puntos por fecha real: un parón de tres semanas se ve */
 function dmLabel(d){const p=String(d).split("-");return p.length>2?(+p[2])+"/"+(+p[1]):String(d);}
+/* cuanto crece la letra sobre la de serie (14 px de texto normal): las
+   etiquetas de la curva son SVG y no heredan la escala en rem del CSS */
+function letraK(){const f=parseFloat(getComputedStyle(document.body).fontSize);return f>0?f/14:1;}
 function chart(data,unit,opt){opt=opt||{};
   if(!data||!data.length)return "";
   const dated=(typeof data[0]==="object"&&data[0]!==null);
   const vals=dated?data.map(d=>+d.v||0):data.map(v=>+v||0);
-  const n=vals.length,w=300,h=opt.h||(dated?118:104),padL=6,padR=6,padT=14,padB=dated?26:16;
+  /* con la letra grande las etiquetas crecen y el margen que las aloja
+     tambien; el alto de la curva en si no cambia */
+  const k=letraK(),padB0=dated?26:16,padT=14*k,padB=padB0*k;
+  const n=vals.length,w=300,h=(opt.h||(dated?118:104))+padT-14+padB-padB0,padL=6,padR=6;
   const min=Math.min.apply(null,vals),max=Math.max.apply(null,vals),rng=(max-min)||1;
   let ts=null,span=0;
   if(dated){ts=data.map(d=>{const p=String(d.date).split("-");return new Date(+p[0],(+p[1]||1)-1,+p[2]||1).getTime();});
@@ -3041,12 +3167,13 @@ function chart(data,unit,opt){opt=opt||{};
   const iMax=vals.indexOf(max);
   const dots=vals.map((v,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="${i===n-1?4:2.6}" fill="var(--primary)"/>`).join("");
   const rec=(n>1&&max>min)?`<circle cx="${X(iMax).toFixed(1)}" cy="${Y(max).toFixed(1)}" r="6" fill="none" stroke="var(--primary)" stroke-width="1.5" opacity=".5"/>`:"";
-  const lab=(v,y)=>`<text x="${w-padR}" y="${y}" text-anchor="end" font-size="10" font-weight="700" fill="var(--mut)">${fmtW(v)} ${unit}</text>`;
+  const f1=(10*k).toFixed(1),f2=(9.5*k).toFixed(1),yd=(h-5*k).toFixed(1);
+  const lab=(v,y)=>`<text x="${w-padR}" y="${y.toFixed(1)}" text-anchor="end" font-size="${f1}" font-weight="700" fill="var(--mut)">${fmtW(v)} ${unit}</text>`;
   let dl="";
-  if(dated&&n>1)dl=`<text x="${padL}" y="${h-5}" font-size="9.5" font-weight="700" fill="var(--mut)">${dmLabel(data[0].date)}</text>`
-    +`<text x="${w-padR}" y="${h-5}" text-anchor="end" font-size="9.5" font-weight="700" fill="var(--mut)">${dmLabel(data[n-1].date)}</text>`;
-  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img" aria-label="Curva de evolución">${grid}${area}${base}${line}${rec}${dots}
-    ${lab(max,padT-4)}${lab(min,h-padB+11)}${dl}</svg>`;}
+  if(dated&&n>1)dl=`<text x="${padL}" y="${yd}" font-size="${f2}" font-weight="700" fill="var(--mut)">${dmLabel(data[0].date)}</text>`
+    +`<text x="${w-padR}" y="${yd}" text-anchor="end" font-size="${f2}" font-weight="700" fill="var(--mut)">${dmLabel(data[n-1].date)}</text>`;
+  return `<svg viewBox="0 0 ${w} ${h.toFixed(1)}" width="100%" height="${h.toFixed(1)}" role="img" aria-label="Curva de evolución">${grid}${area}${base}${line}${rec}${dots}
+    ${lab(max,padT-4*k)}${lab(min,h-padB+11*k)}${dl}</svg>`;}
 function volumeByDate(){const logs=loadLogs(),m={};
   Object.keys(logs).forEach(id=>logs[id].forEach(r=>{let v=0;(r.sets||[]).forEach(x=>{v+=(x.w||0)*(x.reps||0);});if(v>0)m[r.date]=(m[r.date]||0)+v;}));
   return Object.keys(m).sort().map(d=>({date:d,v:m[d]}));}
