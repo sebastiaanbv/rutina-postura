@@ -1929,9 +1929,28 @@ function toast(html,ms,fin){const el=$("toast");if(!el)return;
    De 8 en 8 se saltaba los huecos justos: con los datos de la madre a
    320x568 y letra al 115 % (Roboto), borrando la primera serie, el aviso
    cabia entre «¿Molestia…?» y el + de «Series» en 6 px de recorrido, ninguno
-   de los probados, y tapaba la serie 1. */
-function colocaAviso(el,arriba){el.style.top="";el.style.left=el.style.right="";el.classList.toggle("arriba",arriba);if(!arriba)return;
-  const b=el.querySelector(".tact"),cs=controlesGuiado(),y0=el.offsetTop,x0=el.offsetLeft,h=el.offsetHeight,fin=innerHeight-h;
+   de los probados, y tapaba la serie 1.
+   quieto (al desplazar la pagina): sin hueco para el aviso entero, se queda
+   donde estaba en la pantalla mientras Deshacer siga libre. Buscando cada vez
+   el sitio que menos tapa, el aviso perseguia a ese control: con seis series
+   a 320x568 tapaba la cifra de la serie 2 (la mas corta) en cualquier punto
+   del recorrido, y desplazar no la sacaba de debajo. Quieto, la pagina pasa
+   por debajo y lo tapado sale al desplazar lo que mide el aviso. Y si tiene
+   que moverse (Deshacer caeria sobre un control), primero busca un sitio que
+   no tape lo que acaba de tapar: si no, en la lista de series el unico sitio
+   donde cabe Deshacer es junto a la cifra corta y volvia a ella. */
+let avisoBajo=[];
+/* lo que no es control pero el aviso no debe tapar si hay donde ponerlo: la
+   barra del guiado (cuanto llevas) y los rotulos PESO, REPS y SERIES. Sin
+   el suyo, «− 2 +» no dice que cuenta: buscando solo entre controles, el
+   primer hueco bajo la barra caia a menudo justo encima del stepper de
+   series, sobre su rotulo, con el sitio libre un poco mas abajo */
+const ROTULOS="#guided .gtop,#guided .stepper .lab";
+function colocaAviso(el,arriba,quieto){
+  const antes=quieto&&el.classList.contains("arriba")&&el.style.top?{x:el.offsetLeft,y:el.offsetTop,top:el.style.top,l:el.style.left,r:el.style.right}:null;
+  if(!antes)avisoBajo=[];
+  el.style.top="";el.style.left=el.style.right="";el.classList.toggle("arriba",arriba);if(!arriba)return;
+  const b=el.querySelector(".tact"),cs=controlesGuiado(),cr=cs.concat(controlesGuiado(ROTULOS)),y0=el.offsetTop,x0=el.offsetLeft,h=el.offsetHeight,fin=Math.floor(innerHeight-el.getBoundingClientRect().height);
   el.style.top="calc(var(--s2) + env(safe-area-inset-top))";const tope=el.offsetTop;
   const lado=Math.max(0,Math.min(x0,document.documentElement.clientWidth-x0-el.offsetWidth)-8);
   const dxs=[0];for(let d=8;d<=lado;d+=8)dxs.push(-d,d);
@@ -1942,43 +1961,48 @@ function colocaAviso(el,arriba){el.style.top="";el.style.left=el.style.right="";
      menor (abajo) cae en uno de esos sitios */
   const by=b?b.offsetTop+b.offsetHeight/2:0,my=b?Math.max(22,b.offsetHeight/2):0,
     arr=Math.min(0,by-my),aba=Math.max(h,by+my),ys=[y0,tope,fin];
-  cs.forEach(r=>{if(r.w>0)ys.push(Math.ceil(r.b-arr),Math.floor(r.t-aba),Math.ceil(r.b-by+my),Math.floor(r.t-by-my),
+  cr.forEach(r=>{if(r.w>0)ys.push(Math.ceil(r.b-arr),Math.floor(r.t-aba),Math.ceil(r.b-by+my),Math.floor(r.t-by-my),
     Math.round(r.t),Math.round(r.b-h),Math.round(r.t-h),Math.round(r.b));});
   const bajan=[...new Set(ys.filter(y=>y>=y0&&y<=fin))].sort((p,q)=>p-q),
     suben=[...new Set(ys.filter(y=>y<y0&&y>=tope))].sort((p,q)=>q-p);
   const todas=bajan.concat(suben);
-  for(const dx of dxs)for(const y of todas)if(!avisoPisa(el,cs,true,b,x0+dx,y))return pon(dx,y);
+  for(const c of [cr,cs])for(const dx of dxs)for(const y of todas)if(!avisoPisa(el,c,true,b,x0+dx,y)){avisoBajo=[];return pon(dx,y);}
+  const bajo=(x,y)=>cs.filter(r=>r.w>0&&r.l<x+el.offsetWidth&&r.r>x&&r.t<y+el.offsetHeight&&r.b>y).map(r=>r.el);
+  if(antes&&antes.y>=tope&&antes.y<=fin&&!avisoPisa(el,cs,false,b,antes.x,antes.y)){
+    el.style.top=antes.top;el.style.left=antes.l;el.style.right=antes.r;avisoBajo=bajo(antes.x,antes.y);return;}
   /* sin hueco para el aviso entero: de los sitios donde al menos el boton
      no cae sobre un control, el que menos superficie de controles tapa (lo
-     tapado no se puede tocar en esos 7 s); a igualdad, el primero */
+     tapado no se puede tocar en esos 7 s); a igualdad, el primero. Al
+     desplazar, antes los que no tapan nada de lo que tapaba */
   let mejor=null;
   for(const dx of dxs)for(const y of todas)if(!avisoPisa(el,cs,false,b,x0+dx,y)){
-    const t=avisoTapa(el,cs,x0+dx,y);if(!mejor||t<mejor.t-0.5)mejor={t:t,dx:dx,y:y};}
-  if(mejor)return pon(mejor.dx,mejor.y);
-  el.style.top="";el.classList.remove("arriba");}
+    const t=avisoTapa(el,cs,x0+dx,y),rep=bajo(x0+dx,y).some(c=>avisoBajo.indexOf(c)>=0)?1:0;
+    if(!mejor||rep<mejor.rep||rep===mejor.rep&&t<mejor.t-0.5)mejor={t:t,rep:rep,dx:dx,y:y};}
+  if(mejor){avisoBajo=bajo(x0+mejor.dx,mejor.y);return pon(mejor.dx,mejor.y);}
+  avisoBajo=[];el.style.top="";el.classList.remove("arriba");}
 /* la superficie de controles que tapa el aviso en x,y */
 function avisoTapa(el,cs,x,y){const R=x+el.offsetWidth,B=y+el.offsetHeight;
   return cs.reduce((a,r)=>a+(r.w>0?Math.max(0,Math.min(r.r,R)-Math.max(r.l,x))*Math.max(0,Math.min(r.b,B)-Math.max(r.t,y)):0),0);}
 /* la pagina se mueve bajo el aviso: si en sus 7 s se desplaza, otro control
    ("Registrar serie", el +) puede pasar bajo el boton. Se vuelve a colocar
    con cada desplazamiento o cambio de tamano de la ventana */
-function recolocaAviso(){const el=$("toast");
-  if(el&&toastFin&&el.classList.contains("show")&&inGuided())colocaAviso(el,true);}
-addEventListener("scroll",recolocaAviso,{passive:true});addEventListener("resize",recolocaAviso);
+function recolocaAviso(quieto){const el=$("toast");
+  if(el&&toastFin&&el.classList.contains("show")&&inGuided())colocaAviso(el,true,quieto===true);}
+addEventListener("scroll",()=>recolocaAviso(true),{passive:true});addEventListener("resize",()=>recolocaAviso());
 /* las cajas de los controles del guiado donde se quedan quietos. El paso
    recien pintado (borrar una serie) entra 8 px mas abajo (stageIn): medido a
    media entrada, el hueco que se encontraba dejaba el Deshacer sobre un
    control al terminar. Se descuenta el desplazamiento de lo que se esta
    moviendo, una vez por colocacion */
-function controlesGuiado(){
+function controlesGuiado(sel){
   const mov=(document.getAnimations?document.getAnimations():[]).filter(a=>{const t=a.effect&&a.effect.target;
       return t&&t.closest&&t.closest("#guided")&&a.playState==="running"&&isFinite(a.effect.getComputedTiming().endTime);})
     .map(a=>{const t=a.effect.target,m=getComputedStyle(t).transform,d=m&&m!=="none"?new DOMMatrix(m):null;
       return {t:t,x:d?d.m41:0,y:d?d.m42:0};});
-  return Array.prototype.map.call(document.querySelectorAll("#guided button,#guided [role=button],#guided input,#guided summary,#guided a"),c=>{
+  return Array.prototype.map.call(document.querySelectorAll(sel||"#guided button,#guided [role=button],#guided input,#guided summary,#guided a"),c=>{
     const r=c.getBoundingClientRect();let dx=0,dy=0;
     mov.forEach(m=>{if(m.t===c||m.t.contains(c)){dx+=m.x;dy+=m.y;}});
-    return {w:r.width,l:r.left-dx,r:r.right-dx,t:r.top-dy,b:r.bottom-dy};});}
+    return {w:r.width,l:r.left-dx,r:r.right-dx,t:r.top-dy,b:r.bottom-dy,el:c};});}
 /* si la zona de 44 px del boton del aviso cae sobre un control del guiado;
    con entero, si la cae el aviso entero (con esa zona, que puede asomar).
    Con el aviso en x,y (o donde esta) y offset*, que no ven el translateY de

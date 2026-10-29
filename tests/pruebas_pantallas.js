@@ -621,6 +621,56 @@
     const barra=app.w.innerWidth-app.doc.documentElement.clientWidth;
     if(barra>0)app.frame.style.width=(px+barra)+"px";
     expect(app.doc.documentElement.clientWidth).toBe(px);}
+  /* los controles del guiado que tapa el aviso ENTERO, no solo su boton:
+     desde HU-54 el aviso a la vista se queda los toques, y lo que tapa no se
+     puede tocar en sus 7 s. Se mide como el dedo, punto a punto donde el
+     aviso y el control coinciden dentro de la pantalla */
+  function bajoAviso(app,t){const tr=t.getBoundingClientRect(),bajo=[];
+    app.$$("#guided button,#guided [role=button],#guided input,#guided summary,#guided a").forEach(c=>{const r=c.getBoundingClientRect();
+      const x0=Math.max(r.left,tr.left,0)+1,x1=Math.min(r.right,tr.right)-1,y0=Math.max(r.top,tr.top,0)+1,y1=Math.min(r.bottom,tr.bottom,app.w.innerHeight)-1;
+      if(!r.width||x0>=x1||y0>=y1)return;
+      for(let yy=y0;yy<=y1;yy+=3)for(let xx=x0;xx<=x1;xx+=3){const e=app.doc.elementFromPoint(xx,yy);
+        if(e&&t.contains(e)){bajo.push(c);return;}}});
+    return bajo;}
+  const nombre=c=>c.getAttribute("aria-label")||c.textContent.trim().slice(0,20);
+  /* sin barras de scroll que ocupen sitio, como en el telefono (las pruebas
+     del aviso de Deshacer): devuelve la hoja, que se quita al acabar */
+  function barrasFuera(app){const st=app.doc.createElement("style");st.textContent="*{scrollbar-width:none}";app.doc.head.appendChild(st);return st;}
+  /* si el aviso tapa (el aviso entero o la zona de 44 px de Deshacer, que
+     puede asomar), es que no habia ningun hueco a ninguna altura, ni centrado
+     ni movido a un lado (de 8 en 8 hasta 8 px del borde, como lo prueba
+     colocaAviso): se prueban todas las alturas, de pixel en pixel (de 8 en 8
+     se saltaba los huecos justos, con 6 px de recorrido). Con menor, ademas,
+     de donde al menos Deshacer queda libre, esta en el que menos superficie
+     de controles tapa (recien colocado: al desplazar se queda quieto, y eso
+     no es lo que menos tapa). Devuelve lo que este mal */
+  function tapaSinHueco(app,t,caso,menor){const mal=[];
+    if(bajoAviso(app,t).length&&!app.w.avisoPisa(t,null,true))mal.push(caso+": tapa un control y avisoPisa no lo ve");
+    if(!app.w.avisoPisa(t,null,true))return mal;
+    const l=t.style.left,r=t.style.right;t.style.left=t.style.right="";
+    const xc=t.offsetLeft,cs=app.w.controlesGuiado(),cw=app.doc.documentElement.clientWidth;t.style.left=l;t.style.right=r;
+    const lado=Math.max(0,Math.min(xc,cw-xc-t.offsetWidth)-8),dxs=[0];for(let d=8;d<=lado;d+=8)dxs.push(-d,d);
+    const altos=[];for(let y=8;y<=Math.floor(app.w.innerHeight-t.getBoundingClientRect().height);y++)altos.push(y);
+    const hueco=dxs.map(dx=>altos.filter(y=>!app.w.avisoPisa(t,cs,true,null,xc+dx,y)).map(y=>dx+","+y)[0]).filter(Boolean);
+    if(hueco.length)mal.push(caso+": tapa controles y habia hueco en "+hueco[0]);
+    if(menor&&t.classList.contains("arriba")&&!app.w.avisoPisa(t,cs,false)){const ya=app.w.avisoTapa(t,cs,t.offsetLeft,t.offsetTop);
+      const menos=dxs.map(dx=>altos.filter(y=>!app.w.avisoPisa(t,cs,false,null,xc+dx,y)&&app.w.avisoTapa(t,cs,xc+dx,y)<ya-1)
+        .map(y=>dx+","+y+" ("+app.w.avisoTapa(t,cs,xc+dx,y).toFixed(0)+")")[0]).filter(Boolean);
+      if(menos.length)mal.push(caso+": tapa "+ya.toFixed(0)+" px² y en "+menos[0]+" taparia menos");}
+    return mal;}
+  /* el aviso no tapa un rotulo (PESO, REPS, SERIES: sin el, «− 2 +» no
+     dice que cuenta) si habia un sitio sin controles, rotulos ni la barra
+     del guiado (cuanto llevas) */
+  function tapaRotulo(app,t,caso){const tr=t.getBoundingClientRect(),labs=app.$$("#guided .stepper .lab,#guided .gtop");
+    const bajo=labs.filter(l=>l.classList.contains("lab")).filter(l=>{const r=l.getBoundingClientRect();return r.width&&r.left<tr.right-1&&r.right>tr.left+1&&r.top<tr.bottom-1&&r.bottom>tr.top+1;});
+    if(!bajo.length||app.w.avisoPisa(t,null,true))return [];
+    const l=t.style.left,r=t.style.right;t.style.left=t.style.right="";
+    const xc=t.offsetLeft,cw=app.doc.documentElement.clientWidth;t.style.left=l;t.style.right=r;
+    const cs=app.w.controlesGuiado().concat(labs.map(e=>{const q=e.getBoundingClientRect();return {w:q.width,l:q.left,r:q.right,t:q.top,b:q.bottom};}));
+    const lado=Math.max(0,Math.min(xc,cw-xc-t.offsetWidth)-8),dxs=[0];for(let d=8;d<=lado;d+=8)dxs.push(-d,d);
+    for(const dx of dxs)for(let y=8;y<=Math.floor(app.w.innerHeight-t.getBoundingClientRect().height);y++)
+      if(!app.w.avisoPisa(t,cs,true,null,xc+dx,y))return [caso+": tapa el rotulo «"+bajo.map(e=>e.textContent.trim()).join("», «")+"» y en "+dx+","+y+" no tapaba nada"];
+    return [];}
   /* contraste WCAG entre dos colores "rgb(r, g, b)" */
   function lum(c){return c.match(/\d+(\.\d+)?/g).slice(0,3).map(Number).map(v=>{v/=255;return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4);})
     .reduce((a,v,i)=>a+v*[0.2126,0.7152,0.0722][i],0);}
@@ -834,11 +884,17 @@
       app.reiniciarMemoria();});
     /* abajo, el boton Deshacer caia sobre «Registrar serie», el + o «Nota
        fija»: volver a registrar justo despues de borrar deshacia. Se mide
-       como el dedo: cada control del guiado, punto a punto, no da en el aviso */
+       como el dedo: cada control del guiado, punto a punto, no da en el aviso.
+       Y el aviso entero tampoco tapa ningun control (se queda los toques):
+       solo donde no hay hueco, y entonces en el que menos tapa. El unico
+       caso es 320x568 con seis series, la ultima a la vista: de arriba abajo
+       todo es control (los dos campos, sus − y +, «¿De cuánto sube?», las
+       reservas, «La última vez», las series y sus X) y entre dos no quedan
+       los 44 px del aviso (DISENO §13, HU-54, lo que queda abierto) */
     test("el Deshacer no pisa ningún control del guiado (de 320x568 a 412x915, con 1, 3 y 6 series)",app=>{
       const conN=n=>()=>{const s=conSerie(),l=s.rp_session.log.press_banca_db,t=s.rp_session.startedAt;
         s.rp_session.log.press_banca_db=Array.from({length:n},(_,i)=>Object.assign({},l[i%3],{t:t+(i+1)*60000}));return s;};
-      const pisados=[];
+      const pisados=[],tapan=[],mal=[],sinBarras=barrasFuera(app);
       try{for(const [w,h] of [[320,568],[360,640],[375,667],[400,800],[412,915]])for(const n of [1,3,6]){
           app.frame.style.height=h+"px";app.frame.style.width=w+"px";abrir(app,conN(n));anchoUtil(app,w);
           const filas=app.$$("#guided .sets .setline"),ult=filas[filas.length-1];
@@ -853,24 +909,36 @@
             if(!r.width||r.bottom<0||r.top>app.w.innerHeight)return;
             for(let y=r.top+2;y<r.bottom-1;y+=4)for(let x=r.left+2;x<r.right-1;x+=4){
               const e=app.doc.elementFromPoint(x,y);
-              if(e&&bt.contains(e)){pisados.push(w+"x"+h+" n="+n+" "+(c.className||c.tagName)+" "+c.textContent.trim().slice(0,20));return;}}});}}
-      finally{app.frame.style.height="800px";app.frame.style.width="400px";}
+              if(e&&bt.contains(e)){pisados.push(w+"x"+h+" n="+n+" "+(c.className||c.tagName)+" "+c.textContent.trim().slice(0,20));return;}}});
+          const caso=w+"x"+h+" n="+n,bajo=bajoAviso(app,t);
+          if(bajo.length)tapan.push(caso+": tapa «"+bajo.map(nombre).join("», «")+"»");
+          mal.push(...tapaSinHueco(app,t,caso,true),...tapaRotulo(app,t,caso));}}
+      finally{sinBarras.remove();app.frame.style.height="800px";app.frame.style.width="400px";}
       expect(pisados).toEqual([]);
+      expect(mal).toEqual([]);
+      expect(tapan.filter(c=>!/^320x568 n=6:/.test(c))).toEqual([]);
       app.reiniciarMemoria();});
     /* el aviso se colocaba una sola vez, al salir: si en sus 7 s la pagina se
        desplazaba y «Registrar serie», el + o «Nota fija» pasaban bajo el
        Deshacer, tocarlos deshacia. Se recorre la pagina de arriba abajo y en
-       cada parada se mide como el dedo, donde el aviso y el control coinciden */
+       cada parada se mide como el dedo, donde el aviso y el control coinciden.
+       El aviso entero tampoco tapa ningun control salvo donde no hay hueco
+       (320x568 con tres o seis series y 375x667 con seis, a media pagina:
+       DISENO §13, HU-54, lo que queda abierto). Y ahi lo tapado sale de
+       debajo al desplazar: el aviso buscaba cada vez el sitio que menos
+       tapaba y perseguia a la cifra de la serie 2 por todo el recorrido. Un
+       control de alto a no puede seguir tapado mas paradas seguidas de las
+       que tarda en cruzar un aviso quieto de alto h: (h + a) / 12, y una */
     test("con la página desplazada el Deshacer sigue sin pisar ningún control",app=>{
       const conN=n=>()=>{const s=conSerie(),l=s.rp_session.log.press_banca_db,t=s.rp_session.startedAt;
         s.rp_session.log.press_banca_db=Array.from({length:n},(_,i)=>Object.assign({},l[i%3],{t:t+(i+1)*60000}));return s;};
-      const pisados=[],fuera=[];let paradas=0;
+      const pisados=[],fuera=[],tapan=[],mal=[],sigue=[],sinBarras=barrasFuera(app);let paradas=0;
       try{for(const [w,h] of [[320,568],[375,667],[412,915]])for(const n of [3,6]){
           app.frame.style.height=h+"px";app.frame.style.width=w+"px";abrir(app,conN(n));anchoUtil(app,w);
           const filas=app.$$("#guided .sets .setline");
           filas[filas.length-1].querySelector(".del").click();quieta(app);
           expect(app.texto("#toast .tmsg")).toBe("Serie borrada");
-          const max=app.doc.documentElement.scrollHeight-app.w.innerHeight;
+          const max=app.doc.documentElement.scrollHeight-app.w.innerHeight,racha=new Map();
           for(let y=0;y<=max;y+=12){app.w.scrollTo(0,y);app.w.dispatchEvent(new app.w.Event("scroll"));quieta(app);paradas++;
             const t=app.$("#toast"),tr=t.getBoundingClientRect(),bt=t.querySelector(".tact");
             if(tr.top<0||tr.bottom>app.w.innerHeight)fuera.push(w+"x"+h+" n="+n+" y="+y);
@@ -878,12 +946,21 @@
               const x0=Math.max(r.left,tr.left)+1,x1=Math.min(r.right,tr.right)-1,y0=Math.max(r.top,tr.top,0)+1,y1=Math.min(r.bottom,tr.bottom)-1;
               if(!r.width||x0>=x1||y0>=y1)return;
               for(let yy=y0;yy<=y1;yy+=3)for(let x=x0;x<=x1;x+=3){const e=app.doc.elementFromPoint(x,yy);
-                if(e&&bt.contains(e)){pisados.push(w+"x"+h+" n="+n+" y="+y+" "+(c.className||c.tagName)+" "+c.textContent.trim().slice(0,20));return;}}});}
+                if(e&&bt.contains(e)){pisados.push(w+"x"+h+" n="+n+" y="+y+" "+(c.className||c.tagName)+" "+c.textContent.trim().slice(0,20));return;}}});
+            const caso=w+"x"+h+" n="+n+" y="+y,bajo=bajoAviso(app,t);
+            if(bajo.length)tapan.push(caso+": tapa «"+bajo.map(nombre).join("», «")+"»");
+            mal.push(...tapaSinHueco(app,t,caso,false),...tapaRotulo(app,t,caso));
+            [...racha.keys()].forEach(c=>{if(bajo.indexOf(c)<0)racha.delete(c);});
+            bajo.forEach(c=>{const k=(racha.get(c)||0)+1;racha.set(c,k);
+              if(k===Math.floor((t.offsetHeight+c.getBoundingClientRect().height)/12)+2)sigue.push(caso+": «"+nombre(c)+"» lleva "+k+" paradas tapado");});}
           app.w.scrollTo(0,0);}}
-      finally{app.frame.style.height="800px";app.frame.style.width="400px";}
+      finally{sinBarras.remove();app.frame.style.height="800px";app.frame.style.width="400px";}
       expect(paradas).toBeGreaterThan(30);
       expect(fuera).toEqual([]);
       expect(pisados).toEqual([]);
+      expect(mal).toEqual([]);
+      expect(sigue).toEqual([]);
+      expect(tapan.filter(c=>!/^(320x568 n=[36]|375x667 n=6) /.test(c))).toEqual([]);
       app.reiniciarMemoria();});
     /* el aviso se colocaba ANTES de repintar el paso (delSet: ofrecerDeshacer
        y luego renderStep), con la disposicion de antes de borrar: con los
@@ -905,8 +982,8 @@
          el 86 % del aviso, en vw, tenia 13 px mas que en el telefono (con
          DejaVu Sans, justo lo que «Serie borrada» necesitaba para no
          partirse: la prueba no veia lo que pasaba en el telefono) */
-      const sinBarras=app.doc.createElement("style");sinBarras.textContent="*{scrollbar-width:none}";app.doc.head.appendChild(sinBarras);
-      try{for(const [w,h] of [[320,760],[320,640],[320,568],[360,640]])for(const pct of [100,115,130])for(const cual of ["primera","última"]){
+      const sinBarras=barrasFuera(app);
+      try{for(const [w,h] of [[320,760],[320,640],[320,568],[360,640],[360,760],[412,760]])for(const pct of [100,115,130])for(const cual of ["primera","última"]){
           app.frame.style.width=w+"px";app.frame.style.height=h+"px";raiz.style.fontSize=pct===100?"":pct+"%";
           app.w.toastFuera();app.reiniciarMemoria();app.sembrar(F.madre);
           app.w.openRoutine("salud_fuerza_b");app.w.startRoutine("remo_db");anchoUtil(app,w);
@@ -930,29 +1007,11 @@
           mal.push(...usaElAncho(app,t,w-16).map(m=>caso+": "+m));
           const ms=t.querySelector(".tmsg"),lh=parseFloat(app.w.getComputedStyle(ms).lineHeight);
           if(ms.getBoundingClientRect().height>lh*1.5)mal.push(caso+": «Serie borrada» partido en "+Math.round(ms.getBoundingClientRect().height/lh)+" lineas");
-          const tr=t.getBoundingClientRect(),bajo=[];
-          app.$$("#guided button,#guided [role=button],#guided input,#guided summary,#guided a").forEach(c=>{const r=c.getBoundingClientRect();
-            const x0=Math.max(r.left,tr.left)+1,x1=Math.min(r.right,tr.right)-1,y0=Math.max(r.top,tr.top)+1,y1=Math.min(r.bottom,tr.bottom)-1;
-            if(!r.width||x0>=x1||y0>=y1)return;
-            for(let yy=y0;yy<=y1;yy+=3)for(let xx=x0;xx<=x1;xx+=3){const e=app.doc.elementFromPoint(xx,yy);
-              if(e&&t.contains(e)){bajo.push(c.getAttribute("aria-label")||c.textContent.trim().slice(0,20));return;}}});
-          if(bajo.length)tapan.push(caso+": tapa «"+bajo.join("», «")+"»");
-          /* y si tapa, es que no habia ningun hueco a ninguna altura, ni
-             centrado ni movido a un lado (de 8 en 8 hasta 8 px del borde,
-             como lo prueba colocaAviso): se prueban todas las alturas, de
-             pixel en pixel (de 8 en 8 se saltaba los huecos justos, con 6 px
-             de recorrido). Y de donde al menos Deshacer queda libre, esta en
-             el que menos superficie de controles tapa */
-          if(app.w.avisoPisa(t,null,true)){const l=t.style.left,r=t.style.right;t.style.left=t.style.right="";
-            const xc=t.offsetLeft,cs=app.w.controlesGuiado(),cw=app.doc.documentElement.clientWidth;t.style.left=l;t.style.right=r;
-            const lado=Math.max(0,Math.min(xc,cw-xc-t.offsetWidth)-8),dxs=[0];for(let d=8;d<=lado;d+=8)dxs.push(-d,d);
-            const altos=[];for(let y=8;y<=app.w.innerHeight-t.offsetHeight;y++)altos.push(y);
-            const hueco=dxs.map(dx=>altos.filter(y=>!app.w.avisoPisa(t,cs,true,null,xc+dx,y)).map(y=>dx+","+y)[0]).filter(Boolean);
-            if(hueco.length)mal.push(caso+": tapa controles y habia hueco en "+hueco[0]);
-            if(t.classList.contains("arriba")&&!app.w.avisoPisa(t,cs,false)){const ya=app.w.avisoTapa(t,cs,t.offsetLeft,t.offsetTop);
-              const menos=dxs.map(dx=>altos.filter(y=>!app.w.avisoPisa(t,cs,false,null,xc+dx,y)&&app.w.avisoTapa(t,cs,xc+dx,y)<ya-1)
-                .map(y=>dx+","+y+" ("+app.w.avisoTapa(t,cs,xc+dx,y).toFixed(0)+")")[0]).filter(Boolean);
-              if(menos.length)mal.push(caso+": tapa "+ya.toFixed(0)+" px² y en "+menos[0]+" taparia menos");}}
+          const bajo=bajoAviso(app,t);
+          if(bajo.length)tapan.push(caso+": tapa «"+bajo.map(nombre).join("», «")+"»");
+          /* y si tapa, es que no habia hueco, y de donde al menos Deshacer
+             queda libre, esta en el que menos tapa (tapaSinHueco) */
+          mal.push(...tapaSinHueco(app,t,caso,true),...tapaRotulo(app,t,caso));
           /* sin ningun hueco (320x568 con letra grande) se queda donde siempre */
           if(donde[0].indexOf("arriba")<0){sinHueco++;continue;}
           app.$$("#guided button,#guided [role=button],#guided input").forEach(c=>{const r=c.getBoundingClientRect();
@@ -961,7 +1020,7 @@
               const e=app.doc.elementFromPoint(xx,y);
               if(e&&bt.contains(e)){mal.push(caso+": Deshacer sobre «"+(c.getAttribute("aria-label")||c.textContent.trim().slice(0,20))+"»");return;}}});}}
       finally{sinBarras.remove();raiz.style.fontSize="";app.frame.style.width="400px";app.frame.style.height="800px";}
-      expect(casos).toBe(24);
+      expect(casos).toBe(36);
       expect(mal).toEqual([]);
       expect(sinHueco).toBeLessThan(3);
       expect(tapan.filter(c=>!/^320x568 1(15|30)% primera:/.test(c))).toEqual([]);

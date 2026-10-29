@@ -853,10 +853,19 @@ confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se toca
   entre «¿Molestia…?» y el + de «Series» en 6 px de recorrido, ninguno múltiplo de 8, y tapaba
   la serie 1 (con DejaVu, igual a 320×640 al 115 %). Y cuando no hay hueco para el aviso
   entero, de los sitios donde al menos Deshacer no cae sobre un control elige el que menos
-  superficie de controles tapa, no el primero. La posición se vuelve a
+  superficie de controles tapa, no el primero. Entre los huecos, antes uno que no tape la barra
+  del guiado ni los rótulos PESO, REPS y SERIES (`ROTULOS`): no son controles, pero sin el suyo
+  «− 2 +» no dice qué cuenta, y el primer hueco bajo la barra caía a menudo sobre el rótulo de
+  «Series» con sitio libre un poco más abajo (DejaVu y Roboto a 360 y 412 px y a 320 al 130 %).
+  El último sitio posible es `innerHeight` menos el alto real del aviso, redondeado hacia abajo:
+  con su alto entero (42 de 42,125) asomaba 0,1 px por debajo. La posición se vuelve a
   calcular cada vez que la página se desplaza o la ventana cambia de tamaño (`recolocaAviso`):
   calculada una sola vez, al desplazar en esos 7 s «Registrar serie» o el «+» podían pasar bajo
-  Deshacer. Los avisos sin botón siguen abajo, donde siempre.
+  Deshacer. Al desplazar sin hueco, el aviso **se queda quieto** en la pantalla mientras Deshacer
+  siga libre, y cuando tiene que moverse busca antes un sitio que no tape lo que acaba de tapar:
+  buscando cada vez el que menos tapa, perseguía a la cifra más corta de la lista (la serie 2,
+  «22.5 kg × 8», con seis series a 320×568), y desplazar no la sacaba nunca de debajo. Los
+  avisos sin botón siguen abajo, donde siempre.
 - **Nada atraviesa el aviso.** Solo el botón recibía toques (`pointer-events:none` en el resto):
   tocar el texto o la X roja de «Serie borrada» activaba lo que hubiera debajo sin que se viera
   —con los datos del dueño a 320, 360 y 375 px, el chip «¿De cuánto sube?»; con los de la madre a
@@ -874,8 +883,10 @@ confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se toca
   Pruebas en `tests/pruebas_pantallas.js`: se toca el aviso punto a punto como el dedo
   (`elementFromPoint` y un clic en lo que devuelve), con y sin botón, a 320, 360 y 375 px y letra
   al 100 y al 130 %, y con los datos del dueño en la prensa: todo cae en el aviso, nada cambia en
-  los datos y el Deshacer sigue a la vista. Las pruebas de dónde se coloca miden el botón, que es
-  lo que ya medían cuando solo él recibía toques.
+  los datos y el Deshacer sigue a la vista. Las pruebas de dónde se coloca miden el botón y,
+  desde HU-55, también el aviso entero: «el Deshacer no pisa…» y «con la página desplazada…»
+  miraban solo el botón, lo que medían cuando solo él recibía toques, y no veían que con seis
+  series a 320×568 el aviso tapaba la cifra de una serie (ver «lo que queda abierto»).
 - **Se coloca con la página ya repintada.** `delSet` sacaba el aviso (y lo colocaba) antes de
   repintar el paso, así que el hueco se buscaba con la fila borrada todavía en su sitio: sin
   ella lo de debajo sube, y con los datos de la madre a 320 px y letra al 130 % el Deshacer
@@ -1168,24 +1179,40 @@ escala estaba en px y la raíz fijada a 14.
     8 (HU-54, arriba). Prueba en `tests/pruebas_pantallas.js` («tras borrar…»), sin barras de
     scroll como en el teléfono (con la de 15 px del Chrome de las pruebas, a «320 px» la ventana
     medía 335 y el aviso, en `vw`, tenía justo lo que DejaVu necesitaba para no partirse): con
-    la madre a 320×760, 320×640, 320×568 y 360×640, letra al 100, 115 y 130 % y borrando la
+    la madre a 320×760, 320×640, 320×568, 360×640, 360×760 y 412×760, letra al 100, 115 y 130 % y borrando la
     primera o la última serie, «Serie borrada» va en una línea, el aviso entero no tapa ningún
     control salvo en el caso sin hueco de abajo y, si tapa, se comprueba de píxel en píxel que no
     había hueco a ninguna altura, centrado ni movido a un lado, y que de los sitios donde Deshacer
     queda libre está en el que menos tapa. Falla con DejaVu si se vuelve al 86 %, con DejaVu y
     Roboto si se vuelve a probar de 8 en 8, y con Inter y Roboto si sin hueco se queda con el
-    primer sitio en vez del que menos tapa.
-- **Lo que queda abierto, el aviso sin hueco**: con la madre a 320×568 y letra grande
-  (115-130 %), borrando la primera serie, la pantalla es control de arriba abajo (steppers,
-  «¿Cuántas más podías?», «La última vez», la serie, «Registrar serie», «Nota fija»,
-  «¿Molestia…?») y entre dos no quedan los 45-48 px del aviso. Ahí el aviso tapa un control sus
-  7 s: con Inter y Roboto, la mitad de abajo de la serie 1, entre ella y «Registrar serie» (su
-  cifra y su X asoman por arriba, y Deshacer queda libre); con DejaVu Sans, sin sitio ni para
-  Deshacer, vuelve abajo, sobre «Nota fija» y «¿Molestia…?». Incumple «el aviso entero no
-  tapa ningún control» (HU-54, «Nada atraviesa el aviso») y es su último recurso: nada se
-  activa a ciegas (el toque en el aviso no hace nada), Deshacer sigue a la vista y basta
-  desplazar la página para que el aviso busque otro sitio. La prueba solo lo admite en ese caso. Lo que lo cerraría es un sitio fijo para el
-  aviso que la página deje libre, y eso es otro diseño del guiado.
+    primer sitio en vez del que menos tapa. Esta y las otras dos pruebas de dónde se coloca
+    («el Deshacer no pisa…», «con la página desplazada…», también ya sin barras de scroll)
+    comprueban además que el aviso no tapa los rótulos PESO, REPS o SERIES si había un sitio sin
+    controles, rótulos ni barra; antes de `ROTULOS` fallaban las tres con las tres letras.
+- **Lo que queda abierto, el aviso sin hueco**: hay pantallas que son control de arriba abajo y
+  donde entre dos controles no quedan los 44 px del aviso (con la zona de Deshacer):
+  - con la madre a 320×568 y letra grande (115-130 %), borrando la primera serie (steppers,
+    «¿Cuántas más podías?», «La última vez», la serie, «Registrar serie», «Nota fija»,
+    «¿Molestia…?»). Con Inter y Roboto el aviso tapa la mitad de abajo de la serie 1 (su cifra
+    y su X asoman por arriba, y Deshacer queda libre); con DejaVu Sans, sin sitio ni para
+    Deshacer, vuelve abajo, sobre «Nota fija» y «¿Molestia…?»;
+  - con seis series a 320×568, la última a la vista, y a media página con tres o seis series a
+    320×568 y con seis a 375×667: los dos campos y sus − y +, «¿De cuánto sube?», las reservas,
+    «La última vez» y la lista de series con sus X, cada 46 px. El aviso tapa la cifra más corta
+    de una serie («22.5 kg × 8») o el chip «¿De cuánto sube?», según la letra.
+
+  Ahí el aviso tapa un control sus 7 s, e incumple «el aviso entero no tapa ningún control»
+  (HU-54, «Nada atraviesa el aviso»). Es su último recurso: nada se activa a ciegas (el toque
+  en el aviso no hace nada), Deshacer sigue a la vista, tapa lo menos posible y, al desplazar
+  la página, se queda quieto y lo tapado sale de debajo (antes lo perseguía). Las pruebas lo
+  admiten solo en esos casos y, en cada uno, comprueban de píxel en píxel que no había hueco
+  a ninguna altura, centrado ni movido a un lado (desde 8 px del borde, el margen del aviso),
+  que Deshacer no pisa nada y, recién colocado, que está en el sitio que menos tapa; al
+  desplazar de 12 en 12 px, que ningún control sigue tapado más paradas de las que tarda en
+  cruzar un aviso quieto ((alto del aviso + alto del control) / 12, y una). Con lo anterior
+  la de desplazar fallaba con las tres letras (siete paradas o más con el mismo control). Lo
+  que lo cerraría es un sitio fijo para el aviso que la página deje libre, y eso es otro
+  diseño del guiado.
 - **Lo que queda abierto, la letra**: al 150 % el selector de tema, lo único que se salía a
   320 px, ya baja de línea; al 200 % se salen los títulos de una sola palabra («Calendario») y
   el botón «Registrar rutina». Para eso está el pellizco. No se ha probado en un teléfono real: las
