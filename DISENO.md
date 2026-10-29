@@ -127,6 +127,21 @@ letra del teléfono y nada crecería— y el texto base se pone en `body`. Cada 
 de 16, iOS amplía la pantalla al enfocar el campo; antes lo impedía `maximum-scale=1`, que ya no
 está (§10). El campo de corregir una serie iba a 12,5 px.
 
+**El diseño no depende de una letra concreta.** La app pinta con la letra del sistema
+(`-apple-system, …, Roboto, system-ui, sans-serif`): SF en iOS, Roboto en Android, Segoe en
+Windows, y en Linux la que diga fontconfig —Inter en el contenedor donde se escribe, DejaVu Sans
+en la CI de GitHub—. De una a otra, el mismo texto mide hasta un 20 % más: «142.5» en la cifra
+del stepper son 62 px en Roboto, 69 en Inter y 77 en DejaVu Sans. Así que nada se calibra con los
+px de una letra:
+- **Lo que tiene que caber se mide con la letra que pinta**, no se escribe en em como si todas
+  midieran lo mismo. La reserva de la cifra del stepper la mide `reservaCifra()` (§10).
+- **Si algo no cabe con una letra ancha, la pieza se reparte o el texto se acorta** (§10, §11):
+  nunca se recorta un texto que da información ni se encoge la letra.
+- **Las pruebas comprueban invariantes**, no px ni líneas de una letra: nada se solapa ni se
+  sale, la cifra va entre − y + donde «142.5» cabe con su aire, el aviso usa su 86 % antes de
+  partirse. Y la CI se corre con tres perfiles de letra: Inter (estrecha), DejaVu Sans (ancha, la
+  de la CI de GitHub) y Roboto (Android). Cómo, en `tests/README.md`.
+
 **Lo que no es CSS también crece.** Las etiquetas de las curvas son `<text>` de SVG y no heredan
 los `rem`: `chart()` las escala con `letraK()` —texto base entre 14— y agranda en la misma medida
 el margen que las aloja, para que las del pie no pisen las de la derecha.
@@ -350,17 +365,25 @@ otro aviso —el recordatorio— abre Inicio.
       deja los 7 em de «Calentamiento» (a 320 px ya pasaba de su columna); por debajo de 20 em las
       figuras se van y el nombre gana 57 px.
     - **Stepper del guiado**: la cifra va entre − y + si cabe con 4 px de aire a cada lado
-      **la más larga que puede tener**, «142.5» (4,94 em de la letra del stepper; las reps de
-      tres cifras ocupan menos); si no, sube a su propia línea y los botones quedan debajo, en
-      los extremos. Los botones **no encogen nunca** (42 px), y la cifra ocupa todo el hueco
+      **la más larga que puede tener**, «142.5» (las reps de tres cifras ocupan menos); si no,
+      sube a su propia línea y los botones quedan debajo, en los extremos. Lo que mide «142.5»
+      depende de la letra del teléfono: 4,94 em del stepper en Inter, 5,5 en DejaVu Sans, 4,4 en
+      Roboto. Con los 4,94 em de Inter escritos a mano, en la CI de GitHub (DejaVu Sans) la cifra
+      quedaba pegada a los botones a 412 px. Así que la consulta no lleva un número fijo:
+      `reservaCifra()` mide «142.5» en `#cifraRef` —una cifra invisible con la letra, el peso y
+      el espaciado de la del stepper— y escribe la consulta en `<style id="cifraReserva">`, en
+      em del stepper y con 1 px de holgura; un `ResizeObserver` la vuelve a medir si la cifra de
+      referencia cambia de ancho (otra letra u otro tamaño). Antes de medir rige una reserva
+      holgada, 5,6 em. Los botones **no encogen nunca** (42 px), y la cifra ocupa todo el hueco
       entre ellos. **La forma de la fila la deciden solo el ancho del stepper y su letra, nunca
       la cifra**: ni la de cada momento ni la de su orden. Si dependiera de la cifra, al pasar
       de 97.5 a 100 con + (o de 9 a 10 reps) la fila se apilaría entre un toque y el siguiente, y
       el segundo toque, en el mismo sitio, abriría el campo o caería en la fila de la reserva.
       Así −, cifra, + y «Registrar serie» tienen la misma posición y tamaño de «0» a «142.5» y
       de 1 a 100 reps, al tocar + y − y al escribir. Los dos steppers de la fila miden lo mismo y
-      cambian juntos. Con la letra de serie la cifra va entre − y + desde unos 406 px (412 y
-      430 sí; 320-393 no); con la letra grande, desde más ancho. Apilar a 375-393 px también
+      cambian juntos. Con la letra de serie la cifra va entre − y + desde unos 409 px con
+      Inter, 425 con DejaVu Sans y 395 con Roboto (a 320 no cabe con ninguna, a 430 con todas);
+      con la letra grande, desde más ancho. Apilar a 375-393 px también
       con «20» cuesta una línea, pero es lo que garantiza que nada se mueva bajo el dedo. La
       cifra va **sin unidad**, como ya la pintaba el paso al abrirse: «Peso» lo dice encima.
     - **Al escribir la cifra nada se mueve bajo el dedo.** El campo (peso o reps) ocupa el sitio
@@ -373,8 +396,17 @@ otro aviso —el recordatorio— abre Inicio.
       cambian la fila, y como la forma no depende de la cifra, un peso escrito de otro largo (de
       97.5 a 100) tampoco.
   - **Filas que se reparten**: la marca de un récord y su fecha, el botón junto a un campo o en
-    el aviso de copia, la tercera caja de la pantalla de fin o la tercera columna del ejercicio
-    propio bajan de línea antes que recortar o pisar.
+    el aviso de copia, la tercera caja de la pantalla de fin, la tercera columna del ejercicio
+    propio, el selector de tema de Ajustes (su texto pide 8 em; con una letra ancha a 320 px y al
+    130 % el selector baja a su línea) y el visto de corregir una serie con la letra grande bajan
+    de línea antes que recortar o pisar.
+  - **Corregir una serie cabe en una línea con la letra de serie, con cualquier letra.** Los dos
+    campos, la × y el visto van en un flex con 2 px entre ellos, no como texto con espacios cuyo
+    ancho depende de la letra: con DejaVu Sans la fila pasaba 0,2 px de su sitio a 320 px, el
+    visto bajaba y la fila crecía 30 px bajo el dedo. Sobran 6 px con DejaVu y 10 con Inter.
+  - **Las opciones de una lista caben todas**, no solo la elegida: la persona puede elegir
+    cualquiera. «Ninguno / peso corporal» pasa a «Sin aparato» y «Repeticiones por lado» a «Reps
+    por lado», como el stepper (§11).
   - **El doble toque no amplía sobre un control.** Botones, `role="button"`, el visto y los
     interruptores llevan `touch-action:manipulation`: dos toques rápidos en − o + son dos toques,
     no un zoom. El pellizco sigue en toda la página, y el doble toque sobre el texto también.
@@ -803,7 +835,9 @@ confirmar ni vuelta atrás, y la cifra de al lado, que abre la edición, se toca
   el nombre y la figura. Abajo, la zona de toque de Deshacer caía sobre «Registrar serie», el «+»
   o «Nota fija» (a 360×640 y 375×667): volver a registrar justo después de borrar deshacía en vez
   de anotar. Si arriba también pisa un control (página desplazada hasta la última serie, a
-  320×568), baja hasta el primer hueco sin controles (`colocaAviso`). La posición se vuelve a
+  320×568), baja hasta el primer hueco sin controles (`colocaAviso`); si no lo hay, lo busca
+  también por encima de la barra y, centrado, si no cabe, algo movido a un lado (HU-55, «Con
+  cualquier letra»). La posición se vuelve a
   calcular cada vez que la página se desplaza o la ventana cambia de tamaño (`recolocaAviso`):
   calculada una sola vez, al desplazar en esos 7 s «Registrar serie» o el «+» podían pasar bajo
   Deshacer. Los avisos sin botón siguen abajo, donde siempre.
@@ -1047,7 +1081,8 @@ escala estaba en px y la raíz fijada a 14.
   crezca un 30 %, curvas, riel y aviso; el stepper con una cifra de cada largo a 320-430 px y
   hasta el 130 % (botones de 42, cifra encima o con 4 px de aire; al escribir el peso o las
   reps, el campo en el sitio de la cifra, «142.5» entero y la fila sin cambiar de forma), el +
-  quieto de 140 a 142.5 y 145, entre − y + desde 412 px con cualquier peso; la fila entera
+  quieto de 140 a 142.5 y 145, entre − y + donde «142.5» cabe con su aire (medido con la letra
+  que pinta) y encima donde no, con cualquier peso; la fila entera
   (botones, cifras, campo y «Registrar serie») con la misma geometría de «0» a «999.5» kg y de
   1 a 100 reps, al cruzar 97.5↔100, 7.5↔10, 9↔10 y 99→100 con + y − y con el campo abierto, a
   320-430 px y al 100, 115 y 130 %; dos toques seguidos en el mismo punto de + o −, de dedo y
@@ -1067,10 +1102,44 @@ escala estaba en px y la raíz fijada a 14.
   el arnés, `app.reiniciarMemoria()` también abre el candado de «Registrar serie» (HU-78):
   la prueba de tocar con el campo abierto empieza cada caso de cero y su primer toque caía en
   los 300 ms de la serie anterior.
-- **Lo que queda abierto**: al 150 % aguanta todo menos el selector de tema a 320 px; al 200 % se
-  salen los títulos de una sola palabra («Calendario») y el botón «Registrar rutina». Para eso
-  está el pellizco. No se ha probado en un teléfono real: las pruebas simulan la letra del
-  sistema agrandando la raíz, que es lo que hacen `text-scale` y `-apple-system-body`.
+- **Con cualquier letra.** Todo lo anterior se calibró con Inter, la letra del contenedor donde
+  se escribe, y la CI de GitHub, que pinta con DejaVu Sans (más ancha), salió en rojo: 8 de 361.
+  En un teléfono tampoco es Inter (Roboto en Android, SF en iOS), así que el arreglo es de diseño
+  y la regla queda en §3: nada se calibra con los px de una letra. Lo que cambió:
+  - **La reserva de «142.5» se mide** (§10): con los 4,94 em de Inter escritos en la consulta, a
+    412 px y a 430 al 115 % la cifra quedaba con −1,3 y −3,8 px de aire, pegada a los botones.
+    `reservaCifra()` la mide con la letra real; la garantía de la fila no cambia: la forma la
+    deciden el ancho, la letra y su tamaño, nunca la cifra.
+  - **El aviso de Deshacer encuentra hueco**: con DejaVu las series largas van en dos líneas y,
+    con seis series a 320×568 y la página desplazada, no había hueco bajo la barra; el aviso
+    volvía abajo y Deshacer caía sobre «Registrar serie». `colocaAviso` busca ahora también
+    encima de la barra, hasta el borde (desplazada, ese trozo es página) y, si centrado no cabe,
+    movido a un lado hasta 8 px del borde (a 8 px a la izquierda Deshacer deja de rozar las X).
+    Las posiciones se prueban con cuentas (`avisoPisa` con x, y), sin mover el aviso: probar
+    cientos moviéndolo maquetaría cientos de veces en cada desplazamiento.
+  - **A 320 px y al 130 % se reparte o se acorta** (§10, §11): el selector de tema baja de línea;
+    el buscador dice «Buscar ejercicio…» (como su etiqueta) en vez de «Buscar en el catálogo…»;
+    en el ejercicio propio, «Sin aparato» y «Reps por lado».
+  - **Corregir una serie, en una línea con la letra de serie** (§10): flex de 2 px en vez de
+    espacios, y el visto con 4 px menos de relleno (su zona sigue en 44).
+  - **Las pruebas pasan a invariantes**: la cifra va entre − y + exactamente donde «142.5» cabe
+    con su aire, medido con la letra que pinta (antes, «desde 412 px»); la cifra que se desplaza
+    dentro del campo es la primera de 1002.5, 10002.5… que no cabe con esa letra (con Roboto
+    «1002.5» cabía); el aviso usa su 86 % antes de partirse y se parte en las líneas que pide su
+    largo (antes, «en una línea» y «menos de 2,5 líneas»); y de una lista se miran todas las
+    opciones, no solo la elegida. Lo que se sigue exigiendo en una línea con cualquier letra es
+    la fila de corregir una serie a 320 px con la letra de serie, porque partirse la hacía crecer
+    bajo el dedo. Las pruebas que fallaban con DejaVu fallan si se vuelve a la reserva fija de
+    4,94 em (en DejaVu, pegada; en Roboto, apilada donde cabía) o al aviso centrado con
+    `left:50%` (de 2 a 5 líneas a media pantalla).
+  - **Tres perfiles de letra**: la CI se corre con Inter, con DejaVu Sans y con Roboto
+    (`FONTCONFIG_FILE`, cómo en `tests/README.md`), dos veces cada uno, y Playwright.
+- **Lo que queda abierto**: al 150 % el selector de tema, lo único que se salía a 320 px, ya baja
+  de línea; al 200 % se salen los títulos de una sola palabra («Calendario») y el botón
+  «Registrar rutina». Para eso está el pellizco. No se ha probado en un teléfono real: las
+  pruebas simulan la letra del sistema agrandando la raíz, que es lo que hacen `text-scale` y
+  `-apple-system-body`, y su letra con los perfiles de fontconfig (Roboto de Android sí; SF de
+  iOS no, que no se puede instalar fuera de Apple: DejaVu Sans, más ancha, hace de cota).
 
 Publicar v36: `VERSION` pasa a «v36 · pesos reales, récords, racha y deshacer», y **`CACHE`
 se queda en `mi-rutina-v33`**: no hace falta subirlo para que un teléfono con v35 reciba v36

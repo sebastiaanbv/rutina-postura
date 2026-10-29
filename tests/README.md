@@ -15,6 +15,49 @@ Otras opciones:
 - `python tests/run.py --navegador "C:/ruta/chrome.exe"` fuerza un navegador.
 - `python tests/run.py --json salida.json` guarda los resultados crudos.
 
+## Perfiles de letra
+
+La app pinta con la letra del sistema, y en Linux esa la decide fontconfig: cada máquina puede
+tener una distinta, y el mismo texto mide hasta un 20 % más de una a otra (DISENO §3). Las
+pruebas comprueban invariantes que valen con cualquier letra, pero solo lo demuestran si corren
+con varias. Antes de dar por buena una historia que toque la maqueta, corre la CI con tres:
+
+- **la que tenga la máquina** (en el contenedor de desarrollo, Inter: estrecha);
+- **DejaVu Sans**, ancha: es la de `ubuntu-latest` en GitHub Actions, así que este perfil
+  reproduce la CI de GitHub con sus mismas cifras;
+- **Roboto**, la de Android.
+
+Se eligen con `FONTCONFIG_FILE`, que Chrome respeta, sin tocar nada del sistema ni del repo:
+
+```
+FONTCONFIG_FILE=/ruta/fuera/del/repo/dejavu.conf CI=1 python3 tests/run.py
+```
+
+`dejavu.conf` (DejaVu Sans viene en casi cualquier Linux, `fonts-dejavu-core`):
+
+```xml
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+  <include ignore_missing="yes">/etc/fonts/fonts.conf</include>
+  <selectfont><rejectfont><glob>*Inter*</glob></rejectfont></selectfont>
+  <alias binding="strong"><family>sans-serif</family><prefer><family>DejaVu Sans</family></prefer></alias>
+  <alias binding="strong"><family>system-ui</family><prefer><family>DejaVu Sans</family></prefer></alias>
+</fontconfig>
+```
+
+Para Roboto, el mismo archivo con `Roboto` en vez de `DejaVu Sans` y dos líneas más tras el
+`include`: `<dir>` con la carpeta de sus `.ttf` y `<cachedir>` con una carpeta de caché, las dos
+fuera del repo. Chrome no carga por fontconfig los `.woff` (los del paquete `@fontsource/roboto`,
+por ejemplo): conviértelos a `.ttf` con fontTools (`TTFont(x)`, `flavor=None`, `save`) y deja las
+cuatro (400, 500, 700 y 900) con familia «Roboto» y su estilo (registros 1 y 2 de la tabla
+`name`): tal cual, las de 500 y 900 se llaman «Roboto Medium» y «Roboto Black» y no responden a
+`Roboto` con esos pesos. Comprueba que Chrome usa de verdad la letra
+y no cae a otra: con `fc-match sans-serif` y, en una página, midiendo un texto en `sans-serif`
+frente a `'DejaVu Sans'`, o con `CSS.getPlatformFontsForNode` del protocolo de DevTools.
+
+No se meten fuentes ni esos `.conf` en el repo: son de cada máquina.
+
 ## Cómo funciona
 
 - `run.py` sirve la raíz del repo con `http.server` en un puerto libre y abre `tests/harness.html` con `--headless=new --dump-dom` y un perfil temporal nuevo en cada corrida, así que no quedan service worker ni localStorage de corridas anteriores. Lee el resultado del DOM volcado (`<script type="application/json" id="results">`).
@@ -39,7 +82,7 @@ Otras opciones:
 | `pruebas_avisos.js` | volver a la app al tocar un aviso: `sw.js` tal cual con dobles de `self`, `caches`, `clients` y `fetch` (install y `notificationclick`), y el arranque con `#retomar` |
 | `pruebas_progreso.js` | Progreso lee `rp_logs` una sola vez por pintado y pinta lo mismo que antes; con `dosAnos`, 1 parseo del historial frente a más de 20 y, con reloj real, menos del 60 % del tiempo; y las cifras de Progreso coinciden con las de v35 guardadas en `referencia_progreso_v35.js` |
 | `referencia_progreso_v35.js` | lo que calculaba y mostraba Progreso en v35 con `dueno`, `madre` y `dosAnos` generados con el reloj parado; no se edita a mano (cómo regenerarla, en `pruebas_progreso.js`) |
-| `pruebas_letra.js` | zoom y letra del sistema: viewport, escala en `rem`, `touch-action` de los controles, el stepper del guiado con cifras de cada largo y la misma forma con cualquiera, tocar «Registrar serie» o + con el campo de la cifra abierto y dos toques seguidos en el mismo punto de + o − (`toca()` y `tocaEn()` mandan los eventos de un toque de dedo o de ratón en el orden del navegador), y las pantallas principales a 320, 375 y 430 px con la letra de serie y al 130 % sin textos cortados ni pisados (una pantalla nueva entra en el humo añadiéndola a `recorrido`) |
+| `pruebas_letra.js` | zoom y letra del sistema: viewport, escala en `rem`, `touch-action` de los controles, el stepper del guiado con cifras de cada largo y la misma forma con cualquiera (la cifra entre − y + donde «142.5» cabe con su aire, medido con la letra que pinta), el aviso flotante que usa su 86 % antes de partirse, tocar «Registrar serie» o + con el campo de la cifra abierto y dos toques seguidos en el mismo punto de + o − (`toca()` y `tocaEn()` mandan los eventos de un toque de dedo o de ratón en el orden del navegador), y las pantallas principales a 320, 375 y 430 px con la letra de serie y al 130 % sin textos cortados ni pisados, ni el valor, el texto de ayuda o cualquier opción de una lista que no quepan en su campo (una pantalla nueva entra en el humo añadiéndola a `recorrido`). Nada de px ni líneas de una letra: ver «Perfiles de letra» |
 
 ## Añadir una prueba
 

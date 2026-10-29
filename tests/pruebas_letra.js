@@ -100,16 +100,19 @@
       if(A.n===B.n||A.capa!==B.capa)continue;
       const ix=Math.min(A.q.right,B.q.right)-Math.max(A.q.left,B.q.left),iy=Math.min(A.q.bottom,B.q.bottom)-Math.max(A.q.top,B.q.top);
       if(ix>2&&iy>.35*Math.min(A.h,B.h))out.push("solape: «"+A.txt+"» ("+nombre(A.el)+") con «"+B.txt+"» ("+nombre(B.el)+")");}
-    /* un campo: su valor, o el texto de ayuda si esta vacio, entero */
+    /* un campo: su valor, o el texto de ayuda si esta vacio, entero. De
+       una lista, cualquiera de sus opciones y no solo la elegida: la persona
+       puede elegir otra (con DejaVu Sans, «Repeticiones por lado» no cabia
+       a 320 px y al 130 %, y la prueba solo veia «Repeticiones») */
     const cv=doc.createElement("canvas").getContext("2d");
     raiz.querySelectorAll("input,select").forEach(i=>{
       if(!i.getClientRects().length||plegado(i)||/checkbox|file|time/.test(i.type))return;
-      const c=w.getComputedStyle(i),t=i.tagName==="SELECT"?(i.selectedOptions[0]||{}).text:(i.value||i.placeholder);if(!t)return;
+      const c=w.getComputedStyle(i),ts=i.tagName==="SELECT"?[...i.options].map(o=>o.text):[i.value||i.placeholder];
       /* con el espaciado del campo: la cifra del stepper va algo junta,
          dentro del campo igual que fuera */
       cv.font=c.fontWeight+" "+c.fontSize+" "+c.fontFamily;cv.letterSpacing=c.letterSpacing;
       const util=i.clientWidth-parseFloat(c.paddingLeft)-parseFloat(c.paddingRight)-(i.tagName==="SELECT"?20:0);
-      if(cv.measureText(t).width>util+1)out.push("no cabe: «"+t+"» en "+nombre(i));});
+      ts.forEach(t=>{if(t&&cv.measureText(t).width>util+1)out.push("no cabe: «"+t+"» en "+nombre(i));});});
     return [...new Set(out)];}
 
   /* Recorre las pantallas principales como lo haria la persona y devuelve los
@@ -360,22 +363,31 @@
       expect(vistas).toBe(54);
       expect(fallos).toEqual([]);});
     test("una cifra mas larga que «142.5» se desplaza dentro del campo, sin salirse del stepper ni cambiar la fila",async app=>{
-      /* lo que se teclea no tiene largo previsto: un "1002.5" no cabe en el
-         sitio que la fila reserva entre − y +, y no por eso cambia la fila.
-         Donde la fila va apilada, el campo tiene todo el ancho y le cabe */
+      /* lo que se teclea no tiene largo previsto: una cifra mas larga que
+         "142.5" no cabe en el sitio que la fila le reserva, y no por eso
+         cambia la fila. Que cifra es "mas larga que el campo" depende de la
+         letra (con Roboto "1002.5" cabia entre − y + a 412 px): se busca la
+         primera de 1002.5, 10002.5… que no cabe en el campo, con su letra.
+         Se mira entre − y + y apilada; con cualquier letra, a 430 px y la
+         letra de serie la cifra va entre − y + (cabe "142.5" con su aire) */
       app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");
-      const fallos=[];
-      try{for(const [ancho,pct] of [[412,100],[430,100],[430,115]]){
+      const fallos=[],formas=[],cv=app.doc.createElement("canvas").getContext("2d");
+      try{for(const [ancho,pct] of [[412,100],[430,100],[430,115],[375,100]]){
           await telefono(app,ancho,pct);escribePeso(app,"7.5");const que=ancho+" px al "+pct+" %",antes=forma(app);
-          expect(steppers(app,que).encima).toBe(false);
-          app.w.editNum("w");const i=app.$("#numin");i.value="1002.5";
-          fallos.push(...steppers(app,que+", escribiendo «1002.5»").out);
-          if(!misma(forma(app),antes))fallos.push(que+": la fila cambia de forma al escribir «1002.5»");
-          expect(i.scrollWidth).toBeGreaterThan(i.clientWidth);
+          formas.push(ancho+"/"+pct+":"+(steppers(app,que).encima?"encima":"entre"));
+          app.w.editNum("w");const i=app.$("#numin"),c=app.w.getComputedStyle(i);
+          cv.font=c.fontWeight+" "+c.fontSize+" "+c.fontFamily;cv.letterSpacing=c.letterSpacing;
+          let v="1002.5";while(cv.measureText(v).width<=i.clientWidth+2)v="1"+v;
+          i.value=v;
+          fallos.push(...steppers(app,que+", escribiendo «"+v+"»").out);
+          if(!misma(forma(app),antes))fallos.push(que+": la fila cambia de forma al escribir «"+v+"»");
+          if(!(i.scrollWidth>i.clientWidth))fallos.push(que+": «"+v+"» no se desplaza dentro del campo");
           i.dispatchEvent(new app.w.KeyboardEvent("keydown",{key:"Enter"}));
-          expect(app.texto("#lw")).toBe("1002.5");
-          if(!misma(forma(app),antes))fallos.push(que+": la fila cambia de forma con «1002.5»");}}
+          expect(app.texto("#lw")).toBe(v);
+          if(!misma(forma(app),antes))fallos.push(que+": la fila cambia de forma con «"+v+"»");}}
       finally{deVuelta(app);app.sembrar(F.dueno);app.reiniciarMemoria();tab(app,"home");}
+      expect(formas).toContain("430/100:entre");
+      expect(formas).toContain("375/100:encima");
       expect(fallos).toEqual([]);});
     /* Un toque de verdad en el centro de el, con los eventos en el orden en
        que los manda el navegador:
@@ -482,18 +494,32 @@
           app.w.adjW(2.5);expect(app.texto("#lw")).toBe("145");expect(mas()).toEqual(antes);
           app.w.adjW(-2.5);app.w.adjW(-2.5);expect(app.texto("#lw")).toBe("140");expect(mas()).toEqual(antes);}}
       finally{deVuelta(app);app.sembrar(F.dueno);app.reiniciarMemoria();tab(app,"home");}});
-    test("con la letra de serie la cifra va entre − y + desde 412 px y encima por debajo, sea cual sea el peso",async app=>{
-      /* donde cabe un "142.5", la forma de siempre; donde no, apilada con
-         cualquier peso, para que la fila no cambie de forma al cambiar el
-         peso. [0, 7.5, 57.5, 142.5]: true = encima de los botones */
-      const ESPERADO={320:[true,true,true,true],360:[true,true,true,true],390:[true,true,true,true],
-        412:[false,false,false,false],430:[false,false,false,false]};
+    test("la cifra va entre − y + donde cabe «142.5» con su aire y encima donde no, con la letra del telefono y sea cual sea el peso",async app=>{
+      /* donde cabe un "142.5" con 4 px de aire a cada lado, la forma de
+         siempre; donde no, apilada con cualquier peso, para que la fila no
+         cambie de forma al cambiar el peso. Donde se pasa de una a otra
+         depende de la letra: con la letra de serie, desde unos 409 px con
+         Inter, 425 con DejaVu Sans y 395 con Roboto. Por eso no se fija un
+         ancho: se mide "142.5" con la letra que pinta y el hueco que dejan
+         − y + (con 1 px de holgura, la que deja la app). A 320 px no cabe con
+         ninguna letra y a 430 con todas las que se prueban (README) */
       app.w.openRoutine("gym_pierna");app.w.startRoutine("prensa_inclinada");
-      const visto={};
-      try{for(const ancho of Object.keys(ESPERADO)){await telefono(app,+ancho,100);
-          visto[ancho]=["0","7.5","57.5","142.5"].map(v=>{escribePeso(app,v);return steppers(app,ancho).encima;});}}
+      const fallos=[],visto={};
+      try{for(const ancho of [320,360,375,390,400,406,412,420,430])for(const pct of [100,115,130]){
+          await telefono(app,ancho,pct);const que=ancho+" px al "+pct+" %";
+          const formas=["0","7.5","57.5","142.5"].map(v=>{escribePeso(app,v);return steppers(app,que).encima;});
+          if(new Set(formas).size>1)fallos.push(que+": la forma cambia con el peso "+JSON.stringify(formas));
+          /* "142.5" puesto: su ancho con la letra de la cifra y el hueco
+             entre − y + menos los 4 px de aire de cada lado */
+          const b=app.$("#lw"),r=b.parentElement,sq=r.querySelectorAll(".sq"),rg=app.doc.createRange();rg.selectNodeContents(b);
+          const cifra=rg.getBoundingClientRect().width,hueco=r.clientWidth-sq[0].offsetWidth-sq[1].offsetWidth-8;
+          const encima=formas[3];
+          if(encima&&hueco>=cifra+1.5)fallos.push(que+": apilada y «142.5» cabia ("+cifra.toFixed(1)+" en "+hueco.toFixed(1)+" px)");
+          if(!encima&&hueco<cifra)fallos.push(que+": entre − y + y «142.5» no cabe ("+cifra.toFixed(1)+" en "+hueco.toFixed(1)+" px)");
+          if(pct===100)visto[ancho]=encima;}}
       finally{deVuelta(app);app.sembrar(F.dueno);app.reiniciarMemoria();tab(app,"home");}
-      expect(visto).toEqual(ESPERADO);});
+      expect([visto[320],visto[430]]).toEqual([true,false]);
+      expect(fallos).toEqual([]);});
     test("la fila del guiado no cambia de forma con la cifra: de 0 a 142.5 kg, de 1 a 100 reps, con − y + y al escribir, de 320 a 430 px y hasta el 130 %",async app=>{
       /* tres revisiones encontraron variantes del mismo fallo: la fila de
          peso y reps cambiaba de forma o de tamaño segun la cifra, y un toque
@@ -557,6 +583,23 @@
         expect(fallos).toEqual([]);});}
     dosToques("dedo");
     dosToques("raton");
+    /* El aviso usa el ancho que declara, el 86 % de la pantalla: si su texto
+       cabe en una linea, va en una; si no, el aviso llega a ese 86 % antes de
+       partirse, y se parte en las lineas que pide su largo. Que quepa o no
+       depende de la letra (con DejaVu Sans, «Salto quitado: vuelven los de
+       siempre» no cabe a 320 px), asi que se mide con la que pinta: el largo
+       del texto en una sola linea y las lineas que ocupa. Devuelve los
+       problemas */
+    function usaElAncho(app,el){const w=app.w,s=el.querySelector(".tmsg"),out=[],txt="«"+el.textContent.trim()+"»";
+      const cs=w.getComputedStyle(s),linea=parseFloat(cs.lineHeight)||parseFloat(cs.fontSize)*1.45;
+      const lineas=Math.round(s.getBoundingClientRect().height/linea),ancho=s.getBoundingClientRect().width;
+      const rg=app.doc.createRange();s.style.whiteSpace="nowrap";rg.selectNodeContents(s);
+      const entero=rg.getBoundingClientRect().width;s.style.whiteSpace="";
+      const max=w.innerWidth*0.86,caja=el.getBoundingClientRect().width;
+      if(caja>max+0.5)out.push(txt+": el aviso mide "+caja.toFixed(1)+" px, mas del 86 % ("+max.toFixed(1)+")");
+      if(lineas>1&&caja<max-1)out.push(txt+": en "+lineas+" lineas con "+caja.toFixed(1)+" px de los "+max.toFixed(1)+" que tiene");
+      if(lineas>Math.ceil(entero/ancho)+1)out.push(txt+": "+lineas+" lineas para "+entero.toFixed(0)+" px de texto en "+ancho.toFixed(0));
+      return out;}
     test("el aviso flotante es un solo bloque de texto y usa el ancho de la pantalla",async app=>{
       /* con left:50% el aviso solo tenia media pantalla, y suelto cada <b> era
          otra columna: «Récord en / Jalón al / pecho:» al lado de «55 / kg ×» */
@@ -565,9 +608,10 @@
         const t=app.$("#toast"),hijos=[...t.children].map(e=>e.tagName.toLowerCase());
         expect(hijos).toEqual(["svg","span"]);
         expect(app.texto("#toast")).toBe("Récord en Prensa inclinada: 142.5 kg × 12");
-        const s=t.querySelector("span"),linea=parseFloat(app.w.getComputedStyle(s).lineHeight)||px(app,s)*1.45;
-        expect(s.getBoundingClientRect().height/linea).toBeLessThan(2.5);
-        expect(t.getBoundingClientRect().width).toBeGreaterThan(app.doc.documentElement.clientWidth*.6);}
+        /* las lineas que pide su largo con la letra que pinta, y no antes de
+           usar el 86 %: «menos de 2,5 lineas» valia con Inter y no con
+           DejaVu Sans, que pide tres */
+        expect(usaElAncho(app,t)).toEqual([]);}
       finally{deVuelta(app);}});
     humoLetra({semilla:F.dueno,rutina:"gym_pierna",cargado:"prensa_inclinada"});
   });

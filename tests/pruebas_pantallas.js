@@ -774,23 +774,42 @@
           expect(app.$("#toast").classList.contains("show")).toBe(true);}}
       finally{app.frame.style.width="400px";}
       app.reiniciarMemoria();});
+    /* El aviso usa el ancho que declara, el 86 % de la pantalla: si su texto
+       cabe en una linea, va en una; si no, el aviso llega a ese 86 % antes de
+       partirse, y se parte en las lineas que pide su largo. Que quepa o no
+       depende de la letra (con DejaVu Sans, «Salto quitado: vuelven los de
+       siempre» no cabe a 320 px), asi que se mide con la que pinta: el largo
+       del texto en una sola linea y las lineas que ocupa. Devuelve los
+       problemas */
+    function usaElAncho(app,el){const w=app.w,s=el.querySelector(".tmsg"),out=[],txt="«"+el.textContent.trim()+"»";
+      const cs=w.getComputedStyle(s),linea=parseFloat(cs.lineHeight)||parseFloat(cs.fontSize)*1.45;
+      const lineas=Math.round(s.getBoundingClientRect().height/linea),ancho=s.getBoundingClientRect().width;
+      const rg=app.doc.createRange();s.style.whiteSpace="nowrap";rg.selectNodeContents(s);
+      const entero=rg.getBoundingClientRect().width;s.style.whiteSpace="";
+      const max=w.innerWidth*0.86,caja=el.getBoundingClientRect().width;
+      if(caja>max+0.5)out.push(txt+": el aviso mide "+caja.toFixed(1)+" px, mas del 86 % ("+max.toFixed(1)+")");
+      if(lineas>1&&caja<max-1)out.push(txt+": en "+lineas+" lineas con "+caja.toFixed(1)+" px de los "+max.toFixed(1)+" que tiene");
+      if(lineas>Math.ceil(entero/ancho)+1)out.push(txt+": "+lineas+" lineas para "+entero.toFixed(0)+" px de texto en "+ancho.toFixed(0));
+      return out;}
     /* el aviso centrado con left:50% solo tenia media pantalla para encoger:
        los avisos nuevos se partian en 2-5 lineas, y el parche de nowrap
        sacaba «Deshacer» de la pildora con letra grande */
-    test("los avisos usan el 86 % del ancho: caben en una línea, y con letra grande Deshacer queda dentro",app=>{
-      const el=app.$("#toast"),raiz=app.doc.documentElement,ic=(n,c)=>app.w.ic(n,c);
-      const caja=html=>{app.w.toast(html);quieta(app);return el.getBoundingClientRect();};
+    test("los avisos usan el 86 % del ancho: en una línea si caben, y con letra grande Deshacer queda dentro",app=>{
+      /* «caben en una linea» era verdad con Inter: con DejaVu Sans «Salto
+         quitado: vuelven los de siempre» pide dos a 320 px. Lo que se exige
+         con cualquier letra es lo que arreglo HU-54: el aviso usa su 86 %
+         antes de partirse (centrado con left:50% se partia en tres lineas, y
+         el de record en cinco) */
+      const el=app.$("#toast"),raiz=app.doc.documentElement,ic=(n,c)=>app.w.ic(n,c),mal=[];
+      const caja=html=>{app.w.toast(html);quieta(app);mal.push(...usaElAncho(app,el));return el.getBoundingClientRect();};
       try{for(const ancho of [320,375]){app.frame.style.width=ancho+"px";abrir(app);anchoUtil(app,ancho);
-          const linea=caja("Ok").height;
-          ["Salto quitado: vuelven los de siempre",ic("check","sm")+" Salto de 4.5 kg guardado",ic("check","sm")+" Serie recuperada"]
-            .forEach(t=>{const r=caja(t);expect([el.textContent.trim(),r.height]).toEqual([el.textContent.trim(),linea]);
+          ["Ok","Salto quitado: vuelven los de siempre",ic("check","sm")+" Salto de 4.5 kg guardado",ic("check","sm")+" Serie recuperada",
+            ic("trophy","sm")+" Récord en "+app.w.esc(app.w.shortName("press_banca_db"))+": <b>122.5 kg × 12</b>"]
+            .forEach(t=>{const r=caja(t);
               expect(r.left).toBeGreaterThan(0);expect(r.right).toBeLessThan(ancho);
               /* centrado */
-              expect(Math.abs((r.left+r.right)/2-ancho/2)).toBeLessThan(1);});
-          /* el de record, como mucho dos lineas (antes cinco a 320) */
-          const r=caja(ic("trophy","sm")+" Récord en "+app.w.esc(app.w.shortName("press_banca_db"))+": <b>122.5 kg × 12</b>");
-          expect(r.height).toBeLessThan(linea*1.7);
-          expect(r.width).toBeLessThan(app.w.innerWidth*0.86+0.5);}
+              expect(Math.abs((r.left+r.right)/2-ancho/2)).toBeLessThan(1);});}
+        expect(mal).toEqual([]);
         /* letra grande a 320: la pildora se parte en dos lineas y el boton sigue dentro y entero */
         app.frame.style.width="320px";abrir(app);anchoUtil(app,320);
         raiz.style.setProperty("--t-sm","20px");
