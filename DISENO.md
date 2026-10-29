@@ -504,7 +504,8 @@ Pesos que existen en cada máquina:
   - Los −/+ van al múltiplo siguiente o anterior; un 42,5 tecleado sube a 45 y baja a 40.
   - La aproximación redondea **hacia abajo** a un múltiplo (60 kg en saltos de 5: 30 y 40), nunca
     por debajo de una placa. Si el peso de hoy no pasa de una placa (9 kg en saltos de 10) no hay
-    aproximación: saldría igual o más pesada que la serie. La primera vez, el peso de arranque
+    aproximación: saldría igual o más pesada que la serie. Con lista, lo mismo si la mancuerna
+    más ligera no queda por debajo del peso de hoy (8 kg con 8 y 10). La primera vez, el peso de arranque
     también baja al múltiplo; `startKg:0` sigue sin peso. Con lista, la primera vez es la más
     pesada de la lista que no pasa del arranque, o la más ligera si ninguna cabe.
   - Lo tecleado no se redondea, ni al cambiar el salto después.

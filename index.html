@@ -3739,8 +3739,10 @@ function warmupHTML(id,w){const e=EX[id]||{};if(e.load!==true||!(w>=8))return ""
   if(first!==id)return "";
   const l=availDB(id,curRoutine),inc=incFor(id,curRoutine),st=w>=20?2.5:1;
   /* sin ningun peso real por debajo del de hoy (no pasa de una placa) no hay
-     aproximacion: saldria igual o mas pesada que la serie de trabajo */
+     aproximacion: saldria igual o mas pesada que la serie de trabajo (salto
+     declarado o mancuerna mas ligera de la lista) */
   if(inc&&inc>=w)return "";
+  if(l&&l[0]>=w)return "";
   const rd=x=>l?(l.filter(v=>v<=x+1e-9).pop()||l[0])
     :inc?Math.max(inc,roundDownTo(id,x,curRoutine)):Math.max(st,Math.round(x/st)*st);
   return `<div class="qwhy warmup">${ic("flame","xs")} Antes de la primera serie, aproximación (no se registra): 1×10 con ${fmtW(rd(w*.5))} kg · 1×5 con ${fmtW(rd(w*.7))} kg</div>`;}

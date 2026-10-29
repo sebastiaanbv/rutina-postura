@@ -348,6 +348,11 @@
       expect(ajusta(app,"press_hombro_db",2,-1)).toBe(2);
       app.sembrar({rp_prefs:{pesosDB:[3,5,8]}});
       expect(app.w.warmupHTML("sentadilla_silla",8)).toContain("1×10 con 3 kg · 1×5 con 5 kg");
+      /* si la mas ligera de la lista no queda por debajo del peso de hoy no hay
+         aproximacion (saldria con el mismo peso que la serie) */
+      app.sembrar({rp_prefs:{pesosDB:[8,10]}});
+      expect(app.w.warmupHTML("sentadilla_silla",8)).toBe("");
+      expect(app.w.warmupHTML("sentadilla_silla",10)).toContain("1×10 con 8 kg · 1×5 con 8 kg");
       /* en el gimnasio los gemelos son de maquina: la lista no manda */
       app.sembrar({rp_prefs:{pesosDB:[2,4,6,8]}});app.ev("curRoutine='gym_empuje'");
       expect(ajusta(app,"elevacion_pantorrilla",6,1)).toBe(8.5);
