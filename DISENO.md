@@ -825,8 +825,10 @@ Progreso carga más rápido:
   Chromium con Playwright, en un ordenador. Con seis semanas de datos, de 6 a 3 ms. En el teléfono
   no se ha medido. `run.py` no puede tomar la medida en ms: corre con reloj virtual, que dentro de
   un pintado no avanza (`tests/README.md`).
-  Lo que se ve no cambia en un solo carácter: comparado con el código de v35 con los cuatro
-  juegos de datos, el HTML de Progreso es idéntico.
+  Lo que se ve no cambia en un solo carácter por esta historia: comparado con el código de v35
+  con los cuatro juegos de datos, el HTML de Progreso es idéntico salvo la primera línea de «Tu
+  historial», que cambia HU-11 («Racha de N días · mejor M» pasa a «R semanas cumplidas · mejor
+  M»).
   Queda, de menos peso: la media de 7 días del peso recorre `rp_bw` entero 112 veces por pintado
   (unos 6 ms con dos años de pesajes casi diarios) y `rp_history` se lee tres veces.
   **Pruebas** en `tests/pruebas_progreso.js`: una lectura y un parseo al abrir Progreso y al
