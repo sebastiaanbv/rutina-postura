@@ -3691,7 +3691,7 @@ function renderStep(keep){clearTimer();serieAbierta=true;const s=steps[stepi];le
         return `<div class="setline${pr?" pr":""}" id="sl_${s.id}_${i}"><span class="n"><span class="np">Serie </span>${i+1}</span><span class="v" onclick="editSet('${s.id}','s',-1,${i},-1,${i})" role="button" tabindex="0" aria-label="Editar serie ${i+1}">${valor(x)}</span><span class="del" onclick="delSet('${s.id}','s',-1,${i},-1)" role="button" tabindex="0" aria-label="Borrar serie ${i+1}">${ic("close","xs")}</span>${pr?`<span class="prtag">${ic("trophy","xs")} ${esc(pr.kind||"Récord")}</span>`:""}</div>`;}).join("");
       const pesoStep=cargado?`<div class="stepper"><div class="lab">Peso</div><div class="row"><button class="sq" onclick="adjW(-1)" aria-label="Bajar peso">−</button><b id="lw" onclick="editNum('w')" role="button" tabindex="0" aria-label="Escribir el peso exacto" title="Toca para escribir el peso exacto">${fmtW(curW)}</b><button class="sq" onclick="adjW(1)" aria-label="Subir peso">+</button></div>${incChipHTML(s.id)}</div>`:'';
       const repsStep=`<div class="stepper"${cargado?'':' style="max-width:220px;margin:0 auto"'}><div class="lab">${cargado?'Reps':'Repeticiones'}</div><div class="row"><button class="sq" onclick="adjR(-1)" aria-label="Menos reps">−</button><b id="lr" onclick="editNum('r')" role="button" tabindex="0" aria-label="Escribir las repeticiones" title="Toca para escribir las repeticiones">${curReps}</b><button class="sq" onclick="adjR(1)" aria-label="Más reps">+</button></div></div>`;
-      inner=`<div class="logrow">${pesoStep}${repsStep}</div>${cargado?incPickHTML(s.id):""}${cargado?rirHTML():""}
+      inner=`<div class="logrow">${pesoStep}${repsStep}</div>${cargado?incPickHTML(s.id):""}${rirHTML()}
       <div class="last tap" onclick="toggleGChart('${s.id}')" role="button" tabindex="0" aria-label="Ver la curva de este ejercicio">${lastTxt}${spark(s.id)}</div>
       <div id="gchart" class="gchart"></div>
       ${sg.why?`<div class="qwhy">${ic("bulb","xs")} ${esc(sg.why)}</div>`:''}
@@ -4001,7 +4001,9 @@ function exNoteHTML(id){const n=loadNotes()[id];
 /* ---- repeticiones en reserva (v35) ----
    Opcional y de un toque: cuantas mas podias hacer al terminar la serie. Se
    guarda como s.rir dentro de la serie, que persistSession copia entera a
-   rp_logs. De momento solo se registra y se muestra; no mueve la progresion. */
+   rp_logs. Sale con carga y sin carga (HU-13), y mueve la progresion: en masa
+   el rango lleno con reserva 0 en todas sube, 3+ en la primera pide +2 reps,
+   y en salud una reserva <= 1 mantiene peso y reps (todayTarget). */
 let curRir=null;
 function rirHTML(){return `<div class="rirrow" role="group" aria-label="Repeticiones en reserva"><span>¿Cuántas más podías?</span>`
   +[0,1,2,3].map(n=>`<button type="button" class="rirb${curRir===n?" on":""}" onclick="setRir(${n})" aria-pressed="${curRir===n}">${n===3?"3+":n}</button>`).join("")+`</div>`;}
@@ -4446,11 +4448,23 @@ function bajarA(id,w0,meta,k){const l=availDB(id,k);
 function unSaltoMenos(id,w0,k){const l=availDB(id,k);
   if(l){const v=l.filter(x=>x<w0-1e-9).pop();return v==null?null:v;}
   const v=incFor(id,k)?nextW(id,w0,-1,k):pasoAbajo(w0);return v>0?v:null;}
+/* ---- reserva anotada (HU-13): «¿Cuántas más podías?» = s.rir ----
+   0..3 (3 es «3+»), o null si la serie no la trae. Una serie sin reserva no
+   cuenta ni como 0 ni como 3+: se ignora. Lo que no escribe la app (una copia
+   editada a mano): texto o negativo es no traerla, y mas de 3 es «3+» */
+function rirDe(s){if(!s||s.rir==null||s.rir==="")return null;const n=Number(s.rir);return isFinite(n)&&n>=0?Math.min(3,n):null;}
+/* al fallo: TODAS las series traen reserva y es 0 (una sin anotar lo deja fuera) */
+function alFallo(rec){const a=(rec&&rec.sets)||[];return a.length>0&&a.every(s=>rirDe(s)===0);}
+/* alguna serie trae reserva <= lim */
+function algunaAlLimite(rec,lim){return ((rec&&rec.sets)||[]).some(s=>{const r=rirDe(s);return r!=null&&r<=lim;});}
+/* la menor reserva anotada en la sesion, null si ninguna serie la trae */
+function rirMin(rec){let m=null;((rec&&rec.sets)||[]).forEach(s=>{const r=rirDe(s);if(r!=null&&(m==null||r<m))m=r;});return m;}
 /* Objetivo de hoy: una meta de proceso resoluble hoy, no un resultado lejano.
    Las ramas van en este orden y gana la primera: 1 primera vez · 2 molestia
    (2' molestia tras un paron, HU-15) · 3 paron (HU-15) · 4' dos fallos con
-   molestia en la penultima · 4 dos fallos (HU-14) · (5 freno por reserva,
-   HU-13) · 6 regla del objetivo (HU-16) · 7 la progresion doble de siempre */
+   molestia en la penultima · 4 dos fallos (HU-14) · 5 freno por reserva
+   (HU-13) · 6 regla del objetivo (HU-16) · 7 la progresion doble de siempre,
+   con la reserva como modificador (HU-13: (a) al fallo sube, (b) 3+ pide +2) */
 function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)return null;
   const R=reglaObjetivo(),logs=loadLogs(),rng=repRange(id),d=dose(k,id),
         ult=lastLogs(id,Math.max(2,R.llenasParaSalir,R.fallosSesiones),logs),ll=ult[0];
@@ -4501,20 +4515,32 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
      y se pide el minimo + 1. Si eso quitaria mas de R.fallosBajadaMax (25 %) o
      ya no hay nada mas ligero, mismo peso y el minimo. Igual en masa y en
      salud. Sin carga o a 0 kg, una variante algo mas facil. 4' · si alguna de
-     esas sesiones tiene molestia, no se baja: manda la molestia */
+     esas sesiones tiene molestia, no se baja: manda la molestia. Con reserva
+     3+ en la primera serie de la ultima (HU-13) tampoco se baja: la persona
+     dice que el peso no le pesaba, y sigue la regla normal con +2 */
   const fallos=ult.slice(0,R.fallosSesiones),
         dosFallos=fallos.length>=R.fallosSesiones&&fallos.every(r=>{const s=r.sets[0]||{};
           return (Number(s.reps)||0)<rng[0]&&Math.abs((Number(s.w)||0)-w0)<1e-9;});
   if(dosFallos&&fallos.some(r=>pain.indexOf(r.date)>=0))
     return {w:w0,reps:r1||rng[0],dolor:true,
       why:"Hace dos sesiones anotaste molestia: "+(sinPeso?"mismas repeticiones":"mismo peso")+" y sin forzar"};
-  if(dosFallos){const real=sinPeso?null:unSaltoMenos(id,w0,k),
+  const sobra=rirDe(first)!=null&&rirDe(first)>=R.rirSobra;
+  if(dosFallos&&!sobra){const real=sinPeso?null:unSaltoMenos(id,w0,k),
       bajo=real!=null&&real<w0&&real>=w0*(1-R.fallosBajadaMax)-1e-9,
       r=bajo?Math.min(rng[1],rng[0]+1):rng[0],pre="Dos veces por debajo de "+rng[0]+": ";
     return {w:bajo?real:w0,reps:r,fallos:true,
       why:sinPeso?pre+"prueba una variante algo más fácil y busca "+r
         :bajo?pre+"baja a "+fmtW(real)+" kg y busca "+r
         :pre+(real==null?"ya es lo más ligero":"bajar es demasiado")+", sigue con "+fmtW(w0)+" kg y busca "+r};}
+  /* 5 · freno por reserva (HU-13 c): con R.frenoRir (solo salud), alguna serie
+     con reserva <= 1 pide mismo peso y mismas reps, en cada sesion: no se
+     aprieta de mas a quien acaba de llegar al limite. Se sale cuando anota 2 o
+     mas en las series que traen reserva, o deja de anotarla */
+  if(R.frenoRir!=null&&algunaAlLimite(ll,R.frenoRir)){const m=rirMin(ll),r=r1||rng[0],
+      pre=m===0?"Llegaste al fallo: ":"Te quedó solo "+m+": ",fin=", busca dejar 1 en reserva";
+    return {w:w0,reps:r,mantiene:true,
+      why:m===0?pre+(sinPeso?"mismas "+r+" repeticiones":"mismo peso y "+r+" reps")+fin
+        :pre+"repite "+r+(sinPeso?" repeticiones":" reps con el mismo peso")+fin};}
   /* 6 · regla del objetivo (HU-16): con el rango lleno, salir de el (estirar
      o subir) pide R.llenasParaSalir sesiones seguidas llenas al mismo peso.
      En masa es una, como siempre; en salud dos, y la primera se mantiene y se
@@ -4524,6 +4550,15 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
     return {w:w0,reps:r1,mantiene:true,
       why:"Rango completo con "+(e.load!==true||w0<=0?r1+" repeticiones":fmtW(w0)+" kg × "+r1)+": mantenerlo es un logro, repítelo"};
   /* 7 · la progresion doble de siempre */
+  /* (a) HU-13: en masa (R.rirAlFalloSube), con el rango lleno y reserva 0 en
+     TODAS las series, donde se iba a estirar a tope+2 se sube ya al siguiente
+     peso real: llenar el rango al fallo ya es el estimulo, y estirar dos reps
+     mas al fallo no es realista. Sin eso, el estirado de siempre tal cual. Con
+     la mancuerna mas pesada no hay siguiente: no pasa por aqui */
+  const estiraOSube=(next,lista,estira)=>R.rirAlFalloSube&&alFallo(ll)&&next!=null
+    ?{w:next,reps:rng[0],subeCarga:true,
+      why:"Llenaste el rango con reserva 0: sube a "+(lista?"tu mancuerna de ":"")+fmtW(next)+" kg y vuelve a "+rng[0]}
+    :estira;
   /* Con mancuernas propias (Ajustes) manda la lista real, no un salto teorico.
      Con 1-2-3 kg cualquier salto pasa del 10%: se sube cuando el rango
      ESTIRADO tambien se llena, y con la mas pesada solo se estira. */
@@ -4534,8 +4569,8 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
     const suave=w0>0&&(next-w0)/w0<=0.10,lleno=trabajo.every(x=>(x.reps||0)>=rng[1]+2);
     if(suave||lleno)return {w:next,reps:rng[0],subeCarga:true,
       why:"Sube a tu mancuerna de "+fmtW(next)+" kg y vuelve a "+rng[0]+" reps"};
-    return {w:w0,reps:rng[1]+2,extiende:true,
-      why:"Tu siguiente mancuerna ("+fmtW(next)+" kg) es un salto grande: antes llega a "+(rng[1]+2)+" reps"};}
+    return estiraOSube(next,true,{w:w0,reps:rng[1]+2,extiende:true,
+      why:"Tu siguiente mancuerna ("+fmtW(next)+" kg) es un salto grande: antes llega a "+(rng[1]+2)+" reps"});}
   /* Con el salto de la maquina declarado (v36), la misma regla sobre sus
      multiplos: salto suave (<=10%) se sube al llenar el rango; salto grande,
      al llenar tambien el estirado. Nunca un peso que no se puede poner. En
@@ -4545,8 +4580,8 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
       suave=w0>0&&(next-w0)/w0<=0.10,lleno=trabajo.every(x=>(x.reps||0)>=rng[1]+2);
     if(suave||lleno)return {w:next,reps:rng[0],subeCarga:true,
       why:(suave?"Llenaste el rango entero":"Llegaste a "+(rng[1]+2)+" reps")+": sube a "+fmtW(next)+" kg y vuelve a "+rng[0]};
-    return {w:w0,reps:rng[1]+2,extiende:true,
-      why:"El siguiente peso que existe ("+fmtW(next)+" kg) es un salto grande: antes llega a "+(rng[1]+2)+" reps"};}
+    return estiraOSube(next,false,{w:w0,reps:rng[1]+2,extiende:true,
+      why:"El siguiente peso que existe ("+fmtW(next)+" kg) es un salto grande: antes llega a "+(rng[1]+2)+" reps"});}
   /* Sin lista, el salto teorico. Si es de hasta el 10% se sube al llenar el
      rango; si es mayor (todo lo que pesa menos de 25 kg) primero se estira a
      tope+2 y se sube cuando ese tambien se llena: la misma regla que con la
@@ -4563,8 +4598,13 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
     if(suave||lleno){const w=l?sig:Math.round((w0+inc)*100)/100;
       return {w:w,reps:rng[0],subeCarga:true,
         why:(suave?"Llenaste el rango entero":"Llegaste a "+(rng[1]+2)+" reps")+": sube a "+fmtW(w)+" kg y vuelve a "+rng[0]};}
-    return {w:w0,reps:rng[1]+2,extiende:true,
-      why:"El salto de peso sería más del 10%: estira el rango a "+(rng[1]+2)+" reps"};}
+    return estiraOSube(l?sig:Math.round((w0+inc)*100)/100,!!l,{w:w0,reps:rng[1]+2,extiende:true,
+      why:"El salto de peso sería más del 10%: estira el rango a "+(rng[1]+2)+" reps"});}
+  /* (b) HU-13: con reserva 3+ en la primera serie y el rango sin llenar,
+     +R.repsSobra (2) en vez de +1, sin pasar del tope. Sin reserva anotada,
+     la regla de siempre tal cual */
+  if(sobra&&r1<rng[1]){const o=Math.min(rng[1],Math.max(rng[0],(r1||rng[0])+R.repsSobra));
+    return {w:w0,reps:o,why:"La vez pasada "+r1+" con reserva 3+: hoy "+o+(sinPeso?"":" con el mismo peso")};}
   const objetivo=Math.min(rng[1],Math.max(rng[0],(first.reps||rng[0])+1));
   return {w:w0,reps:objetivo,
     why:"La vez pasada "+(first.reps||0)+": hoy "+objetivo+" con el mismo peso"};}

@@ -255,11 +255,13 @@ Bajo el peso, el chip **Salto**: de cuánto en cuánto sube esa máquina (1 · 2
 
 El peso del control es **solo el número**, y es el mismo al entrar en la serie, al tocar − o +, al escribirlo a mano y al cambiar las series: los cuatro caminos pintan con `fmtW(curW)` (`pintaW()` los que no rehacen la serie). Con la unidad, «102.5 kg» parte la fila en dos líneas en un móvil de 390 px; la unidad sigue en la línea de cada serie registrada.
 
-**La propuesta sigue el objetivo** (Ajustes, «Ganar músculo» o «Salud y mantenimiento»). Con el rango lleno, en masa se sale de él a la primera, estirando o subiendo como siempre; en salud hacen falta **dos sesiones seguidas con el rango lleno al mismo peso**, y la primera se mantiene y se dice como un logro: «Rango completo con 2 kg × 12: mantenerlo es un logro, repítelo» (sin carga o a 0 kg, «con 12 repeticiones», sin hablar de peso). No promete lo que viene después. Lo que no es el rango lleno —primera vez, molestia, series de menos, una rep más dentro del rango— es igual en los dos objetivos. Todos los umbrales que cambian con el objetivo (sesiones para salir del rango, freno por reserva, días de parón, qué cuenta el radar de estancamiento) viven en un solo bloque, `REGLAS`, y `reglaObjetivo()` los lee en cada llamada: cambiar el objetivo en Ajustes cambia la propuesta en el acto. Sin objetivo guardado (datos de v35) es masa. El tope+2 y el 10 % de HU-07 no dependen del objetivo.
+**La propuesta sigue el objetivo** (Ajustes, «Ganar músculo» o «Salud y mantenimiento»). Con el rango lleno, en masa se sale de él a la primera, estirando o subiendo como siempre; en salud hacen falta **dos sesiones seguidas con el rango lleno al mismo peso**, y la primera se mantiene y se dice como un logro: «Rango completo con 2 kg × 12: mantenerlo es un logro, repítelo» (sin carga o a 0 kg, «con 12 repeticiones», sin hablar de peso). No promete lo que viene después. Lo que no es el rango lleno —primera vez, molestia, series de menos, una rep más dentro del rango— es igual en los dos objetivos, salvo lo que cambia la reserva anotada (abajo). Todos los umbrales que cambian con el objetivo (sesiones para salir del rango, freno por reserva, días de parón, qué cuenta el radar de estancamiento) viven en un solo bloque, `REGLAS`, y `reglaObjetivo()` los lee en cada llamada: cambiar el objetivo en Ajustes cambia la propuesta en el acto. Sin objetivo guardado (datos de v35) es masa. El tope+2 y el 10 % de HU-07 no dependen del objetivo.
 
 **Tras un parón se vuelve más suave.** Si el ejercicio lleva más de `paronDias` sin hacerse (21 días en masa, 14 en salud, desde la última sesión con series o un «visto» del mismo estímulo: sin carga, cualquiera; con carga, solo de la misma rutina), la propuesta es el peso × 0,9 (× 0,8 pasado `paronLargo`, 42 o 28 días) bajado al peso real de abajo —la lista de mancuernas, los múltiplos del salto de la máquina o, sin nada declarado, la escala inversa de `progStep` (`pasoAbajo`: 40 → 37,5 → 35, 20 → 18, 10 → 9), desde la que el + de siempre vuelve al peso de partida—, el **mínimo del rango** y nunca una subida: «Llevas 3 semanas sin hacerlo: vuelve con 35 kg y 6 reps, sin forzar». El aviso de empezar suave va en el porqué, sin otro elemento en el paso. Si el redondeo quitaría más de un 20 % al objetivo (1-2-3 kg: 2 × 0,9 = 1,8 → 1), se mantiene el peso y solo bajan las reps: «sigue con 2 kg, solo 8 reps y sin forzar». Sin carga (o a 0 kg), solo el mínimo del rango, sin hablar de peso. Con la molestia anotada la última vez y además un parón, el peso de la vuelta y las reps más bajas de las dos, con `dolor` y la molestia en el porqué («Molestia la última vez y 6 semanas sin hacerlo: vuelve con 30 kg y 6 reps»); sin parón, la molestia sigue como siempre. Lo que pasó antes del parón (rango lleno, reps de más) no se aplica ese día.
 
 **Dos veces por debajo del mínimo, se baja un poco.** Si las dos últimas sesiones (`fallosSesiones`) tienen la primera serie por debajo del mínimo del rango **al mismo peso**, repetir no lo arregla: la propuesta es un peso real menos —la mancuerna anterior de la lista, el − del salto de la máquina (40 → 35 con 5) o, sin nada declarado, `pasoAbajo` (40 → 37,5, 20 → 18)— y el mínimo + 1, con `fallos`: «Dos veces por debajo de 6: baja a 37.5 kg y busca 7». Si bajar quitaría más de un 25 % (`fallosBajadaMax`: 1-2-3 kg a 2 kg) se mantiene el peso y se pide el mínimo, «bajar es demasiado, sigue con 2 kg y busca 8»; si no hay nada más ligero, «ya es lo más ligero». Es igual en masa y en salud. Con una sola sesión corta, o con el peso cambiado entre ellas, la regla de siempre. Si alguna de las dos tiene molestia anotada no se baja: manda la molestia, y si es la penúltima, mismo peso y mismas reps con «Hace dos sesiones anotaste molestia: mismo peso y sin forzar». Sin carga (o a 0 kg), «prueba una variante algo más fácil y busca 8», sin hablar de peso. Un parón va antes: tras semanas sin hacerlo, la vuelta.
+
+**«¿Cuántas más podías?» cambia la propuesta.** La reserva de cada serie (`s.rir`: 0, 1, 2 o 3+) sale con carga y sin carga, y la lee la propuesta de la sesión siguiente. Una serie sin reserva anotada no cuenta ni como 0 ni como 3+: sin reserva en ninguna serie, la propuesta es la de siempre. (a) **En masa**, con el rango lleno y reserva 0 en **todas** las series, donde se iba a estirar a tope+2 se sube ya al siguiente peso real (la mancuerna siguiente de la lista, el salto de la máquina o el teórico), aunque pase del 10 %: «Llenaste el rango con reserva 0: sube a 9 kg y vuelve a 12». Llenar el rango al fallo ya es el estímulo, y estirar dos reps más al fallo no es realista; con la mancuerna más pesada, solo estira. (b) **Reserva 3+ en la primera serie**, con el rango sin llenar: +2 reps en vez de +1, sin pasar del tope («La vez pasada 8 con reserva 3+: hoy 10 con el mismo peso»; sin carga, sin «con el mismo peso»). También veta la bajada por dos fallos: quien dice que le sobraban 3 no necesita menos peso (la molestia en la penúltima sí manda). (c) **En salud**, alguna serie con reserva 0 o 1 pide mismo peso y mismas reps, en cada sesión que llegue así, también con el rango lleno: «Llegaste al fallo: mismo peso y 8 reps, busca dejar 1 en reserva» o «Te quedó solo 1: repite 8 reps con el mismo peso, busca dejar 1 en reserva». Se sale al anotar 2 o más, o al dejar de anotarla; no es estancarse (el radar de salud no marca lo que se mantiene). Los tres umbrales viven en `REGLAS` (`rirAlFalloSube`, `rirSobra`/`repsSobra`, `frenoRir`). Molestia, parón y dos fallos van antes.
 
 **El tiempo no se edita.** Descansos y sostenes los fija el programa: el criterio para ponerlos ya está tomado y ofrecer un stepper solo invita a deshacerlo sin datos. Cambiar las series, en cambio, responde a algo que solo sabes tú — cómo te sientes hoy y cuánto tiempo tienes.
 
@@ -477,8 +479,6 @@ Qué se superó, en este orden: **Peso máximo** (más kilos que nunca en ese ej
   **Trampa al implementarlo:** `caches.addAll` es atómico, así que el `.woff2` tiene que ir en
   un `cache.add()` aparte con `catch`. Si entra en `ASSETS` y su descarga falla, el service
   worker no se instala y la app pierde el offline por completo.
-- **Usar las reps en reserva en la progresión.** v35 ya las registra (`s.rir`); falta que
-  `todayTarget` las lea (p. ej. reserva 0 en todas las series → no subir aunque se llene el rango).
 
 **De la comparación con apps líderes (2026-09-23)** — Strong, Hevy, Alpha Progression, RP
 Hypertrophy, Boostcamp, JEFIT. Ordenado por valor para estos dos usuarios, queda:
@@ -597,6 +597,44 @@ no salía.
   saltos 2,5/4,5/5/10, el paso de 20 a 18, sin carga y a 0 kg, el parón que gana, `REGLAS` como
   fuente, `stalled` tras la bajada y los porqués del peor caso (102.75 kg, rango [12,20]) en 80
   caracteres o menos.
+
+Que «¿Cuántas más podías?» cambie la sugerencia (HU-13). La reserva se anotaba desde v35 pero no
+movía nada: quien iba sobrado avanzaba igual de despacio y quien llegaba al fallo recibía la misma
+propuesta que quien no. Cierra el pendiente «usar las reps en reserva en la progresión» de esta
+sección, que proponía lo contrario en masa (no subir con reserva 0 en todas las series aunque se
+llene el rango): se aparta de él porque llenar el rango cerca del fallo es lo normal en
+hipertrofia, y estirar a tope+2 al fallo no es realista. La idea de no apretar de más sobrevive en
+salud, como freno.
+
+- **Lectura:** `rirDe(s)` (0-3, o `null` sin anotar; texto o negativo es no traerla y más de 3 es
+  «3+»), `alFallo` (todas las series con reserva 0), `algunaAlLimite` y `rirMin`. Solo la última
+  sesión; una serie sin reserva no cuenta.
+- **(a) Masa, reserva 0 en todas con el rango lleno:** donde se estiraba se sube al siguiente peso
+  real (`estiraOSube`, en las tres ramas de HU-07/HU-08: lista, salto declarado y teórico), con
+  `subeCarga` y «Llenaste el rango con reserva 0: sube a…». Con salto suave, el estirado ya lleno o
+  la mancuerna más pesada, lo de siempre byte a byte.
+- **(b) Reserva 3+ en la primera serie, rango sin llenar:** +2 en vez de +1, sin pasar del tope. Veta
+  la bajada por dos fallos (HU-14): 40 × 5 dos veces con 3+ en la última propone 40 × 7, no 37,5.
+- **(c) Salud, alguna serie con reserva 0-1:** mismo peso y mismas reps con `mantiene`, en cada
+  sesión, antes de la regla del objetivo; «Llegaste al fallo…» o «Te quedó solo 1…», los dos con
+  «busca dejar 1 en reserva». Se sale anotando 2 o más, o sin anotarla.
+- **Sin carga:** la fila de reserva sale también en los pasos sin carga (flexiones en la pared,
+  remo con banda…), y los porqués nuevos no hablan de peso.
+- **Lo que no cambia:** sin reserva en ninguna serie, exactamente lo de antes; los juegos de datos
+  (reserva 1-2 en la última serie) no disparan nada, así que la referencia de v36 no suma entradas
+  en `CAMBIOS_OBJETIVOS`. Sin claves nuevas: `s.rir` ya existía y viaja en la copia.
+- **Pruebas** en `tests/pruebas_logica.js`, escenario «la reserva cambia la sugerencia (HU-13)»:
+  (a) con salto teórico, `rp_inc`, lista y lista en lo que no es de mancuerna, y sus límites (una
+  serie sin anotar, reserva 1, rango sin llenar, la más pesada, salto suave, estirado lleno); salud
+  con reserva 0 y `REGLAS` mutado; (b) en masa, salud y sin objetivo, tope, texto y sin carga; dos
+  fallos con 3+ y con molestia en la penúltima; (c) con 0, con 1, repetido, sumando por su cuenta,
+  con el rango lleno, sin carga, a 0 kg y en masa; la cadena de remo al fallo y su salida; un barrido
+  de más de 400 casos sin reserva que sale igual que con las tres reglas apagadas; los porqués del
+  peor caso en 80 caracteres; datos de v35 sin reserva y reservas raras. En la referencia de v36,
+  los tres juegos sin ninguna reserva salen igual. `tests/pruebas_pantallas.js`: la fila en
+  flexiones en la pared y remo con banda, la reserva elegida en la serie, en `rp_logs` y en la
+  propuesta siguiente. `tests/pruebas_datos.js`: ida y vuelta de la copia con `s.rir` en series
+  sin carga (0, 3+ y sin anotar), también en la sesión a medias.
 
 ### Cerrado en v36
 

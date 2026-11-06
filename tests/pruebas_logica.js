@@ -849,6 +849,17 @@
         /* un cambio previsto es de verdad un cambio, y de un objetivo que existe */
         Object.keys(cambios).forEach(c=>{expect(c in ref.objetivos).toBe(true);
           expect({[c]:cambios[c]}).not.toEqual({[c]:ref.objetivos[c]});});
+        app.reiniciarMemoria();app.sembrar(F.vacio);});
+      /* HU-13, criterio 4: el mismo juego sin ninguna reserva anotada sale
+         exactamente igual (los juegos solo traen reserva 1-2 en la ultima
+         serie, que no dispara nada: con ella o sin ella, lo de antes) */
+      test("sin reserva en ninguna serie, todayTarget de todas las rutinas sale igual ("+nombre+")",async app=>{
+        const sinRir=()=>JSON.parse(JSON.stringify(juego()),(k,x)=>k==="rir"?undefined:x);
+        expect(JSON.stringify(juego())).toContain('"rir"');
+        expect(JSON.stringify(sinRir())).not.toContain('"rir"');
+        const ref=REFERENCIA_OBJETIVOS_V36[nombre],r=await fotoObjetivos(app,sinRir),cambios=CAMBIOS_OBJETIVOS[nombre]||{};
+        Object.keys(ref.objetivos).forEach(c=>{const esperado=c in cambios?cambios[c]:ref.objetivos[c];
+          expect({[c]:r.objetivos[c]}).toEqual({[c]:esperado});});
         app.reiniciarMemoria();app.sembrar(F.vacio);});});
   });
 
@@ -1421,6 +1432,236 @@
       limpio(app,con("masa",{[PB]:dos(40,5)},{rp_inc:{[PB]:5}}));
       const antes=app.foto(),claves=app.claves().slice().sort();tt(app,PB,GE);sug(app,PB,GE);
       expect(app.foto()).toEqual(antes);expect(app.claves().slice().sort()).toEqual(claves);});
+  });
+
+  /* ---------- HU-13: «¿Cuántas más podías?» cambia la sugerencia ----------
+     La reserva anotada (s.rir: 0, 1, 2 o 3 = «3+») mueve la propuesta: (a) en
+     masa, el rango lleno con reserva 0 en TODAS las series sube al siguiente
+     peso real aunque el salto pase del 10 %; (b) reserva 3+ en la primera
+     serie pide +2 reps en vez de +1, sin pasar del tope (y veta la bajada por
+     dos fallos); (c) en salud, alguna serie con reserva 0-1 pide mismo peso y
+     mismas reps. Una serie sin reserva no cuenta. Fechas relativas (F.fecha) */
+  escenario("Lógica · la reserva cambia la sugerencia (HU-13)",F.vacio,()=>{
+    const PB="press_banca_db",GE="gym_empuje",EL="elevaciones_laterales",JP="jalon_pecho",GT="gym_tiron",
+      PH="press_hombro_db",FA="salud_fuerza_a",FB="salud_fuerza_b",RB="remo_db",FP="flexiones_pared",SS="sentadilla_silla",
+      /* un registro con reserva por serie: series = [[w,reps,rir?]] (rir null: sin anotar) */
+      regR=(n,k,series)=>{const r=reg(n,k,series);r.sets.forEach((s,i)=>{if(series[i][2]!=null)s.rir=series[i][2];});return r;},
+      todas=(n,w,reps,rir)=>Array.from({length:n},()=>[w,reps,rir]),
+      con=(goal,logs,extra)=>Object.assign({rp_prefs:goal?{goal:goal}:{},rp_logs:logs},extra||{}),
+      sinRir=v=>JSON.parse(JSON.stringify(v),(k,x)=>k==="rir"?undefined:x),
+      alFallo=(w,min,lista)=>({w:w,reps:min,subeCarga:true,why:"Llenaste el rango con reserva 0: sube a "+(lista?"tu mancuerna de ":"")+w+" kg y vuelve a "+min}),
+      sobra=(w,r1,r,sinPeso)=>({w:w,reps:r,why:"La vez pasada "+r1+" con reserva 3+: hoy "+r+(sinPeso?"":" con el mismo peso")}),
+      freno=(w,r,m,sinPeso)=>({w:w,reps:r,mantiene:true,why:m===0
+        ?"Llegaste al fallo: "+(sinPeso?"mismas "+r+" repeticiones":"mismo peso y "+r+" reps")+", busca dejar 1 en reserva"
+        :"Te quedó solo "+m+": repite "+r+(sinPeso?" repeticiones":" reps con el mismo peso")+", busca dejar 1 en reserva"});
+    test("criterio 1 (masa): rango lleno con reserva 0 en todas las series y salto > 10 % → sube con el salto minimo y el porque dice «reserva 0»",app=>{
+      const n=app.w.dose(GE,EL).sets||4;
+      expect(app.w.repRange(EL)).toEqual([12,20]);
+      /* 8 kg: el salto de 1 kg es un 12,5 %; sin reserva estiraba a 22 */
+      limpio(app,con("masa",{[EL]:[regR(2,GE,todas(n,8,20,0))]}));
+      const t=tt(app,EL,GE);
+      expect(t).toEqual(alFallo(9,12));
+      expect(t.why).toContain("reserva 0");
+      expect(sug(app,EL,GE)).toEqual({w:9,reps:12,why:t.why});
+      /* con el salto de la maquina declarado: el siguiente multiplo (40 → 45, +12,5 %) */
+      const nj=app.w.dose(GT,JP).sets||4;
+      expect(app.w.repRange(JP)).toEqual([8,12]);
+      limpio(app,con("masa",{[JP]:[regR(2,GT,todas(nj,40,12,0))]},{rp_inc:{[JP]:5}}));
+      expect(tt(app,JP,GT)).toEqual(alFallo(45,8));
+      /* con la lista de mancuernas: la siguiente que existe (2 → 3) */
+      const nh=app.w.dose(FA,PH).sets||2;
+      limpio(app,{rp_prefs:{goal:"masa",pesosDB:[1,2,3]},rp_logs:{[PH]:[regR(2,FA,todas(nh,2,12,0))]}});
+      expect(tt(app,PH,FA)).toEqual(alFallo(3,8,true));
+      /* lo que en casa se hace con ellas sin ser de mancuerna (availDB con k): sentarse 1 → 2 */
+      const ns=app.w.dose(FA,SS).sets||2;
+      limpio(app,{rp_prefs:{goal:"masa",pesosDB:[1,2,3]},rp_logs:{[SS]:[regR(2,FA,todas(ns,1,12,0))]}});
+      expect(tt(app,SS,FA)).toEqual(alFallo(2,8,true));});
+    test("criterio 1: sin reserva 0 en TODAS las series, o con la mas pesada, o con salto suave, lo de siempre (byte a byte)",app=>{
+      const n=app.w.dose(GE,EL).sets||4,estira={w:8,reps:22,extiende:true,why:"El salto de peso sería más del 10%: estira el rango a 22 reps"};
+      /* una serie sin anotar: no es «al fallo» (las series sin reserva no cuentan como 0) */
+      const casi=todas(n,8,20,0);casi[n-1][2]=null;
+      limpio(app,con("masa",{[EL]:[regR(2,GE,casi)]}));expect(tt(app,EL,GE)).toEqual(estira);
+      /* reserva 1 en una: tampoco */
+      const una=todas(n,8,20,0);una[1][2]=1;
+      limpio(app,con("masa",{[EL]:[regR(2,GE,una)]}));expect(tt(app,EL,GE)).toEqual(estira);
+      /* reserva 0 en todas pero el rango sin llenar: la rep de mas de siempre */
+      limpio(app,con("masa",{[EL]:[regR(2,GE,todas(n,8,18,0))]}));
+      expect(tt(app,EL,GE)).toEqual({w:8,reps:19,why:"La vez pasada 18: hoy 19 con el mismo peso"});
+      /* con la mancuerna mas pesada no hay siguiente: solo estira */
+      const nh=app.w.dose(FA,PH).sets||2;
+      limpio(app,{rp_prefs:{goal:"masa",pesosDB:[1,2,3]},rp_logs:{[PH]:[regR(2,FA,todas(nh,3,12,0))]}});
+      expect(tt(app,PH,FA)).toEqual({w:3,reps:14,extiende:true,why:"Ya usas tu mancuerna más pesada: estira a 14 reps"});
+      /* salto de hasta el 10 %: ya subia, con el texto de siempre */
+      limpio(app,con("masa",{[PB]:[regR(2,GE,todas(4,40,10,0))]}));
+      expect(tt(app,PB,GE)).toEqual({w:42.5,reps:6,subeCarga:true,why:"Llenaste el rango entero: sube a 42.5 kg y vuelve a 6"});
+      /* el estirado ya lleno: sube como siempre */
+      limpio(app,con("masa",{[EL]:[regR(2,GE,todas(n,8,22,0))]}));
+      expect(tt(app,EL,GE)).toEqual({w:9,reps:12,subeCarga:true,why:"Llegaste a 22 reps: sube a 9 kg y vuelve a 12"});});
+    test("criterio 1 en salud: la reserva 0 no sube (rirAlFalloSube apagado); manda el freno por reserva",app=>{
+      const n=app.w.dose(GE,EL).sets||4,logs={[EL]:[regR(9,GE,todas(n,8,20,0)),regR(2,GE,todas(n,8,20,0))]};
+      limpio(app,con("salud",logs));
+      expect(tt(app,EL,GE)).toEqual(freno(8,20,0));
+      /* sin el freno, salud estira: la regla (a) es solo de masa, y sale del bloque */
+      const R=app.ev("REGLAS"),guarda=JSON.stringify(R);
+      try{app.ev("REGLAS.salud.frenoRir=null");
+        expect(tt(app,EL,GE)).toEqual({w:8,reps:22,extiende:true,why:"El salto de peso sería más del 10%: estira el rango a 22 reps"});
+        app.ev("REGLAS.salud.rirAlFalloSube=true");
+        expect(tt(app,EL,GE)).toEqual(alFallo(9,12));
+        app.ev("REGLAS.masa.rirAlFalloSube=false");
+        limpio(app,con("masa",logs));
+        expect(tt(app,EL,GE).extiende).toBe(true);
+      }finally{const o=JSON.parse(guarda);["comun","masa","salud"].forEach(g=>{Object.keys(R[g]).forEach(c=>delete R[g][c]);Object.assign(R[g],o[g]);});}
+      expect(JSON.stringify(app.ev("REGLAS"))).toBe(guarda);});
+    test("criterio 2: rango sin llenar y primera serie con reserva 3+ → reps anteriores + 2, sin pasar del tope",app=>{
+      expect(app.w.repRange(PB)).toEqual([6,10]);
+      const r3=(r,rir)=>{const s=todas(4,30,r);s[0][2]=rir;return s;};
+      ["masa","salud",null].forEach(g=>{
+        limpio(app,con(g,{[PB]:[regR(2,GE,r3(8,3))]}));
+        expect(tt(app,PB,GE)).toEqual(sobra(30,8,10));
+        expect(sug(app,PB,GE)).toEqual(sobra(30,8,10));
+        /* sin pasar del tope: 9 + 2 → 10 */
+        limpio(app,con(g,{[PB]:[regR(2,GE,r3(9,3))]}));
+        expect(tt(app,PB,GE)).toEqual(sobra(30,9,10));
+        /* por debajo del minimo: 4 + 2 = 6 */
+        limpio(app,con(g,{[PB]:[regR(2,GE,r3(4,3))]}));
+        expect(tt(app,PB,GE)).toEqual(sobra(30,4,6));});
+      /* reserva 2 en la primera, o 3+ solo en otra serie: +1 de siempre */
+      limpio(app,con("masa",{[PB]:[regR(2,GE,r3(8,2))]}));
+      expect(tt(app,PB,GE)).toEqual({w:30,reps:9,why:"La vez pasada 8: hoy 9 con el mismo peso"});
+      const ultima=todas(4,30,8);ultima[3][2]=3;
+      limpio(app,con("masa",{[PB]:[regR(2,GE,ultima)]}));
+      expect(tt(app,PB,GE)).toEqual({w:30,reps:9,why:"La vez pasada 8: hoy 9 con el mismo peso"});
+      /* guardada como texto (una copia editada a mano) cuenta igual */
+      limpio(app,con("masa",{[PB]:[regR(2,GE,r3(8,"3"))]}));
+      expect(tt(app,PB,GE)).toEqual(sobra(30,8,10));
+      /* sin carga: el mismo +2, sin hablar de peso */
+      limpio(app,con("masa",{[FP]:[regR(2,FA,[[0,8,3],[0,8]])]}));
+      const f=tt(app,FP,FA);
+      expect(f).toEqual(sobra(0,8,10,true));expect(f.why).not.toMatch(/peso|kg|pesad/i);});
+    test("criterio 2 frente a HU-14: dos fallos con reserva 3+ en la primera serie de la ultima no bajan (+2); con molestia en la penultima manda la molestia",app=>{
+      const ses=(n,r,rir)=>{const s=todas(4,40,r);s[0][2]=rir;return regR(n,GE,s);};
+      limpio(app,con("masa",{[PB]:[ses(5,5),ses(2,5,3)]}));
+      const t=tt(app,PB,GE);
+      expect(t).toEqual(sobra(40,5,7));expect(t.fallos).toBeFalsy();
+      /* en salud igual (la reserva 3+ no frena) */
+      limpio(app,con("salud",{[PB]:[ses(5,5),ses(2,5,3)]}));
+      expect(tt(app,PB,GE)).toEqual(sobra(40,5,7));
+      /* la reserva 3+ solo en la penultima no veta: baja */
+      limpio(app,con("masa",{[PB]:[ses(5,5,3),ses(2,5)]}));
+      expect(tt(app,PB,GE)).toEqual({w:37.5,reps:7,fallos:true,why:"Dos veces por debajo de 6: baja a 37.5 kg y busca 7"});
+      /* molestia en la penultima: fila 4' aunque la ultima traiga 3+ */
+      limpio(app,con("masa",{[PB]:[ses(5,5),ses(2,5,3)]},{rp_pain:{[PB]:[F.fecha(5)]}}));
+      expect(tt(app,PB,GE)).toEqual({w:40,reps:5,dolor:true,why:"Hace dos sesiones anotaste molestia: mismo peso y sin forzar"});});
+    test("criterio 3 (salud): alguna serie con reserva 0-1 → mismo peso y mismas reps, «busca dejar 1 en reserva»",app=>{
+      const ses=(n,r,rir,cual)=>{const s=todas(4,30,r);s[cual==null?3:cual][2]=rir;return regR(n,GE,s);};
+      limpio(app,con("salud",{[PB]:[ses(2,8,1)]}));
+      const t=tt(app,PB,GE);
+      expect(t).toEqual(freno(30,8,1));
+      expect(t.why).toContain("busca dejar 1 en reserva");
+      expect(sug(app,PB,GE)).toEqual({w:30,reps:8,why:t.why});
+      limpio(app,con("salud",{[PB]:[ses(2,8,0,0)]}));
+      expect(tt(app,PB,GE)).toEqual(freno(30,8,0));
+      expect(tt(app,PB,GE).why).toContain("busca dejar 1 en reserva");
+      /* reserva 0 en una y 1 en otra: dice la menor */
+      const dos=todas(4,30,8);dos[1][2]=1;dos[3][2]=0;
+      limpio(app,con("salud",{[PB]:[regR(2,GE,dos)]}));
+      expect(tt(app,PB,GE)).toEqual(freno(30,8,0));
+      /* repetida: sigue sin sumar (30 × 8, nunca 30 × 9) */
+      limpio(app,con("salud",{[PB]:[ses(5,8,1),ses(2,8,1)]}));
+      expect(tt(app,PB,GE)).toEqual(freno(30,8,1));
+      /* si sumo por su cuenta, mantiene lo que hizo */
+      limpio(app,con("salud",{[PB]:[ses(5,8,1),ses(2,9,1)]}));
+      expect(tt(app,PB,GE)).toEqual(freno(30,9,1));
+      /* tambien con el rango lleno: no sale del rango estando al limite */
+      limpio(app,con("salud",{[PB]:[ses(5,10,2),ses(2,10,1)]}));
+      expect(tt(app,PB,GE)).toEqual(freno(30,10,1));
+      /* sin carga y a 0 kg: sin hablar de peso */
+      limpio(app,con("salud",{[FP]:[regR(2,FA,[[0,9],[0,8,0]])]}));
+      const f=tt(app,FP,FA);expect(f).toEqual(freno(0,9,0,true));expect(f.why).not.toMatch(/peso|kg|pesad/i);
+      limpio(app,con("salud",{[SS]:[regR(2,FA,[[0,9],[0,8,1]])]}));
+      const s=tt(app,SS,FA);expect(s).toEqual(freno(0,9,1,true));expect(s.why).not.toMatch(/peso|kg|pesad/i);
+      /* masa no frena: la rep de mas de siempre */
+      limpio(app,con("masa",{[PB]:[ses(2,8,1)]}));
+      expect(tt(app,PB,GE)).toEqual({w:30,reps:9,why:"La vez pasada 8: hoy 9 con el mismo peso"});});
+    test("criterio 3: la madre siguiendo la app con reserva 0 se queda en 2 × 10; sale al anotar 2 o mas, o al no anotarla",app=>{
+      const n=app.w.dose(FB,RB).sets||2,r=(d,reps,rir)=>{const s=todas(n,2,reps);s[n-1][2]=rir;return regR(d,FB,s);};
+      /* tres sesiones seguidas al fallo, haciendo cada vez lo que propone */
+      const logs=[];[9,6,3].forEach(d=>{logs.push(r(d,10,0));limpio(app,con("salud",{[RB]:logs.slice()}));
+        expect({[d]:tt(app,RB,FB)}).toEqual({[d]:freno(2,10,0)});});
+      /* con reserva 2 la ultima vez: la regla de siempre */
+      limpio(app,con("salud",{[RB]:[r(5,10,1),r(2,10,2)]}));
+      expect(tt(app,RB,FB)).toEqual({w:2,reps:11,why:"La vez pasada 10: hoy 11 con el mismo peso"});
+      /* sin anotar la reserva tras un freno: tampoco frena */
+      limpio(app,con("salud",{[RB]:[r(5,10,1),r(2,10,null)]}));
+      expect(tt(app,RB,FB)).toEqual({w:2,reps:11,why:"La vez pasada 10: hoy 11 con el mismo peso"});});
+    test("criterio 3: el limite del freno sale del bloque REGLAS",app=>{
+      const R=app.ev("REGLAS"),guarda=JSON.stringify(R),ses=rir=>{const s=todas(4,30,8);s[3][2]=rir;return regR(2,GE,s);};
+      try{limpio(app,con("salud",{[PB]:[ses(2)]}));
+        expect(tt(app,PB,GE).reps).toBe(9);
+        app.ev("REGLAS.salud.frenoRir=2");
+        expect(tt(app,PB,GE)).toEqual(freno(30,8,2));
+        app.ev("REGLAS.salud.frenoRir=1;REGLAS.comun.rirSobra=2;REGLAS.comun.repsSobra=3");
+        const pri=todas(4,30,6);pri[0][2]=2;
+        limpio(app,con("masa",{[PB]:[regR(2,GE,pri)]}));
+        expect(tt(app,PB,GE)).toEqual({w:30,reps:9,why:"La vez pasada 6 con reserva 3+: hoy 9 con el mismo peso"});
+      }finally{const o=JSON.parse(guarda);["comun","masa","salud"].forEach(g=>{Object.keys(R[g]).forEach(c=>delete R[g][c]);Object.assign(R[g],o[g]);});}
+      expect(JSON.stringify(app.ev("REGLAS"))).toBe(guarda);});
+    test("criterio 4: sin reserva en ninguna serie, todayTarget devuelve lo mismo que con las reglas de reserva apagadas",app=>{
+      /* las tres reglas apagadas en el bloque son el codigo de antes de HU-13:
+         con la ultima sesion sin reserva, ninguna de ellas puede actuar */
+      const R=app.ev("REGLAS"),guarda=JSON.stringify(R),casos=[];
+      [[PB,GE,4,[30,40]],[EL,GE,4,[8,102.75]],[JP,GT,4,[40]],[PH,FA,2,[1,2,3]],[RB,FB,2,[2,3]],[FP,FA,2,[0]],[SS,FA,2,[0,1]]].forEach(([id,k,n,pesos])=>{
+        const rng=app.w.repRange(id);
+        pesos.forEach(w=>[rng[0]-2,rng[0],rng[1]-1,rng[1],rng[1]+2].forEach(reps=>{
+          casos.push([id,k,[regR(2,k,todas(n,w,reps,0).map((s,i)=>[s[0],s[1],i===0?3:1]))]]);
+          casos.push([id,k,[regR(5,k,todas(n,w,reps,1)),regR(2,k,todas(n,w,reps,0))]]);}));});
+      const extras=[{},{rp_prefs:{pesosDB:[1,2,3]}},{rp_inc:{[JP]:5,[PB]:5}}];
+      let n=0;
+      try{casos.forEach(([id,k,logs])=>extras.forEach(ex=>["masa","salud"].forEach(g=>{
+          const datos=con(g,sinRir(logs),ex);if(ex.rp_prefs)datos.rp_prefs=Object.assign({},ex.rp_prefs,{goal:g});
+          limpio(app,datos);const ahora=tt(app,id,k);
+          app.ev("REGLAS.comun.rirSobra=Infinity;REGLAS.masa.rirAlFalloSube=false;REGLAS.salud.frenoRir=null");
+          const antes=tt(app,id,k);
+          const o=JSON.parse(guarda);["comun","masa","salud"].forEach(x=>Object.assign(R[x],o[x]));
+          expect({[id+" "+g+" "+JSON.stringify(logs[logs.length-1].sets[0])]:ahora}).toEqual({[id+" "+g+" "+JSON.stringify(logs[logs.length-1].sets[0])]:antes});n++;})));
+      }finally{const o=JSON.parse(guarda);["comun","masa","salud"].forEach(g=>{Object.keys(R[g]).forEach(c=>delete R[g][c]);Object.assign(R[g],o[g]);});}
+      expect(JSON.stringify(app.ev("REGLAS"))).toBe(guarda);
+      expect(n).toBeGreaterThan(400);
+      /* y con las reservas puestas, las mismas sesiones si cambian algo */
+      limpio(app,con("masa",{[EL]:[regR(2,GE,todas(4,8,20,0))]}));
+      expect(tt(app,EL,GE).subeCarga).toBe(true);
+      limpio(app,con("masa",sinRir({[EL]:[regR(2,GE,todas(4,8,20,0))]})));
+      expect(tt(app,EL,GE).extiende).toBe(true);});
+    test("los porques nuevos de la reserva: 80 caracteres o menos con el peor caso (102.75 kg, rango [12,20])",app=>{
+      const n=app.w.dose(GE,EL).sets||4,
+        caso=(goal,lista,series)=>{limpio(app,{rp_prefs:Object.assign({goal:goal},lista?{pesosDB:lista}:{}),rp_logs:{[EL]:[regR(2,GE,series)]}});return tt(app,EL,GE);},
+        pri=(w,r,rir)=>{const s=todas(n,w,r);s[0][2]=rir;return s;};
+      const todos=[
+        [caso("masa",[102.75,130],todas(n,102.75,20,0)),alFallo(130,12,true)],
+        [caso("masa",[1,102.75],todas(n,1,20,0)),alFallo(102.75,12,true)],
+        [caso("salud",null,pri(102.75,22,0)),freno(102.75,22,0)],
+        [caso("salud",null,pri(102.75,22,1)),freno(102.75,22,1)],
+        [caso("salud",null,pri(0,22,0)),freno(0,22,0,true)],
+        [caso("salud",null,pri(0,22,1)),freno(0,22,1,true)],
+        [caso("masa",null,pri(102.75,18,3)),sobra(102.75,18,20)],
+        [caso("masa",null,pri(0,18,3)),sobra(0,18,20,true)]];
+      todos.forEach(([t,esperado])=>{expect(t).toEqual(esperado);expect({[t.why]:t.why.length<=80}).toEqual({[t.why]:true});});});
+    test("criterio 7: datos de v35 sin reserva (y reservas raras) no rompen nada, no escriben nada y no crean claves",app=>{
+      [F.dueno,F.madre].forEach(fx=>{const D=sinRir(fx());delete (D.rp_prefs||{}).goal;limpio(app,D);
+        expect(nuevas(app)).toEqual([]);
+        const antes=app.foto(),R=app.ev("ROUTINES");let n=0;
+        Object.keys(R).forEach(k=>app.w.effList(k).forEach(id=>{const t=app.w.todayTarget(k,id),s=app.w.suggestLoad(id,k);
+          if(t){n++;expect(isFinite(t.w)&&t.reps>=1&&!!t.why).toBe(true);}expect(isFinite(s.w)&&s.reps>=1).toBe(true);}));
+        expect(n).toBeGreaterThan(20);
+        expect(app.foto()).toEqual(antes);expect(nuevas(app)).toEqual([]);});
+      /* reservas que no escribe la app (una copia editada a mano): vacia, nula,
+         texto o negativa es no traerla; mas de 3 es «3+» */
+      const normal={w:30,reps:9,why:"La vez pasada 8: hoy 9 con el mismo peso"};
+      ["",null,"x",-1,7].forEach(v=>["masa","salud"].forEach(g=>{
+        const r=reg(2,GE,todas(4,30,8));r.sets.forEach(s=>{s.rir=v;});
+        limpio(app,con(g,{[PB]:[r]}));
+        expect({[g+" "+v]:tt(app,PB,GE)}).toEqual({[g+" "+v]:v===7?sobra(30,8,10):normal});}));
+      expect([undefined,"",null,"x",-1,0,"1",2,3,7].map(v=>app.w.rirDe({rir:v}))).toEqual([null,null,null,null,null,0,1,2,3,3]);});
   });
 
   /* datos de v35 tras un paron: las sesiones y molestias de los juegos, un

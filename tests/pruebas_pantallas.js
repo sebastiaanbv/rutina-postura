@@ -1086,4 +1086,55 @@
       expect(cortados).toEqual([]);
       app.reiniciarMemoria();});
   });
+
+  /* HU-13: «¿Cuántas más podías?» tambien en los ejercicios sin carga. Antes
+     solo salia con peso; ahora la reserva mueve la propuesta tambien sin carga,
+     asi que la fila sale en flexiones en la pared y remo con banda, se guarda
+     en la serie (s.rir) y la siguiente propuesta la usa */
+  escenario("Pantallas · reserva en los pasos sin carga (HU-13)",F.vacio,()=>{
+    [["salud_fuerza_a","flexiones_pared"],["salud_fuerza_b","remo_banda"]].forEach(([k,id])=>{
+      test("en "+id+" el paso muestra la fila de reserva y la elegida se guarda en la serie",async app=>{
+        app.reiniciarMemoria();app.sembrar(F.vacio);
+        expect(app.ev("EX")[id].load).toBe(false);
+        app.w.openRoutine(k);app.w.startRoutine(id);
+        expect(app.ev("steps[stepi].id")).toBe(id);
+        expect(app.$("#lw")).toBe(null);
+        const fila=app.$("#guided .rirrow");
+        expect(fila).toBeTruthy();
+        expect(fila.getAttribute("role")).toBe("group");
+        expect(app.texto("#guided .rirrow span")).toBe("¿Cuántas más podías?");
+        const botones=()=>app.$$("#guided .rirrow .rirb");
+        expect(botones().map(b=>b.textContent)).toEqual(["0","1","2","3+"]);
+        expect(botones().every(b=>b.getAttribute("aria-pressed")==="false")).toBe(true);
+        /* va despues de las reps y antes de «La última vez» */
+        expect(!!(app.$("#guided .logrow").compareDocumentPosition(fila)&4)).toBe(true);
+        expect(!!(fila.compareDocumentPosition(app.$("#guided .last"))&4)).toBe(true);
+        app.ev("curReps=8");
+        botones()[3].click();
+        expect(botones().map(b=>b.getAttribute("aria-pressed"))).toEqual(["false","false","false","true"]);
+        expect(app.ev("curRir")).toBe(3);
+        app.w.logSet();
+        await app.hasta(()=>{const s=app.leer("rp_session");return s&&s.log[id];},3000,"la serie en rp_session");
+        expect(app.leer("rp_session").log[id].map(x=>[x.w,x.reps,x.rir])).toEqual([[0,8,3]]);
+        /* la siguiente serie arranca sin reserva marcada */
+        expect(app.ev("curRir")).toBe(null);
+        const res=app.w.finishSession(k,"guided");
+        expect(res.summary.sets).toBe(1);
+        const l=app.leer("rp_logs")[id];
+        expect(l.map(r=>r.sets.map(x=>[x.w,x.reps,x.rir]))).toEqual([[[0,8,3]]]);
+        /* y la proxima propuesta la usa: 8 con reserva 3+ → 10, sin hablar de peso */
+        const t=app.w.todayTarget(k,id);
+        expect([t.reps,t.why]).toEqual([10,"La vez pasada 8 con reserva 3+: hoy 10"]);
+        app.reiniciarMemoria();app.w.openRoutine(k);app.w.startRoutine(id);
+        expect(app.texto("#lr")).toBe("10");
+        expect(app.texto("#guided .qwhy")).toContain("La vez pasada 8 con reserva 3+: hoy 10");
+        expect(app.texto("#guided .last")).toContain("La última vez: 8 reps");
+        app.reiniciarMemoria();});});
+    test("con carga la fila sigue igual",app=>{
+      app.reiniciarMemoria();app.sembrar(F.vacio);
+      app.w.openRoutine("salud_fuerza_a");app.w.startRoutine("press_hombro_db");
+      expect(!!app.$("#lw")).toBe(true);
+      expect(app.$$("#guided .rirrow .rirb").map(b=>b.textContent)).toEqual(["0","1","2","3+"]);
+      app.reiniciarMemoria();});
+  });
 })();
