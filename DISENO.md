@@ -233,7 +233,9 @@ Manda la **tarjeta de hoy**: superficie oscura, título a 30 px, icono de la fam
 
 Con objetivo salud la tarjeta de la racha lleva una segunda fila, separada por línea fina: «Postura: N de 7 días esta semana», los días desde el lunes con alguna rutina que no está en `GYMKEYS`. La postura no cuenta para la meta de fuerza, y en ella lo que importa es la frecuencia, no la carga.
 
-Estados de la tarjeta de hoy: hoy toca · en curso (manda sobre todo) · ya entrenaste · día de descanso.
+Estados de la tarjeta de hoy: hoy toca · en curso (manda sobre todo) · ya entrenaste · día de descanso. Un día sin plan, «hoy toca» es la siguiente rutina del grupo del material elegido que aún no se hizo esta semana y, hechas todas o sin material, la movilidad; en un día de descanso, «Entrenar igual» abre la movilidad.
+
+**La primera vez, Inicio pregunta antes.** Con el teléfono sin nada de la app, una pantalla tapa Inicio y la barra con dos preguntas, objetivo (ganar músculo o salud y mantenimiento) y material (gimnasio o en casa, con los pesos de las mancuernas), y un solo primario, «Empezar»: tres toques. Lo elegido va a `rp_prefs` y se cambia en Ajustes. Un teléfono con cualquier dato no la ve y se queda como estaba.
 
 ### Detalle de rutina
 Cabecera con título a 30 px y **anillo de avance**. Los ejercicios en **una tarjeta por bloque** (calentamiento · entrenamiento · bloque secundario · opcionales), cada uno una fila. El nombre se lee **entero**, sin recorte a dos líneas; con la letra grande en un teléfono estrecho las figuras de la lista se van para dejarle sitio (§10).
@@ -281,7 +283,7 @@ Un dato hero (índice de fuerza) y seis bloques con el mismo ritmo. Los récords
 Se pinta con **una sola lectura de `rp_logs`**: `renderProgress` lo lee y se lo pasa a cada análisis (`strengthIdx`, `strengthSpark`, `overloadIndex`, `stalled`, `prFeed`, `muscleSets`, `monthSummary`), que solo lo leen, nunca lo modifican. Un bloque nuevo recibe ese `logs`; no llama a `loadLogs()`. Sin el argumento, cada análisis lo lee él mismo, igual que `exChart`.
 
 ### Ajustes
-Cuatro secciones con título: apariencia · durante el entreno · recordatorios · datos.
+Cinco secciones con título: apariencia · durante el entreno · recordatorios · entrenamiento (tu objetivo, tu material y las mancuernas que tienes) · datos. El objetivo y el material son los de la primera vez.
 
 ---
 
@@ -296,6 +298,7 @@ Cuatro secciones con título: apariencia · durante el entreno · recordatorios 
 | Otra rutina a medias | Registrar en otra rutina abre la hoja «Tienes X a medias»: volver a ella o guardarla y empezar. Nada se cierra solo |
 | Récord | La serie se tiñe de ámbar y lleva debajo el trofeo y qué se superó; aviso flotante solo si es nuevo máximo de 1RM estimado; listado con su tipo en la pantalla de fin |
 | Vacío | Explica qué hacer para llenarlo, nunca "sin datos" a secas |
+| Primera vez | Con el teléfono sin nada de la app, Inicio sale tapado por la pantalla de objetivo y material hasta pulsar «Empezar» |
 
 **Tocar un aviso devuelve a la app donde estaba.** Si ya hay una ventana abierta se enfoca tal
 cual —la serie y el descanso siguen donde iban—; si no, se abre. El aviso de fin de descanso
@@ -332,7 +335,9 @@ otro aviso —el recordatorio— abre Inicio.
 - **Lector de pantalla**: el visto es `role="checkbox"` con `aria-checked`; los tres interruptores
   son `role="switch"` con `aria-checked`; el selector de métrica y las opciones del salto llevan
   `aria-pressed`, y el chip que las abre, `aria-expanded`; las tres
-  hojas superpuestas son `role="dialog"` con `aria-modal` y `aria-labelledby`; el progreso de la
+  hojas superpuestas son `role="dialog"` con `aria-modal` y `aria-labelledby`, y también la
+  pantalla de primera vez, que además deja `inert` lo que tapa (sus opciones llevan
+  `aria-pressed`); el progreso de la
   rutina y el descanso son `aria-live`; los iconos decorativos van con `aria-hidden`.
 - **Avisos**: los mensajes no destructivos salen por el `toast()` propio, no por `alert()`. Los
   cinco `confirm()` que quedan son todos destructivos —reemplazar datos al importar, descartar la
@@ -347,10 +352,10 @@ otro aviso —el recordatorio— abre Inicio.
 - **Movimiento**: `prefers-reduced-motion` respetado.
 - **Zoom y letra del sistema.** El viewport deja **ampliar con pellizco**: sin `maximum-scale` ni
   `user-scalable=no`, que lo bloqueaban en Android. Y la letra del sistema entra por `1rem` (§3).
-  Las pantallas principales —Inicio, rutina, guiado con su descanso, fin, Calendario, Progreso,
-  Ajustes y las hojas— se comprueban a **320, 375 y 430 px, con la letra de serie y al 130 %**:
-  ningún texto cortado, que se salga de su caja o que pise otro texto o un botón
-  (`tests/pruebas_letra.js`). Reglas para que aguante:
+  Las pantallas principales —Inicio, la primera vez, rutina, guiado con su descanso, fin,
+  Calendario, Progreso, Ajustes y las hojas— se comprueban a **320, 375 y 430 px, con la letra
+  de serie y al 130 %**: ningún texto cortado, que se salga de su caja o que pise otro texto o un
+  botón (`tests/pruebas_letra.js`). Reglas para que aguante:
   - **Alto mínimo, no alto fijo**, en todo lo que lleva texto: un botón con una etiqueta larga
     pasa a dos líneas dentro de sí mismo en vez de salirse por abajo.
   - **Lo que acompaña al texto se mide en `em`**: el anillo de la cabecera, la columna de nombres
@@ -484,6 +489,61 @@ salud, brazo en masa) y resumen mensual (sin desglose por músculo todavía), to
 
 Descartado tras la comparación: calculadora de discos (no usan barra), mapa de recuperación de
 Fitbod (aporta poco con PPL 3×), insignias y logros.
+
+### Cerrado en v37
+
+Primera vez: elegir objetivo y material (HU-58). Un teléfono nuevo arrancaba en «masa»: Series por
+músculo medía contra las metas de hipertrofia y salía casi todo en rojo, la tarjeta de hoy proponía
+«Postura — Movilidad» a cualquiera, y el objetivo y las mancuernas vivían al fondo de Ajustes. Y el
+índice de fuerza, la cifra que manda en Progreso, daba consejos de masa también con objetivo salud:
+«Levantas más pero no pesas más: sube un poco la comida».
+
+- **Dos preguntas antes de Inicio.** Con el almacenamiento vacío, una pantalla tapa Inicio y la
+  barra hasta elegir: qué buscas (ganar músculo, o salud y mantenimiento) y tu material (gimnasio o
+  en casa; en casa, los pesos de las mancuernas, que se pueden dejar para Ajustes). Cuatro opciones
+  con la forma de las de las hojas (`.planopt`, con `aria-pressed`) y un solo primario, «Empezar»,
+  que no se activa hasta tener las dos respuestas: tres toques en total. Mirar y elegir no escribe
+  nada; «Empezar» guarda en `rp_prefs` `goal`, `material` y, si se escribieron, `pesosDB`, leídos
+  igual que en Ajustes (`leePesos`). Debajo, «Restaurar una copia de seguridad», para el teléfono
+  que viene de otro: la copia que entra ya no pregunta.
+- **Solo la ven los teléfonos vacíos** (`primeraVez()`): ninguna clave `rp_*` salvo `rp_schema`, que
+  pone el arranque, y `rp_weekgoal`, que escribe Inicio al pintarse. Con cualquier otra, aunque esté
+  dañada, no sale y nada cambia: sin `goal` se sigue en masa, como hasta v36, y sin `material` la
+  tarjeta de hoy propone lo de siempre. No se infiere nada de los datos de nadie. «Borrar todos mis
+  datos» deja el teléfono como nuevo, y al volver a Inicio pregunta otra vez.
+- **Solo tapa Inicio.** Va fuera de las vistas (`#bienvenida`, `role="dialog"`), por encima de la
+  barra y por debajo de las hojas y del aviso flotante; mientras está, `.app` y la barra van `inert`
+  y no reciben ni el dedo ni el teclado. Inicio queda pintado debajo, así que al elegir sale en el
+  acto. Si algo abre otra pantalla (un aviso con `#retomar`), se quita; vuelve con Inicio mientras no
+  se elija.
+- **Inicio a la medida del material.** Un día sin plan, la tarjeta de hoy propone la siguiente
+  rutina del grupo elegido que aún no se hizo esta semana (Empuje, Tirón, Pierna; o Fuerza A, Fuerza
+  B, Equilibrio) y, hechas las tres, la movilidad. En un día de descanso «Entrenar igual» sigue
+  abriendo la movilidad, que es «algo suave». No se escribe ningún plan: la semana sigue invitando a
+  asignar los días.
+- **El índice de fuerza lee el objetivo** (`veredictoFuerza`). Con salud: «Tu fuerza sube con el
+  peso estable: justo lo que buscas», «Tu fuerza sube: vas por buen camino» o «Fuerza estable: lo
+  importante es la constancia»; ninguna habla de masa ni de comida. Con masa, las frases de siempre.
+  Las metas de Series por músculo, Peso corporal, Medidas y la fila de postura de Inicio ya leían el
+  objetivo desde v35: ahora lo leen desde el primer día.
+- **Se cambia en Ajustes y viaja en la copia.** La sección Entrenamiento suma «Tu material»
+  (Gimnasio · En casa) junto a «Tu objetivo», cuya ayuda dice ahora que también cambia cómo lee
+  Progreso la fuerza y el peso. Todo va en `rp_prefs`, que la copia ya exportaba: ni claves nuevas
+  ni cambio de forma, así que sin migración. Una copia sin `material` (v36 o anterior) entra igual.
+- **Lo que no cambia:** nada en los teléfonos con datos; Progreso con masa da las mismas cifras y
+  frases (la referencia de v35 sigue igual), y el radar de estancamiento y la sobrecarga mantienen
+  sus textos con los dos objetivos.
+- **Pruebas** en `tests/pruebas_primera.js`: con el almacenamiento vacío, la pantalla tapa Inicio y
+  la barra (`elementFromPoint`), mirar no escribe nada, tres toques llegan a Inicio con la primera
+  rutina del grupo, en casa se guardan las mancuernas, no vuelve tras recargar, solo tapa Inicio, el
+  dedo llega a cada opción a 320, 375 y 430 px con la letra de serie y al 130 %, restaurar una copia
+  de v35 desde la pantalla y borrarlo todo; los juegos de datos de v35 (y uno con solo el tema, otro
+  con ajustes sin objetivo y otro con claves dañadas) sin pantalla, sin claves nuevas y con el mismo
+  objetivo; las ramas del veredicto con cada objetivo, salud elegida al empezar y cambiada a masa en
+  Ajustes con seis semanas de gimnasio y el peso plano, y la rutina que propone Inicio con cada
+  material; y exportar → importar en un teléfono nuevo, desde la propia pantalla. El humo de letra
+  (`tests/pruebas_letra.js`) revisa la pantalla, tal cual y con las respuestas de casa, en cada
+  ancho y tamaño de letra.
 
 ### Cerrado en v36
 

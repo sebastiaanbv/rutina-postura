@@ -122,6 +122,15 @@
       if(!r)throw new Error("no se ve "+que);revisar(app,r).forEach(x=>p.push(que+" · "+x));};
     try{
       tab(app,"home");await mira("Inicio");await mira("Barra inferior","#nav");
+      /* la pantalla de primera vez (HU-58) sale con el telefono vacio: tal
+         cual sale y con las dos respuestas, que en casa abren el campo de
+         las mancuernas. Despues, los datos de este juego como estaban */
+      const datos=app.foto();app.sembrar({});tab(app,"home");
+      expect(app.$("#bienvenida").classList.contains("show")).toBe(true);
+      await mira("Primera vez","#bienvenida");
+      app.w.bvElige("goal","salud");app.w.bvElige("material","casa");app.$("#bvPesos").value="1.25 2.5 3.75 5";
+      await mira("Primera vez, en casa","#bienvenida");
+      app.sembrar({__crudo:datos});tab(app,"home");
       app.w.openRoutine(o.rutina);await mira("Rutina");
       app.w.startRoutine(o.cargado);expect(app.ev("steps[stepi].id")).toBe(o.cargado);await mira("Guiado");
       /* el campo ocupa el sitio de la cifra: la mas larga que puede tener

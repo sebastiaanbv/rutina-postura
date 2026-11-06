@@ -1181,11 +1181,37 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   .planopt .em.n{background:var(--accent-tint);color:var(--accent-ink)}
   .planopt .em.g{background:var(--load-tint);color:var(--load-ink)}
   .planopt .em.rest{background:var(--rest-tint);color:var(--rest-ink)}
+  /* primera vez (v37, HU-58): tapa Inicio y la barra hasta elegir objetivo y
+     material. Va por debajo de las hojas y del aviso flotante: restaurar una
+     copia desde aqui avisa por el aviso */
+  #bienvenida{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;
+    overscroll-behavior:contain;display:none}
+  #bienvenida.show{display:block}
+  .bvbody{max-width:600px;margin:0 auto;padding:0 0 calc(var(--s5) + env(safe-area-inset-bottom))}
+  .bvtt{margin:var(--s5) var(--gut) var(--s2);font-size:var(--t-display);font-weight:var(--w-bold);
+    letter-spacing:-1px;line-height:1.1;text-wrap:balance}
+  .bvlead{margin:0 var(--gut);font-size:var(--t-base);color:var(--tx2);line-height:1.5}
+  .bvopts{margin:0 var(--gut);display:flex;flex-direction:column;gap:7px}
+  /* las opciones son botones de verdad con la forma de las de las hojas; la
+     elegida lleva el filo, el azulejo en solido y el visto, sin cambiar el
+     fondo: el texto conserva el contraste de siempre */
+  .bvopt{width:100%;text-align:left;line-height:1.3}
+  .bvopt .em{color:var(--primary-ink)}
+  .bvopt .bvt{flex:1;min-width:0;display:flex;flex-direction:column}
+  .bvopt .bvn{font-weight:var(--w-bold);font-size:var(--t-lead)}
+  .bvopt .optck{visibility:hidden}
+  .bvopt.on{border-color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary)}
+  .bvopt.on .em{background:var(--primary);color:var(--on-primary)}
+  .bvopt.on .optck{visibility:visible}
+  .bvpesos{display:flex;flex-direction:column;gap:5px;margin:var(--s3) var(--gut) 0;
+    font-size:var(--t-sm);font-weight:var(--w-bold);color:var(--mut)}
+  .bvpesos[hidden]{display:none}
+  .bvgo{margin:var(--s5) var(--gut) 0}
   /* agregar ejercicio (v34): boton al pie de la rutina, buscador y formulario */
   .addexbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;
     margin:0 0 var(--s3);border:1.5px dashed var(--line);border-radius:var(--r-lg);background:transparent;
     color:var(--primary-ink);font:inherit;font-weight:var(--w-bold);font-size:var(--t-base);cursor:pointer}
-  .addsearch,.cxf input:not([type=checkbox]),.cxf select,.cxf textarea{width:100%;box-sizing:border-box;
+  .addsearch,.cxf input:not([type=checkbox]),.cxf select,.cxf textarea,.bvpesos input{width:100%;box-sizing:border-box;
     background:var(--sunk);color:var(--tx);border:1px solid var(--line);border-radius:var(--r-sm);
     padding:11px 12px;font:inherit;font-size:var(--t-campo);font-weight:var(--w-med)}
   .planopt.addnew .em{background:var(--primary);color:#fff}
@@ -1325,6 +1351,9 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
   <button type="button" class="tab" data-v="progress"><span class="i"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 16l3-4 3 2 4-6"/></svg></span>Progreso</button>
   <button type="button" class="tab" data-v="settings"><span class="i"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></span>Ajustes</button>
 </nav>
+
+<!-- primera vez (v37): objetivo y material antes de Inicio; lo pinta pintaBienvenida() -->
+<div id="bienvenida" role="dialog" aria-modal="true" aria-labelledby="bvTitle"><div class="bvbody" id="bvBody"></div></div>
 
 <div id="planov">
   <div class="ovcard" role="dialog" aria-modal="true" aria-labelledby="planTitle">
@@ -2126,6 +2155,8 @@ function prDeHoy(pr,id){const out=(pr||[]).filter(p=>p.id!==id);
 let curRoutine=null, steps=[], stepi=0, tId=null, actx=null, remTimers=[];
 const $=id=>document.getElementById(id);
 function show(v){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$(v).classList.add("active");
+  /* la pantalla de primera vez solo tapa Inicio */
+  if(v!=="home")verBienvenida(false);
   if(v==="guided")requestWake();else{releaseWake();clearRestNotif();toastFuera();}
   document.querySelectorAll(".nav .tab").forEach(t=>{const on=t.dataset.v===v;if(on)t.setAttribute("aria-current","page");else t.removeAttribute("aria-current");});
   const main=["home","history","progress","settings"].includes(v);$("nav").classList.toggle("hide",!main);
@@ -2312,7 +2343,61 @@ function renderHome(){
         <div class="go">${ic("right","sm")}</div></div>`;});
     h+=`</div>`;});
   $("routines").innerHTML=h;
+  bienvenida();
 }
+
+/* ==== PRIMERA VEZ (v37, HU-58) ============================================
+   Con el telefono sin nada de la app, Inicio sale tapado por dos preguntas:
+   objetivo (masa o salud) y material (gimnasio o casa, y en casa las
+   mancuernas). Hasta v36 un telefono nuevo arrancaba en "masa", Inicio
+   proponia la movilidad de postura a cualquiera y el objetivo vivia al fondo
+   de Ajustes. Lo elegido va a rp_prefs (goal, material, pesosDB), asi que
+   viaja en la copia y se cambia en Ajustes. Mirar y elegir no escribe nada:
+   solo "Empezar". */
+let bvSel={};
+/* rp_schema lo pone el arranque y rp_weekgoal lo escribe Inicio al pintarse:
+   no son datos de nadie. Cualquier otra clave rp_* (aunque este rota) es un
+   telefono con datos, que no ve la pantalla y se queda con lo que tenia (sin
+   goal sigue en "masa", como hasta v36). */
+function primeraVez(){try{return !Object.keys(localStorage).some(k=>k.indexOf("rp_")===0&&k!=="rp_schema"&&k!=="rp_weekgoal");}
+  catch(e){return false;}}
+/* inert: con la pantalla puesta, el teclado y el lector no se van a lo que
+   tapa */
+function verBienvenida(on){const el=$("bienvenida");if(!el)return;el.classList.toggle("show",on);
+  document.querySelector(".app").inert=on;$("nav").inert=on;}
+function bienvenida(){const el=$("bienvenida");if(!el)return;
+  const ver=primeraVez()&&$("home").classList.contains("active");
+  if(ver&&!el.classList.contains("show")){bvSel={};pintaBienvenida();}
+  verBienvenida(ver);}
+const BVOPC={goal:[["masa","up","Ganar músculo","Más series por semana y más carga con el tiempo"],
+    ["salud","mobility","Salud y mantenimiento","Fuerza para el día a día, con menos series"]],
+  material:[["gimnasio","machine","Gimnasio","Máquinas, poleas y mancuernas"],
+    ["casa","dumbbell","En casa","Mancuernas ligeras, banda y tapete"]]};
+function pintaBienvenida(){
+  const opc=(c,q)=>`<div class="grouptitle" id="bvQ-${c}">${q}</div><div class="bvopts" role="group" aria-labelledby="bvQ-${c}">`
+    +BVOPC[c].map(([v,i,t,s])=>`<button type="button" class="planopt bvopt" data-c="${c}" data-v="${v}" aria-pressed="false" onclick="bvElige('${c}','${v}')">
+      <span class="em">${ic(i)}</span><span class="bvt"><span class="bvn">${t}</span><span class="optsub">${s}</span></span>
+      <span class="optck">${ic("check","sm")}</span></button>`).join("")+`</div>`;
+  $("bvBody").innerHTML=`<div class="head"><img src="icon-192-v25.png" alt=""><div><h1>Mi Rutina</h1><div class="sub">Postura, cuello y fuerza</div></div></div>
+    <h2 class="bvtt" id="bvTitle">Dos preguntas para empezar</h2>
+    <p class="bvlead">Con ellas, Inicio te propone tus rutinas y Progreso te mide con tus metas. Puedes cambiarlas cuando quieras en Ajustes.</p>
+    ${opc("goal","Qué buscas")}${opc("material","Tu material")}
+    <label class="bvpesos" id="bvPesosL" hidden>Pesos de tus mancuernas, en kg
+      <input id="bvPesos" inputmode="decimal" placeholder="Ej. 1 2 3" autocomplete="off">
+      <span class="optsub">Así solo te propone esos. Si ahora no lo sabes, déjalo para Ajustes.</span></label>
+    <div class="bvgo"><button type="button" class="btn" id="bvGo" onclick="bvEmpezar()" disabled>Empezar</button>
+      <button type="button" class="skip" onclick="document.getElementById('bvFile').click()">Restaurar una copia de seguridad</button></div>
+    <input type="file" id="bvFile" accept="application/json,.json" style="display:none" onchange="importData(this)">`;}
+function bvElige(c,v){bvSel[c]=v;
+  document.querySelectorAll('#bvBody .bvopt[data-c="'+c+'"]').forEach(b=>{const on=b.dataset.v===v;
+    b.classList.toggle("on",on);b.setAttribute("aria-pressed",on?"true":"false");});
+  $("bvPesosL").hidden=bvSel.material!=="casa";
+  $("bvGo").disabled=!(bvSel.goal&&bvSel.material);}
+function bvEmpezar(){if(!bvSel.goal||!bvSel.material)return;
+  const p=loadPrefs();p.goal=bvSel.goal;p.material=bvSel.material;
+  if(bvSel.material==="casa"){const l=leePesos(($("bvPesos")||{}).value);if(l.length)p.pesosDB=l;}
+  if(!jset("rp_prefs",p)){toast("No cupo en el teléfono: libera espacio y vuelve a intentarlo.",7000);return;}
+  bvSel={};renderHome();window.scrollTo(0,0);}
 
 /* Aviso de copia (v35): sin servidor, la copia es lo unico que salva el
    progreso si el telefono se pierde. Sale en Inicio cuando ya hay algo que
@@ -3841,7 +3926,17 @@ function exitToHome(){sessionLog={};sessionLogKey=null;stepi=0;history.back();}
 
 /* ---------- HISTORY ---------- */
 /* tarjeta Hoy */
-function suggestion(){return ROUTINES["postura_movilidad"]?"postura_movilidad":GROUPS[0].keys[0];}
+function rutinaSuave(){return ROUTINES["postura_movilidad"]?"postura_movilidad":GROUPS[0].keys[0];}
+/* lo que toca un dia sin plan. Con material elegido (v37) es la siguiente
+   rutina de su grupo, en su orden, que aun no se hizo esta semana; hechas
+   todas, la movilidad. Sin material (los telefonos de antes de v37) es la
+   movilidad, como siempre. */
+const GRUPO_MATERIAL={gimnasio:"Gimnasio",casa:"Casa"};
+function suggestion(){const m=GRUPO_MATERIAL[loadPrefs().material],
+    g=m&&GROUPS.find(x=>x.keys.length&&(ROUTINES[x.keys[0]]||{}).group===m);
+  if(g){const desde=wkKey(new Date()),hechas={};histRows().forEach(r=>{if(r.date>=desde)hechas[r.key]=1;});
+    const k=g.keys.find(k=>ROUTINES[k]&&!hechas[k]);if(k)return k;}
+  return rutinaSuave();}
 /* w: weekStats() si ya se calculo; la racha que se ve es la de semanas */
 function renderTodayCard(w){const idx=histIndex(),done=idx[today()]||[],p=loadPlan(),pv=p[todayDow()];
   let sk=(pv&&pv!=="rest"&&ROUTINES[pv])?pv:suggestion(),sug=ROUTINES[sk],tc;
@@ -3853,9 +3948,10 @@ function renderTodayCard(w){const idx=histIndex(),done=idx[today()]||[],p=loadPl
         <div class="mt">${st.exDone} de ${st.exTotal} ejercicios sin cerrar${st.sets?" \u00b7 "+st.sets+" "+plural(st.sets,"serie","series"):""}</div>
         <button class="today-go" onclick="openRoutine('${sv.key}')">${ic("play","sm solid")} Continuar</button></div>`;
       return;}}
+  /* en un dia de descanso "algo suave" es la movilidad, no la siguiente de fuerza */
   if(pv==="rest"&&!done.length){tc=`<div class="today"><div class="kick">Hoy</div><div class="tt">${ic("moon","sm")} Día de descanso</div>
     <div class="mt">Hoy toca recuperar. Si quieres, haz algo suave.</div>
-    <button class="today-go sec" onclick="openRoutine('${suggestion()}')">Entrenar igual</button></div>`;}
+    <button class="today-go sec" onclick="openRoutine('${rutinaSuave()}')">Entrenar igual</button></div>`;}
   else if(done.length){w=w||weekStats();
     /* "mejor 0" al lado de "0 semanas" no dice nada: sale cuando hay alguna */
     tc=`<div class="today"><div class="kick">Hoy</div><div class="tt">${ic("checkc","sm")} ¡Listo por hoy!</div>
@@ -4123,10 +4219,14 @@ function renderSettings(){const r=loadRem();
     </div>
     <div class="grouptitle">Entrenamiento</div>
     <div class="field"><div class="fl">Tu objetivo</div>
-      <div class="fh">Cambia cuántas series por semana pide cada músculo en Progreso. Cada teléfono guarda el suyo.</div>
+      <div class="fh">Cambia cuántas series por semana pide cada músculo y cómo te lee Progreso la fuerza y el peso. Cada teléfono guarda el suyo.</div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
         <button class="minibtn${goalPref()==="masa"?" on":""}" onclick="setGoalPref('masa')" aria-pressed="${goalPref()==="masa"}">Ganar músculo</button>
         <button class="minibtn${goalPref()==="salud"?" on":""}" onclick="setGoalPref('salud')" aria-pressed="${goalPref()==="salud"}">Salud y mantenimiento</button></div></div>
+    <div class="field"><div class="fl">Tu material</div>
+      <div class="fh">Decide qué rutina te propone Inicio los días que no tienen una asignada en tu semana.</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">${["gimnasio","casa"].map(v=>{const on=loadPrefs().material===v;
+        return `<button class="minibtn${on?" on":""}" onclick="setMaterialPref('${v}')" aria-pressed="${on}">${v==="casa"?"En casa":"Gimnasio"}</button>`;}).join("")}</div></div>
     <div class="field"><div class="fl">Mancuernas que tienes</div>
       <div class="fh">Si entrenas en casa, escribe sus pesos en kg (por ejemplo: 1 2 3) y la app solo te sugerirá esos. Déjalo vacío si usas las del gimnasio.</div>
       <div class="bwrow"><input id="pesosDB" inputmode="decimal" placeholder="Ej. 1 2 3" value="${esc((loadPrefs().pesosDB||[]).map(fmtW).join(" "))}" aria-label="Pesos de tus mancuernas en kg"><button class="minibtn" onclick="savePesosDB()">Guardar</button></div></div>
@@ -4296,6 +4396,10 @@ function goalPref(){return loadPrefs().goal==="salud"?"salud":"masa";}
 function muscGoal(){return goalPref()==="salud"?MUSCGOAL_SALUD:MUSCGOAL;}
 function setGoalPref(v){const p=loadPrefs();p.goal=v;jset("rp_prefs",p);renderSettings();
   toast(`${ic("check","sm")} Objetivo: ${v==="salud"?"salud y mantenimiento":"ganar músculo"}`);}
+/* material (v37): gimnasio o casa. Lo elige la primera vez y se cambia aqui;
+   sin el (telefonos de antes) Inicio propone lo de siempre */
+function setMaterialPref(v){prefSet("material",v);renderSettings();
+  toast(`${ic("check","sm")} Material: ${v==="casa"?"en casa":"gimnasio"}`);}
 
 function dOffset(n){const d=new Date();d.setDate(d.getDate()-n);return ds(d);}
 function warmIds(){const s={};GYMKEYS.forEach(k=>{((ROUTINES[k]||{}).warm||[]).forEach(id=>s[id]=1);});return s;}
@@ -4332,10 +4436,11 @@ function availDB(id,k){const z=ZONAS[id]||{},
   if(z.eq!=="mancuerna"&&!casa)return null;
   const l=loadPrefs().pesosDB;return (l&&l.length)?l:null;}
 /* "1 2 3", "1, 2, 3", "1,2,3" y "1,5 2 3": con espacios la coma es decimal;
-   sin espacios, la coma separa */
-function savePesosDB(){const raw=(($("pesosDB")||{}).value||"").trim(),
+   sin espacios, la coma separa. La primera vez (v37) los lee igual */
+function leePesos(txt){const raw=(txt||"").trim(),
     parts=/[\s;]/.test(raw)?raw.split(/[\s;]+/).map(x=>x.replace(",",".")):raw.split(",");
-  const l=[...new Set(parts.map(x=>parseFloat(x)).filter(x=>isFinite(x)&&x>0&&x<200))].sort((a,b)=>a-b);
+  return [...new Set(parts.map(x=>parseFloat(x)).filter(x=>isFinite(x)&&x>0&&x<200))].sort((a,b)=>a-b);}
+function savePesosDB(){const l=leePesos(($("pesosDB")||{}).value);
   const p=loadPrefs();if(l.length)p.pesosDB=l;else delete p.pesosDB;jset("rp_prefs",p);renderSettings();
   toast(l.length?`${ic("check","sm")} Mancuernas: ${l.map(fmtW).join(", ")} kg`:"Sin lista: se usan los saltos normales de gimnasio");}
 /* ---- salto de placa por maquina (v36, rp_inc) ----
@@ -4575,6 +4680,22 @@ function monthSummary(rows,logs){const t=new Date(),dia=t.getDate(),
   return `<div class="grouptitle">${MESES[t.getMonth()][0].toUpperCase()+MESES[t.getMonth()].slice(1)} hasta hoy</div><div class="chartcard">
     <div class="msum">${cell(a.ses,p.ses,plural(a.ses,"sesión","sesiones"))}${cell(a.sets,p.sets,plural(a.sets,"serie","series"))}${cell(a.vol,p.vol,"levantado",ton)}${cell(a.prs,p.prs,plural(a.prs,"récord","récords"))}</div>
     <div class="cs" style="margin-top:8px">Comparado con el 1-${dia} de ${MESES[pd.getMonth()]}${a.fz?" · "+a.fz+" "+plural(a.fz,"sesión","sesiones")+" de fuerza":""}.</div></div>`;}
+/* la frase bajo el indice de fuerza. Hasta v36 hablaba siempre de masa, y con
+   objetivo salud, la fuerza subiendo y el peso estable decia "sube un poco la
+   comida". En salud el peso estable es justo lo que se busca (como en Peso
+   corporal) y lo que se pide es constancia (v37, HU-58). obj: el objetivo,
+   por defecto el elegido */
+function veredictoFuerza(now,prev,rate,obj){const sube=!!prev&&now.idx>prev.idx+1;
+  if(!prev)return "Aún faltan datos para comparar. Sigue registrando.";
+  if((obj||goalPref())==="salud"){
+    if(sube&&rate&&Math.abs(rate.kgw)<=0.05)return "Tu fuerza sube con el peso estable: justo lo que buscas.";
+    if(sube)return "Tu fuerza sube: vas por buen camino.";
+    return "Fuerza estable: lo importante es la constancia.";}
+  if(sube&&rate&&rate.kgw>0.05)return "Fuerza y peso suben a la vez: estás ganando masa.";
+  if(sube&&rate&&Math.abs(rate.kgw)<=0.05)return "Levantas más pero no pesas más: sube un poco la comida.";
+  if(sube)return "Tu fuerza sube. Registra tu peso para saber si es masa.";
+  if(rate&&rate.kgw<-0.05)return "Estás perdiendo peso: en fase de masa eso frena la ganancia.";
+  return "Fuerza estable. Mira abajo qué músculo lleva más semanas sin récord.";}
 function renderProgress(){
   /* rp_logs se lee y se parsea una sola vez por pintado: cada analisis recibe
      este logs (LOGS, como exChart) y solo lo lee. Hasta v35 cada uno lo volvia
@@ -4592,14 +4713,7 @@ function renderProgress(){
     /* con una decima, como antes: fmtW ya pinta centesimas (HU-57) */
     if(spark.length>2)b+=chart(spark.map(v=>Math.round(v*10)/10),"pts");
     const rate=bw.length?bwRate(bw):null;
-    let verd="";
-    if(!prev)verd="Aún faltan datos para comparar. Sigue registrando.";
-    else if(now.idx>prev.idx+1&&rate&&rate.kgw>0.05)verd="Fuerza y peso suben a la vez: estás ganando masa.";
-    else if(now.idx>prev.idx+1&&rate&&Math.abs(rate.kgw)<=0.05)verd="Levantas más pero no pesas más: sube un poco la comida.";
-    else if(now.idx>prev.idx+1)verd="Tu fuerza sube. Registra tu peso para saber si es masa.";
-    else if(rate&&rate.kgw<-0.05)verd="Estás perdiendo peso: en fase de masa eso frena la ganancia.";
-    else verd="Fuerza estable. Mira abajo qué músculo lleva más semanas sin récord.";
-    b+='<div class="hverd">'+verd+'</div>';
+    b+='<div class="hverd">'+veredictoFuerza(now,prev,rate)+'</div>';
   }else{
     b+='<div class="hkick">Índice de fuerza</div><div class="hbig">—</div><div class="hsub">Necesitas al menos 3 sesiones registradas de un mismo ejercicio con peso.</div>';}
   b+='</div>';
