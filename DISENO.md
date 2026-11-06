@@ -280,6 +280,8 @@ Un dato hero (índice de fuerza) y seis bloques con el mismo ritmo. Los récords
 
 Se pinta con **una sola lectura de `rp_logs`**: `renderProgress` lo lee y se lo pasa a cada análisis (`strengthIdx`, `strengthSpark`, `overloadIndex`, `stalled`, `prFeed`, `muscleSets`, `monthSummary`), que solo lo leen, nunca lo modifican. Un bloque nuevo recibe ese `logs`; no llama a `loadLogs()`. Sin el argumento, cada análisis lo lee él mismo, igual que `exChart`.
 
+**Sobrecarga y Estancado miden cada sesión en lo que progresa** (`perfE`): en 1RM estimado si alguna serie lleva peso, en repeticiones si ninguna lo lleva, con el mismo guardarrail en las dos (una serie por debajo del mínimo del rango no cuenta). Una medida nunca se compara con la otra: si una sesión lleva peso y la otra no, esa comparación no cuenta, ni como progreso ni como estancamiento. La fila del radar de un ejercicio sin peso dice su marca en reps («12 reps · 5 sesiones»). Los récords no siguen esta regla: se miden en peso y reps a la vez (§12).
+
 ### Ajustes
 Cuatro secciones con título: apariencia · durante el entreno · recordatorios · datos.
 
@@ -484,6 +486,57 @@ salud, brazo en masa) y resumen mensual (sin desglose por músculo todavía), to
 
 Descartado tras la comparación: calculadora de discos (no usan barra), mapa de recuperación de
 Fitbod (aporta poco con PPL 3×), insignias y logros.
+
+### Cerrado en v37
+
+El progreso en repeticiones cuando no hay peso (HU-17). «Progresaste en X de Y» y el radar de
+estancamiento medían cada sesión por el 1RM estimado de su mejor serie, que con 0 kg vale 0: lo
+que se hace con bandas o con el propio cuerpo no contaba nunca. En casa la sobrecarga solo veía
+las mancuernas, y el radar no podía avisar de un ejercicio sin peso.
+
+- **Cada sesión se mide en lo que progresa** (`perfE(id,rec)`): si alguna serie lleva peso, el
+  1RM estimado de la mejor (`bestE1`, como hasta ahora); si ninguna, las repeticiones de la
+  mejor. El guardarrail es el mismo en las dos: una serie por debajo del mínimo del rango no
+  cuenta. Pasar de 10 a 12 flexiones en la pared es progreso. §8.
+- **Una medida no se compara con la otra.** Si de las dos últimas sesiones una lleva peso y la
+  otra no (sentarse y levantarse al pasar de 0 a 1 kg, o al volver a 0), la sobrecarga no la
+  cuenta: ni progreso ni en el total. Antes, de 0 a 1 kg salía progreso por pasar de 0 a algo.
+  El radar solo mira las sesiones que se miden como la última: las de la otra medida no son
+  marca que batir ni sesión sin batirla. Antes, volver a 0 kg tras dos sesiones con 1 kg daba
+  «estancado».
+- **La fila del radar de un ejercicio sin peso dice su marca en reps**: junto al nombre, «12 reps
+  · 5 sesiones» en vez de «5 sesiones», para que se vea en qué se mide. Las de peso siguen como
+  estaban.
+- **Los récords no cambian.** `isPR`, `prKind` y `prLevel` siguen con `bestE1` y `e1rm`: el
+  aviso flotante y las etiquetas son los de v36.
+- **Qué cambia con los juegos de datos** (con el reloj parado en el 14 de octubre de 2026): en
+  casa la sobrecarga pasa de «4 de 4» a «7 de 9» (entran el remo y la abducción con banda,
+  sentarse y levantarse y la zancada sin mancuerna, y las flexiones en la pared) y aparece el
+  radar con las dos de banda, cinco sesiones en 12 reps; en el gimnasio entran los fondos sin
+  lastre: «10 de 13» pasa a «11 de 14» (con dos años, «10 de 12» a «11 de 13») y el radar de seis
+  semanas los añade. Que mantener el tope del rango no sea estancamiento en salud es de HU-16.
+- **Sin datos nuevos.** Solo lee `rp_logs`: no hay claves ni migración, y una copia de v35 se
+  importa y cuenta igual. Lo que devuelven cambia en dos campos: cada entrada de
+  `overloadIndex().detalle` y de `stalled()` dice su medida (`m`: `"e1"` o `"reps"`), y la de
+  `stalled()`, su marca (`mejor`).
+- **Pruebas** en `tests/pruebas_logica.js`: `perfE` con y sin peso y con series bajo el rango,
+  la sobrecarga de 10 a 12 flexiones con bandas y peso corporal en el total (también con los
+  datos de casa, y la misma cifra en Progreso), el radar con el remo con banda y su fila en reps,
+  y la medida mezclada de la sentadilla a la silla, en la sobrecarga y en el radar. La no
+  regresión de los récords la prueba una referencia guardada, `tests/referencia_records_v36.js`,
+  sacada una vez del `index.html` de v36: lo que devolvían `isPR`, `prLevel` y `prKind` para
+  cada serie registrada en `dueno` y `madre` y unas cuantas alrededor de la última marca de cada
+  ejercicio, también con la sesión de hoy de `madre` abierta y por número de serie. En
+  `tests/pruebas_progreso.js` y `tests/pruebas_datos.js`, que con los datos de v35 no se escribe
+  nada ni aparecen claves, y que una copia de v35 importada cuenta lo mismo.
+  La prueba de igualdad con v35 (`referencia_progreso_v35.js`, HU-56) chocaba con la historia:
+  la sobrecarga y el radar cambian a propósito. No se regenera, porque pasaría a ser una
+  referencia de v37 y dejaría de anclar todo lo demás a v35. Ahora son dos pruebas por juego de
+  datos: **midiendo como v35** (`perfE` cambiado por el e1RM de siempre) Progreso da la
+  referencia entera, bloque a bloque y cifra a cifra, sin más cambio que los campos `m` y
+  `mejor`; y **con la medida de verdad**, todo lo que no es la sobrecarga ni el radar sigue
+  igual, lo medido en e1RM es lo de v35 entrada por entrada, y lo nuevo son solo ejercicios
+  cuyas sesiones comparadas van sin peso.
 
 ### Cerrado en v36
 

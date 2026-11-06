@@ -489,6 +489,19 @@
       expect(app.foto()).toEqual(antes);
       /* y la copia de la copia sale igual */
       expect(JSON.parse((await exportar(app)).texto).store).toEqual(data.store);});
+    /* HU-17: lo que va sin peso se mide en reps sin cambiar la forma de nada,
+       asi que una copia de v35 (sin rp_schema) entra y cuenta igual */
+    test("una copia de v35 importada cuenta las reps sin peso igual que antes de exportar",async app=>{
+      const mide=()=>{app.w.renderProgress();return {ov:app.w.overloadIndex(9),st:app.w.stalled(),txt:app.texto("#progBody")};};
+      const antes=mide(),claves=app.claves();
+      expect(antes.ov.detalle.filter(d=>d.m==="reps").length).toBeGreaterThan(0);
+      expect(antes.st.filter(x=>x.m==="reps").length).toBeGreaterThan(0);
+      const data=JSON.parse((await exportar(app)).texto);delete data.store.rp_schema;
+      localStorage.clear();
+      const recarga=app.cargo();importar(app,JSON.stringify(data));await recarga;await app.listo();
+      expect(app.claves()).toEqual(claves);
+      expect(app.leer("rp_schema")).toBe(app.ev("SCHEMA"));
+      expect(mide()).toEqual(antes);});
   });
 
   /* HU-11: en pantalla solo queda la racha de semanas (weekStats), pero
