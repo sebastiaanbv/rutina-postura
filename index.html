@@ -3050,9 +3050,12 @@ const DOW=["L","M","X","J","V","S","D"], DOWLONG=["lunes","martes","miércoles",
 function todayDow(){return (new Date().getDay()+6)%7;}
 function loadLogs(){return jget("rp_logs",{});}
 function logsWrite(fn){const logs=loadLogs();fn(logs);jset("rp_logs",logs);return logs;}
-/* ultima sesion CON series: los registros de solo visto no traen pesos */
-function lastLog(exId){const a=loadLogs()[exId];if(!a)return null;
-  for(let i=a.length-1;i>=0;i--){const r=a[i];if(r&&r.sets&&r.sets.length)return r;}return null;}
+/* las n ultimas sesiones CON series, la mas nueva primero: los registros de
+   solo visto no traen pesos. El orden es el del array, no la fecha. LOGS, si
+   llega, es rp_logs ya leido (todayTarget lo lee una sola vez) */
+function lastLogs(exId,n,LOGS){const a=(LOGS||loadLogs())[exId],out=[];if(!a)return out;
+  for(let i=a.length-1;i>=0&&out.length<n;i--){const r=a[i];if(r&&r.sets&&r.sets.length)out.push(r);}return out;}
+function lastLog(exId){return lastLogs(exId,1)[0]||null;}
 
 /* ==== [S2] REGISTRO RAPIDO + PESO SUGERIDO ================================ */
 /* salto de progresion proporcional al peso: subir 2,5 kg en un ejercicio de
@@ -4362,11 +4365,58 @@ function roundDownTo(id,w,k){const s=incFor(id,k);if(!s)return w;
    tecleado fuera de la escala (42,5 en saltos de 5) sube a 45 y baja a 40 */
 function nextW(id,w,dir,k){const b=roundDownTo(id,w,k),s=stepFor(id,w,k);
   return Math.max(0,Math.round((dir>0?b+s:(b<w-1e-6?b:b-s))*100)/100);}
-/* Objetivo de hoy: una meta de proceso resoluble hoy, no un resultado lejano. */
+/* ---- umbrales de la progresion por objetivo (Sprint 2, HU-16) ----
+   UN solo sitio: todo umbral de la progresion que cambia con el objetivo sale
+   de aqui y ninguna rama escribe un numero propio. Cambiar un numero aqui
+   cambia la sugerencia, y cambiar el objetivo en Ajustes la cambia en el acto:
+   reglaObjetivo lee goalPref en cada llamada, sin cache. No es una clave rp_*:
+   sin goal (datos de v35) es masa, como goalPref. Los campos de paron, fallos
+   y reserva los leen HU-15, HU-14 y HU-13; hasta entonces no tienen efecto. El
+   tope+2 y el 10 % de HU-07 no dependen del objetivo y no estan aqui. */
+const REGLAS={
+  comun:{
+    rirSobra:3,            /* primera serie con reserva 3+ ... */
+    repsSobra:2,           /* ... pide +2 reps en vez de +1 (sin pasar del tope) */
+    paronFactor:[0.9,0.8], /* paron: x0,9 pasado paronDias; x0,8 pasado paronLargo */
+    paronHolgura:0.20,     /* paron: el redondeo a un peso real no quita mas del 20 % al objetivo */
+    fallosSesiones:2,      /* dos sesiones seguidas con la primera serie por debajo del minimo */
+    fallosBajadaMax:0.25   /* bajar a un peso real no quita mas del 25 % del peso de trabajo */
+  },
+  masa:{
+    llenasParaSalir:1,     /* sesiones seguidas con el rango lleno AL MISMO PESO antes de estirar o subir */
+    frenoRir:null,         /* freno por reserva: apagado */
+    rirAlFalloSube:true,   /* rango lleno con reserva 0 en todas las series: sube aunque el salto pase del 10 % */
+    paronDias:21,paronLargo:42,
+    estancadoEnTope:true,  /* el radar cuenta tambien lo que esta en el tope */
+    estancadoIgual:true    /* y lo que se queda igual (no supera el mejor) */
+  },
+  salud:{
+    llenasParaSalir:2,
+    frenoRir:1,            /* alguna serie con reserva <= 1: mismo peso y mismas reps */
+    rirAlFalloSube:false,
+    paronDias:14,paronLargo:28,
+    estancadoEnTope:false, /* en salud, mantenerse en el tope no es estancarse */
+    estancadoIgual:false   /* solo es estancarse si las 3 ultimas BAJAN del mejor */
+  }};
+function reglaObjetivo(g){g=g||goalPref();
+  return Object.assign({objetivo:g},REGLAS.comun,REGLAS[g]||REGLAS.masa);}
+/* rango lleno en una sesion: con todas las series que pide la dosis y todas
+   en el tope, con la primera al peso w0 (una sesion llena con otro peso no
+   dice nada del de hoy). Sin carga basta la primera serie en el tope: la
+   progresion sin carga va por ella */
+function rangoLleno(e,rng,d,rec,w0){if(!rec||!rec.sets||!rec.sets.length||rec.sets.length<(d.sets||rec.sets.length))return false;
+  if(e.load!==true)return (Number(rec.sets[0].reps)||0)>=rng[1];
+  return Math.abs((Number(rec.sets[0].w)||0)-w0)<1e-9&&rec.sets.every(x=>(Number(x.reps)||0)>=rng[1]);}
+/* Objetivo de hoy: una meta de proceso resoluble hoy, no un resultado lejano.
+   Las ramas van en este orden y gana la primera: 1 primera vez · 2 molestia ·
+   (3 paron, HU-15 · 4 dos fallos, HU-14 · 5 freno por reserva, HU-13) ·
+   6 regla del objetivo (HU-16) · 7 la progresion doble de siempre */
 function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)return null;
-  const rng=repRange(id),d=dose(k,id),ll=lastLog(id);
+  const R=reglaObjetivo(),logs=loadLogs(),rng=repRange(id),d=dose(k,id),
+        ult=lastLogs(id,Math.max(2,R.llenasParaSalir),logs),ll=ult[0];
+  /* 1 · primera vez */
   if(!ll||!ll.sets.length)return {w:e.load===true?0:0,reps:rng[0],why:"Primera vez: busca "+rng[0]+" repeticiones limpias",nuevo:true};
-  /* molestia anotada la ultima vez: la progresion se congela. Subir carga
+  /* 2 · molestia anotada la ultima vez: la progresion se congela. Subir carga
      sobre una articulacion que avisa es justo lo que no hay que hacer */
   const pain=loadPain()[id]||[];
   if(pain.indexOf(ll.date)>=0){const f0=ll.sets[0]||{},rep=pain.filter(d=>d>=dOffset(28)).length>=2;
@@ -4376,7 +4426,16 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
   /* w0 en numero: un peso guardado como texto (una copia editada a mano) se
      sumaba como texto, "30"+2.5 = 302,5 kg, y con la lista "8" proponia bajar */
   const trabajo=ll.sets,tope=trabajo.every(x=>(x.reps||0)>=rng[1]),
-        completo=trabajo.length>=(d.sets||trabajo.length),first=trabajo[0],w0=Number(first.w)||0;
+        completo=trabajo.length>=(d.sets||trabajo.length),first=trabajo[0],w0=Number(first.w)||0,r1=Number(first.reps)||0;
+  /* 6 · regla del objetivo (HU-16): con el rango lleno, salir de el (estirar
+     o subir) pide R.llenasParaSalir sesiones seguidas llenas al mismo peso.
+     En masa es una, como siempre; en salud dos, y la primera se mantiene y se
+     dice como un logro. Con menos sesiones que N tambien se mantiene */
+  const N=R.llenasParaSalir;
+  if(rangoLleno(e,rng,d,ll,w0)&&!(ult.length>=N&&ult.slice(0,N).every(r=>rangoLleno(e,rng,d,r,w0))))
+    return {w:w0,reps:r1,mantiene:true,
+      why:"Rango completo con "+(e.load!==true||w0<=0?r1+" repeticiones":fmtW(w0)+" kg × "+r1)+": mantenerlo es un logro, repítelo"};
+  /* 7 · la progresion doble de siempre */
   /* Con mancuernas propias (Ajustes) manda la lista real, no un salto teorico.
      Con 1-2-3 kg cualquier salto pasa del 10%: se sube cuando el rango
      ESTIRADO tambien se llena, y con la mas pesada solo se estira. */
@@ -4438,14 +4497,19 @@ function overloadIndex(days,LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),fro
     tot++;const ok=hoy>antes*1.005;if(ok)prog++;
     detalle.push({id:id,ok:ok,hoy:hoy,antes:antes});});
   return {prog:prog,total:tot,pct:tot?Math.round(prog/tot*100):0,detalle:detalle};}
-/* Estancado: 3 sesiones sin superar el mejor e1RM de las ultimas 8 semanas. */
-function stalled(LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),from=dOffset(56),out=[];
+/* Estancado: 3 sesiones sin superar el mejor e1RM de las ultimas 8 semanas.
+   En salud (HU-16, REGLAS) mantener es un logro: no cuenta lo que se mantiene
+   en el tope del rango o por encima, y solo es estancarse si las 3 ultimas
+   BAJAN del mejor, no si se quedan igual. */
+function stalled(LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),from=dOffset(56),out=[],R=reglaObjetivo();
   Object.keys(logs).forEach(id=>{if(warm[id])return;
     const recs=logs[id].filter(r=>r.sets&&r.sets.length&&r.date>=from);
     if(recs.length<4)return;
+    if(!R.estancadoEnTope){const t=repRange(id)[1];
+      if(recs[recs.length-1].sets.every(x=>(Number(x.reps)||0)>=t))return;}
     const vals=recs.map(r=>bestE1(id,r)),mejor=Math.max.apply(null,vals);
     const ult3=vals.slice(-3);
-    if(ult3.length===3&&ult3.every(v=>v<mejor*1.005)&&vals.indexOf(mejor)<vals.length-3)
+    if(ult3.length===3&&ult3.every(v=>v<mejor*(R.estancadoIgual?1.005:0.995))&&vals.indexOf(mejor)<vals.length-3)
       out.push({id:id,name:(EX[id]||{}).name||id,sesiones:recs.length});});
   return out;}
 

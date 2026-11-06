@@ -255,6 +255,8 @@ Bajo el peso, el chip **Salto**: de cuánto en cuánto sube esa máquina (1 · 2
 
 El peso del control es **solo el número**, y es el mismo al entrar en la serie, al tocar − o +, al escribirlo a mano y al cambiar las series: los cuatro caminos pintan con `fmtW(curW)` (`pintaW()` los que no rehacen la serie). Con la unidad, «102.5 kg» parte la fila en dos líneas en un móvil de 390 px; la unidad sigue en la línea de cada serie registrada.
 
+**La propuesta sigue el objetivo** (Ajustes, «Ganar músculo» o «Salud y mantenimiento»). Con el rango lleno, en masa se sale de él a la primera, estirando o subiendo como siempre; en salud hacen falta **dos sesiones seguidas con el rango lleno al mismo peso**, y la primera se mantiene y se dice como un logro: «Rango completo con 2 kg × 12: mantenerlo es un logro, repítelo» (sin carga o a 0 kg, «con 12 repeticiones», sin hablar de peso). No promete lo que viene después. Lo que no es el rango lleno —primera vez, molestia, series de menos, una rep más dentro del rango— es igual en los dos objetivos. Todos los umbrales que cambian con el objetivo (sesiones para salir del rango, freno por reserva, días de parón, qué cuenta el radar de estancamiento) viven en un solo bloque, `REGLAS`, y `reglaObjetivo()` los lee en cada llamada: cambiar el objetivo en Ajustes cambia la propuesta en el acto. Sin objetivo guardado (datos de v35) es masa. El tope+2 y el 10 % de HU-07 no dependen del objetivo.
+
 **El tiempo no se edita.** Descansos y sostenes los fija el programa: el criterio para ponerlos ya está tomado y ofrecer un stepper solo invita a deshacerlo sin datos. Cambiar las series, en cambio, responde a algo que solo sabes tú — cómo te sientes hoy y cuánto tiempo tienes.
 
 **Un descanso de 0 s es 0 s.** Lo traen los calentamientos encadenados y lo puede elegir la persona al crear un ejercicio propio: la serie siguiente entra directa, sin pantalla de descanso, y la duración estimada de la rutina no le suma nada. `dose()` ya pone el descanso por defecto cuando nadie lo declara, así que `buildSteps` y `estMinutes` lo usan tal cual, nunca con `||`.
@@ -277,6 +279,8 @@ La cabecera del día lleva **Registrar rutina**: elige el día y añade a mano u
 
 ### Progreso
 Un dato hero (índice de fuerza) y seis bloques con el mismo ritmo. Los récords van justo detrás del hero, porque son la recompensa, y en ámbar.
+
+El radar de estancamiento respeta el objetivo: en salud mantener es un logro, así que no marca lo que se mantiene en el tope del rango o por encima, y solo marca si las tres últimas sesiones **bajan** del mejor (más de un 0,5 %), no si se quedan igual. En masa marca, como siempre, tres sesiones sin superarlo. Los dos criterios salen de `REGLAS` (§8, Modo guiado).
 
 Se pinta con **una sola lectura de `rp_logs`**: `renderProgress` lo lee y se lo pasa a cada análisis (`strengthIdx`, `strengthSpark`, `overloadIndex`, `stalled`, `prFeed`, `muscleSets`, `monthSummary`), que solo lo leen, nunca lo modifican. Un bloque nuevo recibe ese `logs`; no llama a `loadLogs()`. Sin el argumento, cada análisis lo lee él mismo, igual que `exChart`.
 
@@ -484,6 +488,49 @@ salud, brazo en masa) y resumen mensual (sin desglose por músculo todavía), to
 
 Descartado tras la comparación: calculadora de discos (no usan barra), mapa de recuperación de
 Fitbod (aporta poco con PPL 3×), insignias y logros.
+
+### Cerrado en v37
+
+Sprint 2, «Progresión inteligente»: la propuesta de cada ejercicio (`todayTarget`) lee el objetivo,
+la reserva, los parones y las sesiones flojas. Las cinco historias tocan la misma función y entran
+en cadena; cada una con su entrada.
+
+El objetivo «Salud» progresa más despacio y celebra mantener (HU-16). Con el rango lleno, la
+propuesta era la misma en los dos objetivos: la madre, con 1-3 kg, estiraba a 14 o cogía la
+siguiente mancuerna la primera vez que llegaba a 12, con una lógica de ganar músculo.
+
+- **Un solo bloque de umbrales por objetivo.** `REGLAS` (común, masa y salud) y
+  `reglaObjetivo()`, que lee `goalPref()` en cada llamada, sin caché: cambiar el objetivo en
+  Ajustes cambia la propuesta en el acto. No es una clave `rp_*`: sin `goal` (v35) es masa, como
+  ya hacía `goalPref`. El bloque nace entero, también con los campos que leerán HU-15 (días de
+  parón: 21/42 en masa, 14/28 en salud), HU-14 (dos fallos, bajada máxima del 25 %) y HU-13
+  (freno por reserva ≤ 1 en salud, reserva 3+, reserva 0 que sube en masa); hasta entonces no
+  tienen efecto. El tope+2 y el 10 % de HU-07 no entran: no dependen del objetivo.
+- **Salud sale del rango tras dos sesiones llenas al mismo peso.** `todayTarget` lee las dos
+  últimas sesiones con series (`lastLogs`, de la que ahora sale `lastLog`) y, si la última llenó
+  el rango y la anterior no (o fue con otro peso, o con series de menos, o no la hay), propone el
+  mismo peso y las mismas reps con `mantiene` y «Rango completo con 3 kg × 12: mantenerlo es un
+  logro, repítelo». A la segunda manda la progresión de siempre: estirar o subir. «Salir del
+  rango» es estirar **o** subir, no solo subir carga: con 1-3 kg todo salto pasa del 10 %, y una
+  regla que solo frenara la subida no frenaría nunca a la madre. 12 y luego 14 con la misma
+  mancuerna son dos llenas y sube, como pide HU-07. Sin carga cuenta la primera serie, con la
+  sesión completa, y el texto no habla de peso. Masa no cambia: sale a la primera.
+- **El radar de estancamiento, en salud,** no marca lo que se mantiene en el tope o por encima,
+  ni cuatro sesiones iguales: solo tres que bajan del mejor. En masa, igual que antes.
+- **Lo que no cambia:** primera vez, molestia, series de menos y la rep de más dentro del rango,
+  en los dos objetivos; todo en masa, también en el juego `madre` con `goal` masa. Sin claves
+  nuevas ni cambios en la forma de los datos.
+- **Pruebas** en `tests/pruebas_logica.js`: una referencia nueva, `referencia_objetivos_v36.js`,
+  con lo que devolvía `todayTarget` en v36 para todas las rutinas con `dueno`, `madre` en masa y
+  `madre` (salud), con el reloj parado; lo que cada historia del sprint cambia a propósito va en
+  `CAMBIOS_OBJETIVOS`. Con HU-16 cambian siete objetivos de `madre` (sentarse en dos rutinas,
+  flexiones en la pared en dos —solo el texto—, press de hombro, peso muerto y remo), y nada de
+  `dueno` ni de `madre` en masa. Las pruebas de la lista de casa (HU-07/HU-08) siguen tal cual en
+  masa y suman sus casos de salud. Nuevas: una y dos sesiones llenas, peso cambiado, series de
+  menos, un visto en medio, la lista 1-2-3, sin carga y a 0 kg; masa y v35 sin `goal` con los
+  mismos datos; `REGLAS` como única fuente (cambiar un número cambia la propuesta), el botón de
+  Ajustes; `stalled` en el tope, por encima, igual y bajando; el porqué del peor caso (102.75 kg
+  × 22) en 80 caracteres.
 
 ### Cerrado en v36
 
