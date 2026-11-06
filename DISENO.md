@@ -257,6 +257,8 @@ El peso del control es **solo el número**, y es el mismo al entrar en la serie,
 
 **La propuesta sigue el objetivo** (Ajustes, «Ganar músculo» o «Salud y mantenimiento»). Con el rango lleno, en masa se sale de él a la primera, estirando o subiendo como siempre; en salud hacen falta **dos sesiones seguidas con el rango lleno al mismo peso**, y la primera se mantiene y se dice como un logro: «Rango completo con 2 kg × 12: mantenerlo es un logro, repítelo» (sin carga o a 0 kg, «con 12 repeticiones», sin hablar de peso). No promete lo que viene después. Lo que no es el rango lleno —primera vez, molestia, series de menos, una rep más dentro del rango— es igual en los dos objetivos. Todos los umbrales que cambian con el objetivo (sesiones para salir del rango, freno por reserva, días de parón, qué cuenta el radar de estancamiento) viven en un solo bloque, `REGLAS`, y `reglaObjetivo()` los lee en cada llamada: cambiar el objetivo en Ajustes cambia la propuesta en el acto. Sin objetivo guardado (datos de v35) es masa. El tope+2 y el 10 % de HU-07 no dependen del objetivo.
 
+**Tras un parón se vuelve más suave.** Si el ejercicio lleva más de `paronDias` sin hacerse (21 días en masa, 14 en salud, desde la última sesión con series o un «visto» del mismo estímulo: sin carga, cualquiera; con carga, solo de la misma rutina), la propuesta es el peso × 0,9 (× 0,8 pasado `paronLargo`, 42 o 28 días) bajado al peso real de abajo —la lista de mancuernas, los múltiplos del salto de la máquina o, sin nada declarado, la escala inversa de `progStep` (`pasoAbajo`: 40 → 37,5 → 35, 20 → 18, 10 → 9), desde la que el + de siempre vuelve al peso de partida—, el **mínimo del rango** y nunca una subida: «Llevas 3 semanas sin hacerlo: vuelve con 35 kg y 6 reps, sin forzar». El aviso de empezar suave va en el porqué, sin otro elemento en el paso. Si el redondeo quitaría más de un 20 % al objetivo (1-2-3 kg: 2 × 0,9 = 1,8 → 1), se mantiene el peso y solo bajan las reps: «sigue con 2 kg, solo 8 reps y sin forzar». Sin carga (o a 0 kg), solo el mínimo del rango, sin hablar de peso. Con la molestia anotada la última vez y además un parón, el peso de la vuelta y las reps más bajas de las dos, con `dolor` y la molestia en el porqué («Molestia la última vez y 6 semanas sin hacerlo: vuelve con 30 kg y 6 reps»); sin parón, la molestia sigue como siempre. Lo que pasó antes del parón (rango lleno, reps de más) no se aplica ese día.
+
 **El tiempo no se edita.** Descansos y sostenes los fija el programa: el criterio para ponerlos ya está tomado y ofrecer un stepper solo invita a deshacerlo sin datos. Cambiar las series, en cambio, responde a algo que solo sabes tú — cómo te sientes hoy y cuánto tiempo tienes.
 
 **Un descanso de 0 s es 0 s.** Lo traen los calentamientos encadenados y lo puede elegir la persona al crear un ejercicio propio: la serie siguiente entra directa, sin pantalla de descanso, y la duración estimada de la rutina no le suma nada. `dose()` ya pone el descanso por defecto cuando nadie lo declara, así que `buildSteps` y `estMinutes` lo usan tal cual, nunca con `||`.
@@ -280,7 +282,7 @@ La cabecera del día lleva **Registrar rutina**: elige el día y añade a mano u
 ### Progreso
 Un dato hero (índice de fuerza) y seis bloques con el mismo ritmo. Los récords van justo detrás del hero, porque son la recompensa, y en ámbar.
 
-El radar de estancamiento respeta el objetivo: en salud mantener es un logro, así que no marca lo que se mantiene en el tope del rango o por encima, y solo marca si las tres últimas sesiones **bajan** del mejor (más de un 0,5 %), no si se quedan igual. En masa marca, como siempre, tres sesiones sin superarlo. Los dos criterios salen de `REGLAS` (§8, Modo guiado).
+El radar de estancamiento respeta el objetivo: en salud mantener es un logro, así que no marca lo que se mantiene en el tope del rango o por encima, y solo marca si las tres últimas sesiones **bajan** del mejor (más de un 0,5 %), no si se quedan igual. En masa marca, como siempre, tres sesiones sin superarlo. Los dos criterios salen de `REGLAS` (§8, Modo guiado). En los dos objetivos la ventana del mejor empieza **tras la última vuelta de un parón** (un hueco de más de `paronDias` entre dos sesiones): el peso de antes no es el que batir cuando la app acaba de proponer bajarlo, y con menos de cuatro sesiones desde la vuelta no marca. Una bajada que no viene de un parón (una descarga) no corta.
 
 Se pinta con **una sola lectura de `rp_logs`**: `renderProgress` lo lee y se lo pasa a cada análisis (`strengthIdx`, `strengthSpark`, `overloadIndex`, `stalled`, `prFeed`, `muscleSets`, `monthSummary`), que solo lo leen, nunca lo modifican. Un bloque nuevo recibe ese `logs`; no llama a `loadLogs()`. Sin el argumento, cada análisis lo lee él mismo, igual que `exChart`.
 
@@ -531,6 +533,39 @@ siguiente mancuerna la primera vez que llegaba a 12, con una lógica de ganar m�
   mismos datos; `REGLAS` como única fuente (cambiar un número cambia la propuesta), el botón de
   Ajustes; `stalled` en el tope, por encima, igual y bajando; el porqué del peor caso (102.75 kg
   × 22) en 80 caracteres.
+
+Empezar algo más suave al volver de un parón (HU-15). Tras semanas sin hacer un ejercicio (un
+viaje, un resfriado), la propuesta era la de la última sesión, o una subida si había llenado el
+rango: el primer día de vuelta pedía más de lo que había.
+
+- **Parón:** más de `paronDias` (21 en masa, 14 en salud) desde la última vez, que es la última
+  sesión con series o un «visto» del mismo estímulo (`ultimaVez`: sin carga, cualquiera; con
+  carga, solo de la misma rutina, y nunca uno sin rutina). Días de medianoche local a medianoche
+  local (`diasDesde`).
+- **Vuelta:** peso × 0,9 (× 0,8 pasado `paronLargo`, 42/28) bajado al peso real de abajo
+  (`bajarA`: lista, múltiplos del salto o `pasoAbajo`, la escala inversa de `progStep`, para que
+  el + de siempre vuelva al peso de partida: 20 → 18 → 20, y 10 kg da 9 y 8, no dos veces 8),
+  el mínimo del rango, `vuelta` y nunca `subeCarga` ni `extiende`. 40 kg: 35 a los 22 días, 30 a
+  los 43. Si el redondeo quita más de un 20 % al objetivo (`paronHolgura`), o no hay nada más
+  ligero, mismo peso y solo bajan las reps. Sin carga o a 0 kg, el mínimo y un porqué sin peso.
+  El porqué dice las semanas y «sin forzar»: es el aviso de empezar suave.
+- **Molestia y parón:** antes ganaba la molestia y proponía el peso completo de antes; ahora toma
+  el peso de la vuelta y las reps más bajas de las dos, con `dolor` y `vuelta`, y la molestia en
+  el porqué. Sin parón, la rama de la molestia sale igual que antes.
+- **Radar de estancamiento:** la ventana empieza tras la última vuelta (`inicioTramo`: un hueco de
+  más de `paronDias`). Sin eso, seguir la vuelta (35 × 6, 7, 8 tras 40 × 8) marcaba «Estancado».
+- **Lo que no cambia:** con 21 días o menos en masa (14 en salud), todo igual; los juegos de
+  datos entrenan cada semana y la referencia de v36 queda igual (ningún cambio nuevo en
+  `CAMBIOS_OBJETIVOS`), y la de Progreso v35 también. Los botones −/+ siguen con `nextW`. Sin
+  claves nuevas.
+- **Pruebas** en `tests/pruebas_logica.js`, escenario «parón (HU-15)»: 20/21/22/42/43 días en masa
+  y 14/15/28/29 en salud; `rp_inc` de 5, 2 y 2,5; la lista 1-2-3 a 2 kg (mantiene) y con 1,5
+  (baja); sin carga y a 0 kg; molestia con y sin parón; `pasoAbajo` y `bajarA` sueltas; vistos de
+  la misma rutina, de otra y sin rutina; `REGLAS` como fuente de los días, factores y holgura;
+  `stalled` tras una vuelta en masa y en salud; los seis porqués nuevos con el peor caso (12
+  semanas, 102.75 kg, rango [12,20]) en 80 caracteres o menos. Y los juegos `dueno` y `madre`
+  movidos un mes atrás: nada se rompe ni se escribe, sin claves nuevas, y todo vuelve al mínimo
+  del rango sin más peso que la última vez.
 
 ### Cerrado en v36
 

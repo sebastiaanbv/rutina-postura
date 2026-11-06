@@ -4407,22 +4407,82 @@ function reglaObjetivo(g){g=g||goalPref();
 function rangoLleno(e,rng,d,rec,w0){if(!rec||!rec.sets||!rec.sets.length||rec.sets.length<(d.sets||rec.sets.length))return false;
   if(e.load!==true)return (Number(rec.sets[0].reps)||0)>=rng[1];
   return Math.abs((Number(rec.sets[0].w)||0)-w0)<1e-9&&rec.sets.every(x=>(Number(x.reps)||0)>=rng[1]);}
+/* ---- paron (HU-15): dias desde la ultima vez y pesos reales por debajo ----
+   dias entre dos fechas "AAAA-MM-DD", de medianoche local a medianoche local:
+   el round absorbe las 23/25 h de un cambio de hora. Una fecha que no se lee, 0 */
+function diasEntre(a,b){const x=dlocal(a),y=dlocal(b);if(isNaN(x)||isNaN(y))return 0;return Math.round((y-x)/864e5);}
+/* dias desde f hasta hoy; nula, rota o futura es 0: nunca es paron */
+function diasDesde(f){return f?Math.max(0,diasEntre(f,today())):0;}
+/* la ultima vez que se hizo el ejercicio, partiendo de ref (la ultima sesion
+   con series). Cuentan todas las sesiones con series y los registros de solo
+   visto que son el mismo estimulo: sin carga, todos; con carga, solo los de la
+   misma rutina que ref (sentarse visto en Equilibrio sin mancuerna no dice que
+   se hiciera con 2 kg en Fuerza A). Un visto sin rutina no cuenta con carga */
+function ultimaVez(id,ref,LOGS){const e=EX[id]||{},a=(LOGS||loadLogs())[id]||[];let f=ref&&ref.date||null;
+  a.forEach(r=>{if(!r||!r.date)return;
+    const cuenta=(r.sets&&r.sets.length)||e.load===false||(!!r.k&&!!(ref&&ref.k)&&r.k===ref.k);
+    if(cuenta&&(!f||r.date>f))f=r.date;});
+  return f;}
+/* el escalon de bajada de la escala de progStep: el peso desde el que el +
+   de siempre vuelve a w (40 → 37,5, 20 → 18, 10 → 9). Con un peso fuera de la
+   escala, el mas alto cuyo + no pasa de w. 0 si no hay nada por encima de 0.
+   No es nextW(-1): en las fronteras de progStep (10 y 20 kg) bajar y volver a
+   subir no daba el peso de partida (20 → 17,5 → 19,5) */
+function pasoAbajo(w){let b=0;[1,2,2.5].forEach(p=>{const c=Math.round((w-p)*100)/100;
+    if(c>0&&c+progStep(c)<=w+1e-9&&c>b)b=c;});return b;}
+/* el peso real mas alto que no pasa de meta, bajando desde w0, en el orden de
+   stepFor: la lista de mancuernas, los multiplos del salto declarado o la
+   escala de pasoAbajo. null si no hay ningun peso real por encima de 0 */
+function bajarA(id,w0,meta,k){const l=availDB(id,k);
+  if(l){const v=l.filter(x=>x<=meta+1e-9).pop();return v==null?null:v;}
+  if(incFor(id,k)){const v=roundDownTo(id,meta,k);return v>0?v:null;}
+  let w=w0;for(let i=0;i<200&&w>meta+1e-9;i++){w=pasoAbajo(w);if(w<=0)return null;}
+  return w>meta+1e-9?null:Math.round(w*100)/100;}
 /* Objetivo de hoy: una meta de proceso resoluble hoy, no un resultado lejano.
-   Las ramas van en este orden y gana la primera: 1 primera vez · 2 molestia ·
-   (3 paron, HU-15 · 4 dos fallos, HU-14 · 5 freno por reserva, HU-13) ·
-   6 regla del objetivo (HU-16) · 7 la progresion doble de siempre */
+   Las ramas van en este orden y gana la primera: 1 primera vez · 2 molestia
+   (2' molestia tras un paron, HU-15) · 3 paron (HU-15) · (4 dos fallos, HU-14 ·
+   5 freno por reserva, HU-13) · 6 regla del objetivo (HU-16) · 7 la
+   progresion doble de siempre */
 function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)return null;
   const R=reglaObjetivo(),logs=loadLogs(),rng=repRange(id),d=dose(k,id),
         ult=lastLogs(id,Math.max(2,R.llenasParaSalir),logs),ll=ult[0];
   /* 1 · primera vez */
   if(!ll||!ll.sets.length)return {w:e.load===true?0:0,reps:rng[0],why:"Primera vez: busca "+rng[0]+" repeticiones limpias",nuevo:true};
+  /* 3 · paron (HU-15): mas de R.paronDias sin hacerlo (21 en masa, 14 en
+     salud), la ultima sesion ya no dice lo que hay hoy. Se vuelve con el peso
+     x0,9 (x0,8 pasado R.paronLargo) bajado a un peso real y el minimo del
+     rango, sin subir. Si el redondeo quitaria mas de R.paronHolgura al
+     objetivo (1-2-3 kg: 2 x 0,9 = 1,8 → 1), se mantiene el peso y solo bajan
+     las reps. Se calcula antes de la molestia, que tras un paron (2') toma
+     este peso */
+  const f1=ll.sets[0]||{},w1=Number(f1.w)||0,sinPeso=e.load!==true||w1<=0,
+        dias=diasDesde(ultimaVez(id,ll,logs)),paron=dias>R.paronDias;
+  let vuelta=null;
+  if(paron){const f=dias>R.paronLargo?R.paronFactor[1]:R.paronFactor[0],meta=w1*f,
+      real=sinPeso?null:bajarA(id,w1,meta,k),bajo=real!=null&&real>0&&real>=meta*(1-R.paronHolgura)-1e-9,
+      sem=Math.floor(dias/7);
+    vuelta={w:sinPeso?0:(bajo?real:w1),bajo:bajo,sem:sem+" "+plural(sem,"semana","semanas")};}
   /* 2 · molestia anotada la ultima vez: la progresion se congela. Subir carga
-     sobre una articulacion que avisa es justo lo que no hay que hacer */
+     sobre una articulacion que avisa es justo lo que no hay que hacer. Tras un
+     paron (2'), el peso de la vuelta y no mas reps que el minimo del rango: el
+     de antes seria la propuesta mas agresiva de las dos */
   const pain=loadPain()[id]||[];
   if(pain.indexOf(ll.date)>=0){const f0=ll.sets[0]||{},rep=pain.filter(d=>d>=dOffset(28)).length>=2;
+    if(vuelta){const r=Math.min(rng[0],Number(f0.reps)||rng[0]),
+        pre="Molestia la última vez y "+vuelta.sem+" sin hacerlo: ";
+      return {w:vuelta.w,reps:r,dolor:true,vuelta:true,
+        why:rep?"Molestia repetida en este ejercicio: no subas y plantéate cambiarlo por otro"
+          :sinPeso?pre+"vuelve con "+r+" repeticiones"
+          :pre+(vuelta.bajo?"vuelve con ":"sigue con ")+fmtW(vuelta.w)+" kg y "+r+" reps"};}
     return {w:Number(f0.w)||0,reps:Number(f0.reps)||rng[0],dolor:true,
       why:rep?"Molestia repetida en este ejercicio: no subas y plantéate cambiarlo por otro"
              :"La vez pasada anotaste molestia: mismo peso y sin forzar"};}
+  /* 3 · paron, sin molestia: el minimo del rango con el peso de la vuelta */
+  if(vuelta){const pre="Llevas "+vuelta.sem+" sin hacerlo: ";
+    return {w:vuelta.w,reps:rng[0],vuelta:true,
+      why:sinPeso?pre+"vuelve con "+rng[0]+" repeticiones, sin forzar"
+        :vuelta.bajo?pre+"vuelve con "+fmtW(vuelta.w)+" kg y "+rng[0]+" reps, sin forzar"
+        :pre+"sigue con "+fmtW(vuelta.w)+" kg, solo "+rng[0]+" reps y sin forzar"};}
   /* w0 en numero: un peso guardado como texto (una copia editada a mano) se
      sumaba como texto, "30"+2.5 = 302,5 kg, y con la lista "8" proponia bajar */
   const trabajo=ll.sets,tope=trabajo.every(x=>(x.reps||0)>=rng[1]),
@@ -4497,13 +4557,23 @@ function overloadIndex(days,LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),fro
     tot++;const ok=hoy>antes*1.005;if(ok)prog++;
     detalle.push({id:id,ok:ok,hoy:hoy,antes:antes});});
   return {prog:prog,total:tot,pct:tot?Math.round(prog/tot*100):0,detalle:detalle};}
+/* el primer registro de recs (sesiones con series, en orden) despues de la
+   ultima vuelta: un hueco de mas de R.paronDias entre dos sesiones (HU-15).
+   Solo cuenta lo que hace la propia app: una descarga cualquiera no corta.
+   0 si no hay ninguna vuelta */
+function inicioTramo(id,recs,R){let i0=0;
+  for(let i=1;i<recs.length;i++)if(diasEntre(recs[i-1].date,recs[i].date)>R.paronDias)i0=i;
+  return i0;}
 /* Estancado: 3 sesiones sin superar el mejor e1RM de las ultimas 8 semanas.
    En salud (HU-16, REGLAS) mantener es un logro: no cuenta lo que se mantiene
    en el tope del rango o por encima, y solo es estancarse si las 3 ultimas
-   BAJAN del mejor, no si se quedan igual. */
+   BAJAN del mejor, no si se quedan igual. La ventana empieza tras la ultima
+   vuelta de un paron (inicioTramo): el peso de antes no es el mejor que batir
+   cuando la app acaba de proponer bajarlo */
 function stalled(LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),from=dOffset(56),out=[],R=reglaObjetivo();
   Object.keys(logs).forEach(id=>{if(warm[id])return;
-    const recs=logs[id].filter(r=>r.sets&&r.sets.length&&r.date>=from);
+    let recs=logs[id].filter(r=>r.sets&&r.sets.length&&r.date>=from);
+    recs=recs.slice(inicioTramo(id,recs,R));
     if(recs.length<4)return;
     if(!R.estancadoEnTope){const t=repRange(id)[1];
       if(recs[recs.length-1].sets.every(x=>(Number(x.reps)||0)>=t))return;}

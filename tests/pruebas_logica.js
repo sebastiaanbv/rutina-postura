@@ -1007,6 +1007,239 @@
       expect(f.mantiene).toBe(true);expect(f.why.length<=80).toBe(true);});
   });
 
+  /* ---------- HU-15: empezar mas suave al volver de un paron ----------
+     Mas de R.paronDias sin hacer el ejercicio (21 en masa, 14 en salud): el
+     peso x0,9 (x0,8 pasado R.paronLargo: 42 / 28) bajado a un peso real, el
+     minimo del rango y sin subir. Si el redondeo quitaria mas de un 20 % al
+     objetivo, se mantiene el peso y solo bajan las reps. Las fechas son
+     relativas (F.fecha): no dependen del dia en que corre */
+  escenario("Lógica · parón (HU-15)",F.vacio,()=>{
+    const PB="press_banca_db",GE="gym_empuje",RB="remo_db",FB="salud_fuerza_b",FP="flexiones_pared",FA="salud_fuerza_a",
+      SS="sentadilla_silla",EQ="salud_equilibrio",
+      ses=(n,w,reps,k,id)=>reg(n,k||GE,veces(4,w,reps)),
+      con=(goal,logs,extra)=>Object.assign({rp_prefs:goal?{goal:goal}:{},rp_logs:logs},extra||{}),
+      sem=dias=>Math.floor(dias/7)+" semanas",
+      vuelve=(w,r,dias)=>({w:w,reps:r,vuelta:true,why:"Llevas "+sem(dias)+" sin hacerlo: vuelve con "+w+" kg y "+r+" reps, sin forzar"}),
+      sigue=(w,r,dias)=>({w:w,reps:r,vuelta:true,why:"Llevas "+sem(dias)+" sin hacerlo: sigue con "+w+" kg, solo "+r+" reps y sin forzar"}),
+      sinPeso=(r,dias)=>({w:0,reps:r,vuelta:true,why:"Llevas "+sem(dias)+" sin hacerlo: vuelve con "+r+" repeticiones, sin forzar"}),
+      visto=(n,k)=>Object.assign({date:F.fecha(n),sets:[],t:F.momento(n,18,0).getTime(),checked:true},k?{k:k}:{});
+    test("masa: 22 dias sin hacerlo a 40 kg → 40 × 0,9 bajado al salto real, el minimo del rango y sin subida; 43 dias → × 0,8",app=>{
+      expect(app.w.repRange(PB)).toEqual([6,10]);
+      /* sin salto declarado: la escala de siempre, 36 → 35 y 32 → 30 */
+      limpio(app,con("masa",{[PB]:[ses(22,40,8)]}));
+      expect(tt(app,PB,GE)).toEqual(vuelve(35,6,22));
+      expect(sug(app,PB,GE)).toEqual({w:35,reps:6,why:vuelve(35,6,22).why});
+      limpio(app,con("masa",{[PB]:[ses(43,40,8)]}));
+      expect(tt(app,PB,GE)).toEqual(vuelve(30,6,43));
+      /* 42 dias aun es x0,9 */
+      limpio(app,con("masa",{[PB]:[ses(42,40,8)]}));
+      expect(tt(app,PB,GE)).toEqual(vuelve(35,6,42));
+      /* con el salto de la maquina (rp_inc): multiplos del salto, hacia abajo */
+      [[5,35,30],[2,36,32],[2.5,35,30]].forEach(([s,a,b])=>{
+        limpio(app,con("masa",{[PB]:[ses(22,40,8)]},{rp_inc:{[PB]:s}}));expect(tt(app,PB,GE)).toEqual(vuelve(a,6,22));
+        limpio(app,con(null,{[PB]:[ses(43,40,8)]},{rp_inc:{[PB]:s}}));expect(tt(app,PB,GE)).toEqual(vuelve(b,6,43));});
+      /* con el rango lleno antes del paron tampoco sube: vuelve, no 42,5 */
+      limpio(app,con("masa",{[PB]:[ses(29,40,9),ses(22,40,10)]}));
+      const t=tt(app,PB,GE);
+      expect(t).toEqual(vuelve(35,6,22));expect(t.subeCarga).toBeFalsy();expect(t.extiende).toBeFalsy();
+      /* el + de siempre desde el peso de vuelta: 35 → 37,5 → 40 */
+      expect(app.w.nextW(PB,35,1)).toBe(37.5);expect(app.w.nextW(PB,37.5,1)).toBe(40);});
+    test("masa: con 20 o 21 dias se aplica la regla normal, exactamente lo de antes",app=>{
+      [[8,{w:40,reps:9,why:"La vez pasada 8: hoy 9 con el mismo peso"}],
+       [10,{w:42.5,reps:6,subeCarga:true,why:"Llenaste el rango entero: sube a 42.5 kg y vuelve a 6"}]].forEach(([r,esperado])=>{
+        limpio(app,con("masa",{[PB]:[ses(2,40,r)]}));expect(tt(app,PB,GE)).toEqual(esperado);
+        [20,21].forEach(d=>{limpio(app,con("masa",{[PB]:[ses(d,40,r)]}));expect(tt(app,PB,GE)).toEqual(esperado);
+          limpio(app,con(null,{[PB]:[ses(d,40,r)]}));expect(tt(app,PB,GE)).toEqual(esperado);});});
+      /* la molestia de hace 21 dias: la rama de siempre */
+      limpio(app,con("masa",{[PB]:[ses(21,40,8)]},{rp_pain:{[PB]:[F.fecha(21)]}}));
+      expect(tt(app,PB,GE)).toEqual({w:40,reps:8,dolor:true,why:"La vez pasada anotaste molestia: mismo peso y sin forzar"});});
+    test("salud: el umbral empieza a los 15 dias (mas de 14), y pasa a × 0,8 a los 29",app=>{
+      limpio(app,con("salud",{[PB]:[ses(14,40,8)]}));
+      expect(tt(app,PB,GE)).toEqual({w:40,reps:9,why:"La vez pasada 8: hoy 9 con el mismo peso"});
+      limpio(app,con("salud",{[PB]:[ses(15,40,8)]}));
+      expect(tt(app,PB,GE)).toEqual(vuelve(35,6,15));
+      expect(vuelve(35,6,15).why).toContain("Llevas 2 semanas sin hacerlo");
+      limpio(app,con("salud",{[PB]:[ses(28,40,8)]}));
+      expect(tt(app,PB,GE)).toEqual(vuelve(35,6,28));
+      limpio(app,con("salud",{[PB]:[ses(29,40,8)]}));
+      expect(tt(app,PB,GE)).toEqual(vuelve(30,6,29));
+      /* los mismos 15 dias en masa: regla normal */
+      limpio(app,con("masa",{[PB]:[ses(15,40,8)]}));
+      expect(tt(app,PB,GE).vuelta).toBeFalsy();});
+    test("pesosDB [1,2,3] a 2 kg: el redondeo bajaria mas de un 20 %, mantiene 2 kg y solo baja las reps al minimo",app=>{
+      const n=app.w.dose(FB,RB).sets||2,r=(d,w,reps)=>reg(d,FB,veces(n,w,reps)),
+        lista=(l,goal)=>({rp_prefs:{goal:goal||"masa",pesosDB:l}});
+      expect(app.w.repRange(RB)).toEqual([8,12]);
+      /* 2 x 0,9 = 1,8: la de abajo es 1, y 1 < 1,8 x 0,8 */
+      limpio(app,Object.assign(lista([1,2,3]),{rp_logs:{[RB]:[r(22,2,10)]}}));
+      expect(tt(app,RB,FB)).toEqual(sigue(2,8,22));
+      expect(sug(app,RB,FB)).toEqual({w:2,reps:8,why:sigue(2,8,22).why});
+      /* el juego de la madre es salud: 15 dias ya es paron, y lo mismo */
+      limpio(app,Object.assign(lista([1,2,3],"salud"),{rp_logs:{[RB]:[r(15,2,12)]}}));
+      expect(tt(app,RB,FB)).toEqual(sigue(2,8,15));
+      /* con la de 1,5 en la lista si se baja: 1,5 >= 1,44 */
+      limpio(app,Object.assign(lista([1,1.5,2,3]),{rp_logs:{[RB]:[r(22,2,10)]}}));
+      expect(tt(app,RB,FB)).toEqual(vuelve(1.5,8,22));
+      /* 3 kg: x0,9 = 2,7 → 2 es demasiado (< 2,16); x0,8 = 2,4 → 2 vale */
+      limpio(app,Object.assign(lista([1,2,3]),{rp_logs:{[RB]:[r(22,3,10)]}}));
+      expect(tt(app,RB,FB)).toEqual(sigue(3,8,22));
+      limpio(app,Object.assign(lista([1,2,3]),{rp_logs:{[RB]:[r(43,3,10)]}}));
+      expect(tt(app,RB,FB)).toEqual(vuelve(2,8,43));
+      /* con la mas ligera no hay nada por debajo: tambien se mantiene */
+      limpio(app,Object.assign(lista([1,2,3]),{rp_logs:{[RB]:[r(43,1,10)]}}));
+      expect(tt(app,RB,FB)).toEqual(sigue(1,8,43));
+      /* nunca una mancuerna que no hay */
+      [[1,2,3],[2,3,5],[1,1.5,2,3]].forEach(l=>[1,1.5,2,3,5].forEach(w=>[22,43].forEach(d=>{
+        limpio(app,Object.assign(lista(l),{rp_logs:{[RB]:[r(d,w,10)]}}));const t=tt(app,RB,FB);
+        expect(t.vuelta).toBe(true);expect(t.w===w||l.indexOf(t.w)>=0).toBe(true);expect(t.w<=w).toBe(true);})));
+      /* salto declarado de 5 con 5 kg: el de abajo seria 0, se mantiene */
+      limpio(app,con("masa",{[PB]:[ses(22,5,8)]},{rp_inc:{[PB]:5}}));
+      expect(tt(app,PB,GE)).toEqual(sigue(5,6,22));});
+    test("sin carga, tras el paron solo se pide el minimo del rango, sin hablar de peso",app=>{
+      expect(app.w.repRange(FP)).toEqual([8,12]);
+      [[12,22,"masa"],[16,22,"masa"],[5,22,"masa"],[12,15,"salud"],[12,43,"masa"]].forEach(([reps,d,g])=>{
+        limpio(app,con(g,{[FP]:[reg(d,FA,veces(2,0,reps))]}));const t=tt(app,FP,FA);
+        expect(t).toEqual(sinPeso(8,d));expect(t.why).not.toMatch(/peso|kg|pesad/i);
+        expect(sug(app,FP,FA)).toEqual({w:0,reps:8,why:t.why});});
+      /* con carga a 0 kg (sentarse sin mancuerna): el mismo texto, sin peso */
+      limpio(app,con("salud",{[SS]:[reg(20,FA,veces(2,0,12))]}));
+      expect(tt(app,SS,FA)).toEqual(sinPeso(8,20));});
+    test("molestia y paron: el peso y las reps de la vuelta, con la molestia en el porque; sin paron, la rama de siempre",app=>{
+      const m=dias=>({rp_pain:{[PB]:[F.fecha(dias)]}});
+      limpio(app,con("masa",{[PB]:[ses(43,40,8)]},m(43)));
+      expect(tt(app,PB,GE)).toEqual({w:30,reps:6,dolor:true,vuelta:true,
+        why:"Molestia la última vez y 6 semanas sin hacerlo: vuelve con 30 kg y 6 reps"});
+      limpio(app,con("masa",{[PB]:[ses(7,40,8)]},m(7)));
+      expect(tt(app,PB,GE)).toEqual({w:40,reps:8,dolor:true,why:"La vez pasada anotaste molestia: mismo peso y sin forzar"});
+      /* reps por debajo del minimo: se quedan las de la ultima vez */
+      limpio(app,con("masa",{[PB]:[ses(22,40,5)]},m(22)));
+      expect(tt(app,PB,GE)).toEqual({w:35,reps:5,dolor:true,vuelta:true,
+        why:"Molestia la última vez y 3 semanas sin hacerlo: vuelve con 35 kg y 5 reps"});
+      /* molestia repetida: el aviso de siempre, con el peso ya bajado */
+      limpio(app,con("masa",{[PB]:[ses(26,40,8),ses(22,40,8)]},{rp_pain:{[PB]:[F.fecha(26),F.fecha(22)]}}));
+      expect(tt(app,PB,GE)).toEqual({w:35,reps:6,dolor:true,vuelta:true,
+        why:"Molestia repetida en este ejercicio: no subas y plantéate cambiarlo por otro"});
+      /* la guarda del 20 %: mismo peso */
+      const n=app.w.dose(FB,RB).sets||2;
+      limpio(app,{rp_prefs:{goal:"masa",pesosDB:[1,2,3]},rp_logs:{[RB]:[reg(22,FB,veces(n,2,10))]},rp_pain:{[RB]:[F.fecha(22)]}});
+      expect(tt(app,RB,FB)).toEqual({w:2,reps:8,dolor:true,vuelta:true,
+        why:"Molestia la última vez y 3 semanas sin hacerlo: sigue con 2 kg y 8 reps"});
+      /* sin carga */
+      limpio(app,con("masa",{[FP]:[reg(22,FA,veces(2,0,12))]},{rp_pain:{[FP]:[F.fecha(22)]}}));
+      const f=tt(app,FP,FA);
+      expect(f).toEqual({w:0,reps:8,dolor:true,vuelta:true,why:"Molestia la última vez y 3 semanas sin hacerlo: vuelve con 8 repeticiones"});
+      expect(f.why).not.toMatch(/peso|kg|pesad/i);});
+    test("sin salto ni lista, la escala inversa de progStep: el + de siempre vuelve al peso de partida",app=>{
+      limpio(app);
+      [[40,37.5],[21,19],[20,18],[10,9],[22,19.5],[9,8],[2,1],[2.5,1.5],[1,0],[0.5,0]].forEach(([w,abajo])=>{
+        expect({[w]:app.w.pasoAbajo(w)}).toEqual({[w]:abajo});
+        if(abajo>0&&abajo+app.w.progStep(abajo)===w)expect(app.w.nextW(PB,abajo,1)).toBe(w);});
+      /* 10 kg: 9 y 8 (ya no salen iguales); 20 kg: 18 y 16, y 18 + 2 = 20 */
+      [[10,22,9],[10,43,8],[20,22,18],[20,43,16],[40,22,35],[40,43,30]].forEach(([w,d,esperado])=>{
+        limpio(app,con("masa",{[PB]:[ses(d,w,8)]}));expect(tt(app,PB,GE)).toEqual(vuelve(esperado,6,d));});
+      expect(app.w.nextW(PB,18,1)).toBe(20);expect(app.w.nextW(PB,9,1)).toBe(10);expect(app.w.nextW(PB,8,1)).toBe(9);
+      /* bajarA, suelta: lista, salto y escala */
+      limpio(app,{rp_inc:{[PB]:5}});
+      expect([app.w.bajarA(PB,40,36,GE),app.w.bajarA(PB,40,32,GE),app.w.bajarA(PB,5,4.5,GE)]).toEqual([35,30,null]);
+      limpio(app);
+      expect([app.w.bajarA(PB,40,36,GE),app.w.bajarA(PB,1,0.9,GE)]).toEqual([35,null]);
+      limpio(app,{rp_prefs:{pesosDB:[1,2,3]}});
+      expect([app.w.bajarA(RB,3,2.7,FB),app.w.bajarA(RB,1,0.9,FB)]).toEqual([2,null]);});
+    test("los vistos: con carga solo cuentan los de la misma rutina; sin carga, todos; un visto sin rutina no cuenta con carga",app=>{
+      const n=app.w.dose(FA,SS).sets||2,s=(d,k,w)=>reg(d,k,veces(n,w,10));
+      /* sentarse con 2 kg en Fuerza A hace 30 dias, visto en Equilibrio hace 2: paron */
+      limpio(app,con("salud",{[SS]:[s(30,FA,2),visto(2,EQ)]}));
+      expect(tt(app,SS,FA).vuelta).toBe(true);
+      /* visto en Fuerza A hace 2: la regla normal */
+      limpio(app,con("salud",{[SS]:[s(30,FA,2),visto(2,FA)]}));
+      expect(tt(app,SS,FA)).toEqual({w:2,reps:11,why:"La vez pasada 10: hoy 11 con el mismo peso"});
+      /* sin carga, el visto de otra rutina tambien cuenta */
+      limpio(app,con("salud",{[FP]:[reg(30,FA,veces(2,0,10)),visto(2,EQ)]}));
+      expect(tt(app,FP,FA).vuelta).toBeFalsy();
+      limpio(app,con("salud",{[FP]:[reg(30,FA,veces(2,0,10))]}));
+      expect(tt(app,FP,FA).vuelta).toBe(true);
+      /* sin rutina (copias viejas): la ultima sesion con series y el visto, los dos sin k */
+      const sinK=r=>{delete r.k;return r;};
+      limpio(app,con("salud",{[PB]:[sinK(ses(30,40,8)),visto(2)]}));
+      expect(tt(app,PB,GE)).toEqual(vuelve(30,6,30));
+      limpio(app,con("masa",{[PB]:[sinK(ses(30,40,8)),visto(2)]}));
+      expect(tt(app,PB,GE)).toEqual(vuelve(35,6,30));
+      limpio(app,con("masa",{[FP]:[sinK(reg(30,FA,veces(2,0,10))),visto(2)]}));
+      expect(tt(app,FP,FA).vuelta).toBeFalsy();
+      /* una sesion con series mas reciente pero antes en el array tambien cuenta */
+      limpio(app,con("masa",{[PB]:[ses(3,30,8,"gym_tiron"),ses(30,40,8)]}));
+      expect(tt(app,PB,GE).vuelta).toBeFalsy();});
+    test("diasDesde: medianoche local a medianoche local, nula, rota o futura es 0",app=>{
+      limpio(app);
+      expect([0,1,14,15,21,22,43].map(n=>app.w.diasDesde(F.fecha(n)))).toEqual([0,1,14,15,21,22,43]);
+      expect([app.w.diasDesde(null),app.w.diasDesde(""),app.w.diasDesde("no es fecha"),app.w.diasDesde(F.fecha(-5))]).toEqual([0,0,0,0]);});
+    test("los dias de paron salen del bloque REGLAS: cambiar un numero cambia la sugerencia",app=>{
+      const R=app.ev("REGLAS"),guarda=JSON.stringify(R);
+      try{
+        limpio(app,con("masa",{[PB]:[ses(22,40,8)]}));
+        expect(tt(app,PB,GE)).toEqual(vuelve(35,6,22));
+        app.ev("REGLAS.masa.paronDias=30");
+        expect(tt(app,PB,GE)).toEqual({w:40,reps:9,why:"La vez pasada 8: hoy 9 con el mismo peso"});
+        app.ev("REGLAS.masa.paronDias=21;REGLAS.masa.paronLargo=21");
+        expect(tt(app,PB,GE)).toEqual(vuelve(30,6,22));
+        app.ev("REGLAS.comun.paronFactor=[0.95,0.8];REGLAS.masa.paronLargo=42");
+        expect(tt(app,PB,GE)).toEqual(vuelve(37.5,6,22));
+        app.ev("REGLAS.salud.paronDias=20");
+        limpio(app,con("salud",{[PB]:[ses(15,40,8)]}));
+        expect(tt(app,PB,GE).vuelta).toBeFalsy();
+        /* la holgura: con 0,5 la de 1 kg desde 2 ya vale (1 >= 1,8 x 0,5) */
+        app.ev("REGLAS.comun.paronHolgura=0.5");
+        limpio(app,{rp_prefs:{goal:"masa",pesosDB:[1,2,3]},rp_logs:{[RB]:[reg(22,FB,veces(2,2,10))]}});
+        expect(tt(app,RB,FB)).toEqual(vuelve(1,8,22));
+      }finally{const o=JSON.parse(guarda);["comun","masa","salud"].forEach(g=>{Object.keys(R[g]).forEach(c=>delete R[g][c]);Object.assign(R[g],o[g]);});}
+      expect(JSON.stringify(app.ev("REGLAS"))).toBe(guarda);});
+    test("stalled despues de una vuelta: el peso de antes del paron no es el mejor que batir",app=>{
+      const tras={[PB]:[ses(50,40,8),ses(43,40,8),ses(21,35,6),ses(14,35,7),ses(7,35,8)]},
+        semanal={[PB]:[ses(35,40,8),ses(28,40,8),ses(21,35,6),ses(14,35,7),ses(7,35,8)]};
+      limpio(app,con("masa",tras));expect(app.w.stalled()).toEqual([]);
+      limpio(app,con("masa",semanal));expect(app.w.stalled().map(x=>x.id)).toEqual([PB]);
+      /* en salud el hueco de mas de 14 tambien corta (17 dias: en masa no) */
+      const salud={[PB]:[ses(50,40,8),ses(38,40,8),ses(21,35,6),ses(14,35,7),ses(7,35,8)]};
+      limpio(app,con("masa",salud));expect(app.w.stalled().map(x=>x.id)).toEqual([PB]);
+      limpio(app,con("salud",salud));expect(app.w.stalled()).toEqual([]);
+      /* tras la vuelta, cuatro sesiones que no superan la primera: si marca */
+      limpio(app,con("masa",{[PB]:[ses(55,40,8),ses(30,36,8),ses(21,35,8),ses(14,35,8),ses(7,35,8)]}));
+      expect(app.w.stalled().map(x=>x.id)).toEqual([PB]);
+      expect(app.w.inicioTramo(PB,app.w.loadLogs()[PB],app.w.reglaObjetivo())).toBe(1);});
+    test("los porques del paron: 80 caracteres o menos con el peor caso (12 semanas, 102.75 kg, rango [12,20])",app=>{
+      const EL="elevaciones_laterales",n=app.w.dose(GE,EL).sets||3,D=85,
+        caso=(w,lista,dolor,reps)=>{limpio(app,Object.assign({rp_prefs:{goal:"masa",pesosDB:lista},rp_logs:{[EL]:[reg(D,GE,veces(n,w,reps||22))]}},
+          dolor?{rp_pain:{[EL]:[F.fecha(D)]}}:{}));return tt(app,EL,GE);};
+      expect(app.w.repRange(EL)).toEqual([12,20]);
+      const todos=[
+        [caso(130,[102.75,130]),vuelve(102.75,12,D)],
+        [caso(102.75,[1,102.75]),sigue(102.75,12,D)],
+        [caso(0,[1,2]),sinPeso(12,D)],
+        [caso(130,[102.75,130],true),{w:102.75,reps:12,dolor:true,vuelta:true,why:"Molestia la última vez y 12 semanas sin hacerlo: vuelve con 102.75 kg y 12 reps"}],
+        [caso(102.75,[1,102.75],true),{w:102.75,reps:12,dolor:true,vuelta:true,why:"Molestia la última vez y 12 semanas sin hacerlo: sigue con 102.75 kg y 12 reps"}],
+        [caso(0,[1,2],true),{w:0,reps:12,dolor:true,vuelta:true,why:"Molestia la última vez y 12 semanas sin hacerlo: vuelve con 12 repeticiones"}]];
+      todos.forEach(([t,esperado])=>{expect(t).toEqual(esperado);expect({[t.why]:t.why.length<=80}).toEqual({[t.why]:true});});});
+  });
+
+  /* datos de v35 tras un paron: las sesiones y molestias de los juegos, un
+     mes atras. Nada se rompe, nada se escribe y no hay claves nuevas */
+  const unMesAtras=fx=>()=>{const D=fx(),atras=f=>{const d=new Date(f+"T12:00:00");d.setDate(d.getDate()-30);
+      return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+    Object.keys(D.rp_logs||{}).forEach(id=>D.rp_logs[id].forEach(r=>{r.date=atras(r.date);if(r.t)r.t-=30*864e5;
+      (r.sets||[]).forEach(s=>{if(s.t)s.t-=30*864e5;});}));
+    Object.keys(D.rp_pain||{}).forEach(id=>{D.rp_pain[id]=D.rp_pain[id].map(atras);});
+    return D;};
+  [["gimnasio",F.dueno],["casa",F.madre]].forEach(([nombre,fx])=>{
+    escenario("Lógica · progresión con los datos de v35 de "+nombre+" tras un mes sin entrenar (HU-15)",unMesAtras(fx),()=>{
+      test("todas las rutinas: objetivos validos, sin escribir nada ni crear claves",sinEscribir);
+      test("todo lo que se hacia vuelve mas suave: el minimo del rango, nunca mas peso que la ultima vez",app=>{
+        app.reiniciarMemoria();const R=app.ev("ROUTINES"),malos=[];let n=0;
+        Object.keys(R).forEach(k=>app.w.effList(k).forEach(id=>{const t=app.w.todayTarget(k,id),ll=app.w.lastLog(id);
+          if(!t||!ll)return;n++;
+          if(!t.vuelta||t.reps>app.w.repRange(id)[0]||t.subeCarga||t.extiende||t.w>(Number(ll.sets[0].w)||0))malos.push(k+" "+id+" "+JSON.stringify(t));}));
+        expect(malos).toEqual([]);expect(n).toBeGreaterThan(10);});
+    });});
+
   /* ---------- pendientes al final del guiado (v36) ----------
      Empezar por el 4.º ejercicio y llegar al final cerraba la sesion como
      "Completada" con los tres primeros sin hacer. */
