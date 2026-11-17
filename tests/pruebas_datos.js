@@ -493,15 +493,23 @@
        asi que una copia de v35 (sin rp_schema) entra y cuenta igual */
     test("una copia de v35 importada cuenta las reps sin peso igual que antes de exportar",async app=>{
       const mide=()=>{app.w.renderProgress();return {ov:app.w.overloadIndex(9),st:app.w.stalled(),txt:app.texto("#progBody")};};
-      const antes=mide(),claves=app.claves();
-      expect(antes.ov.detalle.filter(d=>d.m==="reps").length).toBeGreaterThan(0);
-      expect(antes.st.filter(x=>x.m==="reps").length).toBeGreaterThan(0);
+      /* con los dos objetivos: en salud (el de este juego) mantenerse en el
+         tope no es estancarse (HU-16), y las dos de banda se quedan en 12,
+         su tope; el radar en reps sale con masa. rp_prefs vuelve tal cual */
+      const conObjetivo=(g,fn)=>{const raw=localStorage.getItem("rp_prefs"),p=JSON.parse(raw);p.goal=g;
+        localStorage.setItem("rp_prefs",JSON.stringify(p));try{return fn();}finally{localStorage.setItem("rp_prefs",raw);}};
+      const mideAmbos=()=>({salud:conObjetivo("salud",mide),masa:conObjetivo("masa",mide)});
+      const antes=mideAmbos(),claves=app.claves();
+      expect(antes.salud.ov.detalle.filter(d=>d.m==="reps").length).toBeGreaterThan(0);
+      expect(antes.masa.ov.detalle.filter(d=>d.m==="reps").length).toBeGreaterThan(0);
+      expect(antes.masa.st.filter(x=>x.m==="reps").length).toBeGreaterThan(0);
+      expect(antes.salud.st.filter(x=>x.m==="reps")).toEqual([]);
       const data=JSON.parse((await exportar(app)).texto);delete data.store.rp_schema;
       localStorage.clear();
       const recarga=app.cargo();importar(app,JSON.stringify(data));await recarga;await app.listo();
       expect(app.claves()).toEqual(claves);
       expect(app.leer("rp_schema")).toBe(app.ev("SCHEMA"));
-      expect(mide()).toEqual(antes);});
+      expect(mideAmbos()).toEqual(antes);});
   });
 
   /* HU-13: la reserva (s.rir) tambien se anota en las series sin carga, y

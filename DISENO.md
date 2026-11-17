@@ -721,7 +721,9 @@ las mancuernas, y el radar no podía avisar de un ejercicio sin peso.
   sentarse y levantarse y la zancada sin mancuerna, y las flexiones en la pared) y aparece el
   radar con las dos de banda, cinco sesiones en 12 reps; en el gimnasio entran los fondos sin
   lastre: «10 de 13» pasa a «11 de 14» (con dos años, «10 de 12» a «11 de 13») y el radar de seis
-  semanas los añade. Que mantener el tope del rango no sea estancamiento en salud es de HU-16.
+  semanas los añade. Que mantener el tope del rango no sea estancamiento en salud es de HU-16:
+  con las dos historias, ese radar de casa sale en masa (o sin objetivo, como un teléfono de v35)
+  y no con el objetivo salud de `madre`, porque las dos de banda se quedan en 12, su tope.
 - **Sin datos nuevos.** Solo lee `rp_logs`: no hay claves ni migración, y una copia de v35 se
   importa y cuenta igual. Lo que devuelven cambia en dos campos: cada entrada de
   `overloadIndex().detalle` y de `stalled()` dice su medida (`m`: `"e1"` o `"reps"`), y la de

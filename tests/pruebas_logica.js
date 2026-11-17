@@ -942,10 +942,19 @@
       const antes=app.foto(),R=app.ev("ROUTINES");let n=0;
       Object.keys(R).forEach(k=>app.w.effList(k).forEach(id=>{const t=app.w.todayTarget(k,id);
         if(t){n++;expect(isFinite(t.w)&&t.reps>=1&&!!t.why).toBe(true);expect(t.mantiene).toBeFalsy();}}));
-      expect(app.w.stalled()).toEqual([]);
+      /* sin goal el radar es el de masa: nada de lo que va con peso, como en
+         v36, y (HU-17) las dos de banda, que se miden en reps y llevan cinco
+         sesiones en 12 sin superarlo. El orden de rp_logs depende del dia */
+      const st=app.w.stalled();
+      expect(st.filter(x=>x.m!=="reps")).toEqual([]);
+      expect(st.map(x=>[x.id,x.m,x.mejor,x.sesiones]).sort()).toEqual([["abduccion_banda","reps",12,5],["remo_banda","reps",12,5]]);
       expect(n).toBeGreaterThan(20);
       expect(app.foto()).toEqual(antes);
-      expect(app.claves()).toEqual(Object.keys(antes).sort());});
+      expect(app.claves()).toEqual(Object.keys(antes).sort());
+      /* con su objetivo, salud, mantenerse en el tope no es estancarse (HU-16):
+         las mismas dos no salen */
+      app.sembrar(F.madre());
+      expect(app.w.stalled()).toEqual([]);});
     test("los umbrales salen de un solo bloque: REGLAS por objetivo y reglaObjetivo() que lee el objetivo en cada llamada",app=>{
       limpio(app);
       const S=app.w.reglaObjetivo("salud"),M=app.w.reglaObjetivo("masa");
