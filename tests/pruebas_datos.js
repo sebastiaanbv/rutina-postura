@@ -491,6 +491,36 @@
       expect(JSON.parse((await exportar(app)).texto).store).toEqual(data.store);});
   });
 
+  /* HU-13: la reserva (s.rir) tambien se anota en las series sin carga, y
+     mueve la propuesta: tiene que viajar en la copia, en rp_logs y en la
+     sesion a medias, con 0 (que no es «sin anotar») y con 3 («3+») */
+  const conReservaSinCarga=()=>{const D=F.madre();
+    ["flexiones_pared","remo_banda"].forEach((id,j)=>D.rp_logs[id].forEach((r,i)=>r.sets.forEach((s,n)=>{
+      if((i+n+j)%3!==2)s.rir=(i+n+j)%3===0?0:3;})));
+    D.rp_session.log.remo_banda=[{w:0,reps:12,t:D.rp_session.startedAt+90000,rir:0},{w:0,reps:11,t:D.rp_session.startedAt+150000}];
+    return D;};
+  escenario("Copia de seguridad con reserva en series sin carga (HU-13)",conReservaSinCarga,()=>{
+    test("exportar → importar conserva s.rir en las series sin carga, también el 0 y la serie sin anotar",async app=>{
+      const antes=app.foto(),rirs=()=>{const l=app.leer("rp_logs");
+        return ["flexiones_pared","remo_banda"].map(id=>l[id].map(r=>r.sets.map(s=>s.rir===undefined?"-":s.rir)));};
+      const esperado=rirs(),prop=()=>[["salud_fuerza_a","flexiones_pared"],["salud_fuerza_b","remo_banda"]].map(([k,id])=>app.w.todayTarget(k,id)),
+        propAntes=prop();
+      /* hay de las tres clases: 0, 3+ y sin anotar, y son ejercicios sin carga */
+      ["flexiones_pared","remo_banda"].forEach(id=>expect(app.ev("EX")[id].load).toBe(false));
+      const planas=[].concat(...esperado.map(x=>[].concat(...x)));
+      [0,3,"-"].forEach(v=>expect(planas.indexOf(v)>=0).toBe(true));
+      const d=await exportar(app),data=JSON.parse(d.texto);
+      expect(data.store).toEqual(antes);
+      localStorage.clear();
+      const recarga=app.cargo();importar(app,d.texto);await recarga;await app.listo();
+      expect(app.foto()).toEqual(antes);
+      expect(rirs()).toEqual(esperado);
+      expect(app.leer("rp_session").log.remo_banda.map(x=>x.rir===undefined?"-":x.rir)).toEqual([0,"-"]);
+      /* y la propuesta de despues de importar la lee igual que antes */
+      expect(prop()).toEqual(propAntes);
+      expect(JSON.parse((await exportar(app)).texto).store).toEqual(data.store);});
+  });
+
   /* HU-11: en pantalla solo queda la racha de semanas (weekStats), pero
      rp_streak se sigue escribiendo igual: su total es «N sesiones en total» */
   escenario("Racha diaria guardada (rp_streak)",F.dueno,()=>{
