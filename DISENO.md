@@ -259,6 +259,8 @@ El peso del control es **solo el número**, y es el mismo al entrar en la serie,
 
 **Tras un parón se vuelve más suave.** Si el ejercicio lleva más de `paronDias` sin hacerse (21 días en masa, 14 en salud, desde la última sesión con series o un «visto» del mismo estímulo: sin carga, cualquiera; con carga, solo de la misma rutina), la propuesta es el peso × 0,9 (× 0,8 pasado `paronLargo`, 42 o 28 días) bajado al peso real de abajo —la lista de mancuernas, los múltiplos del salto de la máquina o, sin nada declarado, la escala inversa de `progStep` (`pasoAbajo`: 40 → 37,5 → 35, 20 → 18, 10 → 9), desde la que el + de siempre vuelve al peso de partida—, el **mínimo del rango** y nunca una subida: «Llevas 3 semanas sin hacerlo: vuelve con 35 kg y 6 reps, sin forzar». El aviso de empezar suave va en el porqué, sin otro elemento en el paso. Si el redondeo quitaría más de un 20 % al objetivo (1-2-3 kg: 2 × 0,9 = 1,8 → 1), se mantiene el peso y solo bajan las reps: «sigue con 2 kg, solo 8 reps y sin forzar». Sin carga (o a 0 kg), solo el mínimo del rango, sin hablar de peso. Con la molestia anotada la última vez y además un parón, el peso de la vuelta y las reps más bajas de las dos, con `dolor` y la molestia en el porqué («Molestia la última vez y 6 semanas sin hacerlo: vuelve con 30 kg y 6 reps»); sin parón, la molestia sigue como siempre. Lo que pasó antes del parón (rango lleno, reps de más) no se aplica ese día.
 
+**Dos veces por debajo del mínimo, se baja un poco.** Si las dos últimas sesiones (`fallosSesiones`) tienen la primera serie por debajo del mínimo del rango **al mismo peso**, repetir no lo arregla: la propuesta es un peso real menos —la mancuerna anterior de la lista, el − del salto de la máquina (40 → 35 con 5) o, sin nada declarado, `pasoAbajo` (40 → 37,5, 20 → 18)— y el mínimo + 1, con `fallos`: «Dos veces por debajo de 6: baja a 37.5 kg y busca 7». Si bajar quitaría más de un 25 % (`fallosBajadaMax`: 1-2-3 kg a 2 kg) se mantiene el peso y se pide el mínimo, «bajar es demasiado, sigue con 2 kg y busca 8»; si no hay nada más ligero, «ya es lo más ligero». Es igual en masa y en salud. Con una sola sesión corta, o con el peso cambiado entre ellas, la regla de siempre. Si alguna de las dos tiene molestia anotada no se baja: manda la molestia, y si es la penúltima, mismo peso y mismas reps con «Hace dos sesiones anotaste molestia: mismo peso y sin forzar». Sin carga (o a 0 kg), «prueba una variante algo más fácil y busca 8», sin hablar de peso. Un parón va antes: tras semanas sin hacerlo, la vuelta.
+
 **El tiempo no se edita.** Descansos y sostenes los fija el programa: el criterio para ponerlos ya está tomado y ofrecer un stepper solo invita a deshacerlo sin datos. Cambiar las series, en cambio, responde a algo que solo sabes tú — cómo te sientes hoy y cuánto tiempo tienes.
 
 **Un descanso de 0 s es 0 s.** Lo traen los calentamientos encadenados y lo puede elegir la persona al crear un ejercicio propio: la serie siguiente entra directa, sin pantalla de descanso, y la duración estimada de la rutina no le suma nada. `dose()` ya pone el descanso por defecto cuando nadie lo declara, así que `buildSteps` y `estMinutes` lo usan tal cual, nunca con `||`.
@@ -282,7 +284,7 @@ La cabecera del día lleva **Registrar rutina**: elige el día y añade a mano u
 ### Progreso
 Un dato hero (índice de fuerza) y seis bloques con el mismo ritmo. Los récords van justo detrás del hero, porque son la recompensa, y en ámbar.
 
-El radar de estancamiento respeta el objetivo: en salud mantener es un logro, así que no marca lo que se mantiene en el tope del rango o por encima, y solo marca si las tres últimas sesiones **bajan** del mejor (más de un 0,5 %), no si se quedan igual. En masa marca, como siempre, tres sesiones sin superarlo. Los dos criterios salen de `REGLAS` (§8, Modo guiado). En los dos objetivos la ventana del mejor empieza **tras la última vuelta de un parón** (un hueco de más de `paronDias` entre dos sesiones): el peso de antes no es el que batir cuando la app acaba de proponer bajarlo, y con menos de cuatro sesiones desde la vuelta no marca. Una bajada que no viene de un parón (una descarga) no corta.
+El radar de estancamiento respeta el objetivo: en salud mantener es un logro, así que no marca lo que se mantiene en el tope del rango o por encima, y solo marca si las tres últimas sesiones **bajan** del mejor (más de un 0,5 %), no si se quedan igual. En masa marca, como siempre, tres sesiones sin superarlo. Los dos criterios salen de `REGLAS` (§8, Modo guiado). En los dos objetivos la ventana del mejor empieza **tras la última vuelta de un parón** (un hueco de más de `paronDias` entre dos sesiones) **o de la bajada tras dos sesiones por debajo del mínimo**: el peso de antes no es el que batir cuando la app acaba de proponer bajarlo, y con menos de cuatro sesiones desde la vuelta no marca. Una bajada que no viene de un parón ni de dos fallos (una descarga) no corta.
 
 Se pinta con **una sola lectura de `rp_logs`**: `renderProgress` lo lee y se lo pasa a cada análisis (`strengthIdx`, `strengthSpark`, `overloadIndex`, `stalled`, `prFeed`, `muscleSets`, `monthSummary`), que solo lo leen, nunca lo modifican. Un bloque nuevo recibe ese `logs`; no llama a `loadLogs()`. Sin el argumento, cada análisis lo lee él mismo, igual que `exChart`.
 
@@ -566,6 +568,35 @@ rango: el primer día de vuelta pedía más de lo que había.
   semanas, 102.75 kg, rango [12,20]) en 80 caracteres o menos. Y los juegos `dueno` y `madre`
   movidos un mes atrás: nada se rompe ni se escribe, sin claves nuevas, y todo vuelve al mínimo
   del rango sin más peso que la última vez.
+
+Bajar un poco el peso tras dos sesiones por debajo del rango (HU-14). Quien se quedaba corto de
+repeticiones recibía cada vez «mismo peso y una más», y podía pasar semanas pegado a un peso que
+no salía.
+
+- **Dos fallos:** las `fallosSesiones` (2) últimas sesiones con series tienen la primera serie por
+  debajo del mínimo y el mismo peso. Se propone un peso real menos (`unSaltoMenos`, en el orden de
+  `stepFor`: la mancuerna anterior de la lista, `nextW(−1)` con el salto declarado —40 → 35 con 5,
+  42,5 → 40— o `pasoAbajo` sin nada —40 → 37,5, 20 → 18—) y el mínimo + 1, con `fallos`. No es
+  `bajarA(w0 − algo)`: `roundDownTo` vuelve a sumar su tolerancia y con salto devolvía el mismo peso.
+- **Guarda del 25 %** (`fallosBajadaMax`): si el peso de abajo quita más, mismo peso y el mínimo
+  («bajar es demasiado»: 1-2-3 kg a 2 kg, o 10 kg con salto de 5); si no hay nada más ligero (la
+  mancuerna más ligera, 5 kg con salto de 5, 1 kg sin nada), «ya es lo más ligero».
+- **Precedencia:** primera vez, molestia en la última y parón van antes. Con los dos fallos y la
+  molestia en la penúltima, la rama de la molestia: mismo peso y mismas reps, `dolor`. La molestia
+  en la penúltima sin los dos fallos sigue sin frenar (v35). Igual en masa y en salud.
+- **Sin carga o a 0 kg:** el mínimo y «prueba una variante algo más fácil», sin hablar de peso.
+- **Radar de estancamiento:** `inicioTramo` corta también tras la bajada por dos fallos; seguirla
+  (37,5 × 7, × 8 tras 40 × 5, × 5) ya no marca «Estancado». Una descarga sin dos fallos no corta.
+- **Lo que no cambia:** ningún juego ni prueba tenía dos primeras series seguidas bajo el mínimo:
+  la referencia de v36 (sin entradas nuevas en `CAMBIOS_OBJETIVOS`) y la de Progreso v35 quedan
+  igual. Los botones −/+ siguen con `nextW`. Sin claves nuevas.
+- **Pruebas** en `tests/pruebas_logica.js`, escenario «dos sesiones por debajo del rango (HU-14)»:
+  los seis criterios (40 → 37,5 y 35 con `rp_inc` 5; una sola corta y el peso cambiado; molestia en
+  la última, en la penúltima y en las dos; `pesosDB` 1-2-3 a 1, 2 y 3 kg; masa, salud y sin
+  objetivo; los juegos de v35 sin nada escrito ni claves nuevas), más `unSaltoMenos` suelta, los
+  saltos 2,5/4,5/5/10, el paso de 20 a 18, sin carga y a 0 kg, el parón que gana, `REGLAS` como
+  fuente, `stalled` tras la bajada y los porqués del peor caso (102.75 kg, rango [12,20]) en 80
+  caracteres o menos.
 
 ### Cerrado en v36
 

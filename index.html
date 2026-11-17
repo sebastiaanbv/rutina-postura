@@ -4438,14 +4438,22 @@ function bajarA(id,w0,meta,k){const l=availDB(id,k);
   if(incFor(id,k)){const v=roundDownTo(id,meta,k);return v>0?v:null;}
   let w=w0;for(let i=0;i<200&&w>meta+1e-9;i++){w=pasoAbajo(w);if(w<=0)return null;}
   return w>meta+1e-9?null:Math.round(w*100)/100;}
+/* el peso real inmediatamente por debajo de w0 (HU-14), en el orden de
+   stepFor: la mancuerna anterior de la lista, el boton − con el salto
+   declarado (40 → 35 con 5) o pasoAbajo. No es bajarA(w0-algo): roundDownTo
+   vuelve a sumar su tolerancia y con salto devolvia el mismo w0. null si no
+   hay nada mas ligero por encima de 0 */
+function unSaltoMenos(id,w0,k){const l=availDB(id,k);
+  if(l){const v=l.filter(x=>x<w0-1e-9).pop();return v==null?null:v;}
+  const v=incFor(id,k)?nextW(id,w0,-1,k):pasoAbajo(w0);return v>0?v:null;}
 /* Objetivo de hoy: una meta de proceso resoluble hoy, no un resultado lejano.
    Las ramas van en este orden y gana la primera: 1 primera vez · 2 molestia
-   (2' molestia tras un paron, HU-15) · 3 paron (HU-15) · (4 dos fallos, HU-14 ·
-   5 freno por reserva, HU-13) · 6 regla del objetivo (HU-16) · 7 la
-   progresion doble de siempre */
+   (2' molestia tras un paron, HU-15) · 3 paron (HU-15) · 4' dos fallos con
+   molestia en la penultima · 4 dos fallos (HU-14) · (5 freno por reserva,
+   HU-13) · 6 regla del objetivo (HU-16) · 7 la progresion doble de siempre */
 function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)return null;
   const R=reglaObjetivo(),logs=loadLogs(),rng=repRange(id),d=dose(k,id),
-        ult=lastLogs(id,Math.max(2,R.llenasParaSalir),logs),ll=ult[0];
+        ult=lastLogs(id,Math.max(2,R.llenasParaSalir,R.fallosSesiones),logs),ll=ult[0];
   /* 1 · primera vez */
   if(!ll||!ll.sets.length)return {w:e.load===true?0:0,reps:rng[0],why:"Primera vez: busca "+rng[0]+" repeticiones limpias",nuevo:true};
   /* 3 · paron (HU-15): mas de R.paronDias sin hacerlo (21 en masa, 14 en
@@ -4487,6 +4495,26 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
      sumaba como texto, "30"+2.5 = 302,5 kg, y con la lista "8" proponia bajar */
   const trabajo=ll.sets,tope=trabajo.every(x=>(x.reps||0)>=rng[1]),
         completo=trabajo.length>=(d.sets||trabajo.length),first=trabajo[0],w0=Number(first.w)||0,r1=Number(first.reps)||0;
+  /* 4 · dos fallos (HU-14): las R.fallosSesiones ultimas sesiones con la
+     primera serie por debajo del minimo y al mismo peso. Quedarse corto dos
+     veces seguidas no se arregla repitiendo: se baja un peso real (unSaltoMenos)
+     y se pide el minimo + 1. Si eso quitaria mas de R.fallosBajadaMax (25 %) o
+     ya no hay nada mas ligero, mismo peso y el minimo. Igual en masa y en
+     salud. Sin carga o a 0 kg, una variante algo mas facil. 4' · si alguna de
+     esas sesiones tiene molestia, no se baja: manda la molestia */
+  const fallos=ult.slice(0,R.fallosSesiones),
+        dosFallos=fallos.length>=R.fallosSesiones&&fallos.every(r=>{const s=r.sets[0]||{};
+          return (Number(s.reps)||0)<rng[0]&&Math.abs((Number(s.w)||0)-w0)<1e-9;});
+  if(dosFallos&&fallos.some(r=>pain.indexOf(r.date)>=0))
+    return {w:w0,reps:r1||rng[0],dolor:true,
+      why:"Hace dos sesiones anotaste molestia: "+(sinPeso?"mismas repeticiones":"mismo peso")+" y sin forzar"};
+  if(dosFallos){const real=sinPeso?null:unSaltoMenos(id,w0,k),
+      bajo=real!=null&&real<w0&&real>=w0*(1-R.fallosBajadaMax)-1e-9,
+      r=bajo?Math.min(rng[1],rng[0]+1):rng[0],pre="Dos veces por debajo de "+rng[0]+": ";
+    return {w:bajo?real:w0,reps:r,fallos:true,
+      why:sinPeso?pre+"prueba una variante algo más fácil y busca "+r
+        :bajo?pre+"baja a "+fmtW(real)+" kg y busca "+r
+        :pre+(real==null?"ya es lo más ligero":"bajar es demasiado")+", sigue con "+fmtW(w0)+" kg y busca "+r};}
   /* 6 · regla del objetivo (HU-16): con el rango lleno, salir de el (estirar
      o subir) pide R.llenasParaSalir sesiones seguidas llenas al mismo peso.
      En masa es una, como siempre; en salud dos, y la primera se mantiene y se
@@ -4558,11 +4586,16 @@ function overloadIndex(days,LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),fro
     detalle.push({id:id,ok:ok,hoy:hoy,antes:antes});});
   return {prog:prog,total:tot,pct:tot?Math.round(prog/tot*100):0,detalle:detalle};}
 /* el primer registro de recs (sesiones con series, en orden) despues de la
-   ultima vuelta: un hueco de mas de R.paronDias entre dos sesiones (HU-15).
-   Solo cuenta lo que hace la propia app: una descarga cualquiera no corta.
-   0 si no hay ninguna vuelta */
-function inicioTramo(id,recs,R){let i0=0;
-  for(let i=1;i<recs.length;i++)if(diasEntre(recs[i-1].date,recs[i].date)>R.paronDias)i0=i;
+   ultima vuelta: un hueco de mas de R.paronDias entre dos sesiones (HU-15), o
+   una bajada de peso tras R.fallosSesiones sesiones al mismo peso con la
+   primera serie por debajo del minimo (HU-14). Solo cuenta lo que hace la
+   propia app: una descarga cualquiera no corta. 0 si no hay ninguna vuelta */
+function inicioTramo(id,recs,R){let i0=0;const min=repRange(id)[0],n=R.fallosSesiones,
+    p=r=>{const s=r.sets[0]||{};return {w:Number(s.w)||0,reps:Number(s.reps)||0};};
+  for(let i=1;i<recs.length;i++){
+    if(diasEntre(recs[i-1].date,recs[i].date)>R.paronDias){i0=i;continue;}
+    if(i<n)continue;const a=recs.slice(i-n,i).map(p),w=a[0].w;
+    if(a.every(x=>x.reps<min&&Math.abs(x.w-w)<1e-9)&&p(recs[i]).w<w-1e-9)i0=i;}
   return i0;}
 /* Estancado: 3 sesiones sin superar el mejor e1RM de las ultimas 8 semanas.
    En salud (HU-16, REGLAS) mantener es un logro: no cuenta lo que se mantiene

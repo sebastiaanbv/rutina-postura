@@ -1221,6 +1221,208 @@
       todos.forEach(([t,esperado])=>{expect(t).toEqual(esperado);expect({[t.why]:t.why.length<=80}).toEqual({[t.why]:true});});});
   });
 
+  /* ---------- HU-14: bajar un poco el peso tras dos sesiones por debajo del rango ----------
+     Las R.fallosSesiones (2) ultimas sesiones con la primera serie por debajo
+     del minimo y al mismo peso: un peso real menos (unSaltoMenos) y el minimo
+     + 1. Si bajar quitaria mas de R.fallosBajadaMax (25 %) o no hay nada mas
+     ligero, mismo peso y el minimo. Igual en masa y en salud. Fechas relativas
+     (F.fecha) y siempre dentro de los dias de paron: no dependen del dia */
+  escenario("Lógica · dos sesiones por debajo del rango (HU-14)",F.vacio,()=>{
+    const PB="press_banca_db",GE="gym_empuje",PH="press_hombro_db",FA="salud_fuerza_a",FP="flexiones_pared",
+      SS="sentadilla_silla",CB="curl_barra",GT="gym_tiron",
+      ses=(n,w,reps,k,id,series)=>reg(n,k||GE,veces(series||4,w,reps)),
+      /* las dos sesiones: la penultima hace 5 dias y la ultima hace 2 */
+      dos=(w,ra,rb,k,series)=>[ses(5,w,ra,k,null,series),ses(2,w,rb==null?ra:rb,k,null,series)],
+      con=(goal,logs,extra)=>Object.assign({rp_prefs:goal?{goal:goal}:{},rp_logs:logs},extra||{}),
+      baja=(w,min,r)=>({w:w,reps:r,fallos:true,why:"Dos veces por debajo de "+min+": baja a "+w+" kg y busca "+r}),
+      sigue=(w,min,motivo)=>({w:w,reps:min,fallos:true,why:"Dos veces por debajo de "+min+": "+
+        (motivo==="ligera"?"ya es lo más ligero":"bajar es demasiado")+", sigue con "+w+" kg y busca "+min}),
+      facil=min=>({w:0,reps:min,fallos:true,why:"Dos veces por debajo de "+min+": prueba una variante algo más fácil y busca "+min}),
+      dolorPen=(w,r,sinPeso)=>({w:w,reps:r,dolor:true,why:"Hace dos sesiones anotaste molestia: "+(sinPeso?"mismas repeticiones":"mismo peso")+" y sin forzar"});
+    test("criterio 1: dos sesiones con 40 kg y la primera serie por debajo del minimo → 37,5 kg y el minimo + 1; con rp_inc 5, 35 kg",app=>{
+      expect(app.w.repRange(PB)).toEqual([6,10]);
+      limpio(app,con("masa",{[PB]:dos(40,5)}));
+      expect(tt(app,PB,GE)).toEqual(baja(37.5,6,7));
+      expect(sug(app,PB,GE)).toEqual({w:37.5,reps:7,why:baja(37.5,6,7).why});
+      limpio(app,con("masa",{[PB]:dos(40,5)},{rp_inc:{[PB]:5}}));
+      expect(tt(app,PB,GE)).toEqual(baja(35,6,7));
+      expect(sug(app,PB,GE)).toEqual({w:35,reps:7,why:baja(35,6,7).why});
+      /* cuenta la primera serie: las demas, mas cortas o no, no cambian nada */
+      limpio(app,con("masa",{[PB]:[reg(5,GE,[[40,5],[40,4],[40,3],[40,3]]),reg(2,GE,[[40,4],[40,6],[40,6],[40,6]])]}));
+      expect(tt(app,PB,GE)).toEqual(baja(37.5,6,7));
+      /* con el salto de la maquina: el boton − de siempre */
+      [[45,5,40],[42.5,5,40],[100,10,90],[40,2.5,37.5],[27,4.5,22.5]].forEach(([w,s,abajo])=>{
+        limpio(app,con("masa",{[PB]:dos(w,5)},{rp_inc:{[PB]:s}}));
+        expect({[w+"/"+s]:tt(app,PB,GE)}).toEqual({[w+"/"+s]:baja(abajo,6,7)});});
+      /* sin salto ni lista, la escala inversa de progStep: 20 → 18, no 17,5 */
+      expect(app.w.repRange(CB)).toEqual([8,12]);
+      limpio(app,con("masa",{[CB]:dos(20,5,null,GT,3)}));
+      expect(tt(app,CB,GT)).toEqual(baja(18,8,9));
+      expect(app.w.nextW(CB,18,1)).toBe(20);
+      /* siguiendo la propuesta, la siguiente sesion va con la regla normal */
+      limpio(app,con("masa",{[PB]:dos(40,5).concat([ses(1,37.5,7)])}));
+      expect(tt(app,PB,GE)).toEqual({w:37.5,reps:8,why:"La vez pasada 7: hoy 8 con el mismo peso"});
+      /* pesos y reps guardados como texto (una copia editada a mano) */
+      const txt=dos(40,5);txt.forEach(r=>r.sets.forEach(s=>{s.w="40";s.reps="5";}));
+      limpio(app,con("masa",{[PB]:txt}));
+      expect(tt(app,PB,GE)).toEqual(baja(37.5,6,7));});
+    test("criterio 1: con rp_inc, el salto que deja en 0 es «ya es lo más ligero» y el que baja de mas «bajar es demasiado»",app=>{
+      limpio(app,con("masa",{[PB]:dos(5,5)},{rp_inc:{[PB]:5}}));
+      expect(tt(app,PB,GE)).toEqual(sigue(5,6,"ligera"));
+      limpio(app,con("masa",{[PB]:dos(10,5)},{rp_inc:{[PB]:5}}));
+      expect(tt(app,PB,GE)).toEqual(sigue(10,6,"demasiado"));
+      /* sin salto ni lista, 1 kg: no hay nada por debajo */
+      limpio(app,con("masa",{[PB]:dos(1,5)}));
+      expect(tt(app,PB,GE)).toEqual(sigue(1,6,"ligera"));});
+    test("unSaltoMenos, suelta: lista, salto declarado y escala; null si no hay nada mas ligero",app=>{
+      const con5=s=>limpio(app,{rp_inc:{[PB]:s}});
+      con5(5);expect([40,45,42.5,5,3].map(w=>app.w.unSaltoMenos(PB,w,GE))).toEqual([35,40,40,null,null]);
+      con5(4.5);expect(app.w.unSaltoMenos(PB,27,GE)).toBe(22.5);
+      con5(2.5);expect(app.w.unSaltoMenos(PB,40,GE)).toBe(37.5);
+      con5(7);expect(app.w.unSaltoMenos(PB,7,GE)).toBe(null);
+      limpio(app);expect([40,20,10,1].map(w=>app.w.unSaltoMenos(PB,w,GE))).toEqual([37.5,18,9,null]);
+      limpio(app,{rp_prefs:{pesosDB:[1,2,3]}});
+      expect([3,2,1,2.5].map(w=>app.w.unSaltoMenos(PH,w,FA))).toEqual([2,1,null,2]);});
+    test("criterio 2: una sola sesion por debajo, o el peso cambiado entre ellas → la regla de mantener de siempre",app=>{
+      const mantiene=(w,r1,r)=>({w:w,reps:r,why:"La vez pasada "+r1+": hoy "+r+" con el mismo peso"});
+      /* solo la ultima por debajo */
+      limpio(app,con("masa",{[PB]:[ses(5,40,7),ses(2,40,5)]}));
+      expect(tt(app,PB,GE)).toEqual(mantiene(40,5,6));
+      /* solo la penultima por debajo */
+      limpio(app,con("masa",{[PB]:[ses(5,40,5),ses(2,40,7)]}));
+      expect(tt(app,PB,GE)).toEqual(mantiene(40,7,8));
+      /* una sola sesion en todo el historial */
+      limpio(app,con("masa",{[PB]:[ses(2,40,5)]}));
+      expect(tt(app,PB,GE)).toEqual(mantiene(40,5,6));
+      /* el peso cambio entre ellas, en los dos sentidos */
+      limpio(app,con("masa",{[PB]:[ses(5,37.5,5),ses(2,40,5)]}));
+      expect(tt(app,PB,GE)).toEqual(mantiene(40,5,6));
+      limpio(app,con("masa",{[PB]:[ses(5,40,5),ses(2,37.5,5)]}));
+      expect(tt(app,PB,GE)).toEqual(mantiene(37.5,5,6));
+      /* en el minimo justo no es estar por debajo */
+      limpio(app,con("masa",{[PB]:dos(40,6)}));
+      expect(tt(app,PB,GE)).toEqual(mantiene(40,6,7));
+      /* un visto entre las dos no rompe la cadena (no tiene series) */
+      limpio(app,con("masa",{[PB]:[ses(5,40,5),{date:F.fecha(3),sets:[],k:GE,t:F.momento(3,18,0).getTime(),checked:true},ses(2,40,5)]}));
+      expect(tt(app,PB,GE)).toEqual(baja(37.5,6,7));});
+    test("criterio 3: con molestia anotada en alguna de las dos sesiones no se baja: manda la rama de molestia",app=>{
+      const m=(...n)=>({rp_pain:{[PB]:n.map(F.fecha)}});
+      /* en la ultima: la rama de siempre */
+      limpio(app,con("masa",{[PB]:dos(40,5)},m(2)));
+      expect(tt(app,PB,GE)).toEqual({w:40,reps:5,dolor:true,why:"La vez pasada anotaste molestia: mismo peso y sin forzar"});
+      /* solo en la penultima: mismo peso y mismas reps, con dolor */
+      limpio(app,con("masa",{[PB]:dos(40,5)},m(5)));
+      expect(tt(app,PB,GE)).toEqual(dolorPen(40,5));
+      expect(sug(app,PB,GE)).toEqual({w:40,reps:5,why:dolorPen(40,5).why});
+      /* en las dos: el aviso de la molestia repetida */
+      limpio(app,con("masa",{[PB]:dos(40,5)},m(5,2)));
+      expect(tt(app,PB,GE)).toEqual({w:40,reps:5,dolor:true,why:"Molestia repetida en este ejercicio: no subas y plantéate cambiarlo por otro"});
+      /* con rp_inc y en salud, lo mismo */
+      limpio(app,con("salud",{[PB]:dos(40,5)},Object.assign(m(5),{rp_inc:{[PB]:5}})));
+      expect(tt(app,PB,GE)).toEqual(dolorPen(40,5));
+      /* molestia en la penultima sin los dos fallos: no frena (como en v35) */
+      limpio(app,con("masa",{[PB]:dos(40,8)},m(5)));
+      expect(tt(app,PB,GE)).toEqual({w:40,reps:9,why:"La vez pasada 8: hoy 9 con el mismo peso"});
+      /* sin carga: sin hablar de peso */
+      limpio(app,con("masa",{[FP]:dos(0,5,null,FA,2)},{rp_pain:{[FP]:[F.fecha(5)]}}));
+      const f=tt(app,FP,FA);
+      expect(f).toEqual(dolorPen(0,5,true));expect(f.why).not.toMatch(/peso|kg|pesad/i);});
+    test("criterio 4: pesosDB [1,2,3] a 2 kg, bajar a 1 seria mas del 25 % → mantiene 2 kg y pide el minimo",app=>{
+      const n=app.w.dose(FA,PH).sets||2,lista=(l,goal)=>({rp_prefs:{goal:goal||"masa",pesosDB:l}}),
+        logs=w=>({rp_logs:{[PH]:dos(w,6,null,FA,n)}});
+      expect(app.w.repRange(PH)).toEqual([8,12]);
+      limpio(app,Object.assign(lista([1,2,3]),logs(2)));
+      expect(tt(app,PH,FA)).toEqual(sigue(2,8,"demasiado"));
+      expect(sug(app,PH,FA)).toEqual({w:2,reps:8,why:sigue(2,8,"demasiado").why});
+      /* el juego de la madre es salud: lo mismo */
+      limpio(app,Object.assign(lista([1,2,3],"salud"),logs(2)));
+      expect(tt(app,PH,FA)).toEqual(sigue(2,8,"demasiado"));
+      /* con la mas ligera: «ya es lo más ligero» */
+      limpio(app,Object.assign(lista([1,2,3]),logs(1)));
+      expect(tt(app,PH,FA)).toEqual(sigue(1,8,"ligera"));
+      /* 3 kg → 2 es -33 %: tambien se mantiene; con la de 2,5 en la lista si baja (-17 %) */
+      limpio(app,Object.assign(lista([1,2,3]),logs(3)));
+      expect(tt(app,PH,FA)).toEqual(sigue(3,8,"demasiado"));
+      limpio(app,Object.assign(lista([1,2,2.5,3]),logs(3)));
+      expect(tt(app,PH,FA)).toEqual(baja(2.5,8,9));
+      /* nunca una mancuerna que no hay, y nunca mas peso */
+      [[1,2,3],[2,3,5],[1,1.5,2,3]].forEach(l=>[1,1.5,2,3,5].forEach(w=>{
+        limpio(app,Object.assign(lista(l),logs(w)));const t=tt(app,PH,FA);
+        expect(t.fallos).toBe(true);expect(t.w===w||l.indexOf(t.w)>=0).toBe(true);expect(t.w<=w).toBe(true);
+        expect(t.w>=w*0.75-1e-9).toBe(true);}));});
+    test("criterio 5: la regla es la misma en masa y en salud (y sin objetivo guardado, como en v35)",app=>{
+      const casos=[[{[PB]:dos(40,5)},{}],[{[PB]:dos(40,5)},{rp_inc:{[PB]:5}}],[{[PB]:dos(10,5)},{rp_inc:{[PB]:5}}],
+        [{[PB]:dos(40,5)},{rp_pain:{[PB]:[F.fecha(5)]}}],[{[CB]:dos(20,5,null,GT,3)},{}],[{[PB]:[ses(5,37.5,5),ses(2,40,5)]},{}]];
+      casos.forEach(([logs,extra],i)=>{const id=Object.keys(logs)[0],k=id===CB?GT:GE,
+          vale=g=>{limpio(app,con(g,JSON.parse(JSON.stringify(logs)),extra));return tt(app,id,k);};
+        const masa=vale("masa");
+        expect({[i]:vale("salud")}).toEqual({[i]:masa});
+        expect({[i]:vale(null)}).toEqual({[i]:masa});});
+      limpio(app,con("salud",{[PB]:dos(40,5)}));
+      expect(tt(app,PB,GE)).toEqual(baja(37.5,6,7));});
+    test("sin carga, o con carga a 0 kg: una variante algo mas facil y el minimo, sin hablar de peso",app=>{
+      expect(app.w.repRange(FP)).toEqual([8,12]);
+      ["masa","salud"].forEach(g=>{
+        limpio(app,con(g,{[FP]:dos(0,5,null,FA,2)}));const f=tt(app,FP,FA);
+        expect(f).toEqual(facil(8));expect(f.why).not.toMatch(/peso|kg|pesad/i);
+        expect(sug(app,FP,FA)).toEqual({w:0,reps:8,why:f.why});});
+      limpio(app,con("salud",{[SS]:dos(0,5,null,FA,2)}));
+      const s=tt(app,SS,FA);
+      expect(s).toEqual(facil(8));expect(s.why).not.toMatch(/peso|kg|pesad/i);});
+    test("el paron gana a los dos fallos: con semanas sin hacerlo, la vuelta",app=>{
+      limpio(app,con("masa",{[PB]:[ses(30,40,5),ses(23,40,5)]}));
+      expect(tt(app,PB,GE)).toEqual({w:35,reps:6,vuelta:true,why:"Llevas 3 semanas sin hacerlo: vuelve con 35 kg y 6 reps, sin forzar"});});
+    test("los numeros salen del bloque REGLAS: cambiar uno cambia la sugerencia",app=>{
+      const R=app.ev("REGLAS"),guarda=JSON.stringify(R);
+      try{
+        limpio(app,{rp_prefs:{goal:"masa",pesosDB:[1,2,3]},rp_logs:{[PH]:dos(2,6,null,FA,2)}});
+        expect(tt(app,PH,FA)).toEqual(sigue(2,8,"demasiado"));
+        app.ev("REGLAS.comun.fallosBajadaMax=0.5");
+        expect(tt(app,PH,FA)).toEqual(baja(1,8,9));
+        app.ev("REGLAS.comun.fallosBajadaMax=0.25;REGLAS.comun.fallosSesiones=3");
+        limpio(app,con("masa",{[PB]:dos(40,5)}));
+        expect(tt(app,PB,GE)).toEqual({w:40,reps:6,why:"La vez pasada 5: hoy 6 con el mismo peso"});
+        limpio(app,con("masa",{[PB]:[ses(8,40,5)].concat(dos(40,5))}));
+        expect(tt(app,PB,GE)).toEqual(baja(37.5,6,7));
+      }finally{const o=JSON.parse(guarda);["comun","masa","salud"].forEach(g=>{Object.keys(R[g]).forEach(c=>delete R[g][c]);Object.assign(R[g],o[g]);});}
+      expect(JSON.stringify(app.ev("REGLAS"))).toBe(guarda);});
+    test("stalled despues de la bajada por fallos: el peso de antes no es el mejor que batir",app=>{
+      const bajada={[PB]:[ses(29,40,8),ses(22,40,5),ses(15,40,5),ses(8,37.5,7),ses(1,37.5,8)]},
+        sinBajar={[PB]:[ses(29,40,8),ses(22,40,5),ses(15,40,5),ses(8,40,6),ses(1,40,6)]},
+        descarga={[PB]:[ses(29,40,8),ses(22,40,8),ses(15,40,8),ses(8,37.5,7),ses(1,37.5,8)]};
+      ["masa","salud"].forEach(g=>{limpio(app,con(g,bajada));expect(app.w.stalled()).toEqual([]);
+        expect(app.w.inicioTramo(PB,app.w.loadLogs()[PB],app.w.reglaObjetivo())).toBe(3);});
+      limpio(app,con("masa",sinBajar));expect(app.w.stalled().map(x=>x.id)).toEqual([PB]);
+      /* una bajada que no viene de dos fallos (una descarga) no corta */
+      limpio(app,con("masa",descarga));expect(app.w.stalled().map(x=>x.id)).toEqual([PB]);
+      expect(app.w.inicioTramo(PB,app.w.loadLogs()[PB],app.w.reglaObjetivo())).toBe(0);});
+    test("los porques de los dos fallos: 80 caracteres o menos con el peor caso (102.75 kg, rango [12,20])",app=>{
+      const EL="elevaciones_laterales",n=app.w.dose(GE,EL).sets||3,
+        caso=(w,lista,dolor)=>{limpio(app,Object.assign({rp_prefs:{goal:"masa",pesosDB:lista},rp_logs:{[EL]:dos(w,10,null,GE,n)}},
+          dolor?{rp_pain:{[EL]:[F.fecha(5)]}}:{}));return tt(app,EL,GE);};
+      expect(app.w.repRange(EL)).toEqual([12,20]);
+      const todos=[
+        [caso(130,[102.75,130]),baja(102.75,12,13)],
+        [caso(102.75,[1,102.75]),sigue(102.75,12,"demasiado")],
+        [caso(102.75,[102.75]),sigue(102.75,12,"ligera")],
+        [caso(0,[1,2]),facil(12)],
+        [caso(102.75,[1,102.75],true),dolorPen(102.75,10)],
+        [caso(0,[1,2],true),dolorPen(0,10,true)]];
+      todos.forEach(([t,esperado])=>{expect(t).toEqual(esperado);expect({[t.why]:t.why.length<=80}).toEqual({[t.why]:true});});});
+    test("criterio 6: con los datos de v35 nada baja por fallos, nada se escribe y no hay claves nuevas",app=>{
+      [F.dueno,F.madre].forEach(fx=>{limpio(app,fx());
+        expect(nuevas(app)).toEqual([]);
+        const antes=app.foto(),R=app.ev("ROUTINES"),malos=[];let n=0;
+        Object.keys(R).forEach(k=>app.w.effList(k).forEach(id=>{const t=app.w.todayTarget(k,id);app.w.suggestLoad(id,k);
+          if(!t)return;n++;if(t.fallos)malos.push(k+" "+id+" "+JSON.stringify(t));}));
+        expect(malos).toEqual([]);expect(n).toBeGreaterThan(20);
+        expect(app.foto()).toEqual(antes);expect(nuevas(app)).toEqual([]);});
+      /* y con dos fallos sembrados tampoco se escribe nada */
+      limpio(app,con("masa",{[PB]:dos(40,5)},{rp_inc:{[PB]:5}}));
+      const antes=app.foto(),claves=app.claves().slice().sort();tt(app,PB,GE);sug(app,PB,GE);
+      expect(app.foto()).toEqual(antes);expect(app.claves().slice().sort()).toEqual(claves);});
+  });
+
   /* datos de v35 tras un paron: las sesiones y molestias de los juegos, un
      mes atras. Nada se rompe, nada se escribe y no hay claves nuevas */
   const unMesAtras=fx=>()=>{const D=fx(),atras=f=>{const d=new Date(f+"T12:00:00");d.setDate(d.getDate()-30);
