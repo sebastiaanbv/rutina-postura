@@ -263,6 +263,8 @@ El peso del control es **solo el número**, y es el mismo al entrar en la serie,
 
 **«¿Cuántas más podías?» cambia la propuesta.** La reserva de cada serie (`s.rir`: 0, 1, 2 o 3+) sale con carga y sin carga, y la lee la propuesta de la sesión siguiente. Una serie sin reserva anotada no cuenta ni como 0 ni como 3+: sin reserva en ninguna serie, la propuesta es la de siempre. (a) **En masa**, con el rango lleno y reserva 0 en **todas** las series, donde se iba a estirar a tope+2 se sube ya al siguiente peso real (la mancuerna siguiente de la lista, el salto de la máquina o el teórico), aunque pase del 10 %: «Llenaste el rango con reserva 0: sube a 9 kg y vuelve a 12». Llenar el rango al fallo ya es el estímulo, y estirar dos reps más al fallo no es realista; con la mancuerna más pesada, solo estira. (b) **Reserva 3+ en la primera serie**, con el rango sin llenar: +2 reps en vez de +1, sin pasar del tope («La vez pasada 8 con reserva 3+: hoy 10 con el mismo peso»; sin carga, sin «con el mismo peso»). También veta la bajada por dos fallos: quien dice que le sobraban 3 no necesita menos peso (la molestia en la penúltima sí manda). (c) **En salud**, alguna serie con reserva 0 o 1 pide mismo peso y mismas reps, en cada sesión que llegue así, también con el rango lleno: «Llegaste al fallo: mismo peso y 8 reps, busca dejar 1 en reserva» o «Te quedó solo 1: repite 8 reps con el mismo peso, busca dejar 1 en reserva». Se sale al anotar 2 o más, o al dejar de anotarla; no es estancarse (el radar de salud no marca lo que se mantiene). Los tres umbrales viven en `REGLAS` (`rirAlFalloSube`, `rirSobra`/`repsSobra`, `frenoRir`). Molestia, parón y dos fallos van antes.
 
+**Sin carga se progresa en repeticiones, y nunca se habla de peso.** En un ejercicio sin carga (`load:false`: flexiones en la pared, remo con banda, sentadilla al aire…) la propuesta va por las reps de la primera serie: dentro del rango, una más («La vez pasada 10: hoy 11»; con reserva 3+ en la primera, dos, sin pasar del tope); con el rango lleno, una más hasta tope+2, como la doble progresión con carga; y en tope+2 o más **se mantienen esas reps** (`masDificil`) y el porqué propone hacerlo más difícil: «Ya haces 14: hazlo más difícil, más lento o con la variante más exigente» (en salud, «mantenerlo es un logro. Para más, hazlo más lento o más exigente»). La variante más exigente es la de la indicación del ejercicio; el porqué no la nombra. Con la primera serie en el tope pero series de menos, primero completarlas: «Ya haces 14: hoy completa las 3 series antes de ir a más». Las reps solo bajan por un motivo con su propia regla, y esos van antes: el parón vuelve al mínimo del rango; la molestia («mismas repeticiones y sin forzar»), la reserva 0-1 en salud y la regla del objetivo repiten las de la última vez, y dos sesiones por debajo del mínimo piden el mínimo. En salud, la primera sesión con el rango lleno se mantiene con el logro de la regla del objetivo, también si llega de golpe por encima de tope+2, y a la siguiente manda esta regla. Lo que lleva carga, también a 0 kg (sentarse sin mancuerna todavía), sigue la progresión con carga y sus textos de siempre.
+
 **El tiempo no se edita.** Descansos y sostenes los fija el programa: el criterio para ponerlos ya está tomado y ofrecer un stepper solo invita a deshacerlo sin datos. Cambiar las series, en cambio, responde a algo que solo sabes tú — cómo te sientes hoy y cuánto tiempo tienes.
 
 **Un descanso de 0 s es 0 s.** Lo traen los calentamientos encadenados y lo puede elegir la persona al crear un ejercicio propio: la serie siguiente entra directa, sin pantalla de descanso, y la duración estimada de la rutina no le suma nada. `dose()` ya pone el descanso por defecto cuando nadie lo declara, así que `buildSteps` y `estMinutes` lo usan tal cual, nunca con `||`.
@@ -635,6 +637,47 @@ salud, como freno.
   flexiones en la pared y remo con banda, la reserva elegida en la serie, en `rp_logs` y en la
   propuesta siguiente. `tests/pruebas_datos.js`: ida y vuelta de la copia con `s.rir` en series
   sin carga (0, 3+ y sin anotar), también en la sesión a medias.
+
+Ejercicios sin carga: la sugerencia no baja las reps sin motivo y habla de reps (HU-79). En un
+ejercicio de peso corporal o con banda (`load:false`) la regla de siempre se quedaba en el tope
+del rango para siempre («La vez pasada 12: hoy 12 con el mismo peso») y, con 16 hechas, proponía
+volver a 12. El `test.skip` que lo fijaba pasa a prueba normal.
+
+- **Regla (fila 7c, tras la regla del objetivo):** las reps de la primera serie mandan. Dentro del
+  rango +1 (con reserva 3+ en la primera, +2 sin pasar del tope, HU-13); con el rango lleno +1
+  hasta tope+2; en tope+2 o más, esas mismas reps con `masDificil` y «Ya haces 14: hazlo más
+  difícil, más lento o con la variante más exigente» (salud: «mantenerlo es un logro. Para más,
+  hazlo más lento o más exigente»). En el tope con series de menos, `mantiene` y «hoy completa las
+  N series antes de ir a más»: ni `masDificil` ni la regla del objetivo, que exige la sesión entera.
+- **Decisión de producto:** progresar en reps hasta tope+2, como la doble progresión de HU-07, y
+  desde ahí mantener y proponer hacerlo más difícil (más lento, o la variante más exigente que trae
+  la indicación de cada ejercicio, sin nombrarla en el porqué), en vez de sumar reps sin fin. Nunca
+  se propone menos que la última vez sin una regla propia: solo el parón baja (al mínimo del
+  rango); molestia, reserva 0-1 en salud y regla del objetivo repiten, y dos fallos piden el mínimo.
+- **El porqué nunca habla de peso sin carga:** la molestia dice «mismas repeticiones y sin forzar»;
+  las demás ramas del sprint ya tenían su texto sin peso. Con carga, también a 0 kg, cada texto de
+  antes se queda igual (la no regresión es exacta).
+- **`suggestLoad` sin ramas muertas:** fuera `if(loaded&&todas)` («Completaste las N series: toca
+  subir…») e `if(loaded)` («Mismo peso que la vez pasada…»), con las variables que solo usaban
+  ellas: con historial y carga declarada, con o sin peso, ya respondía `todayTarget`. Su respaldo
+  («La vez pasada llegaste a N: prueba con N+1») queda para lo que no declara carga (wall_angels).
+- **Lo que no cambia:** todo lo que lleva carga. En la referencia de v36 cambian, a propósito y
+  todos sin carga, cuatro objetivos de `madre` en masa (flexiones en la pared en dos rutinas,
+  abducción y remo con banda: 12 → 13) y dos de `madre` en salud (abducción y remo con banda, con
+  dos sesiones en 12; las flexiones en la pared, con una, siguen en la regla del objetivo); nada
+  de `dueno`. Un barrido diferencial de 60 000 casos aleatorios contra la punta de HU-13 (pesos,
+  reps, reservas, molestias, parones, vistos, lista, `rp_inc`, dosis propias, masa y salud) sale
+  idéntico en `todayTarget`, `suggestLoad` y `stalled` en todo lo que no es `load:false`. Sin
+  claves nuevas ni cambios en la forma de los datos.
+- **Pruebas** en `tests/pruebas_logica.js`, escenario «ejercicios sin carga (HU-79)»: la cadena
+  siguiendo la app en masa (10 → 14 y ahí se queda), sin objetivo, en salud (con el logro de la
+  primera llena) y en el rango [12,20]; 16 y 20 se quedan; una última serie más corta; reserva 3+
+  dentro y fuera del rango; series de menos en el tope; un barrido de más de 3000 casos (reps 1-25,
+  cada rama, masa y salud) en el que nada baja sin parón; el porqué de todos los ejercicios sin
+  carga de todas las rutinas (lista, calentamiento, secundario, extras y cambios) por cada rama, y
+  de los que llevan carga a 0 kg por las ramas nuevas, sin «peso», «kg» ni «pesad…»; `suggestLoad`
+  igual que `todayTarget` con historial; los cambios de la referencia, solo sin carga; datos de v36
+  con reps como texto; los porqués del peor caso en 80 caracteres.
 
 ### Cerrado en v36
 

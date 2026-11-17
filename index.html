@@ -3064,7 +3064,7 @@ function progStep(w){return w<10?1:(w<20?2:2.5);}
 /* que peso y cuantas reps proponer: nunca la serie mas cansada de la vez
    pasada, sino la primera, y si completaste todo el objetivo, un poco mas */
 function suggestLoad(id,k){const e=EX[id]||{},kk=k!=null?k:curRoutine,d=dose(kk,id),
-  tgt=d.reps||10,loaded=e.load===true,u=e.unit||"kg";
+  tgt=d.reps||10,loaded=e.load===true;
   const ds=sessLog(curRoutine)[id]||[];
   if(ds.length){const l=ds[ds.length-1];return {w:l.w,reps:l.reps,why:""};}
   /* la progresion doble manda cuando hay historial: dice el objetivo de hoy,
@@ -3079,11 +3079,9 @@ function suggestLoad(id,k){const e=EX[id]||{},kk=k!=null?k:curRoutine,d=dose(kk,
   const ini=d.startKg!=null?d.startKg:10,lst=availDB(id,kk);
   if(!ll)return {w:loaded?(ini>0?(lst?(lst.filter(v=>v<=ini+1e-9).pop()||lst[0])
       :Math.max(incFor(id,kk),roundDownTo(id,ini,kk))):ini):0,reps:tgt,why:"Objetivo del programa: "+tgt+" repeticiones"};
-  const first=ll.sets[0],sets=d.sets||ll.sets.length;
-  const todas=ll.sets.length>=sets&&ll.sets.every(x=>(x.reps||0)>=tgt);
-  if(loaded&&todas){const w=nextW(id,first.w||0,1,kk);
-    return {w:w,reps:tgt,why:"Completaste las "+sets+" series: toca subir a "+fmtW(w)+" "+u};}
-  if(loaded)return {w:first.w,reps:first.reps,why:"Mismo peso que la vez pasada · apunta a "+tgt+" reps"};
+  /* con historial solo llega aqui un ejercicio sin tipo de carga declarado
+     (wall_angels...): con carga o sin ella ya ha respondido todayTarget */
+  const first=ll.sets[0];
   const r=(first.reps>=tgt)?first.reps+1:tgt;
   return {w:0,reps:r,why:(first.reps>=tgt)?("La vez pasada llegaste a "+first.reps+": prueba con "+r):("Apunta a "+tgt+" repeticiones")};}
 /* series de hoy = las de la sesion en curso + las ya registradas hoy */
@@ -4463,7 +4461,8 @@ function rirMin(rec){let m=null;((rec&&rec.sets)||[]).forEach(s=>{const r=rirDe(
    Las ramas van en este orden y gana la primera: 1 primera vez · 2 molestia
    (2' molestia tras un paron, HU-15) · 3 paron (HU-15) · 4' dos fallos con
    molestia en la penultima · 4 dos fallos (HU-14) · 5 freno por reserva
-   (HU-13) · 6 regla del objetivo (HU-16) · 7 la progresion doble de siempre,
+   (HU-13) · 6 regla del objetivo (HU-16) · 7c sin carga, por reps hasta
+   tope+2 y luego mas dificil (HU-79) · 7 la progresion doble de siempre,
    con la reserva como modificador (HU-13: (a) al fallo sube, (b) 3+ pide +2) */
 function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)return null;
   const R=reglaObjetivo(),logs=loadLogs(),rng=repRange(id),d=dose(k,id),
@@ -4498,7 +4497,7 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
           :pre+(vuelta.bajo?"vuelve con ":"sigue con ")+fmtW(vuelta.w)+" kg y "+r+" reps"};}
     return {w:Number(f0.w)||0,reps:Number(f0.reps)||rng[0],dolor:true,
       why:rep?"Molestia repetida en este ejercicio: no subas y plantéate cambiarlo por otro"
-             :"La vez pasada anotaste molestia: mismo peso y sin forzar"};}
+             :"La vez pasada anotaste molestia: "+(e.load===false?"mismas repeticiones":"mismo peso")+" y sin forzar"};}
   /* 3 · paron, sin molestia: el minimo del rango con el peso de la vuelta */
   if(vuelta){const pre="Llevas "+vuelta.sem+" sin hacerlo: ";
     return {w:vuelta.w,reps:rng[0],vuelta:true,
@@ -4549,7 +4548,21 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
   if(rangoLleno(e,rng,d,ll,w0)&&!(ult.length>=N&&ult.slice(0,N).every(r=>rangoLleno(e,rng,d,r,w0))))
     return {w:w0,reps:r1,mantiene:true,
       why:"Rango completo con "+(e.load!==true||w0<=0?r1+" repeticiones":fmtW(w0)+" kg × "+r1)+": mantenerlo es un logro, repítelo"};
-  /* 7 · la progresion doble de siempre */
+  /* 7c · sin carga (HU-79): la progresion va por las reps de la primera serie
+     y nunca baja sin motivo (los motivos tienen su fila arriba: molestia,
+     paron, dos fallos y freno por reserva). Dentro del rango +1 (+R.repsSobra
+     con reserva 3+, sin pasar del tope); con el rango lleno +1 hasta tope+2; y
+     en tope+2 o mas se mantienen esas reps y se propone hacerlo mas dificil
+     (mas lento o la variante mas exigente de su indicacion). En el tope sin
+     todas las series, primero completarlas. El porque nunca habla de peso */
+  if(e.load===false){const t=rng[1],ya="Ya haces "+r1+": ";
+    if(r1>=t&&!completo)return {w:0,reps:r1,mantiene:true,why:ya+"hoy completa las "+d.sets+" series antes de ir a más"};
+    if(r1>=t+2)return {w:0,reps:r1,masDificil:true,why:ya+(R.objetivo==="salud"
+      ?"mantenerlo es un logro. Para más, hazlo más lento o más exigente"
+      :"hazlo más difícil, más lento o con la variante más exigente")};
+    const mas=sobra&&r1<t,o=Math.min(r1<t?t:t+2,Math.max(rng[0],(r1||rng[0])+(mas?R.repsSobra:1)));
+    return {w:0,reps:o,why:"La vez pasada "+r1+(mas?" con reserva 3+":"")+": hoy "+o};}
+  /* 7 · la progresion doble de siempre, con carga */
   /* (a) HU-13: en masa (R.rirAlFalloSube), con el rango lleno y reserva 0 en
      TODAS las series, donde se iba a estirar a tope+2 se sube ya al siguiente
      peso real: llenar el rango al fallo ya es el estimulo, y estirar dos reps
