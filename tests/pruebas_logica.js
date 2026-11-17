@@ -649,8 +649,11 @@
 
   escenario("Lógica · progresión con los datos de v35 de casa",F.madre,()=>{
     test("todas las rutinas: objetivos validos, sin escribir nada ni crear claves",sinEscribir);
-    /* el ultimo peso muerto rumano de casa es con la mancuerna de 3 kg: 2 series de 12 */
-    const casa=(lista,series)=>{const D=F.madre();
+    /* el ultimo peso muerto rumano de casa es con la mancuerna de 3 kg: 2 series
+       de 12 (la anterior, 11). Estas pruebas son de la lista (HU-07/HU-08) y su
+       regla es la de masa: el juego va con goal masa salvo que se pida salud,
+       que (HU-16) solo sale del rango tras dos sesiones llenas al mismo peso */
+    const casa=(lista,series,goal)=>{const D=F.madre();D.rp_prefs.goal=goal||"masa";
       if(lista)D.rp_prefs.pesosDB=lista;else delete D.rp_prefs.pesosDB;
       if(series)D.rp_logs.peso_muerto_rumano_db.push(reg(1,"salud_fuerza_b",series));
       return D;};
@@ -675,7 +678,7 @@
     /* En casa lo que lleva carga se hace con esas mancuernas aunque el
        ejercicio no sea "de mancuerna": sentarse con una al pecho (silla), la
        zancada (sin aparato) y los gemelos (maquina en el gimnasio) */
-    const otra=(app,id,k,series,lista)=>{const D=F.madre();D.rp_prefs.pesosDB=lista||[1,2,3];
+    const otra=(app,id,k,series,lista,goal)=>{const D=F.madre();D.rp_prefs.pesosDB=lista||[1,2,3];D.rp_prefs.goal=goal||"masa";
       (D.rp_logs[id]=D.rp_logs[id]||[]).push(reg(1,k,series));limpio(app,D);return tt(app,id,k);};
     test("con pesosDB, sentarse, zancada y gemelos en casa: con la de 3 kg en tope+2 no proponen 4",app=>{
       const mas=reps=>({w:3,reps:reps,extiende:true,why:"Ya usas tu mancuerna más pesada: estira a "+reps+" reps"});
@@ -706,6 +709,48 @@
     test("con pesosDB, fuera de casa los gemelos son de maquina: salto teorico, la lista no manda",app=>{
       expect(otra(app,"elevacion_pantorrilla","gym_empuje",veces(2,3,22))).toEqual({w:4,reps:12,subeCarga:true,
         why:"Llegaste a 22 reps: sube a 4 kg y vuelve a 12"});});
+    /* HU-16: los mismos casos con el objetivo del juego, salud. El rango lleno
+       solo en la ultima sesion (o con otro peso en la anterior) se mantiene, y
+       se dice como un logro; lleno en las dos ultimas al mismo peso, la regla
+       de la lista de siempre */
+    const logro=(w,reps)=>({w:w,reps:reps,mantiene:true,
+      why:"Rango completo con "+(w>0?w+" kg × "+reps:reps+" repeticiones")+": mantenerlo es un logro, repítelo"});
+    test("salud, sin pesosDB: la de 3 kg llena el rango por primera vez y se mantiene; con las series en 14 propone 4 kg",app=>{
+      limpio(app,casa(null,null,"salud"));
+      expect(tt(app,"peso_muerto_rumano_db","salud_fuerza_b")).toEqual(logro(3,12));
+      expect(sug(app,"peso_muerto_rumano_db","salud_fuerza_b")).toEqual({w:3,reps:12,why:logro(3,12).why});
+      /* 12 y luego 14 con la misma mancuerna: dos llenas, y HU-07 se cumple */
+      limpio(app,casa(null,veces(2,3,14),"salud"));
+      expect(tt(app,"peso_muerto_rumano_db","salud_fuerza_b")).toEqual({w:4,reps:8,subeCarga:true,
+        why:"Llegaste a 14 reps: sube a 4 kg y vuelve a 8"});});
+    test("salud, con pesosDB: la primera vez en el tope se mantiene y despues manda la lista",app=>{
+      limpio(app,casa([1,2,3,5],null,"salud"));
+      expect(tt(app,"peso_muerto_rumano_db","salud_fuerza_b")).toEqual(logro(3,12));
+      limpio(app,casa([1,2,3],veces(2,3,14),"salud"));
+      expect(tt(app,"peso_muerto_rumano_db","salud_fuerza_b")).toEqual({w:3,reps:14,extiende:true,
+        why:"Ya usas tu mancuerna más pesada: estira a 14 reps"});
+      limpio(app,casa([1,2,3,5],veces(2,3,14),"salud"));
+      expect(tt(app,"peso_muerto_rumano_db","salud_fuerza_b")).toEqual({w:5,reps:8,subeCarga:true,
+        why:"Sube a tu mancuerna de 5 kg y vuelve a 8 reps"});});
+    test("salud, con pesosDB: sentarse, zancada y gemelos con un peso nuevo se mantienen; sentarse a 0 kg dos veces sube por la lista",app=>{
+      /* la sesion anterior de sentarse fue a 0 kg (o no hay otra): una sola llena a ese peso */
+      const S="salud";
+      expect(otra(app,"sentadilla_silla","salud_fuerza_a",veces(2,3,14),null,S)).toEqual(logro(3,14));
+      expect(otra(app,"sentadilla_silla","salud_equilibrio",veces(2,3,14),null,S)).toEqual(logro(3,14));
+      expect(otra(app,"zancada_estatica","salud_fuerza_a",veces(2,3,14),null,S)).toEqual(logro(3,14));
+      expect(otra(app,"elevacion_pantorrilla","salud_fuerza_a",veces(2,3,22),null,S)).toEqual(logro(3,22));
+      expect(otra(app,"sentadilla_silla","salud_fuerza_a",veces(2,3,12),null,S)).toEqual(logro(3,12));
+      expect(sug(app,"sentadilla_silla","salud_fuerza_a")).toEqual({w:3,reps:12,why:logro(3,12).why});
+      expect(otra(app,"sentadilla_silla","salud_fuerza_a",veces(2,1,12),null,S)).toEqual(logro(1,12));
+      expect(otra(app,"sentadilla_silla","salud_fuerza_a",veces(2,1,14),null,S)).toEqual(logro(1,14));
+      expect(otra(app,"zancada_estatica","salud_fuerza_a",veces(2,1.5,14),null,S)).toEqual(logro(1.5,14));
+      expect(otra(app,"elevacion_pantorrilla","salud_fuerza_a",veces(2,3,22),[1,2,3,5],S)).toEqual(logro(3,22));
+      expect(otra(app,"elevacion_pantorrilla","gym_empuje",veces(2,3,22),null,S)).toEqual(logro(3,22));
+      /* 0 kg × 12 tambien en la sesion del juego: dos llenas, igual que en masa */
+      expect(otra(app,"sentadilla_silla","salud_fuerza_a",veces(2,0,12),null,S)).toEqual({w:1,reps:8,subeCarga:true,
+        why:"Llenaste el rango entero: sube a 1 kg y vuelve a 8"});
+      expect(otra(app,"sentadilla_silla","salud_fuerza_a",veces(2,0,12),[2,3,5],S)).toEqual({w:2,reps:8,subeCarga:true,
+        why:"Llenaste el rango entero: sube a 2 kg y vuelve a 8"});});
     test("con pesosDB, ninguna subida en casa propone una mancuerna que no hay, en ningun ejercicio con carga",app=>{
       const R=app.ev("ROUTINES"),EX=app.ev("EX"),malos=[];let n=0;
       ["salud_fuerza_a","salud_fuerza_b","salud_equilibrio"].forEach(k=>{const r=R[k],
@@ -754,6 +799,212 @@
             const con=ver();if(con!==sin)distintos.push(k+" "+id+" "+w+"x"+reps+" "+sin+" → "+con);}));});});
       expect(distintos).toEqual([]);
       expect(n).toBeGreaterThan(80);});
+  });
+
+  /* ---------- objetivos de hoy iguales que v36 (referencia guardada) ----------
+     Sprint 2 cambia la sugerencia de cada ejercicio (todayTarget) historia a
+     historia. Esta foto es lo que devolvia v36 para todo effList(k) de todas
+     las rutinas con dueno (masa), madre con goal masa y madre (salud),
+     generados como si hoy fuera el miercoles 14 de octubre de 2026 (Madrid) y
+     con la app en esa zona y ese instante: no depende del dia en que corra.
+     referencia_objetivos_v36.js se genero con esta misma fotoObjetivos() sobre
+     el index.html de v36 (85b4cbe): Pruebas.fotoObjetivos() desde la consola
+     del arnes servido (--servir) da el objeto que se guarda. No se edita a
+     mano: lo que cambia a proposito va en CAMBIOS_OBJETIVOS, con la historia
+     que lo cambia, y cada cambio tiene que ser distinto de la referencia. */
+  const ZONA_OBJ="Europe/Madrid",AHORA_OBJ="2026-10-14T10:30:00Z",
+    JUEGOS_OBJ=[["dueno",F.dueno],["madreMasa",()=>{const D=F.madre();D.rp_prefs.goal="masa";return D;}],["madre",F.madre]];
+  async function fotoObjetivos(app,juego){let r;
+    await app.enZona(ZONA_OBJ,()=>{app.reiniciarMemoria();app.sembrar(Pruebas.conReloj(ZONA_OBJ,AHORA_OBJ,juego));
+      const R=app.ev("ROUTINES"),o={};
+      Object.keys(R).forEach(k=>app.w.effList(k).forEach(id=>{o[k+" "+id]=app.w.todayTarget(k,id);}));
+      r={hoy:app.w.today(),objetivos:JSON.parse(JSON.stringify(o))};},AHORA_OBJ);
+    return r;}
+  Pruebas.fotoObjetivos=async()=>{const o={};for(const [n,j] of JUEGOS_OBJ)o[n]=await fotoObjetivos(Pruebas.app,j);return JSON.stringify(o,null,1);};
+  /* lo que cada historia cambia a proposito, juego → "rutina ejercicio" → objetivo */
+  const mantenido=(w,reps,txt)=>({w:w,reps:reps,mantiene:true,why:"Rango completo con "+txt+": mantenerlo es un logro, repítelo"});
+  const CAMBIOS_OBJETIVOS={
+    madre:{
+      /* HU-16: en salud el rango lleno solo en la ultima sesion se mantiene.
+         Sentarse a 0 kg (11 y luego 12) ya no coge la de 1 kg; flexiones en la
+         pared siguen en 12 y solo cambia el texto; press de hombro, peso
+         muerto y remo (11 y luego 12 con la misma mancuerna) no estiran a 14 */
+      "salud_fuerza_a sentadilla_silla":mantenido(0,12,"12 repeticiones"),
+      "salud_equilibrio sentadilla_silla":mantenido(0,12,"12 repeticiones"),
+      "salud_fuerza_a flexiones_pared":mantenido(0,12,"12 repeticiones"),
+      "salud_equilibrio flexiones_pared":mantenido(0,12,"12 repeticiones"),
+      "salud_fuerza_a press_hombro_db":mantenido(2,12,"2 kg × 12"),
+      "salud_fuerza_b peso_muerto_rumano_db":mantenido(3,12,"3 kg × 12"),
+      "salud_fuerza_b remo_db":mantenido(2,12,"2 kg × 12")}};
+  escenario("Lógica · objetivos de hoy igual que v36 salvo lo previsto (referencia guardada)",F.vacio,()=>{
+    JUEGOS_OBJ.forEach(([nombre,juego])=>{
+      test("todayTarget de todas las rutinas coincide con v36 ("+nombre+")",async app=>{
+        const ref=REFERENCIA_OBJETIVOS_V36[nombre],r=await fotoObjetivos(app,juego),cambios=CAMBIOS_OBJETIVOS[nombre]||{};
+        expect(r.hoy).toBe("2026-10-14");
+        expect(Object.keys(r.objetivos)).toEqual(Object.keys(ref.objetivos));
+        /* que la comparacion no sea entre vacios */
+        expect(Object.keys(ref.objetivos).filter(c=>ref.objetivos[c]&&!ref.objetivos[c].nuevo).length).toBeGreaterThan(10);
+        Object.keys(ref.objetivos).forEach(c=>{const esperado=c in cambios?cambios[c]:ref.objetivos[c];
+          expect({[c]:r.objetivos[c]}).toEqual({[c]:esperado});});
+        /* un cambio previsto es de verdad un cambio, y de un objetivo que existe */
+        Object.keys(cambios).forEach(c=>{expect(c in ref.objetivos).toBe(true);
+          expect({[c]:cambios[c]}).not.toEqual({[c]:ref.objetivos[c]});});
+        app.reiniciarMemoria();app.sembrar(F.vacio);});});
+  });
+
+  /* ---------- HU-16: el objetivo salud progresa mas despacio ----------
+     Con el rango lleno, en salud se sale de el (estirar o subir) tras dos
+     sesiones seguidas llenas al mismo peso; la primera se mantiene, dicho
+     como un logro. En masa, a la primera, como siempre. Los umbrales salen
+     de REGLAS (un solo bloque) y reglaObjetivo() lee el objetivo en cada
+     llamada. El radar de estancamiento, en salud, no cuenta lo que se
+     mantiene en el tope ni lo que se queda igual */
+  escenario("Lógica · objetivo salud (HU-16)",F.vacio,()=>{
+    const PB="press_banca_db",GE="gym_empuje",
+      ses=(n,w,reps,k,id)=>reg(n,k||GE,veces(4,w,reps)),
+      con=(goal,logs,extra)=>Object.assign({rp_prefs:goal?{goal:goal}:{},rp_logs:logs},extra||{}),
+      logroW=(w,r)=>"Rango completo con "+w+" kg × "+r+": mantenerlo es un logro, repítelo",
+      sube425={w:42.5,reps:6,subeCarga:true,why:"Llenaste el rango entero: sube a 42.5 kg y vuelve a 6"};
+    test("salud: rango lleno solo en la ultima sesion → mismo peso, mantiene y porque de logro; lleno en las dos ultimas → sube",app=>{
+      limpio(app,con("salud",{[PB]:[ses(7,40,9),ses(2,40,10)]}));
+      expect(tt(app,PB,GE)).toEqual({w:40,reps:10,mantiene:true,why:logroW(40,10)});
+      expect(sug(app,PB,GE)).toEqual({w:40,reps:10,why:logroW(40,10)});
+      /* una sola sesion en total: tambien se mantiene */
+      limpio(app,con("salud",{[PB]:[ses(2,40,10)]}));
+      expect(tt(app,PB,GE)).toEqual({w:40,reps:10,mantiene:true,why:logroW(40,10)});
+      limpio(app,con("salud",{[PB]:[ses(7,40,10),ses(2,40,10)]}));
+      expect(tt(app,PB,GE)).toEqual(sube425);
+      expect(sug(app,PB,GE)).toEqual({w:42.5,reps:6,why:sube425.why});
+      /* por encima del tope cuenta como lleno, y se mantiene lo hecho: nunca menos reps */
+      limpio(app,con("salud",{[PB]:[ses(2,40,12)]}));
+      expect(tt(app,PB,GE)).toEqual({w:40,reps:12,mantiene:true,why:logroW(40,12)});});
+    test("salud: la sesion llena anterior cuenta solo al mismo peso, completa y con un registro de solo visto en medio",app=>{
+      /* otro peso en la anterior: no dice nada del de hoy */
+      limpio(app,con("salud",{[PB]:[ses(7,30,10),ses(2,40,10)]}));
+      expect(tt(app,PB,GE)).toEqual({w:40,reps:10,mantiene:true,why:logroW(40,10)});
+      /* la anterior con series de menos no esta llena */
+      limpio(app,con("salud",{[PB]:[reg(7,GE,veces(3,40,10)),ses(2,40,10)]}));
+      expect(tt(app,PB,GE).mantiene).toBe(true);
+      /* un visto (sin series) entre las dos no corta la cuenta */
+      limpio(app,con("salud",{[PB]:[ses(7,40,10),{date:F.fecha(4),sets:[],k:GE,t:F.momento(4,18,0).getTime(),checked:true},ses(2,40,10)]}));
+      expect(tt(app,PB,GE)).toEqual(sube425);});
+    test("salud: con mancuernas 1-2-3 la madre estira tras dos llenas y sube a la siguiente al llenar el estirado",app=>{
+      const RB="remo_db",FB="salud_fuerza_b",n=app.w.dose(FB,RB).sets||2,
+        r=(d,w,reps)=>reg(d,FB,veces(n,w,reps)),lista={pesosDB:[1,2,3]};
+      limpio(app,{rp_prefs:Object.assign({goal:"salud"},lista),rp_logs:{[RB]:[r(9,2,11),r(2,2,12)]}});
+      expect(tt(app,RB,FB)).toEqual({w:2,reps:12,mantiene:true,why:logroW(2,12)});
+      limpio(app,{rp_prefs:Object.assign({goal:"salud"},lista),rp_logs:{[RB]:[r(9,2,12),r(2,2,12)]}});
+      expect(tt(app,RB,FB)).toEqual({w:2,reps:14,extiende:true,why:"Tu siguiente mancuerna (3 kg) es un salto grande: antes llega a 14 reps"});
+      /* 12 y luego 14 con la misma: dos llenas, y el estirado tambien */
+      limpio(app,{rp_prefs:Object.assign({goal:"salud"},lista),rp_logs:{[RB]:[r(9,2,12),r(2,2,14)]}});
+      expect(tt(app,RB,FB)).toEqual({w:3,reps:8,subeCarga:true,why:"Sube a tu mancuerna de 3 kg y vuelve a 8 reps"});});
+    test("salud: lo que no es el rango lleno sigue igual que en masa (molestia, series de menos, dentro del rango, primera vez)",app=>{
+      const igual=(logs,extra)=>{limpio(app,con("masa",logs,extra));const m=tt(app,PB,GE);
+        limpio(app,con("salud",logs,extra));expect(tt(app,PB,GE)).toEqual(m);return m;};
+      expect(igual({[PB]:[ses(2,40,10)]},{rp_pain:{[PB]:[F.fecha(2)]}}).dolor).toBe(true);
+      expect(igual({[PB]:[reg(2,GE,veces(3,40,10))]})).toEqual({w:40,reps:10,why:"La vez pasada 10: hoy 10 con el mismo peso"});
+      expect(igual({[PB]:[ses(2,40,8)]})).toEqual({w:40,reps:9,why:"La vez pasada 8: hoy 9 con el mismo peso"});
+      expect(igual({}).nuevo).toBe(true);});
+    test("salud sin carga (flexiones en la pared): la primera vez en el tope se mantiene sin hablar de peso",app=>{
+      const FP="flexiones_pared",FA="salud_fuerza_a",r=(d,reps)=>reg(d,FA,veces(2,0,reps));
+      limpio(app,con("salud",{[FP]:[r(9,11),r(2,12)]}));
+      const t=tt(app,FP,FA);
+      expect(t).toEqual({w:0,reps:12,mantiene:true,why:"Rango completo con 12 repeticiones: mantenerlo es un logro, repítelo"});
+      expect(t.why).not.toMatch(/peso|kg|pesad/i);
+      /* sentarse a 0 kg (con carga, sin mancuerna todavia): el mismo texto, sin peso */
+      limpio(app,con("salud",{sentadilla_silla:[r(2,12)]}));
+      expect(tt(app,"sentadilla_silla",FA)).toEqual({w:0,reps:12,mantiene:true,why:"Rango completo con 12 repeticiones: mantenerlo es un logro, repítelo"});
+      /* lleno en las dos: ya no es la regla del objetivo */
+      limpio(app,con("salud",{[FP]:[r(9,12),r(2,12)]}));
+      expect(tt(app,FP,FA).mantiene).toBeFalsy();});
+    test("masa con los mismos datos: sube a la primera, como en v36; y rp_prefs sin goal (v35) es masa",app=>{
+      [con("masa",{[PB]:[ses(7,40,9),ses(2,40,10)]}),con(null,{[PB]:[ses(7,40,9),ses(2,40,10)]}),
+       con("masa",{[PB]:[ses(2,40,10)]}),con(null,{[PB]:[ses(2,40,10)]}),
+       {rp_logs:{[PB]:[ses(2,40,10)]}},{rp_prefs:{goal:"otro"},rp_logs:{[PB]:[ses(2,40,10)]}}].forEach(D=>{
+        limpio(app,D);expect(tt(app,PB,GE)).toEqual(sube425);expect(app.w.reglaObjetivo().objetivo).toBe("masa");});
+      /* la madre en masa: la de 3 kg estira a la primera, como en v36 */
+      const D=F.madre();delete D.rp_prefs.goal;delete D.rp_prefs.pesosDB;limpio(app,D);
+      expect(tt(app,"peso_muerto_rumano_db","salud_fuerza_b")).toEqual({w:3,reps:14,extiende:true,
+        why:"El salto de peso sería más del 10%: estira el rango a 14 reps"});});
+    test("datos de v35 sin goal: nada se rompe, nada se escribe y no hay claves nuevas",app=>{
+      const D=F.madre();delete D.rp_prefs.goal;app.reiniciarMemoria();app.sembrar(D);
+      const antes=app.foto(),R=app.ev("ROUTINES");let n=0;
+      Object.keys(R).forEach(k=>app.w.effList(k).forEach(id=>{const t=app.w.todayTarget(k,id);
+        if(t){n++;expect(isFinite(t.w)&&t.reps>=1&&!!t.why).toBe(true);expect(t.mantiene).toBeFalsy();}}));
+      expect(app.w.stalled()).toEqual([]);
+      expect(n).toBeGreaterThan(20);
+      expect(app.foto()).toEqual(antes);
+      expect(app.claves()).toEqual(Object.keys(antes).sort());});
+    test("los umbrales salen de un solo bloque: REGLAS por objetivo y reglaObjetivo() que lee el objetivo en cada llamada",app=>{
+      limpio(app);
+      const S=app.w.reglaObjetivo("salud"),M=app.w.reglaObjetivo("masa");
+      /* sesiones para subir, freno por reserva <= 1 y dias de paron: en el bloque */
+      expect([S.objetivo,S.llenasParaSalir,S.frenoRir,S.paronDias,S.paronLargo,S.estancadoEnTope,S.estancadoIgual])
+        .toEqual(["salud",2,1,14,28,false,false]);
+      expect([M.objetivo,M.llenasParaSalir,M.frenoRir,M.paronDias,M.paronLargo,M.estancadoEnTope,M.estancadoIgual])
+        .toEqual(["masa",1,null,21,42,true,true]);
+      /* lo comun es igual en los dos */
+      ["rirSobra","repsSobra","paronFactor","paronHolgura","fallosSesiones","fallosBajadaMax"].forEach(c=>expect(S[c]).toEqual(M[c]));
+      expect(app.w.reglaObjetivo()).toEqual(M);
+      app.sembrar({rp_prefs:{goal:"salud"}});expect(app.w.reglaObjetivo()).toEqual(S);
+      /* cambiar un numero del bloque cambia la regla y la sugerencia, sin cache */
+      const R=app.ev("REGLAS"),guarda=JSON.stringify(R);
+      try{
+        app.ev("REGLAS.salud.paronDias=30;REGLAS.salud.frenoRir=0");
+        expect([app.w.reglaObjetivo("salud").paronDias,app.w.reglaObjetivo("salud").frenoRir]).toEqual([30,0]);
+        limpio(app,con("salud",{[PB]:[ses(2,40,10)]}));
+        expect(tt(app,PB,GE).mantiene).toBe(true);
+        app.ev("REGLAS.salud.llenasParaSalir=1");
+        expect(tt(app,PB,GE)).toEqual(sube425);
+        /* con tres, dos llenas aun se mantienen y tres suben */
+        app.ev("REGLAS.salud.llenasParaSalir=3");
+        limpio(app,con("salud",{[PB]:[ses(7,40,10),ses(2,40,10)]}));
+        expect(tt(app,PB,GE).mantiene).toBe(true);
+        limpio(app,con("salud",{[PB]:[ses(12,40,10),ses(7,40,10),ses(2,40,10)]}));
+        expect(tt(app,PB,GE)).toEqual(sube425);
+        /* y masa tambien sale de ahi */
+        app.ev("REGLAS.masa.llenasParaSalir=2");
+        limpio(app,con("masa",{[PB]:[ses(2,40,10)]}));
+        expect(tt(app,PB,GE)).toEqual({w:40,reps:10,mantiene:true,why:logroW(40,10)});
+      }finally{const o=JSON.parse(guarda);["comun","masa","salud"].forEach(g=>{Object.keys(R[g]).forEach(c=>delete R[g][c]);Object.assign(R[g],o[g]);});}
+      expect(JSON.stringify(app.ev("REGLAS"))).toBe(guarda);});
+    test("cambiar el objetivo en Ajustes cambia la sugerencia en el acto, sin recargar",app=>{
+      limpio(app,con("masa",{[PB]:[ses(2,40,10)]}));
+      app.$('.nav .tab[data-v="settings"]').click();
+      const boton=g=>app.$$("button.minibtn").find(b=>(b.getAttribute("onclick")||"")==="setGoalPref('"+g+"')");
+      expect(tt(app,PB,GE)).toEqual(sube425);
+      boton("salud").click();
+      expect(app.leer("rp_prefs").goal).toBe("salud");
+      expect(tt(app,PB,GE)).toEqual({w:40,reps:10,mantiene:true,why:logroW(40,10)});
+      expect(sug(app,PB,GE).w).toBe(40);
+      boton("masa").click();
+      expect(tt(app,PB,GE)).toEqual(sube425);
+      app.$('.nav .tab[data-v="home"]').click();});
+    test("stalled en salud no marca lo que se mantiene en el tope o por encima; en masa, con los mismos datos, si",app=>{
+      /* el mejor, 32 × 10; despues 30 × 10 (en el tope) o 30 × 12 (por encima), con menos e1RM */
+      [10,12].forEach(rr=>{const logs={[PB]:[ses(28,32,10),ses(21,30,rr),ses(14,30,rr),ses(7,30,rr)]};
+        limpio(app,con("masa",logs));expect(app.w.stalled().map(x=>x.id)).toEqual([PB]);
+        limpio(app,con("salud",logs));expect(app.w.stalled()).toEqual([]);
+        expect(app.w.stalled(app.w.loadLogs())).toEqual([]);});});
+    test("stalled en salud no marca cuatro sesiones iguales y si cuatro que bajan del mejor; en masa las iguales si",app=>{
+      const RB="remo_db",FB="salud_fuerza_b",r=(d,w)=>reg(d,FB,veces(2,w,10)),
+        iguales={[RB]:[r(28,2),r(21,2),r(14,2),r(7,2)]},bajan={[RB]:[r(28,3),r(21,2),r(14,2),r(7,2)]};
+      limpio(app,con("salud",iguales));expect(app.w.stalled()).toEqual([]);
+      limpio(app,con("masa",iguales));expect(app.w.stalled().map(x=>x.id)).toEqual([RB]);
+      limpio(app,con("salud",bajan));expect(app.w.stalled().map(x=>x.id)).toEqual([RB]);
+      limpio(app,con("masa",bajan));expect(app.w.stalled().map(x=>x.id)).toEqual([RB]);});
+    test("el porque de mantener: sin «luego avanzas» y de 80 caracteres o menos con el peor caso",app=>{
+      /* rango [12,20], 102.75 kg (seis caracteres, HU-57) y 22 reps */
+      const EL="elevaciones_laterales",n=app.w.dose(GE,EL).sets||3;
+      expect(app.w.repRange(EL)).toEqual([12,20]);
+      limpio(app,con("salud",{[EL]:[reg(2,GE,veces(n,102.75,22))]}));
+      const t=tt(app,EL,GE);
+      expect(t).toEqual({w:102.75,reps:22,mantiene:true,why:logroW("102.75",22)});
+      expect(t.why.length<=80).toBe(true);
+      expect(t.why).not.toContain("avanzas");
+      limpio(app,con("salud",{flexiones_pared:[reg(2,"salud_fuerza_a",veces(2,0,99))]}));
+      const f=tt(app,"flexiones_pared","salud_fuerza_a");
+      expect(f.mantiene).toBe(true);expect(f.why.length<=80).toBe(true);});
   });
 
   /* ---------- pendientes al final del guiado (v36) ----------
