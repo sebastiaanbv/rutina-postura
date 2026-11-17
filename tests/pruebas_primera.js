@@ -165,6 +165,38 @@
       finally{deVuelta(app);}
       expect(malos).toEqual([]);});
 
+    /* revision del Sprint 2: el titulo iba a --t-display, por encima del
+       nombre de la app, y con una letra ancha al 130 % en 320 px ocupaba
+       cuatro lineas: la primera pantalla solo mostraba «Ganar musculo» */
+    test("a 320×568, con la letra de serie y al 130 %, las dos respuestas de «Qué buscas» se leen sin desplazar y el título no pasa del nombre de la app",async app=>{
+      await app.arrancar(F.vacio);
+      const malos=[];
+      try{for(const pct of [100,130]){await telefono(app,320,568,pct);
+          const bv=app.$("#bienvenida");bv.scrollTop=0;const alto=bv.clientHeight;
+          app.$$('#bienvenida .bvopt[data-c="goal"] .bvn').forEach(n=>{const b=n.getBoundingClientRect().bottom;
+            if(b>alto+0.5)malos.push(pct+" %: «"+n.textContent+"» acaba en "+Math.round(b)+" px, la pantalla en "+alto);});
+          const tam=sel=>parseFloat(app.w.getComputedStyle(app.$(sel)).fontSize);
+          if(tam("#bvTitle")>tam("#bienvenida h1"))malos.push(pct+" %: el título ("+tam("#bvTitle")+" px) pasa del nombre de la app ("+tam("#bienvenida h1")+" px)");}}
+      finally{deVuelta(app);}
+      expect(malos).toEqual([]);});
+
+    /* el foco no se quedaba en BODY: con teclado o lector se empezaba por lo
+       que tapa, y tras Empezar no volvia a Inicio */
+    test("el foco entra en la pantalla al abrirse, vuelve a Inicio tras Empezar y entra otra vez tras borrarlo todo",async app=>{
+      await app.arrancar(F.vacio);
+      expect(app.doc.activeElement.id).toBe("bvTitle");
+      expect(app.$("#bvTitle").tabIndex).toBe(-1);
+      toca(app,opcion(app,"goal","masa"));toca(app,opcion(app,"material","gimnasio"));toca(app,app.$("#bvGo"));
+      expect(puesta(app)).toBe(false);
+      const f=app.doc.activeElement;
+      expect(app.$("#home").contains(f)).toBe(true);
+      expect(f.classList.contains("today-go")).toBe(true);
+      tab(app,"settings");app.w.__respuestaConfirm=true;app.w.wipe();app.w.__respuestaConfirm=false;
+      tab(app,"home");
+      expect(puesta(app)).toBe(true);
+      expect(app.doc.activeElement.id).toBe("bvTitle");
+      app.reiniciarMemoria();});
+
     test("«Restaurar una copia» abre el selector, y la copia que entra deja de preguntar",async app=>{
       await app.arrancar(F.vacio);
       const input=app.$("#bvFile");let abierto=0;input.click=()=>{abierto++;};
@@ -181,6 +213,28 @@
       expect(app.w.goalPref()).toBe("salud");
       app.reiniciarMemoria();});
 
+    /* revision del Sprint 2: la copia se escribe y la app recarga 1,1 s
+       despues; tocar Empezar en ese rato pisaba el objetivo y el material
+       restaurados con lo elegido en la pantalla */
+    test("restaurar una copia y tocar Empezar antes de que recargue no pisa nada de lo restaurado",async app=>{
+      await app.arrancar(F.vacio);
+      toca(app,opcion(app,"goal","salud"));toca(app,opcion(app,"material","casa"));app.$("#bvPesos").value="1 2";
+      const D=F.dueno();D.rp_prefs=Object.assign({},D.rp_prefs,{goal:"masa",material:"gimnasio"});
+      const store={};Object.entries(D).forEach(([k,v])=>{store[k]=JSON.stringify(v);});
+      const recarga=app.cargo();importarPor(app,app.$("#bvFile"),JSON.stringify({_app:"rutina-postura",store:store}));
+      await app.hasta(()=>localStorage.getItem("rp_prefs")===store.rp_prefs,5000,"la copia escrita");
+      expect(puesta(app)).toBe(true);
+      expect(app.$("#bvGo").disabled).toBe(false);
+      app.$("#bvGo").click();
+      expect(localStorage.getItem("rp_prefs")).toBe(store.rp_prefs);
+      expect(puesta(app)).toBe(false);
+      await recarga;await app.listo();
+      /* todo como venia en la copia (rp_weekgoal lo pone al dia Inicio al pintarse) */
+      const f=app.foto();
+      Object.keys(store).filter(k=>k!=="rp_weekgoal").forEach(k=>expect({[k]:f[k]}).toEqual({[k]:store[k]}));
+      expect(puesta(app)).toBe(false);
+      app.reiniciarMemoria();});
+
     test("«Borrar todos mis datos» deja el teléfono como nuevo: Inicio vuelve a preguntar",async app=>{
       await app.arrancar(F.dueno);
       expect(puesta(app)).toBe(false);
@@ -191,6 +245,45 @@
       tab(app,"home");
       expect(puesta(app)).toBe(true);
       app.w.__respuestaConfirm=false;app.reiniciarMemoria();});
+  });
+
+  /* revision del Sprint 2: los pesos se perdian o se leian mal sin aviso:
+     «abc» no guardaba nada, «1-2-3» guardaba 1 y «2,5» guardaba 2 y 5, con
+     lo que proponia 5 kg. La coma decimal se lee cuando no hay duda; lo que no
+     se entiende no se adivina, no se guarda y se dice. Ajustes lee igual */
+  escenario("Primera vez · los pesos de las mancuernas",F.vacio,()=>{
+    const aviso=app=>app.$("#toast").classList.contains("show")&&/No entendí esos pesos/.test(app.texto("#toast"));
+    test("leePesos y pesosDudosos: la coma decimal cuando no hay duda y lo que no se entiende, dudoso",app=>{
+      [["1 2 3",[1,2,3]],["1, 2, 3",[1,2,3]],["1,2,3",[1,2,3]],["1;2;3",[1,2,3]],["1,5 2 3",[1.5,2,3]],["1 2,5 3",[1,2.5,3]],
+       ["1,25 2,5 3,75",[1.25,2.5,3.75]],["2,5",[2.5]],["2,5 kg",[2.5]],["1.5,2.5",[1.5,2.5]],["1, 2 y 3",[1,2,3]],
+       ["1kg 2kg 3kg",[1,2,3]],["1 2 2",[1,2]],["",[]],["  ",[]]]
+        .forEach(([t,l])=>{expect({[t]:app.w.leePesos(t)}).toEqual({[t]:l});expect({[t]:app.w.pesosDudosos(t)}).toEqual({[t]:false});});
+      ["abc","y","1-2-3","1/2/3","0","250","1,5,2,5","1,2,3 4","1.2.3"]
+        .forEach(t=>expect({[t]:app.w.pesosDudosos(t)}).toEqual({[t]:true}));});
+    test("en la pantalla: lo que no se entiende no guarda lista y avisa al llegar a Inicio; «2,5» guarda 2,5 kg sin aviso",async app=>{
+      for(const [txt,lista] of [["abc",null],["1-2-3",null],["2,5",[2.5]],["1, 2 y 3",[1,2,3]]]){
+        await app.arrancar(F.vacio);
+        toca(app,opcion(app,"goal","salud"));toca(app,opcion(app,"material","casa"));
+        app.$("#bvPesos").value=txt;toca(app,app.$("#bvGo"));
+        expect(puesta(app)).toBe(false);
+        expect({[txt]:app.leer("rp_prefs")}).toEqual({[txt]:Object.assign({goal:"salud",material:"casa"},lista?{pesosDB:lista}:{})});
+        expect({[txt]:aviso(app)}).toEqual({[txt]:!lista});
+        if(txt==="2,5")expect(app.w.suggestLoad("press_hombro_db","salud_fuerza_a").w).toBe(2.5);}
+      app.reiniciarMemoria();});
+    test("en Ajustes: lo que no se entiende no toca la lista, avisa y se queda en el campo; «2,5» guarda 2,5 kg; vacío quita la lista",async app=>{
+      await app.arrancar({rp_prefs:{goal:"salud",material:"casa",pesosDB:[1,2,3]}});
+      tab(app,"settings");
+      for(const txt of ["abc","1-2-3","1,5,2,5"]){app.$("#pesosDB").value=txt;app.w.savePesosDB();
+        expect({[txt]:app.leer("rp_prefs").pesosDB}).toEqual({[txt]:[1,2,3]});
+        expect({[txt]:aviso(app)}).toEqual({[txt]:true});
+        expect(app.$("#pesosDB").value).toBe(txt);}
+      app.$("#pesosDB").value="2,5";app.w.savePesosDB();
+      expect(app.leer("rp_prefs").pesosDB).toEqual([2.5]);
+      expect(app.$("#pesosDB").value).toBe("2.5");
+      expect(aviso(app)).toBe(false);
+      app.$("#pesosDB").value="";app.w.savePesosDB();
+      expect(app.leer("rp_prefs")).toEqual({goal:"salud",material:"casa"});
+      tab(app,"home");app.reiniciarMemoria();});
   });
 
   /* los telefonos que ya tienen algo de la app no la ven, y su objetivo se
@@ -262,8 +355,12 @@
       expect(app.w.muscGoal()).toEqual(app.ev("MUSCGOAL_SALUD"));
       const conSalud=noOk(app);
       tab(app,"home");expect(app.$("#stPost").hidden).toBe(false);
-      /* cambiar despues en Ajustes */
-      tab(app,"settings");toca(app,boton(app,"#setBody","Ganar músculo"));
+      /* cambiar despues en Ajustes, cuya ayuda dice tambien que cambia la
+         propuesta de cada ejercicio (HU-16: subir mas despacio, freno, paron) */
+      tab(app,"settings");
+      const ayuda=app.$$("#setBody .field").find(f=>(f.querySelector(".fl")||{}).textContent==="Tu objetivo").querySelector(".fh").textContent;
+      expect(ayuda).toMatch(/propone subir/);
+      toca(app,boton(app,"#setBody","Ganar músculo"));
       expect(app.leer("rp_prefs")).toEqual({goal:"masa",material:"gimnasio"});
       tab(app,"progress");
       expect(app.texto("#progBody .hverd")).toBe("Levantas más pero no pesas más: sube un poco la comida.");

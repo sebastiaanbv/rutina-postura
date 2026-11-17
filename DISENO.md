@@ -103,7 +103,7 @@ letra del teléfono y nada crecería— y el texto base se pone en `body`. Cada 
 | `--t-mega` | 50 | 3,125 | Temporizador, racha final, índice de fuerza |
 | `--t-display` | 30 | 1,875 | Título de pantalla, título de la tarjeta de hoy |
 | `--t-xl` | 26 | 1,625 | Nombre del ejercicio en el guiado, cifra del stepper y su campo al escribirla |
-| `--t-title` | 22 | 1,375 | Cifras destacadas |
+| `--t-title` | 22 | 1,375 | Cifras destacadas, título de la pantalla de primera vez (bajo el nombre de la app) |
 | `--t-lg` | 20 | 1,25 | Iconos grandes, cifras de estadística |
 | `--t-md` | 16 | 1 | Botones, campos de texto |
 | `--t-lead` | 15 | 0,9375 | Nombre de rutina y de ejercicio en listas |
@@ -235,7 +235,7 @@ Con objetivo salud la tarjeta de la racha lleva una segunda fila, separada por l
 
 Estados de la tarjeta de hoy: hoy toca · en curso (manda sobre todo) · ya entrenaste · día de descanso. Un día sin plan, «hoy toca» es la siguiente rutina del grupo del material elegido que aún no se hizo esta semana y, hechas todas o sin material, la movilidad; en un día de descanso, «Entrenar igual» abre la movilidad.
 
-**La primera vez, Inicio pregunta antes.** Con el teléfono sin nada de la app, una pantalla tapa Inicio y la barra con dos preguntas, objetivo (ganar músculo o salud y mantenimiento) y material (gimnasio o en casa, con los pesos de las mancuernas), y un solo primario, «Empezar»: tres toques. Lo elegido va a `rp_prefs` y se cambia en Ajustes. Un teléfono con cualquier dato no la ve y se queda como estaba.
+**La primera vez, Inicio pregunta antes.** Con el teléfono sin nada de la app, una pantalla tapa Inicio y la barra con dos preguntas, objetivo (ganar músculo o salud y mantenimiento) y material (gimnasio o en casa, con los pesos de las mancuernas), y un solo primario, «Empezar»: tres toques. Lo elegido va a `rp_prefs` y se cambia en Ajustes. Un teléfono con cualquier dato no la ve y se queda como estaba. Su título va por debajo del nombre de la app (`--t-title`), para que en el teléfono más estrecho con la letra grande se lean las dos respuestas de la primera pregunta sin desplazar. Los pesos se leen como en Ajustes (abajo). Si se restauró una copia desde ella, «Empezar» ya no escribe nada: la copia manda.
 
 ### Detalle de rutina
 Cabecera con título a 30 px y **anillo de avance**. Los ejercicios en **una tarjeta por bloque** (calentamiento · entrenamiento · bloque secundario · opcionales), cada uno una fila. El nombre se lee **entero**, sin recorte a dos líneas; con la letra grande en un teléfono estrecho las figuras de la lista se van para dejarle sitio (§10).
@@ -297,7 +297,9 @@ Se pinta con **una sola lectura de `rp_logs`**: `renderProgress` lo lee y se lo 
 **Sobrecarga y Estancado miden cada sesión en lo que progresa** (`perfE`): en 1RM estimado si alguna serie lleva peso, en repeticiones si ninguna lo lleva, con el mismo guardarrail en las dos (una serie por debajo del mínimo del rango no cuenta). Una medida nunca se compara con la otra: si una sesión lleva peso y la otra no, esa comparación no cuenta, ni como progreso ni como estancamiento. La fila del radar de un ejercicio sin peso dice su marca en reps («12 reps · 5 sesiones»). Los récords no siguen esta regla: se miden en peso y reps a la vez (§12).
 
 ### Ajustes
-Cinco secciones con título: apariencia · durante el entreno · recordatorios · entrenamiento (tu objetivo, tu material y las mancuernas que tienes) · datos. El objetivo y el material son los de la primera vez.
+Cinco secciones con título: apariencia · durante el entreno · recordatorios · entrenamiento (tu objetivo, tu material y las mancuernas que tienes) · datos. El objetivo y el material son los de la primera vez. La ayuda del objetivo dice todo lo que cambia: el ritmo al que propone subir, las series por músculo y cómo lee Progreso la fuerza y el peso.
+
+**Las mancuernas que tienes** son las de casa. Con el material en «Gimnasio» solo cuentan en las rutinas de casa: el gimnasio tiene todas. Sin material (datos de v36 o anteriores), mandan donde mandaban. Los pesos se leen con la coma decimal española cuando no hay duda («2,5» son 2,5 kg; «1,2,3», tres pesos; con espacios, «1,5 2 3»), y lo que no se entiende (letras, «1-2-3», 0 kg, «1,5,2,5») no se adivina: no se guarda y se avisa, en Ajustes sin tocar la lista ni el campo, y en la primera vez al llegar a Inicio.
 
 ---
 
@@ -351,7 +353,8 @@ otro aviso —el recordatorio— abre Inicio.
   `aria-pressed`, y el chip que las abre, `aria-expanded`; las tres
   hojas superpuestas son `role="dialog"` con `aria-modal` y `aria-labelledby`, y también la
   pantalla de primera vez, que además deja `inert` lo que tapa (sus opciones llevan
-  `aria-pressed`); el progreso de la
+  `aria-pressed`), se lleva el foco a su título al abrirse y, tras «Empezar», lo devuelve a la
+  acción de la tarjeta de hoy; el progreso de la
   rutina y el descanso son `aria-live`; los iconos decorativos van con `aria-hidden`.
 - **Avisos**: los mensajes no destructivos salen por el `toast()` propio, no por `alert()`. Los
   cinco `confirm()` que quedan son todos destructivos —reemplazar datos al importar, descartar la
@@ -658,7 +661,24 @@ músculo medía contra las metas de hipertrofia y salía casi todo en rojo, la t
   que no se activa hasta tener las dos respuestas: tres toques en total. Mirar y elegir no escribe
   nada; «Empezar» guarda en `rp_prefs` `goal`, `material` y, si se escribieron, `pesosDB`, leídos
   igual que en Ajustes (`leePesos`). Debajo, «Restaurar una copia de seguridad», para el teléfono
-  que viene de otro: la copia que entra ya no pregunta.
+  que viene de otro: la copia que entra ya no pregunta. Y «Empezar» en el segundo que tarda en
+  recargar ya no pisa lo restaurado: pisaba el objetivo y el material de la copia con lo elegido en
+  la pantalla. Si ya hay datos (`primeraVez()` es falso), solo quita la pantalla.
+- **Los pesos, sin adivinar.** «2,5» se guardaba como 2 y 5 kg (y proponía 5), «1-2-3» como 1 kg y
+  «abc» no guardaba nada, todo sin decirlo. Ahora la coma decimal se lee cuando no hay duda: sola
+  entre dos cifras, o con espacios entre los pesos («1,5 2 3»); sin espacios y con más de una,
+  separa («1,2,3»). «kg» y las palabras sueltas («1, 2 y 3») sobran. Lo que no se entiende
+  (`pesosDudosos`: nada numérico, cifras con guiones o barras, 0 o más de 200 kg, o «1,5,2,5», que
+  repite una cifra) no se guarda y sale «No entendí esos pesos: escríbelos en Ajustes, por ejemplo
+  1 2 3» al llegar a Inicio. Ajustes lee igual: con algo dudoso no toca la lista, avisa y deja lo
+  escrito en el campo para corregirlo; vacío sigue quitando la lista.
+- **Se ven las dos respuestas.** El título iba a `--t-display`, más grande que el nombre de la app
+  (`--t-xl`), y a 320 × 568 con DejaVu Sans al 130 % ocupaba cuatro líneas: la primera pantalla solo
+  enseñaba «Ganar músculo». Ahora va a `--t-title`, por debajo del nombre de la app, y en ese
+  teléfono se leen «Ganar músculo» y «Salud y mantenimiento» sin desplazar.
+- **El foco entra y vuelve.** Se quedaba en `BODY`: el teclado y el lector empezaban por lo que la
+  pantalla tapa. Al abrirse (también al volver a Inicio tras borrarlo todo) el foco va a su título
+  (`tabindex="-1"`, sin anillo: no es un control) y, tras «Empezar», a la acción de la tarjeta de hoy.
 - **Solo la ven los teléfonos vacíos** (`primeraVez()`): ninguna clave `rp_*` salvo `rp_schema`, que
   pone el arranque, y `rp_weekgoal`, que escribe Inicio al pintarse. Con cualquier otra, aunque esté
   dañada, no sale y nada cambia: sin `goal` se sigue en masa, como hasta v36, y sin `material` la
@@ -680,9 +700,21 @@ músculo medía contra las metas de hipertrofia y salía casi todo en rojo, la t
   Las metas de Series por músculo, Peso corporal, Medidas y la fila de postura de Inicio ya leían el
   objetivo desde v35: ahora lo leen desde el primer día.
 - **Se cambia en Ajustes y viaja en la copia.** La sección Entrenamiento suma «Tu material»
-  (Gimnasio · En casa) junto a «Tu objetivo», cuya ayuda dice ahora que también cambia cómo lee
-  Progreso la fuerza y el peso. Todo va en `rp_prefs`, que la copia ya exportaba: ni claves nuevas
-  ni cambio de forma, así que sin migración. Una copia sin `material` (v36 o anterior) entra igual.
+  (Gimnasio · En casa) junto a «Tu objetivo», cuya ayuda dice ahora que también cambia el ritmo al
+  que propone subir en cada ejercicio (en salud: más despacio, el freno por reserva y el parón a
+  los 14 días) y cómo lee Progreso la fuerza y el peso. Todo va en `rp_prefs`, que la copia ya
+  exportaba: ni claves nuevas ni cambio de forma, así que sin migración. Una copia sin `material`
+  (v36 o anterior) entra igual.
+- **Con «Gimnasio», la lista de casa no limita el gimnasio.** Con el material en «Gimnasio» y
+  mancuernas apuntadas, la lista seguía mandando en el gimnasio: el press de banca a 31 kg con el
+  rango lleno recibía «Ya usas tu mancuerna más pesada» y la rotación externa arrancaba en 3 kg.
+  Ahora `availDB` no da lista fuera de las rutinas de casa con ese material; en ellas manda igual,
+  y los −/+ del guiado ponen el suelo en 0 solo en lo que no es de mancuerna (la silla, la zancada,
+  los gemelos), como antes. Con «En casa» o sin material, nada cambia. Queda una diferencia de
+  texto: `todayTarget` mira la lista sin rutina en su primera rama, así que con «Gimnasio», en una
+  rutina de casa, la subida por la lista sale con el porqué general («Llegaste a 14 reps: sube a
+  3 kg y vuelve a 8») y no con el de las mancuernas («Sube a tu mancuerna de 3 kg y vuelve a 8
+  reps»); los pesos y las reps son los mismos. Es de `todayTarget`, que este arreglo no toca.
 - **Lo que no cambia:** nada en los teléfonos con datos; Progreso con masa da las mismas cifras y
   frases (la referencia de v35 sigue igual), y el radar de estancamiento y la sobrecarga mantienen
   sus textos con los dos objetivos.
@@ -696,7 +728,14 @@ músculo medía contra las metas de hipertrofia y salía casi todo en rojo, la t
   Ajustes con seis semanas de gimnasio y el peso plano, y la rutina que propone Inicio con cada
   material; y exportar → importar en un teléfono nuevo, desde la propia pantalla. El humo de letra
   (`tests/pruebas_letra.js`) revisa la pantalla, tal cual y con las respuestas de casa, en cada
-  ancho y tamaño de letra.
+  ancho y tamaño de letra. De la revisión: restaurar una copia y tocar «Empezar» antes de la
+  recarga; las dos respuestas de «Qué buscas» a 320 × 568 con la letra de serie y al 130 % y el
+  título no más grande que el nombre de la app; el foco al abrir, tras «Empezar» y tras borrarlo
+  todo; los pesos (`leePesos` y `pesosDudosos` con cada forma, y en la pantalla y en Ajustes: lo
+  dudoso no se guarda y avisa, «2,5» son 2,5 kg); la ayuda del objetivo. En
+  `tests/pruebas_logica.js`, `availDB` con «Gimnasio», el gimnasio igual que sin lista
+  (`suggestLoad`, el porqué sin «mancuerna») y los −/+ del guiado con la lista en casa y sin ella en
+  el gimnasio.
 
 El progreso en repeticiones cuando no hay peso (HU-17). «Progresaste en X de Y» y el radar de
 estancamiento medían cada sesión por el 1RM estimado de su mejor serie, que con 0 kg vale 0: lo

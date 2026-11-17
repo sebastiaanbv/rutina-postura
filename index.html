@@ -1188,8 +1188,14 @@ try{var _t=JSON.parse(localStorage.getItem("rp_theme"))||"auto";
     overscroll-behavior:contain;display:none}
   #bienvenida.show{display:block}
   .bvbody{max-width:600px;margin:0 auto;padding:0 0 calc(var(--s5) + env(safe-area-inset-bottom))}
-  .bvtt{margin:var(--s5) var(--gut) var(--s2);font-size:var(--t-display);font-weight:var(--w-bold);
-    letter-spacing:-1px;line-height:1.1;text-wrap:balance}
+  /* el titulo va por debajo del nombre de la app (h1, --t-xl), no por encima:
+     a --t-display, con la letra al 130 % en 320 px ocupaba cuatro lineas y la
+     primera pantalla solo mostraba una de las dos respuestas */
+  .bvtt{margin:var(--s5) var(--gut) var(--s2);font-size:var(--t-title);font-weight:var(--w-bold);
+    letter-spacing:-.5px;line-height:1.15;text-wrap:balance}
+  /* se enfoca al abrirse para que el lector empiece aqui, pero no es un
+     control: sin anillo */
+  #bienvenida .bvtt:focus-visible{outline:none;box-shadow:none}
   .bvlead{margin:0 var(--gut);font-size:var(--t-base);color:var(--tx2);line-height:1.5}
   .bvopts{margin:0 var(--gut);display:flex;flex-direction:column;gap:7px}
   /* las opciones son botones de verdad con la forma de las de las hojas; la
@@ -2369,9 +2375,12 @@ function primeraVez(){try{return !Object.keys(localStorage).some(k=>k.indexOf("r
 function verBienvenida(on){const el=$("bienvenida");if(!el)return;el.classList.toggle("show",on);
   document.querySelector(".app").inert=on;$("nav").inert=on;}
 function bienvenida(){const el=$("bienvenida");if(!el)return;
-  const ver=primeraVez()&&$("home").classList.contains("active");
-  if(ver&&!el.classList.contains("show")){bvSel={};pintaBienvenida();}
-  verBienvenida(ver);}
+  const ver=primeraVez()&&$("home").classList.contains("active"),nueva=ver&&!el.classList.contains("show");
+  if(nueva){bvSel={};pintaBienvenida();}
+  verBienvenida(ver);
+  /* el foco entra en la pantalla: en BODY, el teclado y el lector empezaban
+     por lo que tapa */
+  if(nueva)$("bvTitle").focus({preventScroll:true});}
 const BVOPC={goal:[["masa","up","Ganar músculo","Más series por semana y más carga con el tiempo"],
     ["salud","mobility","Salud y mantenimiento","Fuerza para el día a día, con menos series"]],
   material:[["gimnasio","machine","Gimnasio","Máquinas, poleas y mancuernas"],
@@ -2382,7 +2391,7 @@ function pintaBienvenida(){
       <span class="em">${ic(i)}</span><span class="bvt"><span class="bvn">${t}</span><span class="optsub">${s}</span></span>
       <span class="optck">${ic("check","sm")}</span></button>`).join("")+`</div>`;
   $("bvBody").innerHTML=`<div class="head"><img src="icon-192-v25.png" alt=""><div><h1>Mi Rutina</h1><div class="sub">Postura, cuello y fuerza</div></div></div>
-    <h2 class="bvtt" id="bvTitle">Dos preguntas para empezar</h2>
+    <h2 class="bvtt" id="bvTitle" tabindex="-1">Dos preguntas para empezar</h2>
     <p class="bvlead">Con ellas, Inicio te propone tus rutinas y Progreso te mide con tus metas. Puedes cambiarlas cuando quieras en Ajustes.</p>
     ${opc("goal","Qué buscas")}${opc("material","Tu material")}
     <label class="bvpesos" id="bvPesosL" hidden>Pesos de tus mancuernas, en kg
@@ -2397,10 +2406,18 @@ function bvElige(c,v){bvSel[c]=v;
   $("bvPesosL").hidden=bvSel.material!=="casa";
   $("bvGo").disabled=!(bvSel.goal&&bvSel.material);}
 function bvEmpezar(){if(!bvSel.goal||!bvSel.material)return;
+  /* una copia restaurada desde aqui ya escribio sus datos y recarga en 1,1 s:
+     Empezar en ese rato pisaba su objetivo y su material con lo elegido */
+  if(!primeraVez()){verBienvenida(false);return;}
   const p=loadPrefs();p.goal=bvSel.goal;p.material=bvSel.material;
-  if(bvSel.material==="casa"){const l=leePesos(($("bvPesos")||{}).value);if(l.length)p.pesosDB=l;}
+  /* pesos que no se entienden no se adivinan: sin lista, y se dice */
+  const txt=bvSel.material==="casa"?($("bvPesos")||{}).value:"",dudosos=pesosDudosos(txt),l=dudosos?[]:leePesos(txt);
+  if(l.length)p.pesosDB=l;
   if(!jset("rp_prefs",p)){toast("No cupo en el teléfono: libera espacio y vuelve a intentarlo.",7000);return;}
-  bvSel={};renderHome();window.scrollTo(0,0);}
+  bvSel={};renderHome();window.scrollTo(0,0);
+  /* el foco vuelve a Inicio, a su accion principal */
+  const go=document.querySelector("#todayCard .today-go");if(go)go.focus({preventScroll:true});
+  if(dudosos)toast("No entendí esos pesos: escríbelos en Ajustes, por ejemplo 1 2 3",7000);}
 
 /* Aviso de copia (v35): sin servidor, la copia es lo unico que salva el
    progreso si el telefono se pierde. Sale en Inicio cuando ya hay algo que
@@ -3298,7 +3315,7 @@ function durSince(t){if(!t)return 0;const m=Math.round((Date.now()-t)/60000);ret
    1,25 se veia 1.3 y corregir solo las reps guardaba ese 1.3 (HU-57) */
 function fmtW(w){return String(Math.round((+w||0)*100)/100);}
 function plural(n,sing,pl){return (Math.abs(n)===1)?sing:pl;}
-function adjW(d){const s=steps[stepi],ld=availDB(s.id,curRoutine),l=ld&&!availDB(s.id)?[0].concat(ld):ld;
+function adjW(d){const s=steps[stepi],ld=availDB(s.id,curRoutine),l=ld&&(ZONAS[s.id]||{}).eq!=="mancuerna"?[0].concat(ld):ld;
   /* d solo dice hacia donde. Con mancuernas declaradas, los botones saltan a
      la siguiente que existe (en casa, tambien en la silla, la zancada y los
      gemelos, que pueden ir sin peso: 0 es su suelo); con el salto de la
@@ -4225,7 +4242,7 @@ function renderSettings(){const r=loadRem();
     </div>
     <div class="grouptitle">Entrenamiento</div>
     <div class="field"><div class="fl">Tu objetivo</div>
-      <div class="fh">Cambia cuántas series por semana pide cada músculo y cómo te lee Progreso la fuerza y el peso. Cada teléfono guarda el suyo.</div>
+      <div class="fh">Cambia el ritmo al que te propone subir en cada ejercicio, cuántas series por semana pide cada músculo y cómo te lee Progreso la fuerza y el peso. Cada teléfono guarda el suyo.</div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
         <button class="minibtn${goalPref()==="masa"?" on":""}" onclick="setGoalPref('masa')" aria-pressed="${goalPref()==="masa"}">Ganar músculo</button>
         <button class="minibtn${goalPref()==="salud"?" on":""}" onclick="setGoalPref('salud')" aria-pressed="${goalPref()==="salud"}">Salud y mantenimiento</button></div></div>
@@ -4436,18 +4453,35 @@ function loadStep(w){return progStep(w);}
    Se hacen con ellas los de mancuerna y, si se pasa una rutina de casa (k),
    todo lo que en ella lleva carga: sentarse con una al pecho, la zancada, los
    gemelos. Sin k solo los de mancuerna. Los botones −/+, la aproximacion y
-   el chip del salto del guiado pasan la rutina (curRoutine) */
+   el chip del salto del guiado pasan la rutina (curRoutine).
+   Con el material "gimnasio" (v37) la lista es la de casa: solo cuenta en
+   las rutinas de casa, y el gimnasio sigue con su rack completo. Sin
+   material (datos de v36 o anteriores), como siempre */
 function availDB(id,k){const z=ZONAS[id]||{},
     casa=!!k&&(ROUTINES[k]||{}).group==="Casa"&&(EX[id]||{}).load===true;
   if(z.eq!=="mancuerna"&&!casa)return null;
+  if(!casa&&loadPrefs().material==="gimnasio")return null;
   const l=loadPrefs().pesosDB;return (l&&l.length)?l:null;}
-/* "1 2 3", "1, 2, 3", "1,2,3" y "1,5 2 3": con espacios la coma es decimal;
-   sin espacios, la coma separa. La primera vez (v37) los lee igual */
-function leePesos(txt){const raw=(txt||"").trim(),
-    parts=/[\s;]/.test(raw)?raw.split(/[\s;]+/).map(x=>x.replace(",",".")):raw.split(",");
-  return [...new Set(parts.map(x=>parseFloat(x)).filter(x=>isFinite(x)&&x>0&&x<200))].sort((a,b)=>a-b);}
-function savePesosDB(){const l=leePesos(($("pesosDB")||{}).value);
-  const p=loadPrefs();if(l.length)p.pesosDB=l;else delete p.pesosDB;jset("rp_prefs",p);renderSettings();
+/* "1 2 3", "1, 2, 3", "1,2,3", "1,5 2 3", "1, 2 y 3" y "2,5": con espacios
+   la coma es decimal; sin espacios, la coma separa, salvo una sola entre dos
+   cifras ("2,5" son 2,5 kg, como se escribe en espanol). "kg" y las palabras
+   sueltas ("y") sobran. La primera vez (v37) los lee igual */
+function partesPesos(txt){const raw=String(txt||"").replace(/\s*kg\b/gi,"").trim().replace(/^,+|,+$/g,"");
+  if(/[\s;]/.test(raw))return raw.split(/[\s;]+/).map(x=>x.replace(/^,+|,+$/g,"").replace(",","."));
+  return /^\d+,\d+$/.test(raw)?[raw.replace(",",".")]:raw.split(",");}
+function leePesos(txt){
+  return [...new Set(partesPesos(txt).map(x=>parseFloat(x)).filter(x=>isFinite(x)&&x>0&&x<200))].sort((a,b)=>a-b);}
+/* lo que no se entiende no se adivina: nada que sea un numero ("abc"),
+   cifras con guiones o barras ("1-2-3", que se leia 1), 0 o mas de 200 kg,
+   y "1,5,2,5", que repite una cifra y seguramente son 1,5 y 2,5. Quien llama
+   no guarda la lista y lo dice */
+function pesosDudosos(txt){const t=String(txt||"").trim(),c=partesPesos(t).filter(x=>/\d/.test(x)),
+    n=c.map(x=>/^(\d+\.?\d*|\.\d+)$/.test(x)?+x:0);
+  return (!!t&&!c.length)||n.some(x=>!(x>0&&x<200))||(!/[\s;]/.test(t)&&new Set(n).size<n.length);}
+function savePesosDB(){const txt=($("pesosDB")||{}).value;
+  /* sin tocar lo guardado ni el campo, para corregirlo ahi mismo */
+  if(pesosDudosos(txt)){toast("No entendí esos pesos: escríbelos así, 1 2 3",7000);return;}
+  const l=leePesos(txt),p=loadPrefs();if(l.length)p.pesosDB=l;else delete p.pesosDB;jset("rp_prefs",p);renderSettings();
   toast(l.length?`${ic("check","sm")} Mancuernas: ${l.map(fmtW).join(", ")} kg`:"Sin lista: se usan los saltos normales de gimnasio");}
 /* ---- salto de placa por maquina (v36, rp_inc) ----
    {exId: kg}. Cada maquina sube de lo que sube su placa (5 kg una polea, 4,5
