@@ -18,7 +18,10 @@
    Que lo que se ve no cambia respecto a v35 lo prueba la referencia guardada
    (referencia_progreso_v35.js): las cifras que daba el index.html de v35 con
    tres juegos de datos generados con el reloj parado (Pruebas.conReloj y
-   app.enZona), que no dependen del dia en que corran las pruebas. */
+   app.enZona), que no dependen del dia en que corran las pruebas. Desde
+   HU-17 la sobrecarga y el estancado miden en reps lo que va sin peso: la
+   referencia se compara midiendo como v35 (todo en e1RM) y, con la medida
+   de verdad, en todo lo demas. */
 (function(){
   const F=Fixtures;
   const tab=(app,v)=>{app.$('.nav .tab[data-v="'+v+'"]').click();};
@@ -169,10 +172,28 @@
       r={hoy:app.w.today(),calculos:calculos(app,app.w.loadLogs()),visible:visible(app)};},AHORA);
     return r;}
   Pruebas.fotoProgreso=async()=>{const o={};for(const [n,j] of JUEGOS)o[n]=await foto(Pruebas.app,j);return JSON.stringify(o);};
+  /* HU-17 cambia a proposito la sobrecarga y el estancamiento: lo que va sin
+     peso se mide en reps (perfE), y hasta v35 no contaba (su e1RM es 0).
+     midiendoComoV35 pone perfE como median hasta v35, todo en e1RM (bestE1):
+     asi Progreso tiene que dar la referencia entera, bloque a bloque, sin mas
+     cambio que los dos campos que HU-17 anade a lo que devuelven
+     overloadIndex y stalled (m y mejor). Eso prueba que nada mas cambia. La
+     segunda prueba mira la medida de verdad: solo cambian esos dos bloques, y
+     solo por los ejercicios que van sin peso. */
+  async function midiendoComoV35(app,fn){const w=app.w,orig=w.perfE;
+    w.perfE=(id,rec)=>({m:"e1",v:w.bestE1(id,rec)});
+    try{return await fn();}finally{w.perfE=orig;}}
+  const quita=(o,...c)=>{const x=Object.assign({},o);c.forEach(k=>delete x[k]);return x;};
+  const sinCamposHU17=c=>Object.assign({},c,{ov:Object.assign({},c.ov,{detalle:c.ov.detalle.map(d=>quita(d,"m"))}),
+    st:c.st.map(x=>quita(x,"m","mejor"))});
+  /* los bloques de Progreso que HU-17 cambia: la tarjeta de la sobrecarga y,
+     entero, el radar de estancamiento (en casa aparece) */
+  const HU17=[/^Progresaste en /,/^Estancado$/,/^Tres sesiones sin superar /];
+  const fueraHU17=v=>v.filter(t=>!HU17.some(re=>re.test(t)));
   escenario("Progreso · igual que v35 (referencia guardada)",F.vacio,()=>{
     JUEGOS.forEach(([nombre,juego])=>{
-      test("las cifras de Progreso coinciden con las de v35 ("+nombre+")",async app=>{
-        const ref=REFERENCIA_PROGRESO_V35[nombre],r=await foto(app,juego);
+      test("las cifras de Progreso coinciden con las de v35 midiendo como v35, en e1RM ("+nombre+")",async app=>{
+        const ref=REFERENCIA_PROGRESO_V35[nombre],r=await midiendoComoV35(app,()=>foto(app,juego));
         expect(r.hoy).toBe("2026-10-14");
         /* que la comparacion no sea entre vacios */
         expect(r.visible.join(" ")).toContain("Series por músculo");
@@ -180,8 +201,38 @@
         /* bloque a bloque, para que el fallo diga cual cambio */
         r.visible.forEach((t,i)=>expect(t).toBe(ref.visible[i]));
         expect(r.visible).toHaveLength(ref.visible.length);
-        Object.keys(ref.calculos).forEach(k=>expect({[k]:r.calculos[k]}).toEqual({[k]:ref.calculos[k]}));
+        /* en e1RM, todo lo medido va en e1RM */
+        expect(r.calculos.ov.detalle.filter(d=>d.m!=="e1")).toEqual([]);
+        expect(r.calculos.st.filter(d=>d.m!=="e1")).toEqual([]);
+        const c=sinCamposHU17(r.calculos);
+        Object.keys(ref.calculos).forEach(k=>expect({[k]:c[k]}).toEqual({[k]:ref.calculos[k]}));
         expect(Object.keys(r.calculos).sort()).toEqual(Object.keys(ref.calculos).sort());
+        app.sembrar(F.vacio);});
+      test("con las reps de lo que va sin peso, solo cambian sobrecarga y estancado ("+nombre+")",async app=>{
+        const ref=REFERENCIA_PROGRESO_V35[nombre],r=await foto(app,juego),c=r.calculos,R=ref.calculos,logs=app.leer("rp_logs");
+        expect(r.hoy).toBe("2026-10-14");
+        /* el resto de la pantalla y de los calculos, como en v35 */
+        expect(fueraHU17(r.visible)).toEqual(fueraHU17(ref.visible));
+        expect(fueraHU17(r.visible).length).toBeGreaterThan(8);
+        Object.keys(R).filter(k=>k!=="ov"&&k!=="st").forEach(k=>expect({[k]:c[k]}).toEqual({[k]:R[k]}));
+        /* lo nuevo son ejercicios cuyas sesiones comparadas van todas sin peso */
+        const sinPeso=(id,n)=>logs[id].filter(x=>x.sets&&x.sets.length).slice(-n).every(x=>x.sets.every(s=>!(s.w>0)));
+        /* sobrecarga: lo medido en e1RM es lo de v35, entrada por entrada */
+        const ovE1=c.ov.detalle.filter(d=>d.m==="e1"),ovReps=c.ov.detalle.filter(d=>d.m==="reps");
+        expect(ovE1.map(d=>quita(d,"m"))).toEqual(R.ov.detalle);
+        expect(ovE1.length+ovReps.length).toBe(c.ov.detalle.length);
+        expect(ovReps.length).toBeGreaterThan(0);
+        ovReps.forEach(d=>expect({id:d.id,sinPeso:sinPeso(d.id,2)}).toEqual({id:d.id,sinPeso:true}));
+        expect([c.ov.prog,c.ov.total]).toEqual([R.ov.prog+ovReps.filter(d=>d.ok).length,R.ov.total+ovReps.length]);
+        expect(r.visible.join(" ")).toContain("Progresaste en "+c.ov.prog+" de "+c.ov.total+" "+c.ov.pct+"%");
+        /* estancado: lo de v35 sigue igual; lo nuevo, en reps y sin peso */
+        const stE1=c.st.filter(x=>x.m==="e1"),stReps=c.st.filter(x=>x.m==="reps");
+        expect(stE1.map(x=>quita(x,"m","mejor"))).toEqual(R.st);
+        expect(stE1.length+stReps.length).toBe(c.st.length);
+        stReps.forEach(x=>expect({id:x.id,sinPeso:sinPeso(x.id,3)}).toEqual({id:x.id,sinPeso:true}));
+        /* y su fila dice la marca en reps; las de e1RM, como antes */
+        const radar=r.visible.find(t=>HU17[2].test(t))||"";
+        c.st.slice(0,4).forEach(x=>expect(radar).toContain(x.name+" "+(x.m==="reps"?x.mejor+" reps · ":"")+x.sesiones+" sesiones"));
         app.sembrar(F.vacio);});});
   });
 
@@ -196,6 +247,22 @@
         expect(n.parsea).toBe(localStorage.getItem("rp_logs")==null?0:1);
         igual(pintar(app),conAntes(app,()=>pintar(app)));
         expect(calculos(app,app.w.loadLogs())).toEqual(calculos(app));});
+      /* HU-17 mide en reps lo que va sin peso solo leyendo rp_logs: con los
+         datos tal como los dejo v35 (sin rp_schema) no hay claves nuevas, ni
+         escribe nada al pintar o al medir. Las claves de v35, mas rp_schema
+         (v36): la misma lista que CLAVES_V35 de pruebas_logica.js */
+      test("con los datos de v35, medir en reps no escribe nada ni crea claves",app=>{
+        const permitidas=["rp_bw","rp_checks","rp_custom","rp_doses","rp_extras","rp_history","rp_lastexport","rp_logged",
+          "rp_logs","rp_medidas","rp_notes","rp_pain","rp_plan","rp_prefs","rp_rem","rp_session","rp_streak","rp_swaps",
+          "rp_theme","rp_weekgoal","rp_schema"];
+        expect(app.claves().filter(k=>permitidas.indexOf(k)<0)).toEqual([]);
+        expect(app.leer("rp_schema")).toBe(app.ev("SCHEMA"));
+        tab(app,"progress");
+        const antes=app.foto(),L=app.w.loadLogs();
+        app.w.renderProgress();app.w.overloadIndex(9,L);app.w.stalled(L);app.w.overloadIndex(9);app.w.stalled();
+        Object.keys(L).forEach(id=>L[id].forEach(r=>app.w.perfE(id,r)));
+        expect(app.foto()).toEqual(antes);
+        expect(JSON.stringify(L)).toBe(localStorage.getItem("rp_logs")||"{}");});
     });
   });
 })();

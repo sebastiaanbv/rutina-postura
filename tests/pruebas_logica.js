@@ -1998,4 +1998,182 @@
       expect(lvls()).toEqual([[30,10,0,2,"Mejor 1RM est."]]);
       app.reiniciarMemoria();});
   });
+
+  /* ---------- progreso en reps cuando no hay peso (HU-17) ----------
+     Sobrecarga y estancamiento median cada sesion por el e1RM de su mejor
+     serie, que con 0 kg es 0: bandas y peso corporal no contaban nunca.
+     perfE mide en e1RM si alguna serie lleva peso y, si ninguna, en reps */
+  const det=(o,id)=>o.detalle.find(d=>d.id===id);
+  /* las filas del radar de Progreso: [nombre, lo que dice a la derecha] */
+  function radar(app){app.w.renderProgress();
+    const t=app.$$("#progBody .grouptitle").find(x=>x.textContent.trim()==="Estancado");
+    return t?Array.from(t.nextElementSibling.querySelectorAll(".prrow")).map(r=>[r.querySelector(".prn").textContent,r.querySelector(".prd").textContent]):[];}
+  const series=a=>({sets:a.map(([w,reps])=>({w:w,reps:reps}))});
+
+  escenario("Lógica · progreso en reps cuando no hay peso",F.vacio,()=>{
+    test("perfE: con peso, el e1RM de la mejor serie (bestE1); sin peso, las reps de la mejor",app=>{limpio(app);
+      const S=series([[30,8],[25,10]]);
+      expect(app.w.perfE("press_banca_db",S)).toEqual({m:"e1",v:app.w.bestE1("press_banca_db",S)});
+      expect(app.w.perfE("press_banca_db",S).v).toBeCloseTo(38,6);
+      expect(app.w.perfE("flexiones_pared",series([[0,10],[0,12],[0,11]]))).toEqual({m:"reps",v:12});
+      expect(app.w.perfE("remo_banda",series([[0,12],[0,12]]))).toEqual({m:"reps",v:12});
+      /* basta una serie con peso para medir en e1RM: la sesion lleva carga */
+      const mezcla=series([[0,12],[1,10]]);
+      expect(app.w.perfE("sentadilla_silla",mezcla)).toEqual({m:"e1",v:app.w.e1rm(1,10)});
+      expect(app.w.perfE("flexiones_pared",{sets:[]})).toEqual({m:"reps",v:0});
+      expect(app.w.perfE("flexiones_pared",{})).toEqual({m:"reps",v:0});});
+    test("perfE: las series por debajo del minimo del rango no cuentan, con peso y sin peso",app=>{limpio(app);
+      expect(app.w.repRange("flexiones_pared")).toEqual([8,12]);
+      expect(app.w.repRange("press_banca_db")).toEqual([6,10]);
+      const p=(id,a)=>app.w.perfE(id,series(a));
+      expect(p("flexiones_pared",[[0,7],[0,6]])).toEqual({m:"reps",v:0});
+      expect(p("flexiones_pared",[[0,7],[0,9],[0,5]])).toEqual({m:"reps",v:9});
+      expect(p("flexiones_pared",[[0,8]])).toEqual({m:"reps",v:8});
+      /* 40 x 5 da mas e1RM que 30 x 8, pero 5 esta por debajo de 6 */
+      expect(app.w.e1rm(40,5)).toBeGreaterThan(app.w.e1rm(30,8)*1.005);
+      expect(p("press_banca_db",[[40,5],[30,8]])).toEqual({m:"e1",v:app.w.e1rm(30,8)});
+      expect(p("press_banca_db",[[40,5]])).toEqual({m:"e1",v:0});
+      /* en la sobrecarga: de 6 a 7 reps, las dos por debajo del rango, ni cuenta */
+      app.sembrar({rp_logs:{flexiones_pared:[reg(6,"salud_fuerza_a",[[0,6],[0,6]]),reg(2,"salud_fuerza_a",[[0,7],[0,7]])]}});
+      expect(app.w.overloadIndex(9)).toEqual({prog:0,total:0,pct:0,detalle:[]});
+      /* y de 10 a 7 cuenta, pero no como progreso */
+      app.sembrar({rp_logs:{flexiones_pared:[reg(6,"salud_fuerza_a",[[0,10]]),reg(2,"salud_fuerza_a",[[0,7],[0,7]])]}});
+      expect(app.w.overloadIndex(9)).toEqual({prog:0,total:1,pct:0,detalle:[{id:"flexiones_pared",ok:false,hoy:0,antes:10,m:"reps"}]});
+      /* en el radar: sesiones con todas las series por debajo del rango no
+         tienen marca, ni que batir ni sin batir */
+      app.sembrar({rp_logs:{flexiones_pared:[reg(40,"salud_fuerza_a",[[0,7]]),reg(30,"salud_fuerza_a",[[0,7]]),
+        reg(20,"salud_fuerza_a",[[0,7]]),reg(10,"salud_fuerza_a",[[0,7]])]}});
+      expect(app.w.stalled()).toEqual([]);});
+
+    test("overloadIndex cuenta flexiones_pared de 10 a 12 reps como progreso, con bandas y peso corporal en el total",app=>{
+      limpio(app,{rp_logs:{
+        flexiones_pared:[reg(6,"salud_fuerza_a",veces(2,0,10)),reg(2,"salud_fuerza_a",veces(2,0,12))],
+        remo_banda:[reg(5,"salud_fuerza_b",veces(2,0,12)),reg(1,"salud_fuerza_b",veces(2,0,12))],
+        press_hombro_db:[reg(6,"salud_fuerza_a",veces(2,2,10)),reg(2,"salud_fuerza_a",veces(2,2,11))]}});
+      const o=app.w.overloadIndex(9);
+      expect(det(o,"flexiones_pared")).toEqual({id:"flexiones_pared",ok:true,hoy:12,antes:10,m:"reps"});
+      expect(det(o,"remo_banda")).toEqual({id:"remo_banda",ok:false,hoy:12,antes:12,m:"reps"});
+      expect([det(o,"press_hombro_db").ok,det(o,"press_hombro_db").m]).toEqual([true,"e1"]);
+      expect([o.prog,o.total,o.pct]).toEqual([2,3,67]);
+      /* hasta v35 solo contaba el de mancuerna: en e1RM las de 0 kg son 0 */
+      expect(app.w.bestE1("flexiones_pared",reg(2,"salud_fuerza_a",veces(2,0,12)))).toBe(0);
+      /* y Progreso dice la misma cifra */
+      app.w.renderProgress();
+      const ct=app.$$("#progBody .cthead").find(x=>x.textContent.indexOf("Progresaste")>=0);
+      expect(ct&&[ct.querySelector(".ct").textContent,ct.querySelector(".delta").textContent]).toEqual(["Progresaste en 2 de 3","67%"]);});
+    test("con los datos de casa el total suma bandas y peso corporal a las mancuernas",app=>{limpio(app,F.madre());
+      /* lunes y miercoles cada semana: la ultima de cada una cae siempre en los 9 dias */
+      const o=app.w.overloadIndex(9),m={};o.detalle.forEach(d=>{m[d.id]=d.m;});
+      expect(m).toEqual({sentadilla_silla:"reps",zancada_estatica:"reps",flexiones_pared:"reps",press_hombro_db:"e1",
+        abduccion_banda:"reps",remo_banda:"reps",peso_muerto_rumano_db:"e1",remo_db:"e1",elevaciones_laterales:"e1"});
+      expect(o.total).toBe(9);
+      app.w.renderProgress();
+      expect(app.texto("#progBody")).toContain("Progresaste en "+o.prog+" de 9");});
+
+    test("stalled marca remo_banda: 4 sesiones en 8 semanas y las 3 ultimas sin superar su mejor marca en reps",app=>{
+      const S=[[40,[[0,12],[0,11]]],[30,[[0,11],[0,11]]],[20,[[0,12],[0,10]]],[10,[[0,10],[0,10]]]],
+        logs=a=>({rp_logs:{remo_banda:a.map(([n,x])=>reg(n,"salud_fuerza_b",x))}});
+      limpio(app,logs(S));
+      expect(app.w.stalled()).toEqual([{id:"remo_banda",name:"Remo con banda",sesiones:4,m:"reps",mejor:12}]);
+      /* hasta v35 no lo veia: en e1RM las cuatro valen 0 */
+      expect(app.leer("rp_logs").remo_banda.map(r=>app.w.bestE1("remo_banda",r))).toEqual([0,0,0,0]);
+      /* superar la marca en la ultima lo saca del radar */
+      app.sembrar(logs(S.slice(0,3).concat([[10,[[0,13]]]])));
+      expect(app.w.stalled()).toEqual([]);
+      /* con la primera fuera de las 8 semanas quedan 3: aun no hay radar */
+      app.sembrar(logs([[60,S[0][1]]].concat(S.slice(1))));
+      expect(app.w.stalled()).toEqual([]);});
+    test("la fila del radar de un ejercicio sin peso dice su marca en reps; la de uno con peso, no",app=>{
+      const n=[40,30,20,10];
+      limpio(app,{rp_logs:{
+        remo_banda:[[[0,12]],[[0,11]],[[0,12]],[[0,10]]].map((x,i)=>reg(n[i],"salud_fuerza_b",x)),
+        remo_db:[[[2,12]],[[2,11]],[[2,12]],[[2,10]]].map((x,i)=>reg(n[i],"salud_fuerza_b",x))}});
+      expect(app.w.stalled().map(x=>[x.id,x.m])).toEqual([["remo_banda","reps"],["remo_db","e1"]]);
+      expect(radar(app)).toEqual([["Remo con banda","12 reps · 4 sesiones"],["Remo con mancuerna","4 sesiones"]]);});
+
+    test("de 0 a 1 kg (sentadilla_silla) la sobrecarga no lo cuenta ni como progreso ni como retroceso",app=>{
+      const L=(a,b)=>({rp_logs:{sentadilla_silla:[reg(6,"salud_fuerza_a",a),reg(2,"salud_fuerza_a",b)],
+        flexiones_pared:[reg(6,"salud_fuerza_a",veces(2,0,10)),reg(2,"salud_fuerza_a",veces(2,0,11))]}});
+      limpio(app,L(veces(2,0,12),veces(2,1,10)));
+      let o=app.w.overloadIndex(9);
+      expect(o.detalle.map(d=>d.id)).toEqual(["flexiones_pared"]);
+      expect([o.prog,o.total]).toEqual([1,1]);
+      /* en e1RM, como hasta v35, pasar de 0 a 1 kg salia progreso: de 0 a algo */
+      expect(app.w.bestE1("sentadilla_silla",series(veces(2,0,12)))).toBe(0);
+      expect(app.w.bestE1("sentadilla_silla",series(veces(2,1,10)))).toBeGreaterThan(0);
+      /* y volver a 0 kg tampoco cuenta como no haber progresado */
+      app.sembrar(L(veces(2,1,10),veces(2,0,12)));
+      o=app.w.overloadIndex(9);
+      expect(o.detalle.map(d=>d.id)).toEqual(["flexiones_pared"]);
+      expect([o.prog,o.total]).toEqual([1,1]);});
+    test("en el radar, las sesiones de la otra medida no son marca que batir ni sesion sin batirla",app=>{
+      const L=a=>({rp_logs:{sentadilla_silla:a.map(([n,w,r])=>reg(n,"salud_fuerza_a",veces(2,w,r)))}});
+      /* dos con 1 kg y tres sin peso: en e1RM las tres sin peso valian 0 y
+         «no superaban» la marca. Sin peso solo hay tres: aun no hay radar */
+      limpio(app,L([[45,1,12],[38,1,12],[31,0,12],[24,0,12],[17,0,12]]));
+      expect(app.w.stalled()).toEqual([]);
+      /* cuatro sin peso que no superan su marca (14), con una de 1 kg en medio:
+         estancado en reps, y las sesiones que cuenta son esas cuatro */
+      app.sembrar(L([[52,0,14],[45,1,10],[38,0,12],[31,0,12],[24,0,13]]));
+      expect(app.w.stalled()).toEqual([{id:"sentadilla_silla",name:"Sentarse y levantarse",sesiones:4,m:"reps",mejor:14}]);
+      /* la ultima con peso: se mide en e1RM y solo hay una sesion asi */
+      app.sembrar(L([[52,0,14],[45,0,12],[38,0,12],[31,0,13],[24,1,10]]));
+      expect(app.w.stalled()).toEqual([]);});
+  });
+
+  /* ---------- records iguales que en v36 (HU-17) ----------
+     HU-17 cambia en que se miden la sobrecarga y el estancamiento (perfE), no
+     los records: isPR, prLevel y prKind siguen con bestE1 y e1rm. Lo prueba
+     una referencia guardada (referencia_records_v36.js): lo que devolvian en
+     v36 para cada serie distinta registrada en dueno y madre y para unas
+     cuantas alrededor de la ultima marca de cada ejercicio, sin sesion abierta
+     y, en madre, con su sesion de hoy (remo_db, tambien por numero de serie).
+     Los juegos se generan con el reloj parado, como la referencia de Progreso
+     (Pruebas.conReloj y app.enZona), asi que nada depende del dia. Se genero
+     una vez con el index.html de v36 (git show 85b4cbe:index.html): en una
+     copia del repo con ese index.html, Pruebas.fotoRecords() desde la consola
+     del arnes servido (--servir) da el objeto que se guarda. */
+  const ZONA_R="Europe/Madrid",AHORA_R="2026-10-14T10:30:00Z";
+  /* [id, peso, reps] que se miden: las series registradas y, alrededor de la
+     mejor de la ultima sesion, una rep mas y una menos, un salto mas con el
+     minimo del rango y con una menos, el tope+2, un salto menos con dos mas
+     y sin peso con una mas. A los que solo tienen vistos, sin series, 0 x 10 */
+  function sondas(w){const logs=w.loadLogs(),out=[];
+    Object.keys(logs).sort().forEach(id=>{const visto={};
+      const pon=(kg,r)=>{kg=Math.round(kg*100)/100;if(kg<0||r<1||visto[kg+"x"+r])return;visto[kg+"x"+r]=1;out.push([id,kg,r]);};
+      logs[id].forEach(rec=>(rec.sets||[]).forEach(x=>pon(x.w||0,x.reps||0)));
+      const ult=logs[id].filter(r=>r.sets&&r.sets.length).pop();
+      if(!ult){pon(0,10);return;}
+      const top=ult.sets.reduce((a,b)=>((b.w||0)>(a.w||0)||((b.w||0)===(a.w||0)&&(b.reps||0)>(a.reps||0)))?b:a);
+      const kg=top.w||0,r=top.reps||0,st=kg>0?w.loadStep(kg):1,rng=w.repRange(id);
+      [[kg,r+1],[kg,r-1],[kg+st,rng[0]],[kg+st,rng[0]-1],[kg,rng[1]+2],[kg-st,r+2],[0,r+1]].forEach(([a,b])=>pon(a,b));});
+    return out;}
+  function tablaRecords(w,rutina,ids,porNumero){const o={};
+    sondas(w).forEach(([id,kg,r])=>{if(ids&&ids.indexOf(id)<0)return;
+      (porNumero||[undefined]).forEach(i=>{o[id+" "+kg+"x"+r+(i==null?"":" #"+i)+(rutina?" @"+rutina:"")]=
+        [w.isPR(id,kg,r,i),w.prLevel(id,kg,r,i),w.prKind(id,kg,r,i)];});});
+    return o;}
+  async function fotoRecords(app,juego,sesion){let r;
+    await app.enZona(ZONA_R,()=>{app.reiniciarMemoria();app.sembrar(Pruebas.conReloj(ZONA_R,AHORA_R,juego));
+      const w=app.w;r={hoy:w.today(),sin:tablaRecords(w,null)};
+      if(sesion){app.ev("curRoutine="+JSON.stringify(sesion.k));
+        r.con=Object.assign(tablaRecords(w,sesion.k),tablaRecords(w,sesion.k,sesion.ids,[0,1,2]));}
+      app.reiniciarMemoria();},AHORA_R);
+    return r;}
+  const JUEGOS_R=[["dueno",F.dueno],["madre",F.madre,{k:"salud_fuerza_b",ids:["remo_db"]}]];
+  Pruebas.fotoRecords=async()=>{const o={};for(const [n,j,s] of JUEGOS_R)o[n]=await fotoRecords(Pruebas.app,j,s);return JSON.stringify(o);};
+  escenario("Lógica · récords iguales que en v36 (referencia guardada)",F.vacio,()=>{
+    JUEGOS_R.forEach(([nombre,juego,sesion])=>{
+      test("isPR, prLevel y prKind devuelven lo mismo que en v36 ("+nombre+")",async app=>{
+        const ref=REFERENCIA_RECORDS_V36[nombre],r=await fotoRecords(app,juego,sesion);
+        expect(r.hoy).toBe("2026-10-14");
+        ["sin"].concat(sesion?["con"]:[]).forEach(c=>{const k=Object.keys(ref[c]);
+          /* que la comparacion no sea entre vacios: hay records y no records, y de los dos niveles */
+          const v=k.map(x=>ref[c][x]);
+          expect(v.filter(x=>x[0]).length).toBeGreaterThan(5);expect(v.filter(x=>!x[0]).length).toBeGreaterThan(5);
+          expect(v.filter(x=>x[1]===2).length).toBeGreaterThan(0);
+          k.forEach(x=>expect({[x]:r[c][x]}).toEqual({[x]:ref[c][x]}));
+          expect(Object.keys(r[c]).sort()).toEqual(k.sort());});
+        app.sembrar(F.vacio);});});
+  });
 })();

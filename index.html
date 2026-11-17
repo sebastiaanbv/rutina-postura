@@ -4719,16 +4719,31 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
 function bestE1(id,rec){const rng=repRange(id);let b=0;
   (rec.sets||[]).forEach(s=>{if((s.reps||0)<rng[0])return;
     b=Math.max(b,e1rm(s.w||0,s.reps||0));});return b;}
+/* Marca de una sesion para sobrecarga y estancamiento (HU-17). Si alguna
+   serie lleva peso, el e1RM de la mejor (bestE1); si ninguna, las reps de la
+   mejor: con bandas y con el propio cuerpo el progreso son las repeticiones,
+   y el e1RM de 0 kg es 0, asi que esos ejercicios no contaban nunca. El mismo
+   guardarrail en las dos: una serie por debajo del minimo del rango no
+   cuenta. m dice en que se mide; un e1RM y unas reps no se comparan.
+   Los records (isPR, prKind, prLevel) siguen con bestE1 y e1rm tal cual. */
+function perfE(id,rec){const sets=(rec&&rec.sets)||[];
+  if(sets.some(s=>(s.w||0)>0))return {m:"e1",v:bestE1(id,rec)};
+  const min=repRange(id)[0];let b=0;
+  sets.forEach(s=>{if((s.reps||0)>=min)b=Math.max(b,s.reps);});
+  return {m:"reps",v:b};}
+/* compara las dos ultimas sesiones en la misma medida. Si una lleva peso y
+   la otra no (de 0 a 1 kg, o vuelta a 0) no se cuenta: ni progreso ni lo
+   contrario */
 function overloadIndex(days,LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),from=dOffset(days||7);
   let prog=0,tot=0;const detalle=[];
   Object.keys(logs).forEach(id=>{if(warm[id])return;
     const recs=logs[id].filter(r=>r.sets&&r.sets.length);
     if(recs.length<2)return;
     const ult=recs[recs.length-1];if(ult.date<from)return;
-    const hoy=bestE1(id,ult),antes=bestE1(id,recs[recs.length-2]);
-    if(!hoy&&!antes)return;
-    tot++;const ok=hoy>antes*1.005;if(ok)prog++;
-    detalle.push({id:id,ok:ok,hoy:hoy,antes:antes});});
+    const hoy=perfE(id,ult),antes=perfE(id,recs[recs.length-2]);
+    if(hoy.m!==antes.m||(!hoy.v&&!antes.v))return;
+    tot++;const ok=hoy.v>antes.v*1.005;if(ok)prog++;
+    detalle.push({id:id,ok:ok,hoy:hoy.v,antes:antes.v,m:hoy.m});});
   return {prog:prog,total:tot,pct:tot?Math.round(prog/tot*100):0,detalle:detalle};}
 /* el primer registro de recs (sesiones con series, en orden) despues de la
    ultima vuelta: un hueco de mas de R.paronDias entre dos sesiones (HU-15), o
@@ -4742,23 +4757,29 @@ function inicioTramo(id,recs,R){let i0=0;const min=repRange(id)[0],n=R.fallosSes
     if(i<n)continue;const a=recs.slice(i-n,i).map(p),w=a[0].w;
     if(a.every(x=>x.reps<min&&Math.abs(x.w-w)<1e-9)&&p(recs[i]).w<w-1e-9)i0=i;}
   return i0;}
-/* Estancado: 3 sesiones sin superar el mejor e1RM de las ultimas 8 semanas.
+/* Estancado: 3 sesiones sin superar la mejor marca de las ultimas 8 semanas,
+   en e1RM o en reps (perfE, HU-17). Solo cuentan las sesiones medidas como la
+   ultima: las de la otra medida no son ni marca que batir ni sesion sin
+   batirla. mejor: la marca, que la fila pinta si va en reps.
    En salud (HU-16, REGLAS) mantener es un logro: no cuenta lo que se mantiene
    en el tope del rango o por encima, y solo es estancarse si las 3 ultimas
    BAJAN del mejor, no si se quedan igual. La ventana empieza tras la ultima
    vuelta de un paron (inicioTramo): el peso de antes no es el mejor que batir
-   cuando la app acaba de proponer bajarlo */
+   cuando la app acaba de proponer bajarlo. La vuelta se busca en todas las
+   sesiones, con peso o sin el, y la medida se elige despues */
 function stalled(LOGS){const logs=LOGS||loadLogs(),warm=warmIds(),from=dOffset(56),out=[],R=reglaObjetivo();
   Object.keys(logs).forEach(id=>{if(warm[id])return;
     let recs=logs[id].filter(r=>r.sets&&r.sets.length&&r.date>=from);
     recs=recs.slice(inicioTramo(id,recs,R));
-    if(recs.length<4)return;
+    if(!recs.length)return;
+    const todas=recs.map(r=>perfE(id,r)),m=todas[todas.length-1].m,mismas=todas.filter(p=>p.m===m);
+    if(mismas.length<4)return;
     if(!R.estancadoEnTope){const t=repRange(id)[1];
       if(recs[recs.length-1].sets.every(x=>(Number(x.reps)||0)>=t))return;}
-    const vals=recs.map(r=>bestE1(id,r)),mejor=Math.max.apply(null,vals);
+    const vals=mismas.map(p=>p.v),mejor=Math.max.apply(null,vals);
     const ult3=vals.slice(-3);
     if(ult3.length===3&&ult3.every(v=>v<mejor*(R.estancadoIgual?1.005:0.995))&&vals.indexOf(mejor)<vals.length-3)
-      out.push({id:id,name:(EX[id]||{}).name||id,sesiones:recs.length});});
+      out.push({id:id,name:(EX[id]||{}).name||id,sesiones:mismas.length,m:m,mejor:mejor});});
   return out;}
 
 /* --- indice de fuerza (e1RM normalizado, base 100) --- */
@@ -4948,8 +4969,9 @@ function renderProgress(){
   if(st.length){
     b+='<div class="grouptitle">'+ic("alert","xs")+' Estancado</div><div class="chartcard">';
     b+='<div class="cs" style="margin:0 0 8px">Tres sesiones sin superar tu mejor marca de las últimas ocho semanas. Elige tú:</div>';
+    /* sin peso la marca va en reps, para que se vea en que se mide (HU-17) */
     st.slice(0,4).forEach(x=>{b+='<div class="prrow"><span class="prn">'+esc(x.name)+'</span>'
-      +'<span class="prd">'+x.sesiones+' sesiones</span></div>';});
+      +'<span class="prd">'+(x.m==="reps"?x.mejor+' reps · ':'')+x.sesiones+' sesiones</span></div>';});
     b+='<div class="callout" style="margin-top:8px">Subir el descanso a 180 s · añadir una serie unas semanas · '
       +'bajar el peso un 10% y reconstruir · o cambiar al ejercicio alterno desde su ficha.</div>';
     b+='</div>';}
