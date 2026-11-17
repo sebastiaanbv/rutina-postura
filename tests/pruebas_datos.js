@@ -583,7 +583,8 @@
      sesiones del juego de gimnasio completas, cada semana entera lleva 3 de fuerza. */
   function semanasV35(){const D=F.dueno();D.rp_history.forEach(h=>{h.exTotal=h.exDone;});delete D.rp_weekgoal;return D;}
   escenario("Racha semanal con datos de v35 (sin rp_weekgoal de semanas viejas)",semanasV35,()=>{
-    const lun=d=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return F.ds(x);};
+    /* primero el dia y despues la hora (ver lunes() en pruebas_pantallas.js) */
+    const lun=d=>{const x=new Date(d);x.setDate(x.getDate()-((x.getDay()+6)%7));x.setHours(0,0,0,0);return F.ds(x);};
     const haceSemanas=i=>{const x=new Date();x.setDate(x.getDate()-7*i);return lun(x);};
     /* cuenta aparte: semanas seguidas hacia atras desde la pasada con al
        menos su meta de sesiones de fuerza (60 % hecho), y la actual si ya
@@ -1426,8 +1427,10 @@
       expect(app.leer("rp_logs").press_hombro_db.slice(-1)[0].sets).toHaveLength(1);
       app.reiniciarMemoria();});
     test("una serie ya guardada en rp_logs: borrar y deshacer deja rp_logs idéntico",app=>{
-      const t=Date.now()-3600000,logs={press_banca_db:[
-        {date:F.fecha(7),sets:[{w:20,reps:10,t:t-7*864e5}],k:"gym_empuje",t:t-7*864e5},
+      /* cada instante en el dia de su fecha: hace 7 dias no son 7×24 h si en
+         medio hay un cambio de hora, y una hora antes de las 00:30 es ayer */
+      const t=F.inicio(60),t7=F.momento(7,12,0).getTime(),logs={press_banca_db:[
+        {date:F.fecha(7),sets:[{w:20,reps:10,t:t7}],k:"gym_empuje",t:t7},
         {date:F.fecha(0),sets:[{w:22.5,reps:8,t:t}],k:"gym_empuje",t:t}]};
       abrir(app,Object.assign(conSerie(),{rp_logs:logs}));
       const antes=localStorage.getItem("rp_logs");
@@ -1441,7 +1444,7 @@
     /* HU-10 marca el record en su serie y lo rehace al borrar: deshacer lo
        devuelve con la serie, y la sesion queda identica, records en su orden */
     test("borrar una serie récord y deshacer: vuelve su récord, y los de la sesión en su orden",app=>{
-      const s=conSerie(),ini=s.rp_session.startedAt,t=ini-3*864e5;
+      const s=conSerie(),ini=s.rp_session.startedAt,t=F.momento(3,18,0).getTime();
       /* hace 3 dias: 20 x 8 en el press de pecho y 10 x 8 en el de hombro */
       s.rp_logs={press_banca_db:[{date:F.fecha(3),sets:[{w:20,reps:8,t:t}],k:"gym_empuje",t:t}],
         press_hombro_db:[{date:F.fecha(3),sets:[{w:10,reps:8,t:t}],k:"gym_empuje",t:t}]};

@@ -133,6 +133,35 @@
       expect(app.w.availDB("press_banca_db","gym_empuje")).toEqual([1,2,3]);
       app.sembrar({});
       expect(app.w.availDB("sentadilla_silla","salud_fuerza_a")).toBe(null);});
+    /* revision del Sprint 2: con el material de la primera vez (HU-58) en
+       «Gimnasio», la lista de mancuernas de casa limitaba el gimnasio: el press
+       de banca a 31 kg recibia «Ya usas tu mancuerna mas pesada» y la primera
+       vez de la rotacion externa arrancaba en 3 kg */
+    test("availDB con «Gimnasio»: la lista de casa solo manda en las rutinas de casa; en casa y sin material, como siempre",app=>{
+      limpio(app,{rp_prefs:{material:"gimnasio",pesosDB:[1,2,3]}});
+      expect(app.w.availDB("press_banca_db")).toBe(null);
+      expect(app.w.availDB("press_banca_db","gym_empuje")).toBe(null);
+      expect(app.w.availDB("rotacion_externa_db","gym_empuje")).toBe(null);
+      expect(app.w.availDB("press_hombro_db","salud_fuerza_a")).toEqual([1,2,3]);
+      expect(app.w.availDB("sentadilla_silla","salud_fuerza_a")).toEqual([1,2,3]);
+      expect(app.w.availDB("elevacion_pantorrilla","salud_fuerza_a")).toEqual([1,2,3]);
+      [{material:"casa",pesosDB:[1,2,3]},{pesosDB:[1,2,3]}].forEach(p=>{app.sembrar({rp_prefs:p});
+        expect(app.w.availDB("press_banca_db")).toEqual([1,2,3]);
+        expect(app.w.availDB("press_banca_db","gym_empuje")).toEqual([1,2,3]);
+        expect(app.w.availDB("press_hombro_db","salud_fuerza_a")).toEqual([1,2,3]);});
+      app.sembrar({});});
+    test("con «Gimnasio» y la lista de casa, el gimnasio propone lo mismo que sin lista: 31 kg con el rango lleno sube y la primera vez arranca en su peso",app=>{
+      const logs={press_banca_db:[reg(2,"gym_empuje",veces(4,31,10))]},
+        ids=[["press_banca_db","gym_empuje"],["rotacion_externa_db","gym_empuje"],["curl_martillo_cruzado","gym_tiron"]];
+      limpio(app,{rp_prefs:{goal:"masa",material:"gimnasio"},rp_logs:logs});
+      const sin=ids.map(([id,k])=>sug(app,id,k));
+      expect(sin[0].w).toBeGreaterThan(31);
+      limpio(app,{rp_prefs:{goal:"masa",material:"gimnasio",pesosDB:[1,2,3]},rp_logs:logs});
+      expect(ids.map(([id,k])=>sug(app,id,k))).toEqual(sin);
+      expect(tt(app,"press_banca_db","gym_empuje").why).not.toContain("mancuerna");
+      /* en casa sigue mandando la lista, tambien con «Gimnasio» */
+      expect(sug(app,"press_hombro_db","salud_fuerza_a").w).toBe(2);
+      app.sembrar({});});
     test("repRange, loadStep, progStep y e1rm",app=>{
       expect(app.w.repRange("press_banca_db")).toEqual([6,10]);
       expect(app.w.repRange("jalon_pecho")).toEqual([8,12]);
@@ -359,6 +388,20 @@
       /* en el gimnasio los gemelos son de maquina: la lista no manda */
       app.sembrar({rp_prefs:{pesosDB:[2,4,6,8]}});app.ev("curRoutine='gym_empuje'");
       expect(ajusta(app,"elevacion_pantorrilla",6,1)).toBe(8.5);
+      app.ev("steps=[];stepi=0;curW=null;curRoutine="+JSON.stringify(k0));app.reiniciarMemoria();});
+    test("con «Gimnasio», −/+ en casa siguen la lista igual (la mas ligera de mancuerna es el suelo) y en el gimnasio no la miran",app=>{
+      const k0=app.ev("curRoutine");
+      limpio(app,{rp_prefs:{material:"gimnasio",pesosDB:[2,4,6,8]}});app.ev("curRoutine='salud_fuerza_a'");
+      expect(ajusta(app,"press_hombro_db",2,-1)).toBe(2);
+      expect(ajusta(app,"press_hombro_db",4,1)).toBe(6);
+      expect(ajusta(app,"sentadilla_silla",2,-1)).toBe(0);
+      expect(ajusta(app,"sentadilla_silla",6,1)).toBe(8);
+      /* en el gimnasio, lo mismo que sin lista */
+      app.ev("curRoutine='gym_empuje'");const pasos=[[8,1],[2,-1],[5,1]],
+        conLista=pasos.map(([w,d])=>ajusta(app,"press_hombro_db",w,d));
+      app.sembrar({rp_prefs:{material:"gimnasio"}});
+      expect(conLista).toEqual(pasos.map(([w,d])=>ajusta(app,"press_hombro_db",w,d)));
+      expect(conLista[0]).toBeGreaterThan(8);
       app.ev("steps=[];stepi=0;curW=null;curRoutine="+JSON.stringify(k0));app.reiniciarMemoria();});
     test("suggestLoad primera vez con la lista: la mas pesada que no pasa del arranque, o la mas ligera",app=>{
       limpio(app,{rp_prefs:{pesosDB:[2,4,6]}});
@@ -2036,9 +2079,12 @@
   /* datos de v35 tras un paron: las sesiones y molestias de los juegos, un
      mes atras. Nada se rompe, nada se escribe y no hay claves nuevas */
   const unMesAtras=fx=>()=>{const D=fx(),atras=f=>{const d=new Date(f+"T12:00:00");d.setDate(d.getDate()-30);
-      return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
-    Object.keys(D.rp_logs||{}).forEach(id=>D.rp_logs[id].forEach(r=>{r.date=atras(r.date);if(r.t)r.t-=30*864e5;
-      (r.sets||[]).forEach(s=>{if(s.t)s.t-=30*864e5;});}));
+      return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");},
+    /* los instantes, 30 dias de calendario como las fechas: 30×24 h se van
+       una hora si en medio hay un cambio de hora */
+    atrasT=t=>{const d=new Date(t);d.setDate(d.getDate()-30);return d.getTime();};
+    Object.keys(D.rp_logs||{}).forEach(id=>D.rp_logs[id].forEach(r=>{r.date=atras(r.date);if(r.t)r.t=atrasT(r.t);
+      (r.sets||[]).forEach(s=>{if(s.t)s.t=atrasT(s.t);});}));
     Object.keys(D.rp_pain||{}).forEach(id=>{D.rp_pain[id]=D.rp_pain[id].map(atras);});
     return D;};
   [["gimnasio",F.dueno],["casa",F.madre]].forEach(([nombre,fx])=>{
