@@ -1738,6 +1738,14 @@
       limpio(app,con("masa",{[FP]:r3(12)}));expect(tt(app,FP,FA)).toEqual(mas(12,13));
       limpio(app,con("masa",{[FP]:r3(13)}));expect(tt(app,FP,FA)).toEqual(mas(13,14));
       limpio(app,con("masa",{[FP]:r3(14)}));expect(tt(app,FP,FA)).toEqual(dificil(14));
+      /* por debajo del minimo, una sola sesion (no son dos fallos): el minimo
+         del rango, no una mas; tambien con reserva 3+ y en salud */
+      limpio(app,con("masa",{[FP]:[reg(2,FA,veces(n,0,3))]}));
+      expect(tt(app,FP,FA)).toEqual(mas(3,8));
+      expect(sug(app,FP,FA)).toEqual({w:0,reps:8,why:"La vez pasada 3: hoy 8"});
+      limpio(app,con("masa",{[FP]:r3(3)}));expect(tt(app,FP,FA)).toEqual(mas(3,8,true));
+      limpio(app,con("salud",{[FP]:[reg(2,FA,veces(n,0,6))]}));expect(tt(app,FP,FA)).toEqual(mas(6,8));
+      limpio(app,con("masa",{[FP]:[reg(2,FA,veces(n,0,7))]}));expect(tt(app,FP,FA)).toEqual(mas(7,8));
       /* otro rango ([12,20]) y otra rutina: el techo es 22 */
       expect(app.w.repRange(SA)).toEqual([12,20]);
       expect(siguiendo(app,"masa",SA,GP,19,5)).toEqual([mas(19,20),mas(20,21),mas(21,22),dificil(22),dificil(22)]);});
