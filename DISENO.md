@@ -265,6 +265,8 @@ El peso del control es **solo el número**, y es el mismo al entrar en la serie,
 
 **«¿Cuántas más podías?» cambia la propuesta.** La reserva de cada serie (`s.rir`: 0, 1, 2 o 3+) sale con carga y sin carga, y la lee la propuesta de la sesión siguiente. Una serie sin reserva anotada no cuenta ni como 0 ni como 3+: sin reserva en ninguna serie, la propuesta es la de siempre. (a) **En masa**, con el rango lleno y reserva 0 en **todas** las series, donde se iba a estirar a tope+2 se sube ya al siguiente peso real (la mancuerna siguiente de la lista, el salto de la máquina o el teórico), aunque pase del 10 %: «Llenaste el rango con reserva 0: sube a 9 kg y vuelve a 12». Llenar el rango al fallo ya es el estímulo, y estirar dos reps más al fallo no es realista; con la mancuerna más pesada, solo estira. (b) **Reserva 3+ en la primera serie**, con el rango sin llenar: +2 reps en vez de +1, sin pasar del tope («La vez pasada 8 con reserva 3+: hoy 10 con el mismo peso»; sin carga, sin «con el mismo peso»). También veta la bajada por dos fallos: quien dice que le sobraban 3 no necesita menos peso (la molestia en la penúltima sí manda). (c) **En salud**, alguna serie con reserva 0 o 1 pide mismo peso y mismas reps, en cada sesión que llegue así, también con el rango lleno: «Llegaste al fallo: mismo peso y 8 reps, busca dejar 1 en reserva» o «Te quedó solo 1: repite 8 reps con el mismo peso, busca dejar 1 en reserva». Se sale al anotar 2 o más, o al dejar de anotarla; no es estancarse (el radar de salud no marca lo que se mantiene). Los tres umbrales viven en `REGLAS` (`rirAlFalloSube`, `rirSobra`/`repsSobra`, `frenoRir`). Molestia, parón y dos fallos van antes.
 
+**Sin carga se progresa en repeticiones, y nunca se habla de peso.** En un ejercicio sin carga (`load:false`: flexiones en la pared, remo con banda, sentadilla al aire…) la propuesta va por las reps de la primera serie: por debajo del mínimo, el mínimo («La vez pasada 3: hoy 8»); dentro del rango, una más («La vez pasada 10: hoy 11»; con reserva 3+ en la primera, dos, sin pasar del tope); con el rango lleno, una más hasta tope+2, como la doble progresión con carga; y en tope+2 o más **se mantienen esas reps** (`masDificil`) y el porqué propone hacerlo más difícil: «Ya haces 14: hazlo más difícil, más lento o con la variante más exigente» (en salud, «mantenerlo es un logro. Para más, hazlo más lento o más exigente»). La variante más exigente es la de la indicación del ejercicio; el porqué no la nombra. Con la primera serie en el tope pero series de menos, primero completarlas: «Ya haces 14: hoy completa las 3 series antes de ir a más». Las reps solo bajan por un motivo con su propia regla, y esos van antes: el parón vuelve al mínimo del rango; la molestia («mismas repeticiones y sin forzar»), la reserva 0-1 en salud y la regla del objetivo repiten las de la última vez, y dos sesiones por debajo del mínimo piden el mínimo. En salud, la primera sesión con el rango lleno se mantiene con el logro de la regla del objetivo y a la siguiente manda esta regla; si llega de golpe en tope+2 o por encima (2×10 y luego 2×14, o 2×15 el primer día de un ejercicio nuevo), ya es el techo: esas reps y «mantenerlo es un logro. Para más…». **Los calentamientos y lo que pide no subir repeticiones se quedan en el tope.** La indicación del ejercicio se ve en la misma pantalla que el porqué y no se pueden contradecir: los calentamientos sin carga (los de las listas de calentamiento de las rutinas, como en el radar: flexiones inclinadas «No busques fallar», sentadilla al aire «Busca rango, no cansancio», colgado escapular) y lo marcado `sinPasarTope` en `EX` porque su indicación pide no subir repeticiones (la extensión de cuello: «Sube la presión de las manos, no las repeticiones») suben una hasta el tope, como en v36, y ahí se mantienen sin «más difícil»: «Ya haces 12: es calentamiento, mantenlas sin buscar cansancio» o «Ya haces 12: mantén esas repeticiones y sigue la indicación»; con series de menos, «hoy completa las 2 series», sin «antes de ir a más». Si hicieron más del tope por su cuenta, se mantiene lo hecho: tampoco bajan sin motivo. La marca es explícita, no se deduce del texto de la indicación; una prueba vigila que una indicación nueva que pida no subir repeticiones o no cansarse lleve su marca. Lo que lleva carga, también a 0 kg (sentarse sin mancuerna todavía), sigue la progresión con carga y sus textos de siempre.
+
 **El tiempo no se edita.** Descansos y sostenes los fija el programa: el criterio para ponerlos ya está tomado y ofrecer un stepper solo invita a deshacerlo sin datos. Cambiar las series, en cambio, responde a algo que solo sabes tú — cómo te sientes hoy y cuánto tiempo tienes.
 
 **Un descanso de 0 s es 0 s.** Lo traen los calentamientos encadenados y lo puede elegir la persona al crear un ejercicio propio: la serie siguiente entra directa, sin pantalla de descanso, y la duración estimada de la rutina no le suma nada. `dose()` ya pone el descanso por defecto cuando nadie lo declara, así que `buildSteps` y `estMinutes` lo usan tal cual, nunca con `||`.
@@ -746,6 +748,76 @@ las mancuernas, y el radar no podía avisar de un ejercicio sin peso.
   `mejor`; y **con la medida de verdad**, todo lo que no es la sobrecarga ni el radar sigue
   igual, lo medido en e1RM es lo de v35 entrada por entrada, y lo nuevo son solo ejercicios
   cuyas sesiones comparadas van sin peso.
+
+Ejercicios sin carga: la sugerencia no baja las reps sin motivo y habla de reps (HU-79). En un
+ejercicio de peso corporal o con banda (`load:false`) la regla de siempre se quedaba en el tope
+del rango para siempre («La vez pasada 12: hoy 12 con el mismo peso») y, con 16 hechas, proponía
+volver a 12. El `test.skip` que lo fijaba pasa a prueba normal.
+
+- **Regla (fila 7c, tras la regla del objetivo):** las reps de la primera serie mandan. Por debajo
+  del mínimo, el mínimo («La vez pasada 3: hoy 8»); dentro del rango +1 (con reserva 3+ en la
+  primera, +2 sin pasar del tope, HU-13); con el rango lleno +1
+  hasta tope+2; en tope+2 o más, esas mismas reps con `masDificil` y «Ya haces 14: hazlo más
+  difícil, más lento o con la variante más exigente» (salud: «mantenerlo es un logro. Para más,
+  hazlo más lento o más exigente», también con `mantiene`). En el tope con series de menos,
+  `mantiene` y «hoy completa las N series antes de ir a más»: ni `masDificil` ni la regla del
+  objetivo, que exige la sesión entera.
+- **Salud en tope+2 o por encima:** la regla del objetivo (fila 6) no retiene la primera sesión
+  llena sin carga que llega ahí de golpe (2×10 y luego 2×14; o 2×15 la primera vez que se hace):
+  su «Rango completo con 14 repeticiones: mantenerlo es un logro, repítelo» no proponía hacerlo
+  más difícil y el criterio 2 no se cumplía durante esa sesión. Ahora recibe ya el techo de 7c. En
+  tope+1 o en el tope, la regla del objetivo de siempre. En masa no cambia nada: ahí la regla del
+  objetivo sale a la primera.
+- **Decisión de producto:** progresar en reps hasta tope+2, como la doble progresión de HU-07, y
+  desde ahí mantener y proponer hacerlo más difícil (más lento, o la variante más exigente que trae
+  la indicación de cada ejercicio, sin nombrarla en el porqué), en vez de sumar reps sin fin. Nunca
+  se propone menos que la última vez sin una regla propia: solo el parón baja (al mínimo del
+  rango); molestia, reserva 0-1 en salud y regla del objetivo repiten, y dos fallos piden el mínimo.
+- **Calentamientos y «no las repeticiones», en el tope:** el porqué contradecía la indicación del
+  propio ejercicio, que se ve en la misma pantalla. Los calentamientos sin carga del gimnasio
+  (flexiones inclinadas, sentadilla al aire, colgado escapular: «No busques fallar», «Busca rango,
+  no cansancio») subían a tope+2 y recibían «hazlo más difícil», y la extensión de cuello («Sube la
+  presión de las manos, no las repeticiones») recibía «hoy 13». Ahora suben +1 hasta el tope, como
+  en v36, y ahí `mantiene`: «Ya haces 12: es calentamiento, mantenlas sin buscar cansancio» o
+  «Ya haces 12: mantén esas repeticiones y sigue la indicación». Calentamiento es lo de las listas
+  `warm` de las rutinas (`warmIds`, lo mismo que dejan fuera `stalled` y `overloadIndex`); lo
+  demás se marca a mano con `sinPasarTope:true` en `EX` (hoy solo `cuello_extension_manual`), no se
+  lee del texto. **Decisión a revisar:** con más del tope hecho por su cuenta (14 en un calentamiento
+  de tope 12) se mantiene lo hecho y no se vuelve al tope como en v36, porque el criterio 1 no deja
+  bajar sin una regla propia. Las flexiones («Calentamiento suave, sin llegar al fallo. Si sustituye
+  al press: 4 series duras con pies elevados») no se marcan: solo salen como cambio de un principal
+  (press, flexiones en la pared), donde manda la segunda frase.
+- **El porqué nunca habla de peso sin carga:** la molestia dice «mismas repeticiones y sin forzar»;
+  las demás ramas del sprint ya tenían su texto sin peso. Con carga, también a 0 kg, cada texto de
+  antes se queda igual (la no regresión es exacta).
+- **`suggestLoad` sin ramas muertas:** fuera `if(loaded&&todas)` («Completaste las N series: toca
+  subir…») e `if(loaded)` («Mismo peso que la vez pasada…»), con las variables que solo usaban
+  ellas: con historial y carga declarada, con o sin peso, ya respondía `todayTarget`. Su respaldo
+  («La vez pasada llegaste a N: prueba con N+1») queda para lo que no declara carga (wall_angels).
+- **Lo que no cambia:** todo lo que lleva carga. En la referencia de v36 cambian, a propósito y
+  todos sin carga, cuatro objetivos de `madre` en masa (flexiones en la pared en dos rutinas,
+  abducción y remo con banda: 12 → 13) y dos de `madre` en salud (abducción y remo con banda, con
+  dos sesiones en 12; las flexiones en la pared, con una, siguen en la regla del objetivo); nada
+  de `dueno`. Un barrido diferencial de 60 000 casos aleatorios contra la punta de HU-13 (pesos,
+  reps, reservas, molestias, parones, vistos, lista, `rp_inc`, dosis propias, masa y salud) sale
+  idéntico en `todayTarget`, `suggestLoad` y `stalled` en todo lo que no es `load:false`, también
+  repetido tras los arreglos de la revisión (otros 60 000, dos generadores); frente a la versión
+  revisada solo cambian, sin carga, los cuatro que se quedan en el tope y el techo de salud. Sin
+  claves nuevas ni cambios en la forma de los datos: `sinPasarTope` vive en `EX`, en el código.
+- **Pruebas** en `tests/pruebas_logica.js`, escenario «ejercicios sin carga (HU-79)»: la cadena
+  siguiendo la app en masa (10 → 14 y ahí se queda), sin objetivo, en salud (con el logro de la
+  primera llena, y el techo directo si la primera llena llega en tope+2 o por encima) y en el
+  rango [6,10]; los calentamientos y la extensión de cuello, que se quedan en el tope (también con
+  más hecho por su cuenta, en masa y en salud) y un barrido de todos los sin carga de las rutinas
+  contra su indicación (ninguno fijo recibe «más difícil» ni pasa del tope, todos los demás llegan
+  al techo, y toda indicación que pide no forzar está marcada); 16 y 20 se quedan; una última serie más corta; reserva 3+
+  dentro y fuera del rango; por debajo del mínimo, el mínimo (2×3 da 8: quitar el `Math.max` del
+  mínimo la rompe); series de menos en el tope; un barrido de más de 3000 casos (reps 1-25,
+  cada rama, masa y salud) en el que nada baja sin parón; el porqué de todos los ejercicios sin
+  carga de todas las rutinas (lista, calentamiento, secundario, extras y cambios) por cada rama, y
+  de los que llevan carga a 0 kg por las ramas nuevas, sin «peso», «kg» ni «pesad…»; `suggestLoad`
+  igual que `todayTarget` con historial; los cambios de la referencia, solo sin carga; datos de v36
+  con reps como texto; los porqués del peor caso en 80 caracteres (también los del tope fijo).
 
 ### Cerrado en v36
 
