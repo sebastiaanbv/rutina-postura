@@ -266,8 +266,11 @@
   const conMejor=w=>semanas(w.racha)+(w.mejor?" · mejor "+w.mejor:"");
   /* «Mejor racha: M semanas · N sesiones en total», o solo el total si M es 0 */
   const pieFin=(w,total)=>(w.mejor?"Mejor racha: "+w.mejor+" "+(w.mejor===1?"semana":"semanas")+" · ":"")+sesiones(total)+" en total";
-  /* lunes de esta semana a medianoche local */
-  const lunes=()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d;};
+  /* lunes de esta semana a medianoche local. Primero el dia y despues la
+     hora: con setHours(0) antes, un dia sin medianoche (el cambio de hora de
+     Santiago de Chile, el 6 de septiembre de 2026) quedaba a la 01:00 y
+     setDate llevaba esa hora al lunes, dejando fuera su primera hora */
+  const lunes=()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));d.setHours(0,0,0,0);return d;};
   /* el bloque que sigue a un titulo de Progreso */
   const bloque=(app,titulo)=>{const g=app.$$("#progBody .grouptitle").find(x=>x.textContent.trim()===titulo);
     return g?g.nextElementSibling.textContent.replace(/\s+/g," ").trim():"";};

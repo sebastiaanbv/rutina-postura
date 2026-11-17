@@ -230,7 +230,7 @@
       expect(app.w.location.hash).toBe("");
       expect(app.w.history.state).toEqual({v:"home"});});
     test("sesion guardada de una rutina que ya no existe: Inicio y no se toca",async app=>{
-      const sesion={v:1,key:"no_existe",date:F.fecha(0),startedAt:Date.now()-60000,lastAt:Date.now(),stepi:3,src:"guided",log:{}};
+      const sesion={v:1,key:"no_existe",date:F.fecha(0),startedAt:F.inicio(1),lastAt:Date.now(),stepi:3,src:"guided",log:{}};
       await app.arrancar({__crudo:Object.assign(app.foto(),{rp_session:JSON.stringify(sesion)})},"#retomar");
       expect(app.activa()).toBe("home");
       expect(app.leer("rp_session")).toEqual(sesion);});

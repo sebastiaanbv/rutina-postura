@@ -508,8 +508,17 @@ Fitbod (aporta poco con PPL 3×), insignias y logros.
 ### Cerrado en v37
 
 Sprint 2, «Progresión inteligente»: la propuesta de cada ejercicio (`todayTarget`) lee el objetivo,
-la reserva, los parones y las sesiones flojas. Las cinco historias tocan la misma función y entran
-en cadena; cada una con su entrada.
+la reserva, los parones y las sesiones flojas. Son siete historias: cinco tocan esa misma función y
+entran en cadena (HU-16, HU-15, HU-14, HU-13 y HU-79); HU-58 pregunta el objetivo y el material la
+primera vez, y HU-17 mide en repeticiones lo que va sin peso. Cada una con su entrada; los arreglos
+de la revisión cruzada van dentro de la de la historia que tocan.
+Fuera de la app: «Racha única · objetivo salud con postura» (HU-11) fallaba el día sin medianoche
+de Santiago de Chile (6 de septiembre de 2026). La causa estaba en la prueba: su `lunes()` ponía la
+hora a 00:00 antes de mover el día, ese día la hora quedaba en la 01:00 y el lunes perdía su primera
+hora. Ahora mueve el día y después la hora; lo mismo en `pruebas_datos.js`, y lo que restaba días
+en milisegundos (n × 864e5, que un cambio de hora en medio mueve una hora) cuenta días de
+calendario. Comprobado con el reloj adelantado a ese día y a otros con cambio de hora. La regla, en
+`tests/README.md`.
 
 El objetivo «Salud» progresa más despacio y celebra mantener (HU-16). Con el rango lleno, la
 propuesta era la misma en los dos objetivos: la madre, con 1-3 kg, estiraba a 14 o cogía la

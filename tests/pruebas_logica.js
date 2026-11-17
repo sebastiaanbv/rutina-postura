@@ -2079,9 +2079,12 @@
   /* datos de v35 tras un paron: las sesiones y molestias de los juegos, un
      mes atras. Nada se rompe, nada se escribe y no hay claves nuevas */
   const unMesAtras=fx=>()=>{const D=fx(),atras=f=>{const d=new Date(f+"T12:00:00");d.setDate(d.getDate()-30);
-      return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
-    Object.keys(D.rp_logs||{}).forEach(id=>D.rp_logs[id].forEach(r=>{r.date=atras(r.date);if(r.t)r.t-=30*864e5;
-      (r.sets||[]).forEach(s=>{if(s.t)s.t-=30*864e5;});}));
+      return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");},
+    /* los instantes, 30 dias de calendario como las fechas: 30×24 h se van
+       una hora si en medio hay un cambio de hora */
+    atrasT=t=>{const d=new Date(t);d.setDate(d.getDate()-30);return d.getTime();};
+    Object.keys(D.rp_logs||{}).forEach(id=>D.rp_logs[id].forEach(r=>{r.date=atras(r.date);if(r.t)r.t=atrasT(r.t);
+      (r.sets||[]).forEach(s=>{if(s.t)s.t=atrasT(s.t);});}));
     Object.keys(D.rp_pain||{}).forEach(id=>{D.rp_pain[id]=D.rp_pain[id].map(atras);});
     return D;};
   [["gimnasio",F.dueno],["casa",F.madre]].forEach(([nombre,fx])=>{
