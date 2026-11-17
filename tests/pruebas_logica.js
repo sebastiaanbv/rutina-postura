@@ -1700,7 +1700,8 @@
       /* un registro con reserva por serie: series = [[w,reps,rir?]] (rir null: sin anotar) */
       regR=(n,k,series)=>{const r=reg(n,k,series);r.sets.forEach((s,i)=>{if(series[i][2]!=null)s.rir=series[i][2];});return r;},
       mas=(r1,r,sobra)=>({w:0,reps:r,why:"La vez pasada "+r1+(sobra?" con reserva 3+":"")+": hoy "+r}),
-      dificil=(r,salud)=>({w:0,reps:r,masDificil:true,why:"Ya haces "+r+": "+(salud
+      /* en salud el techo tambien se dice como logro y se marca mantiene */
+      dificil=(r,salud)=>({w:0,reps:r,masDificil:true,mantiene:salud?true:undefined,why:"Ya haces "+r+": "+(salud
         ?"mantenerlo es un logro. Para más, hazlo más lento o más exigente"
         :"hazlo más difícil, más lento o con la variante más exigente")}),
       completa=(r,n)=>({w:0,reps:r,mantiene:true,why:"Ya haces "+r+": hoy completa las "+n+" series antes de ir a más"}),
@@ -1740,16 +1741,26 @@
       /* otro rango ([12,20]) y otra rutina: el techo es 22 */
       expect(app.w.repRange(SA)).toEqual([12,20]);
       expect(siguiendo(app,"masa",SA,GP,19,5)).toEqual([mas(19,20),mas(20,21),mas(21,22),dificil(22),dificil(22)]);});
-    test("criterio 2 (salud): la primera vez en el tope se mantiene (HU-16), luego +1 hasta tope+2 y ahi un logro que propone hacerlo mas dificil",app=>{
+    test("criterio 2 (salud): la primera vez en el tope se mantiene (HU-16), luego +1 hasta tope+2 y ahi un logro que propone hacerlo mas dificil, tambien si llega de golpe",app=>{
       expect(siguiendo(app,"salud",FP,FA,11,7)).toEqual([mas(11,12),logro(12),mas(12,13),mas(13,14),dificil(14,true),dificil(14,true),dificil(14,true)]);
-      /* de golpe por encima de tope+2: la primera sesion llena se mantiene con el
-         logro de la regla del objetivo (salud sale del rango a la segunda), y a
-         la siguiente, el techo; las reps nunca bajan de lo hecho */
+      /* de golpe en tope+2 o por encima, la primera sesion llena ya es el techo:
+         no se queda en la regla del objetivo (su «repítelo» no propone hacerlo
+         mas dificil). Tras 2x10 una de 2x14 o 2x16, y la primera sesion de un
+         ejercicio nuevo (2x15 el primer dia); a la siguiente, igual. En tope+1,
+         la regla del objetivo de siempre. Las reps nunca bajan de lo hecho */
       const n=app.w.dose(FA,FP).sets;
-      limpio(app,con("salud",{[FP]:[reg(9,FA,veces(n,0,10)),reg(2,FA,veces(n,0,16))]}));
-      expect(tt(app,FP,FA)).toEqual(logro(16));
+      [14,16].forEach(r=>{limpio(app,con("salud",{[FP]:[reg(9,FA,veces(n,0,10)),reg(2,FA,veces(n,0,r))]}));
+        expect(tt(app,FP,FA)).toEqual(dificil(r,true));});
+      limpio(app,con("salud",{[FP]:[reg(2,FA,veces(n,0,15))]}));
+      expect(tt(app,FP,FA)).toEqual(dificil(15,true));
+      expect(sug(app,FP,FA)).toEqual({w:0,reps:15,why:dificil(15,true).why});
       limpio(app,con("salud",{[FP]:[reg(9,FA,veces(n,0,16)),reg(2,FA,veces(n,0,16))]}));
-      expect(tt(app,FP,FA)).toEqual(dificil(16,true));});
+      expect(tt(app,FP,FA)).toEqual(dificil(16,true));
+      limpio(app,con("salud",{[FP]:[reg(9,FA,veces(n,0,10)),reg(2,FA,veces(n,0,13))]}));
+      expect(tt(app,FP,FA)).toEqual(logro(13));
+      /* en masa ya era asi (la regla del objetivo sale a la primera) */
+      limpio(app,con("masa",{[FP]:[reg(2,FA,veces(n,0,15))]}));
+      expect(tt(app,FP,FA)).toEqual(dificil(15));});
     test("criterio 2: en el tope con series de menos, repite las reps y pide completarlas; ni mas dificil ni la regla del objetivo",app=>{
       expect(app.w.dose(FA,FP).sets).toBe(2);
       expect(app.w.dose(GT,RI).sets).toBe(3);

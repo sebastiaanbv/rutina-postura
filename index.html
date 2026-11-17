@@ -4543,9 +4543,11 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
   /* 6 · regla del objetivo (HU-16): con el rango lleno, salir de el (estirar
      o subir) pide R.llenasParaSalir sesiones seguidas llenas al mismo peso.
      En masa es una, como siempre; en salud dos, y la primera se mantiene y se
-     dice como un logro. Con menos sesiones que N tambien se mantiene */
+     dice como un logro. Con menos sesiones que N tambien se mantiene. Sin
+     carga en tope+2 o mas (HU-79) no se queda aqui: su «repítelo» no propone
+     hacerlo mas dificil, y el techo de 7c ya mantiene esas reps como un logro */
   const N=R.llenasParaSalir;
-  if(rangoLleno(e,rng,d,ll,w0)&&!(ult.length>=N&&ult.slice(0,N).every(r=>rangoLleno(e,rng,d,r,w0))))
+  if(!(e.load===false&&r1>=rng[1]+2)&&rangoLleno(e,rng,d,ll,w0)&&!(ult.length>=N&&ult.slice(0,N).every(r=>rangoLleno(e,rng,d,r,w0))))
     return {w:w0,reps:r1,mantiene:true,
       why:"Rango completo con "+(e.load!==true||w0<=0?r1+" repeticiones":fmtW(w0)+" kg × "+r1)+": mantenerlo es un logro, repítelo"};
   /* 7c · sin carga (HU-79): la progresion va por las reps de la primera serie
@@ -4557,9 +4559,9 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
      todas las series, primero completarlas. El porque nunca habla de peso */
   if(e.load===false){const t=rng[1],ya="Ya haces "+r1+": ";
     if(r1>=t&&!completo)return {w:0,reps:r1,mantiene:true,why:ya+"hoy completa las "+d.sets+" series antes de ir a más"};
-    if(r1>=t+2)return {w:0,reps:r1,masDificil:true,why:ya+(R.objetivo==="salud"
-      ?"mantenerlo es un logro. Para más, hazlo más lento o más exigente"
-      :"hazlo más difícil, más lento o con la variante más exigente")};
+    if(r1>=t+2)return R.objetivo==="salud"
+      ?{w:0,reps:r1,mantiene:true,masDificil:true,why:ya+"mantenerlo es un logro. Para más, hazlo más lento o más exigente"}
+      :{w:0,reps:r1,masDificil:true,why:ya+"hazlo más difícil, más lento o con la variante más exigente"};
     const mas=sobra&&r1<t,o=Math.min(r1<t?t:t+2,Math.max(rng[0],(r1||rng[0])+(mas?R.repsSobra:1)));
     return {w:0,reps:o,why:"La vez pasada "+r1+(mas?" con reserva 3+":"")+": hoy "+o};}
   /* 7 · la progresion doble de siempre, con carga */
