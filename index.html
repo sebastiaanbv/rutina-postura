@@ -1574,6 +1574,9 @@ sentadilla_smith:"smith-machine-squat",
 vuelos_posteriores_ligeros:"bent-over-rear-delt-raise",zancada_estatica:"split-squat",
 zancadas_db:"walking-lunge"};
 
+/* sinPasarTope (HU-79): un ejercicio sin carga cuya indicacion pide no subir
+   repeticiones; como los calentamientos, su propuesta no pasa del tope del
+   rango ni propone hacerlo mas dificil (todayTarget, fila 7c) */
 const EX={
 abduccion_banda:{name:"Abducción de cadera con banda",tag:"carga",type:"reps_side",sets:2,reps:12,rest:30,load:false,unit:"kg",coach:"Tronco quieto: si te inclinas, la banda es demasiado dura.",
   steps:["De pie, banda alrededor de los tobillos y una mano en la pared.","Lleva una pierna al lado sin girar la cadera ni doblar la rodilla.","Vuelve despacio sin dejar que el pie descanse. Cambia de lado."]},
@@ -1607,7 +1610,7 @@ colgado_escapular:{name:"Colgado con retracción escapular",tag:"carga",type:"re
   steps:["Cuélgate de la barra con agarre prono al ancho de hombros y los brazos extendidos.","Sin doblar los codos, hunde los hombros bajando las escápulas y elevando el pecho.","Mantén 2 segundos y suelta lento hasta quedar colgado relajado."]},
 cruce_poleas:{name:"Cruce de poleas de abajo hacia arriba",tag:"carga",type:"reps",sets:3,reps:12,rest:60,load:true,unit:"kg",coach:"Sube las manos hasta la altura de los ojos y júntalas como si abrazaras a alguien, con los hombros abajo. Si no hay dos poleas libres, hazlo a un brazo por vez en una sola: mismo vector y más rango.",
   steps:["Pon las dos poleas en la posición más baja, toma un agarre en cada mano y da un paso al frente con el torso algo inclinado y los codos apenas flexionados.","Lleva las manos hacia arriba y hacia el centro en diagonal, hasta juntarlas frente al rostro, y aprieta el pecho un segundo.","Regresa controlado por la misma diagonal hasta sentir el estiramiento, sin dejar que los hombros roten hacia adelante."]},
-cuello_extension_manual:{name:"Extensión cervical con resistencia manual",tag:"diario",type:"reps",sets:2,reps:10,rest:30,load:false,unit:"kg",coach:"Extensores y esplenio: es lo que da grosor a la parte de atrás del cuello. Sube la presión de las manos, no las repeticiones.",
+cuello_extension_manual:{name:"Extensión cervical con resistencia manual",tag:"diario",type:"reps",sets:2,reps:10,rest:30,load:false,unit:"kg",sinPasarTope:true,coach:"Extensores y esplenio: es lo que da grosor a la parte de atrás del cuello. Sube la presión de las manos, no las repeticiones.",
   steps:["Sentado erguido, entrelaza las manos detrás de la cabeza (sobre el hueso occipital), codos abiertos.","Empuja la cabeza hacia atrás contra las manos y deja que ellas cedan lento hasta mirar ligeramente arriba.","Vuelve al inicio resistiendo con las manos durante 3 s. Fuerza media, respira, nunca hasta el dolor."]},
 cuello_flexion_supina:{name:"Flexión cervical tumbado",tag:"diario",type:"reps",sets:2,reps:12,rest:40,load:false,unit:"kg",coach:"Flexores profundos + esternocleidomastoideo (el músculo que marca el frente del cuello). Semana 1–2 empieza con 8 reps si aparece temblor.",
   steps:["Boca arriba en la esterilla, rodillas flexionadas, hombros y lumbar pegados al suelo.","Primero mete la barbilla (doble papada) y solo entonces despega la cabeza 3–4 cm, sin sacar el mentón al frente.","Aguanta 1–2 s arriba y baja en 3 s sin llegar a apoyar del todo. Si la mandíbula se aprieta o tiembla, corta la serie."]},
@@ -4462,7 +4465,8 @@ function rirMin(rec){let m=null;((rec&&rec.sets)||[]).forEach(s=>{const r=rirDe(
    (2' molestia tras un paron, HU-15) · 3 paron (HU-15) · 4' dos fallos con
    molestia en la penultima · 4 dos fallos (HU-14) · 5 freno por reserva
    (HU-13) · 6 regla del objetivo (HU-16) · 7c sin carga, por reps hasta
-   tope+2 y luego mas dificil (HU-79) · 7 la progresion doble de siempre,
+   tope+2 y luego mas dificil; los calentamientos y lo marcado sinPasarTope,
+   solo hasta el tope (HU-79) · 7 la progresion doble de siempre,
    con la reserva como modificador (HU-13: (a) al fallo sube, (b) 3+ pide +2) */
 function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)return null;
   const R=reglaObjetivo(),logs=loadLogs(),rng=repRange(id),d=dose(k,id),
@@ -4556,9 +4560,16 @@ function todayTarget(k,id){const e=EX[id]||{};if(e.load!==true&&e.load!==false)r
      con reserva 3+, sin pasar del tope); con el rango lleno +1 hasta tope+2; y
      en tope+2 o mas se mantienen esas reps y se propone hacerlo mas dificil
      (mas lento o la variante mas exigente de su indicacion). En el tope sin
-     todas las series, primero completarlas. El porque nunca habla de peso */
-  if(e.load===false){const t=rng[1],ya="Ya haces "+r1+": ";
-    if(r1>=t&&!completo)return {w:0,reps:r1,mantiene:true,why:ya+"hoy completa las "+d.sets+" series antes de ir a más"};
+     todas las series, primero completarlas. El porque nunca habla de peso.
+     Los calentamientos (las listas warm de las rutinas, como en stalled) y
+     lo marcado sinPasarTope en EX no pasan del tope ni reciben «mas dificil»,
+     que contradiria su indicacion («No busques fallar», «no las
+     repeticiones»): suben hasta el tope, como en v36, y ahi (o por encima, si
+     lo hicieron por su cuenta) se mantiene lo hecho, sin bajar */
+  if(e.load===false){const t=rng[1],ya="Ya haces "+r1+": ",calent=!!warmIds()[id],fijo=calent||!!e.sinPasarTope;
+    if(r1>=t&&!completo)return {w:0,reps:r1,mantiene:true,why:ya+"hoy completa las "+d.sets+" series"+(fijo?"":" antes de ir a más")};
+    if(fijo&&r1>=t)return {w:0,reps:r1,mantiene:true,
+      why:ya+(calent?"es calentamiento, mantenlas sin buscar cansancio":"mantén esas repeticiones y sigue la indicación")};
     if(r1>=t+2)return R.objetivo==="salud"
       ?{w:0,reps:r1,mantiene:true,masDificil:true,why:ya+"mantenerlo es un logro. Para más, hazlo más lento o más exigente"}
       :{w:0,reps:r1,masDificil:true,why:ya+"hazlo más difícil, más lento o con la variante más exigente"};
